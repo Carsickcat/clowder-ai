@@ -95,11 +95,11 @@ describe('PwaInstallPrompt', () => {
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
   });
 
-  async function renderHarness() {
+  async function renderHarness({ hasMobileNav = false }: { hasMobileNav?: boolean } = {}) {
     await act(async () => {
       root.render(
         <PwaInstallExperienceProvider>
-          <Harness />
+          <Harness hasMobileNav={hasMobileNav} />
         </PwaInstallExperienceProvider>,
       );
       await Promise.resolve();
@@ -136,6 +136,17 @@ describe('PwaInstallPrompt', () => {
     await renderHarness();
 
     expect(container.querySelector('[data-testid="pwa-install-banner"]')?.className).toContain('z-[29]');
+  });
+
+  it('hides the contextual banner from chat chrome while keeping the install guide available', async () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1',
+    );
+    await renderHarness({ hasMobileNav: true });
+
+    expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+    act(() => (container.querySelector('[data-testid="open-install-guide"]') as HTMLButtonElement).click());
+    expect(container.querySelector('[data-testid="pwa-install-sheet"]')).not.toBeNull();
   });
 
   it('reports an unavailable manifest instead of offering manual iOS installation', async () => {

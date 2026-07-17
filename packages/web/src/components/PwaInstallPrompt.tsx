@@ -63,7 +63,7 @@ export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: bool
     initialFocusRef: closeButtonRef,
   });
   const manualSteps = useMemo(() => getManualSteps(facts.platform), [facts.platform]);
-  const showBanner = installability.bannerEligible && !isBannerDismissed;
+  const showBanner = installability.bannerEligible && !isBannerDismissed && !hasMobileNav;
   const primaryLabel =
     installability.primaryAction === 'native'
       ? '立即安装'
@@ -81,9 +81,7 @@ export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: bool
           style={{
             left: 'calc(env(safe-area-inset-left) + 0.75rem)',
             right: 'calc(env(safe-area-inset-right) + 0.75rem)',
-            bottom: hasMobileNav
-              ? 'calc(var(--mobile-keyboard-inset, 0px) + 4rem + env(safe-area-inset-bottom) + 0.75rem)'
-              : 'calc(var(--mobile-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 0.75rem)',
+            bottom: 'calc(var(--mobile-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 0.75rem)',
           }}
           data-testid="pwa-install-banner"
         >
