@@ -1,8 +1,11 @@
 # F010 Mobile PWA — code quality gate evidence
 
-Date: 2026-07-17  
-Source of truth: `docs/design/F010-mobile-pwa-standard.md`  
-Implementation plan: `feature-specs/2026-07-17-f010-mobile-pwa.md`  
+Date: 2026-07-17
+
+Source of truth: `docs/design/F010-mobile-pwa-standard.md`
+
+Implementation plan: `feature-specs/2026-07-17-f010-mobile-pwa.md`
+
 Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..0f198d8`)
 
 ## Verdict

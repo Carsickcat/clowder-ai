@@ -1,9 +1,13 @@
 # F010 Mobile PWA A0–A3 code review request
 
-Author: 宪宪 (`sonnet`, gpt-5.6-sol)  
-Branch: `feat/f010-mobile-pwa`  
-Diff: `461c5e3..HEAD`  
-Truth source: `docs/design/F010-mobile-pwa-standard.md`  
+Author: 宪宪 (`sonnet`, gpt-5.6-sol)
+
+Branch: `feat/f010-mobile-pwa`
+
+Diff: `461c5e3..HEAD`
+
+Truth source: `docs/design/F010-mobile-pwa-standard.md`
+
 Quality evidence: `project-evidence/f010-mobile-pwa/README.md`
 
 ## What changed
