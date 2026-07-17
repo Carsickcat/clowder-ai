@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { GLOBAL_NAVIGATION_ITEMS, resolveGlobalNavTarget } from './global-navigation';
+import { usePwaInstallExperience } from './pwa/PwaInstallExperienceProvider';
 import { ThreadSidebar } from './ThreadSidebar';
 
 interface MobileGlobalNavDrawerProps {
@@ -17,6 +18,7 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
   const router = useRouter();
   const searchParams = useSearchParams();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const { facts: pwaFacts, openGuide: openInstallGuide } = usePwaInstallExperience();
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +48,10 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
 
   const globalModules = GLOBAL_NAVIGATION_ITEMS.filter((item) => GLOBAL_MODULE_IDS.has(item.id));
   const settings = GLOBAL_NAVIGATION_ITEMS.find((item) => item.id === 'settings');
+  const showInstallGuide = () => {
+    onClose();
+    openInstallGuide();
+  };
 
   return (
     <div
@@ -114,8 +120,16 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
           </div>
         </nav>
 
-        {settings && (
-          <div className="shrink-0 border-t border-cafe p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-cafe p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            data-testid="mobile-pwa-install-entry"
+            className="flex min-h-11 w-full items-center rounded-lg px-3 text-sm text-cafe-secondary transition-colors hover:bg-cafe-surface-sunken"
+            onClick={showInstallGuide}
+          >
+            {pwaFacts.isStandalone ? '应用与更新诊断' : '安装 Clowder AI'}
+          </button>
+          {settings && (
             <button
               type="button"
               className={`flex min-h-11 w-full items-center rounded-lg px-3 text-sm transition-colors ${
@@ -128,8 +142,8 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
             >
               {settings.drawerLabel}
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </aside>
     </div>
   );

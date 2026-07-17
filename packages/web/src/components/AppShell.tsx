@@ -10,6 +10,7 @@ import { ActivityBar } from './ActivityBar';
 import { ConciergeHost } from './concierge/ConciergeHost';
 import { MobileGlobalNavDrawer } from './MobileGlobalNavDrawer';
 import { PwaInstallPrompt } from './PwaInstallPrompt';
+import { PwaInstallExperienceProvider } from './pwa/PwaInstallExperienceProvider';
 import { ThreadSidebar } from './ThreadSidebar';
 import { FloatingPresentationSurfaceHost } from './workspace/FloatingPresentationSurfaceHost';
 import { ResizeHandle } from './workspace/ResizeHandle';
@@ -54,7 +55,8 @@ function AppShellContent({ children }: AppShellProps) {
   const isChatRoute = pathname === '/' || pathname.startsWith('/thread/');
 
   return (
-    <div className="console-shell app-viewport safe-area-inline flex overflow-hidden overscroll-none">
+    <PwaInstallExperienceProvider>
+      <div className="console-shell app-viewport safe-area-inline flex overflow-hidden overscroll-none">
       {!isChatRoute && !isOpen && (
         <button
           type="button"
@@ -105,6 +107,7 @@ function AppShellContent({ children }: AppShellProps) {
           z-30 (ball) < z-[35] (presentation surface). */}
       <ConciergeHost />
       {/* F246 Phase C: Approval Hub moved to workspace panel tab — drawer removed */}
-    </div>
+      </div>
+    </PwaInstallExperienceProvider>
   );
 }

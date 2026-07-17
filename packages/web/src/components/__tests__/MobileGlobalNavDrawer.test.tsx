@@ -2,7 +2,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+const { openInstallGuide, push } = vi.hoisted(() => ({ openInstallGuide: vi.fn(), push: vi.fn() }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/thread/thread-1',
@@ -16,6 +16,13 @@ vi.mock('../ThreadSidebar', () => ({
       Thread one
     </button>
   ),
+}));
+
+vi.mock('../pwa/PwaInstallExperienceProvider', () => ({
+  usePwaInstallExperience: () => ({
+    facts: { isStandalone: false },
+    openGuide: openInstallGuide,
+  }),
 }));
 
 import { MobileGlobalNavDrawer } from '../MobileGlobalNavDrawer';
@@ -32,6 +39,7 @@ describe('MobileGlobalNavDrawer', () => {
     root = createRoot(container);
     onClose = vi.fn();
     push.mockReset();
+    openInstallGuide.mockReset();
   });
 
   afterEach(() => {
@@ -84,5 +92,13 @@ describe('MobileGlobalNavDrawer', () => {
   it('does not mount an overlay while closed', () => {
     renderDrawer(false);
     expect(container.querySelector('[data-testid="mobile-global-nav-drawer"]')).toBeNull();
+  });
+
+  it('keeps install guidance available even when the contextual banner is absent', () => {
+    renderDrawer();
+    const installButton = container.querySelector('[data-testid="mobile-pwa-install-entry"]') as HTMLButtonElement;
+    expect(installButton).not.toBeNull();
+    act(() => installButton.click());
+    expect(openInstallGuide).toHaveBeenCalledTimes(1);
   });
 });
