@@ -17,7 +17,7 @@ import { randomUUID } from 'node:crypto';
 import { type CatId, type CatRoutingError, catRegistry, type MessageContent } from '@cat-cafe/shared';
 import type { SessionStore } from '@cat-cafe/shared/utils';
 import multipart from '@fastify/multipart';
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { getDefaultCatId } from '../config/cat-config-loader.js';
 import { resolveFrontendBaseUrl } from '../config/frontend-origin.js';
@@ -58,7 +58,10 @@ import { getPushNotificationService } from '../domains/cats/services/push/PushNo
 import type { DeliveryCursorStore } from '../domains/cats/services/stores/ports/DeliveryCursorStore.js';
 import type { IDraftStore } from '../domains/cats/services/stores/ports/DraftStore.js';
 import type { IGameStore } from '../domains/cats/services/stores/ports/GameStore.js';
-import type { IInvocationRecordStore } from '../domains/cats/services/stores/ports/InvocationRecordStore.js';
+import type {
+  IInvocationRecordStore,
+  InvocationRecord,
+} from '../domains/cats/services/stores/ports/InvocationRecordStore.js';
 import type { IMessageStore } from '../domains/cats/services/stores/ports/MessageStore.js';
 import { isDelivered } from '../domains/cats/services/stores/ports/MessageStore.js';
 import type { ISummaryStore } from '../domains/cats/services/stores/ports/SummaryStore.js';
@@ -284,6 +287,37 @@ function tryAutoCancelPendingHolds(threadId: string, deps: HoldBallCancelDeps | 
   }
 }
 
+function replyForExistingInvocation(reply: FastifyReply, record: InvocationRecord) {
+  if (record.userMessageId) {
+    reply.status(200);
+    return {
+      status: 'acknowledged',
+      invocationId: record.id,
+      userMessageId: record.userMessageId,
+    };
+  }
+  if (record.status === 'queued' || record.status === 'running') {
+    reply.status(202);
+    return { status: 'confirming', invocationId: record.id };
+  }
+  if (record.status === 'failed' || record.status === 'canceled') {
+    reply.status(409);
+    return {
+      status: 'failed',
+      invocationId: record.id,
+      code: 'MESSAGE_NOT_DURABLE',
+      detail: record.error ?? 'The original request did not create a durable message.',
+      retryWithNewIdempotencyKey: true,
+    };
+  }
+  reply.status(500);
+  return {
+    status: 'invariant_violation',
+    invocationId: record.id,
+    code: 'INVOCATION_MESSAGE_MISSING',
+  };
+}
+
 async function persistA2ARoutingMessage(
   messageStore: IMessageStore,
   msg: { catId?: string; content?: string; invocationId?: string; targetCatId?: string; timestamp: number },
@@ -445,6 +479,10 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
 
     // Default to 'default' thread for lobby (prevents global broadcast)
     const resolvedThreadId = threadId ?? 'default';
+    // Resolve before any dispatch branch. Client-provided keys can already own
+    // an InvocationRecord even when current activity would now auto-route the
+    // retry to queue or force would otherwise preempt the accepted invocation.
+    const resolvedIdempotencyKey = idempotencyKey ?? randomUUID();
 
     // F167 L1 AC-A3: user message is a fresh turn — clear any in-flight ping-pong
     // streak on this thread's active worklist (no-op if none).
@@ -481,6 +519,15 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         detail: '请稍后重试，或新建一个对话继续',
         code: 'THREAD_DELETING',
       };
+    }
+
+    if (idempotencyKey && opts.invocationRecordStore) {
+      const existingRecord = await opts.invocationRecordStore.getByIdempotencyKey(
+        resolvedThreadId,
+        userId,
+        resolvedIdempotencyKey,
+      );
+      if (existingRecord) return replyForExistingInvocation(reply, existingRecord);
     }
 
     // #699 P1-2: Validate replyTo — must exist in same thread, not deleted, and delivered
@@ -653,9 +700,6 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         resolvedThreadId,
       );
     }
-
-    // Server-generated idempotency key if client didn't provide one
-    const resolvedIdempotencyKey = idempotencyKey ?? randomUUID();
 
     // F39+F108B: Slot-aware delivery mode routing
     // Whisper → check target cat's slot (side-dispatch to idle cat)
@@ -967,34 +1011,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
             code: 'INVOCATION_RECORD_MISSING',
           };
         }
-        if (duplicateRecord.userMessageId) {
-          reply.status(200);
-          return {
-            status: 'acknowledged',
-            invocationId: createResult.invocationId,
-            userMessageId: duplicateRecord.userMessageId,
-          };
-        }
-        if (duplicateRecord.status === 'queued' || duplicateRecord.status === 'running') {
-          reply.status(202);
-          return { status: 'confirming', invocationId: createResult.invocationId };
-        }
-        if (duplicateRecord.status === 'failed' || duplicateRecord.status === 'canceled') {
-          reply.status(409);
-          return {
-            status: 'failed',
-            invocationId: createResult.invocationId,
-            code: 'MESSAGE_NOT_DURABLE',
-            detail: duplicateRecord.error ?? 'The original request did not create a durable message.',
-            retryWithNewIdempotencyKey: true,
-          };
-        }
-        reply.status(500);
-        return {
-          status: 'invariant_violation',
-          invocationId: createResult.invocationId,
-          code: 'INVOCATION_MESSAGE_MISSING',
-        };
+        return replyForExistingInvocation(reply, duplicateRecord);
       }
 
       // Force path: still uses startAll() (preemptive — cancel already happened above)

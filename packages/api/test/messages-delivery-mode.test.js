@@ -61,6 +61,7 @@ function buildDeps(overrides = {}) {
       })),
       update: mock.fn(async () => {}),
       get: mock.fn(async () => null),
+      getByIdempotencyKey: mock.fn(async () => null),
     },
     invocationQueue,
     queueProcessor: {
@@ -78,6 +79,33 @@ function buildDeps(overrides = {}) {
     },
     ...overrides,
   };
+}
+
+function installPersistentInvocationRecordStore(deps) {
+  let record = null;
+  deps.invocationRecordStore.create.mock.mockImplementation(async (input) => {
+    if (record) return { outcome: 'duplicate', invocationId: record.id };
+    record = {
+      id: 'inv-persistent',
+      ...input,
+      status: 'running',
+      userMessageId: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    return { outcome: 'created', invocationId: record.id };
+  });
+  deps.invocationRecordStore.get.mock.mockImplementation(async (id) => (record?.id === id ? { ...record } : null));
+  deps.invocationRecordStore.getByIdempotencyKey.mock.mockImplementation(async (threadId, userId, idempotencyKey) =>
+    record?.threadId === threadId && record?.userId === userId && record?.idempotencyKey === idempotencyKey
+      ? { ...record }
+      : null,
+  );
+  deps.invocationRecordStore.update.mock.mockImplementation(async (id, update) => {
+    if (record?.id !== id) return null;
+    Object.assign(record, update, { updatedAt: Date.now() });
+    return { ...record };
+  });
 }
 
 describe('POST /api/messages deliveryMode', () => {
@@ -383,6 +411,111 @@ describe('POST /api/messages deliveryMode', () => {
     );
 
     // Queue should be empty
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0);
+  });
+
+  it('default immediate replay while active is acknowledged before auto-queue side effects', async () => {
+    installPersistentInvocationRecordStore(deps);
+    let active = false;
+    deps.invocationTracker.has.mock.mockImplementation(() => active);
+    const payload = {
+      content: 'accepted once',
+      threadId: 'thread-1',
+      idempotencyKey: '12121212-1212-4212-8212-121212121212',
+    };
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(first.statusCode, 200);
+    active = true;
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+
+    assert.equal(replay.statusCode, 200);
+    assert.equal(JSON.parse(replay.body).status, 'acknowledged');
+    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 1, 'replay must not create an invocation');
+    assert.equal(deps.messageStore.append.mock.calls.length, 1, 'replay must not append a second message');
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0, 'replay must not cross into queue');
+  });
+
+  it('force replay is acknowledged before a second cancellation', async () => {
+    installPersistentInvocationRecordStore(deps);
+    deps.invocationTracker.has.mock.mockImplementation(() => true);
+    const payload = {
+      content: 'force accepted once',
+      threadId: 'thread-1',
+      deliveryMode: 'force',
+      idempotencyKey: '13131313-1313-4313-8313-131313131313',
+    };
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(first.statusCode, 200);
+    assert.equal(deps.invocationTracker.cancelInvocation.mock.calls.length, 1);
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+
+    assert.equal(replay.statusCode, 200);
+    assert.equal(JSON.parse(replay.body).status, 'acknowledged');
+    assert.equal(
+      deps.invocationTracker.cancelInvocation.mock.calls.length,
+      1,
+      'same-key force replay must not preempt twice',
+    );
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
+  });
+
+  it('multipart immediate replay while active is acknowledged before auto-queue side effects', async () => {
+    installPersistentInvocationRecordStore(deps);
+    let active = false;
+    deps.invocationTracker.has.mock.mockImplementation(() => active);
+    const boundary = '----cat-cafe-idempotency-replay';
+    const payload = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="content"\r\n\r\nmultipart accepted once\r\n`),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="threadId"\r\n\r\nthread-1\r\n`),
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="idempotencyKey"\r\n\r\n14141414-1414-4414-8414-141414141414\r\n`,
+      ),
+      Buffer.from(`--${boundary}--\r\n`),
+    ]);
+    const request = () =>
+      app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        headers: {
+          'content-type': `multipart/form-data; boundary=${boundary}`,
+          'x-cat-cafe-user': 'user-1',
+        },
+        payload,
+      });
+
+    const first = await request();
+    assert.equal(first.statusCode, 200);
+    active = true;
+    const replay = await request();
+
+    assert.equal(replay.statusCode, 200);
+    assert.equal(JSON.parse(replay.body).status, 'acknowledged');
+    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 1);
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
     assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0);
   });
 
