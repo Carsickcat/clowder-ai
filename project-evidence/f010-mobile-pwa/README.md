@@ -6,11 +6,11 @@ Source of truth: `docs/design/F010-mobile-pwa-standard.md`
 
 Implementation plan: `feature-specs/2026-07-17-f010-mobile-pwa.md`
 
-Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; latest message-recovery repair `85d0cb1`)
+Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; latest dispatch-owner repair `b62e66f`)
 
 ## Verdict
 
-The A0–A3 code slice remains in independent code review. `7d2bca8` moved the atomic invocation claim ahead of tracker/queue/force side effects and Terra approved that implementation. Opus 4.5 then found two recovery gaps; `85d0cb1` repairs both by reconciling a durably appended message when `InvocationRecord.userMessageId` backfill fails and by restoring the exact text/image/reply composition after a deterministic HTTP rejection. Opus 4.5's re-review of `85d0cb1` is still pending. F010 is **not feature-complete**: the reporting iPhone's Chinese-IME keyboard frame and installed standalone-PWA/Tailscale HTTPS recovery journey remain operator-owned release acceptance.
+The A0–A3 code slice remains in independent code review. `7d2bca8` moved the atomic invocation claim ahead of tracker/queue/force side effects and Terra approved that implementation. `85d0cb1` repaired durable-message reconciliation and deterministic composer recovery. Opus 4.5's re-review then found that the dispatch claim still expired after five minutes and that queued replay changed its external owner identity. `b62e66f` removes the claim TTL, adds a durable message-owner fallback, and links one stable `queueEntryId` through claim, queue, message, Redis, and replay; Opus 4.5's final verdict on that repair is pending. F010 is **not feature-complete**: the reporting iPhone's Chinese-IME keyboard frame and installed standalone-PWA/Tailscale HTTPS recovery journey remain operator-owned release acceptance.
 
 ## Acceptance status
 
@@ -21,7 +21,7 @@ The A0–A3 code slice remains in independent code review. `7d2bca8` moved the a
 | AC-A2 | Code-complete, real-device pending | Installability diagnostics, runtime manifest status/content-type validation, iOS/manual and native prompt paths, WebView/secure/SW blockers, 30-day dismissal, and permanent entry are tested. Real Tailscale HTTPS install evidence remains open. |
 | AC-A3 | Code-complete | Foreground/online recovery works even without SW; new workers wait for consent; all-thread drafts/attachments and Approval Hub transient work veto activation; controllerchange reloads once; NetworkOnly business artifacts are production-built. |
 | AC-A4 | Partial | Light compact, dark medium, and light desktop browser evidence exists. iPhone/Android journeys and complete real-device parity remain open. |
-| AC-A5 | Pending review | The affected API/Web selections, lint, typecheck, production build, and prior browser dogfood pass. Terra approved the atomic-claim implementation; Opus 4.5 re-review of `85d0cb1` remains open. Repository-wide Windows baseline limitations are listed below. |
+| AC-A5 | Pending review | The dispatch-owner repair's affected API/Web, real Redis, typecheck/build, static checks, and route dogfood pass. Opus 4.5's final re-review of `b62e66f` remains open. Repository-wide Windows baseline limitations are listed below. |
 
 ## Browser viewport matrix
 
@@ -109,6 +109,7 @@ The embedded preview tool does not expose programmatic iOS keyboard control. The
 - Post-Opus 4.5 chat-surface repair (`5429913`): the banner regression was **RED** because `hasMobileNav=true` still rendered the fixed banner, then **GREEN** after chat surfaces stopped rendering it. The real `MobileGlobalNavDrawer` → install guide → Escape integration test was green before and after the repair and restores focus to the persistent menu trigger. The current F010 selection is **20 Vitest files, 98 tests passed**.
 - Post-`986049e` re-review repair: the two focused suites were **RED at 4 failed / 10 passed** on the prior implementation, then **GREEN at 14/14** after consuming the deferred prompt before its first attempt and aligning both thread create/select close paths to the shared `wide=1024` boundary. The final F010 selection is **21 Vitest files, 103 tests passed**.
 - Post-`85d0cb1` message recovery repair: API was **RED at 4 failures** (missing scoped lookup plus immediate/explicit-queue/TOCTOU backfill failures) and Web was **RED at 2 failures** (ghost optimistic bubble plus lost text/image/reply). The final focused runs are API build + **73/73** and Web **3 files / 28 tests**. Broader affected selections pass API **196/196** and Web **10 files / 67 tests**.
+- Post-`b62e66f` dispatch-owner repair: the expanded API selection was **RED at 14 failures / 182 passes**, then **GREEN at 196/196**. The final affected API roster passes **370/370**, real isolated Redis passes **64/64**, the affected Web composer/send files pass **28/28**, and Fastify route dogfood passes **3/3**.
 - Next/PWA configuration: **8/8 passed**; `skipWaiting` is explicitly false and API, Socket, and uploads remain on network truth.
 - Custom color rule test: passed.
 - Repository lint: exit 0 (existing warnings only); Web TypeScript: exit 0.
@@ -129,6 +130,15 @@ The embedded preview tool does not expose programmatic iOS keyboard control. The
 - **Fresh gate:** focused API **73/73**, focused Web **28/28**, broader affected API **196/196**, broader affected Web **67/67**, API/Web production builds, repository lint, targeted Biome, capability tips, and `git diff --check` pass. Root `pnpm check` remains red only on the untouched `SocketManager.ts` formatting baseline.
 - **Dogfood boundary:** the route regressions use the real Fastify route and the Web regression mounts the real composer. The current production build (`THC1vM_Yiu8S0k4b1b1MI`) served the exact thread route on isolated port 4312 as HTTP 200 (47,060 bytes) and opened in Hub Browser Preview; the listener was then command-line verified and stopped. No new screenshot or deterministic-rejection browser claim is fabricated for this non-visual lifecycle—the older `2852721` HTTPS build remains historical layout/PWA evidence only.
 
+## Post-review persistent dispatch ownership: `b62e66f`
+
+- **Persistent claim:** Redis and in-memory InvocationRecord idempotency mappings no longer expire after 300 seconds. In-memory eviction removes its matching index entry so durable-message recovery can take over cleanly.
+- **Durable recovery owner:** user messages persist `extra.dispatch = { ownerKind, ownerId }`; the Redis parser validates and preserves it. If a legacy record/index is absent, route preflight returns the original message and owner before tracker, queue, warning, or force side effects.
+- **Queued API identity:** explicit queue requests preassign one `queueEntryId`; TOCTOU queue degradation links one generated ID before enqueue. The same ID appears on the record, QueueEntry, durable message, `confirming`, and `queued` replay responses.
+- **Failure-mode coverage:** tests cross the former 300-second boundary, bounded-memory eviction, append/backfill failure, explicit queue and TOCTOU confirming windows, Redis hydration, and concurrent same-key requests that observe different busy states.
+- **Fresh gate:** API high-risk roster **370/370**, isolated Redis **64/64**, affected Web **28/28**, route dogfood **3/3**, targeted Biome, repository lint, capability tips, `git diff --check`, and full workspace build pass. The complete ledger, including baseline reds, is `review-notes/2026-07-18-f010-dispatch-owner-quality-gate.md`.
+- **Architecture boundary:** the universal InvocationRecord remains the atomic concurrency claim; QueueEntry is the queued API response owner. No parallel store/queue/router/adapter/dispatcher/binding or UI surface was introduced.
+
 ## Re-review repair: `986049e`
 
 - **Single-use install prompt:** `PwaInstallExperienceProvider` snapshots and clears the deferred event before calling `prompt()`. Dismissal and thrown-prompt tests prove the manual guide cannot expose a stale second "立即安装" attempt. This matches Chrome's first-party contract that a deferred `beforeinstallprompt` event may call `prompt()` only once; a later attempt must wait for a new event: <https://developer.chrome.com/blog/a2hs-updates/>.
@@ -140,13 +150,14 @@ The embedded preview tool does not expose programmatic iOS keyboard control. The
 
 These failures are outside the F010 diff and are not hidden as green:
 
-- Full Web Vitest: **5005/5071 passed**, 66 failures in 11 pre-existing files. Failure families are Windows-only `grep`, stale repo/brand assertions, and pre-existing mocks missing `ensureSession`; no F010 test failed.
+- Full Web Vitest after `b62e66f`: **5028/5101 passed**, 73 failures in 17 untouched files. Failure families include Skills/artifact fixture drift, pre-existing socket mocks missing `ensureSession`, and F252 pass-ball assertions; the affected F010 Web files pass 28/28 independently.
 - A fresh full-Web rerun after `fbe4e6d` remained red only in non-F010 suites; the scoped 19-file F010 selection remained 96/96 green. This rerun is recorded as baseline-red, not silently promoted to a full-suite pass.
 - A fresh full-Web rerun after `85d0cb1` also exited non-zero only in unrelated skills/F232, socket, governance, header/color-token, and adaptive-pass-ball families. The affected hook/composer files were absent from the failure list; no exact full-suite count is claimed because the runner output was truncated.
 - Full Biome: F010 files are clean; the only remaining error is pre-existing formatting in `packages/api/src/infrastructure/websocket/SocketManager.ts`.
 - `check:biome-review-worktrees`, `check:sop-definitions`, and `check:start-profile-isolation` fail because their tests spawn bare `pnpm`/POSIX commands on Windows (`status=null` / `ENOENT`).
 - `check:pre-merge-gate` contains platform-specific bash/Redis harness failures. The remaining ten `pnpm check` subchecks pass, including feature truth, capability tips, skills, env checks, guides, follow-up tails, and script encoding.
-- The repository's root API test command is not deterministically runnable under this Windows shell: PowerShell cannot parse POSIX env assignment, Git Bash glob expansion exceeds the native Node argument limit, and the programmatic fallback did not terminate. Its orphaned runner and four children were identified by exact sandbox command line and stopped.
+- The repository's root API test command is not deterministically runnable under this Windows shell: its package script uses POSIX env assignment and `bash`, which is absent. An equivalent `file:///` setup plus exact test globs did not terminate after ten minutes in untouched preview/F230 tests; its exact runner and two child PIDs were identified and stopped. The bounded high-risk roster passes 370/370 and real isolated Redis passes 64/64.
+- Full MCP tests remain baseline red at **375 pass / 6 fail** in untouched file/shell-tool tests, including `/bin/sh` assumptions on Windows.
 
 ## Change set
 
@@ -166,5 +177,6 @@ These failures are outside the F010 diff and are not hidden as green:
 - `986049e` consumes each native install prompt exactly once and closes the canonical drawer throughout the 768–1023 mobile work surface using shared breakpoint truth.
 - `7d2bca8` atomically claims a message UUID before tracker/queue/force side effects and keeps one invocation owner through queue processing.
 - `85d0cb1` reconciles durable messages across record-backfill failure and makes deterministic send rejection restore the exact composer session without leaving a ghost bubble.
+- `b62e66f` retains dispatch ownership beyond the legacy five-minute window and preserves one queued response owner through claim, message, Redis, and replay.
 
 [宪宪/gpt-5.6-sol🐾]
