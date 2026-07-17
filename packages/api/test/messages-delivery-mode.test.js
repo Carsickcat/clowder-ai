@@ -20,6 +20,7 @@ function buildDeps(overrides = {}) {
     registry: new InvocationRegistry(),
     messageStore: {
       append: mock.fn(async (msg) => ({ id: `msg-${Date.now()}`, ...msg })),
+      getByIdempotencyKey: mock.fn(async () => null),
       getByThread: mock.fn(async () => []),
       getByThreadBefore: mock.fn(async () => []),
     },
@@ -166,6 +167,53 @@ function installConcurrentInvocationClaimHarness(deps) {
     firstCreateEntered,
     releaseFirstCreate,
     recordCount: () => (record ? 1 : 0),
+  };
+}
+
+function installRecoverableBackfillFailureHarness(deps, { idempotencyKey, messageId }) {
+  let record = null;
+  let durableMessage = null;
+  let failNextMessageBackfill = true;
+
+  deps.invocationRecordStore.create.mock.mockImplementation(async (input) => {
+    if (record) return { outcome: 'duplicate', invocationId: record.id };
+    record = {
+      id: 'inv-backfill-recovery',
+      ...input,
+      status: 'queued',
+      userMessageId: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    return { outcome: 'created', invocationId: record.id };
+  });
+  deps.invocationRecordStore.get.mock.mockImplementation(async (id) => (record?.id === id ? { ...record } : null));
+  deps.invocationRecordStore.getByIdempotencyKey.mock.mockImplementation(async (threadId, userId, candidateKey) =>
+    record?.threadId === threadId && record?.userId === userId && record?.idempotencyKey === candidateKey
+      ? { ...record }
+      : null,
+  );
+  deps.invocationRecordStore.update.mock.mockImplementation(async (id, update) => {
+    if (record?.id !== id) return null;
+    if (update.userMessageId && failNextMessageBackfill) {
+      failNextMessageBackfill = false;
+      throw new Error('simulated InvocationRecord backfill failure');
+    }
+    Object.assign(record, update, { updatedAt: Date.now() });
+    return { ...record };
+  });
+  deps.messageStore.append.mock.mockImplementation(async (message) => {
+    durableMessage ??= { id: messageId, ...message };
+    return durableMessage;
+  });
+  deps.messageStore.getByIdempotencyKey.mock.mockImplementation(async (userId, threadId, candidateKey) =>
+    durableMessage?.userId === userId && durableMessage?.threadId === threadId && candidateKey === idempotencyKey
+      ? durableMessage
+      : null,
+  );
+
+  return {
+    getRecord: () => record,
   };
 }
 
@@ -845,6 +893,118 @@ describe('POST /api/messages deliveryMode', () => {
       invocationId: 'inv-invalid',
       code: 'INVOCATION_MESSAGE_MISSING',
     });
+  });
+
+  it('reconciles an immediate durable message when InvocationRecord backfill fails', async () => {
+    const idempotencyKey = 'abababab-abab-4bab-8bab-abababababab';
+    const messageId = 'msg-immediate-backfill-recovery';
+    const harness = installRecoverableBackfillFailureHarness(deps, { idempotencyKey, messageId });
+
+    const payload = {
+      content: 'durable before record backfill',
+      threadId: 'thread-1',
+      deliveryMode: 'immediate',
+      idempotencyKey,
+    };
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+
+    assert.equal(first.statusCode, 200);
+    assert.equal(JSON.parse(first.body).userMessageId, messageId);
+    assert.equal(
+      deps.invocationRecordStore.update.mock.calls.some((call) => call.arguments[1]?.status === 'failed'),
+      false,
+      'durable append must not be converted into terminal record failure',
+    );
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(replay.statusCode, 200);
+    assert.deepEqual(JSON.parse(replay.body), {
+      status: 'acknowledged',
+      invocationId: 'inv-backfill-recovery',
+      userMessageId: messageId,
+    });
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
+    assert.equal(harness.getRecord()?.userMessageId, messageId);
+  });
+
+  it('keeps an explicit queue owner when InvocationRecord message backfill fails', async () => {
+    const idempotencyKey = 'bcbcbcbc-bcbc-4cbc-8cbc-bcbcbcbcbcbc';
+    const messageId = 'msg-queue-backfill-recovery';
+    const harness = installRecoverableBackfillFailureHarness(deps, { idempotencyKey, messageId });
+    deps.invocationTracker.has.mock.mockImplementation(() => true);
+
+    const payload = {
+      content: 'queued durable before record backfill',
+      threadId: 'thread-1',
+      deliveryMode: 'queue',
+      idempotencyKey,
+    };
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+
+    assert.equal(first.statusCode, 202);
+    assert.equal(JSON.parse(first.body).userMessageId, messageId);
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 1);
+    assert.notEqual(harness.getRecord()?.status, 'failed');
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(replay.statusCode, 200);
+    assert.equal(JSON.parse(replay.body).userMessageId, messageId);
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
+  });
+
+  it('keeps a TOCTOU queue owner when InvocationRecord message backfill fails', async () => {
+    const idempotencyKey = 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd';
+    const messageId = 'msg-toctou-backfill-recovery';
+    installRecoverableBackfillFailureHarness(deps, { idempotencyKey, messageId });
+    deps.invocationTracker.has.mock.mockImplementation(() => false);
+    deps.invocationTracker.tryStartThreadAll.mock.mockImplementation(() => null);
+
+    const payload = {
+      content: 'TOCTOU durable before record backfill',
+      threadId: 'thread-1',
+      deliveryMode: 'immediate',
+      idempotencyKey,
+    };
+    const first = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+
+    assert.equal(first.statusCode, 202);
+    assert.equal(JSON.parse(first.body).userMessageId, messageId);
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 1);
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(replay.statusCode, 200);
+    assert.equal(JSON.parse(replay.body).userMessageId, messageId);
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
   });
 
   it('immediate startup watchdog releases slot when routeExecution never starts provider events', async (t) => {

@@ -318,6 +318,22 @@ describe('RedisMessageStore', { skip: redisIsolationSkipReason(REDIS_URL) }, () 
     assert.equal(threadMessages[0].id, first.id);
   });
 
+  it('getByIdempotencyKey() resolves the durable message in its user/thread scope', async () => {
+    const message = await store.append({
+      userId: 'u1',
+      catId: null,
+      content: 'durable intent',
+      mentions: [],
+      timestamp: Date.now(),
+      threadId: 'thread-idem-lookup',
+      idempotencyKey: 'intent-key',
+    });
+
+    assert.equal((await store.getByIdempotencyKey('u1', 'thread-idem-lookup', 'intent-key'))?.id, message.id);
+    assert.equal(await store.getByIdempotencyKey('u2', 'thread-idem-lookup', 'intent-key'), null);
+    assert.equal(await store.getByIdempotencyKey('u1', 'thread-other', 'intent-key'), null);
+  });
+
   it('F057-C2: mentionsUser round-trips through append/getById', async () => {
     const msg = await store.append({
       userId: 'u',

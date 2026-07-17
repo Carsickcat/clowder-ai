@@ -230,6 +230,56 @@ describe('ChatInput draft persistence', () => {
     expect(getTextarea().value).toBe('');
   });
 
+  it('restores text, image, and reply session when send is deterministically rejected', async () => {
+    let settleSend: ((accepted: boolean) => void) | undefined;
+    const onSend = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          settleSend = resolve;
+        }),
+    );
+    const image = makeImageFile('rejected.png');
+
+    act(() => {
+      root.render(React.createElement(ChatInput, { threadId: 'thread-REJECT', onSend }));
+      useChatStore.getState().setReplyTo({
+        id: 'msg-rejected-reply',
+        content: 'quoted before rejection',
+        senderCatId: 'opus',
+        threadId: 'thread-REJECT',
+      });
+    });
+    act(() => {
+      typeInto(getTextarea(), 'keep this deterministic failure draft');
+    });
+    await attachFiles([image]);
+
+    await act(async () => {
+      getTextarea().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await Promise.resolve();
+    });
+    expect(onSend).toHaveBeenCalledWith(
+      'keep this deterministic failure draft',
+      [image],
+      undefined,
+      undefined,
+      'msg-rejected-reply',
+    );
+
+    await act(async () => {
+      settleSend?.(false);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(getTextarea().value).toBe('keep this deterministic failure draft');
+    expect(getPreviewImage('rejected.png')).toBeTruthy();
+    expect(useChatStore.getState().replyToMessage?.id).toBe('msg-rejected-reply');
+    expect(threadDrafts.get('thread-REJECT')).toBe('keep this deterministic failure draft');
+    expect(threadImageDrafts.get('thread-REJECT')).toEqual([image]);
+    expect(threadReplyDrafts.get('thread-REJECT')?.id).toBe('msg-rejected-reply');
+  });
+
   it('consumes pending chat insert into the matching thread composer', async () => {
     const onSend = vi.fn();
 

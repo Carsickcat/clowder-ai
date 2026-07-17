@@ -287,13 +287,48 @@ function tryAutoCancelPendingHolds(threadId: string, deps: HoldBallCancelDeps | 
   }
 }
 
-function replyForExistingInvocation(reply: FastifyReply, record: InvocationRecord) {
-  if (record.userMessageId) {
+async function backfillInvocationMessageId(
+  invocationRecordStore: IInvocationRecordStore | undefined,
+  invocationId: string | undefined,
+  userMessageId: string,
+): Promise<void> {
+  if (!invocationRecordStore || !invocationId) return;
+  try {
+    const updated = await invocationRecordStore.update(invocationId, { userMessageId });
+    if (updated === null) {
+      log.warn({ invocationId, userMessageId }, 'InvocationRecord message backfill found no owner record');
+    }
+  } catch (err) {
+    // The message append is the durable commit point. Record metadata is
+    // recoverable through IMessageStore's idempotency index on replay.
+    log.warn({ err, invocationId, userMessageId }, 'InvocationRecord message backfill deferred to replay');
+  }
+}
+
+async function replyForExistingInvocation(
+  reply: FastifyReply,
+  record: InvocationRecord,
+  messageStore: IMessageStore,
+  invocationRecordStore?: IInvocationRecordStore,
+) {
+  let userMessageId = record.userMessageId;
+  if (!userMessageId) {
+    const durableMessage = await messageStore.getByIdempotencyKey(
+      record.userId,
+      record.threadId,
+      record.idempotencyKey,
+    );
+    if (durableMessage) {
+      userMessageId = durableMessage.id;
+      await backfillInvocationMessageId(invocationRecordStore, record.id, durableMessage.id);
+    }
+  }
+  if (userMessageId) {
     reply.status(200);
     return {
       status: 'acknowledged',
       invocationId: record.id,
-      userMessageId: record.userMessageId,
+      userMessageId,
     };
   }
   if (record.status === 'queued' || record.status === 'running') {
@@ -527,7 +562,9 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         userId,
         resolvedIdempotencyKey,
       );
-      if (existingRecord) return replyForExistingInvocation(reply, existingRecord);
+      if (existingRecord) {
+        return replyForExistingInvocation(reply, existingRecord, opts.messageStore, opts.invocationRecordStore);
+      }
     }
 
     // #699 P1-2: Validate replyTo — must exist in same thread, not deleted, and delivered
@@ -703,7 +740,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
             code: 'INVOCATION_RECORD_MISSING',
           };
         }
-        return replyForExistingInvocation(reply, duplicateRecord);
+        return replyForExistingInvocation(reply, duplicateRecord, opts.messageStore, opts.invocationRecordStore);
       }
       claimedInvocationId = claimResult.invocationId;
     }
@@ -843,7 +880,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
             opts.invocationQueue.backfillMessageId(resolvedThreadId, userId, queueEntryId, userMessage.id);
           }
           if (claimedInvocationId && opts.invocationRecordStore) {
-            await opts.invocationRecordStore.update(claimedInvocationId, { userMessageId: userMessage.id });
+            await backfillInvocationMessageId(opts.invocationRecordStore, claimedInvocationId, userMessage.id);
           }
         } catch (err) {
           const queueEntryId = enqueueResult.entry?.id;
@@ -983,9 +1020,11 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
                   opts.invocationQueue.backfillMessageId(resolvedThreadId, userId, queueEntryId, toctouUserMessage.id);
                 }
                 if (claimedInvocationId && opts.invocationRecordStore) {
-                  await opts.invocationRecordStore.update(claimedInvocationId, {
-                    userMessageId: toctouUserMessage.id,
-                  });
+                  await backfillInvocationMessageId(
+                    opts.invocationRecordStore,
+                    claimedInvocationId,
+                    toctouUserMessage.id,
+                  );
                 }
               } catch (err) {
                 const queueEntryId = enqueueResult.entry?.id;
@@ -1073,9 +1112,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         });
 
         // ③ Backfill InvocationRecord.userMessageId
-        await opts.invocationRecordStore.update(createResult.invocationId, {
-          userMessageId: storedUserMessage.id,
-        });
+        await backfillInvocationMessageId(opts.invocationRecordStore, createResult.invocationId, storedUserMessage.id);
 
         // F192 Phase G AC-G12 / F227: detect magic words → Event Memory (immediate path)
         void tryDetectMagicWords(

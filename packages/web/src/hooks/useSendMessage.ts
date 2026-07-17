@@ -79,7 +79,7 @@ export function useSendMessage(activeThreadId?: string) {
       const capturedReplyTarget = replyToId ? useChatStore.getState().replyToMessage : undefined;
 
       const wasCommand = await processCommand(content, threadId);
-      if (wasCommand) return;
+      if (wasCommand) return true;
 
       const clientMessageId = createClientId();
       const optimisticMessageId = `user-${clientMessageId}`;
@@ -219,6 +219,7 @@ export function useSendMessage(activeThreadId?: string) {
         setUploadError(null);
         // Guide engine: signal that message was sent (advance confirm steps on chat.input)
         window.dispatchEvent(new CustomEvent('guide:confirm', { detail: { target: 'chat.input' } }));
+        return true;
       } catch (err) {
         const isDeterministicFailure = err instanceof DeterministicMessageSendError;
         // F39: Only clear invocation flags for normal (non-queue, non-force) sends.
@@ -232,14 +233,23 @@ export function useSendMessage(activeThreadId?: string) {
         }
         const errorMessage = err instanceof Error ? err.message : 'Unknown';
         if (isDeterministicFailure) {
+          if (!isQueueSend) {
+            if (threadId !== activeThread) {
+              removeThreadMessage(threadId, optimisticMessageId);
+            } else {
+              removeMessage(optimisticMessageId);
+            }
+          }
           setUploadStatus('failed');
           setUploadError(errorMessage);
+          return false;
         } else {
           // Both attempts ended without a trustworthy response. The server may
           // already have committed the request, so keep the optimistic state and
           // let the existing Socket/durable-message reconciliation settle it.
           setUploadStatus('idle');
           setUploadError(null);
+          return true;
         }
       }
     },

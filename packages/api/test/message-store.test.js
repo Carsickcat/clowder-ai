@@ -360,6 +360,25 @@ describe('MessageStore', () => {
     assert.equal(second.content, 'kickoff');
   });
 
+  test('getByIdempotencyKey() resolves the durable message in its user/thread scope', async () => {
+    const { MessageStore } = await import('../dist/domains/cats/services/stores/ports/MessageStore.js');
+
+    const store = new MessageStore();
+    const message = store.append({
+      userId: 'u1',
+      catId: null,
+      content: 'durable intent',
+      mentions: [],
+      timestamp: 10,
+      threadId: 'thread-abc',
+      idempotencyKey: 'intent-key',
+    });
+
+    assert.equal(store.getByIdempotencyKey('u1', 'thread-abc', 'intent-key')?.id, message.id);
+    assert.equal(store.getByIdempotencyKey('u2', 'thread-abc', 'intent-key'), null);
+    assert.equal(store.getByIdempotencyKey('u1', 'thread-other', 'intent-key'), null);
+  });
+
   test('getByThread() returns messages for a specific thread', async () => {
     const { MessageStore } = await import('../dist/domains/cats/services/stores/ports/MessageStore.js');
 

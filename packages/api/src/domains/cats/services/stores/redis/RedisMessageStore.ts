@@ -38,6 +38,12 @@ const log = createModuleLogger('redis-message-store');
 
 const DEFAULT_LIMIT = 50;
 const DEFAULT_TTL_SECONDS = 0; // persistent — set >0 via env to enable expiry
+const DELETE_INDEX_IF_VALUE_MATCHES_LUA = `
+if redis.call('GET', KEYS[1]) == ARGV[1] then
+  return redis.call('DEL', KEYS[1])
+end
+return 0
+`;
 
 export class RedisMessageStore {
   private readonly redis: RedisClient;
@@ -74,6 +80,10 @@ export class RedisMessageStore {
     return p && rawKey.startsWith(p) ? rawKey.slice(p.length) : rawKey;
   }
 
+  private async deleteIdempotencyIndexIfMatches(indexKey: string, expectedMessageId: string): Promise<void> {
+    await this.redis.eval(DELETE_INDEX_IF_VALUE_MATCHES_LUA, 1, indexKey, expectedMessageId);
+  }
+
   async append(msg: AppendMessageInput): Promise<StoredMessage> {
     const threadId = msg.threadId ?? DEFAULT_THREAD_ID;
     const id = generateSortableId(msg.timestamp);
@@ -88,7 +98,7 @@ export class RedisMessageStore {
         if (existingMessage) {
           return existingMessage;
         }
-        await this.redis.del(idempotencyIndexKey);
+        await this.deleteIdempotencyIndexIfMatches(idempotencyIndexKey, existingId);
       }
 
       const claimed =
@@ -182,10 +192,7 @@ export class RedisMessageStore {
       await pipeline.exec();
     } catch (error) {
       if (idempotencyIndexKey) {
-        const existingId = await this.redis.get(idempotencyIndexKey);
-        if (existingId === id) {
-          await this.redis.del(idempotencyIndexKey);
-        }
+        await this.deleteIdempotencyIndexIfMatches(idempotencyIndexKey, id);
       }
       throw error;
     }
@@ -240,6 +247,15 @@ export class RedisMessageStore {
       ...(data.mentionsUser === '1' ? { mentionsUser: true } : {}),
       ...(data.replyTo ? { replyTo: data.replyTo } : {}),
     };
+  }
+
+  async getByIdempotencyKey(userId: string, threadId: string, idempotencyKey: string): Promise<StoredMessage | null> {
+    const indexKey = MessageKeys.idempotency(userId, threadId, idempotencyKey);
+    const messageId = await this.redis.get(indexKey);
+    if (!messageId) return null;
+    const message = await this.getById(messageId);
+    if (!message) await this.deleteIdempotencyIndexIfMatches(indexKey, messageId);
+    return message;
   }
 
   /** Scan all stored message hashes (Redis-only repair helper). */

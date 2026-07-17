@@ -258,6 +258,12 @@ export interface IMessageStore {
   append(msg: AppendMessageInput): StoredMessage | Promise<StoredMessage>;
   /** Get a single message by its ID. Returns null if not found. */
   getById(id: string): StoredMessage | null | Promise<StoredMessage | null>;
+  /** Resolve a durable message through the append idempotency index. */
+  getByIdempotencyKey(
+    userId: string,
+    threadId: string,
+    idempotencyKey: string,
+  ): StoredMessage | null | Promise<StoredMessage | null>;
   getRecent(limit?: number, userId?: string): StoredMessage[] | Promise<StoredMessage[]>;
   getMentionsFor(
     catId: CatId,
@@ -438,6 +444,16 @@ export class MessageStore {
    */
   getById(id: string): StoredMessage | null {
     return this.messages.find((m) => m.id === id) ?? null;
+  }
+
+  getByIdempotencyKey(userId: string, threadId: string, idempotencyKey: string): StoredMessage | null {
+    const indexKey = this.buildIdempotencyIndexKey(userId, threadId, idempotencyKey);
+    if (!indexKey) return null;
+    const messageId = this.idempotencyIndex.get(indexKey);
+    if (!messageId) return null;
+    const message = this.getById(messageId);
+    if (!message) this.idempotencyIndex.delete(indexKey);
+    return message;
   }
 
   /**

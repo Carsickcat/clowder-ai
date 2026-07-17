@@ -59,7 +59,7 @@ function SendRunner({
 }: {
   activeThreadId?: string;
   overrideThreadId?: string;
-  onDone: () => void;
+  onDone: (accepted?: boolean) => void;
 }) {
   const { handleSend } = useSendMessage(activeThreadId);
   const called = useRef(false);
@@ -167,6 +167,7 @@ describe('useSendMessage thread source', () => {
   });
 
   it('does not inject a contradictory system bubble for a deterministic send failure', async () => {
+    const onDone = vi.fn();
     mockApiFetch.mockResolvedValue({
       ok: false,
       status: 500,
@@ -178,7 +179,7 @@ describe('useSendMessage thread source', () => {
         React.createElement(SendRunner, {
           activeThreadId: 'thread-route',
           overrideThreadId: 'thread-target',
-          onDone: () => {},
+          onDone,
         }),
       );
     });
@@ -188,6 +189,15 @@ describe('useSendMessage thread source', () => {
         typeof msg === 'object' && msg !== null && 'type' in msg && (msg as { type?: string }).type === 'system',
     );
     expect(systemCall).toBeUndefined();
+    const optimisticUserCall = mockAddMessageToThread.mock.calls.find(
+      ([, msg]) =>
+        typeof msg === 'object' && msg !== null && 'type' in msg && (msg as { type?: string }).type === 'user',
+    );
+    expect(mockRemoveThreadMessage).toHaveBeenCalledWith(
+      'thread-target',
+      (optimisticUserCall?.[1] as { id: string }).id,
+    );
+    expect(onDone).toHaveBeenCalledWith(false);
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
   });
 

@@ -54,7 +54,7 @@ interface ChatInputProps {
     whisper?: WhisperOptions,
     deliveryMode?: DeliveryMode,
     replyToId?: string,
-  ) => void;
+  ) => void | boolean | Promise<void | boolean>;
   onStop?: () => void;
   disabled?: boolean;
   hasActiveInvocation?: boolean;
@@ -124,6 +124,9 @@ export function ChatInput({
   const [mentionFilter, setMentionFilter] = useState('');
   const [images, setImages] = useState<File[]>(() => (threadId ? (threadImageDrafts.get(threadId) ?? []) : []));
   const [isPreparingImages, setIsPreparingImages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const sendInFlightRef = useRef(false);
+  const mountedRef = useRef(true);
   const [whisperMode, setWhisperMode] = useState(false);
   const [whisperTargets, setWhisperTargets] = useState<Set<string>>(new Set());
 
@@ -145,6 +148,14 @@ export function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageLifecycleStatus = deriveImageLifecycleStatus(isPreparingImages, uploadStatus);
   const sendTemporarilyDisabled = isImageLifecycleBlockingSend(imageLifecycleStatus);
+  const composerDisabled = Boolean(disabled || isSending);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // F63-AC15: consume pendingChatInsert (ComposerDraftInsert) from workspace (thread-guarded)
   // #706: restores text, image attachments, and quote state from recall-edit
@@ -245,17 +256,36 @@ export function ChatInput({
   const pathCompletion = usePathCompletion(input);
 
   const doSend = useCallback(
-    (deliveryMode?: DeliveryMode) => {
-      if (sendTemporarilyDisabled) return;
+    async (deliveryMode?: DeliveryMode) => {
+      if (sendInFlightRef.current || sendTemporarilyDisabled) return;
       if (whisperMode && whisperTargets.size === 0) return;
       const trimmed = input.trim();
-      if (trimmed && !disabled) {
-        addHistoryEntry(trimmed);
+      if (trimmed && !composerDisabled) {
+        const composerSnapshot = {
+          input,
+          images,
+          reply: replyToMessage,
+        };
         const whisper =
           whisperMode && whisperTargets.size > 0
             ? { visibility: 'whisper' as const, whisperTo: [...whisperTargets] }
             : undefined;
-        onSend(trimmed, images.length > 0 ? images : undefined, whisper, deliveryMode, replyToMessage?.id);
+
+        sendInFlightRef.current = true;
+        setIsSending(true);
+        let sendResult: void | boolean | Promise<void | boolean>;
+        try {
+          sendResult = onSend(
+            trimmed,
+            images.length > 0 ? images : undefined,
+            whisper,
+            deliveryMode,
+            replyToMessage?.id,
+          );
+        } catch {
+          sendResult = false;
+        }
+
         setInput('');
         ghostRef.current = null;
         setGhostSuggestion(null);
@@ -264,11 +294,41 @@ export function ChatInput({
         setShowGameMenu(false);
         // Only clear reply if it belongs to this thread (preserve other thread's reply in split-pane)
         if (replyToMessage) clearReplyTo();
+
+        try {
+          let accepted: void | boolean;
+          try {
+            accepted = await sendResult;
+          } catch {
+            accepted = false;
+          }
+          if (accepted === false) {
+            if (threadId) {
+              syncDraftToStorage(threadId, composerSnapshot.input || undefined);
+              if (composerSnapshot.images.length > 0) {
+                threadImageDrafts.delete(threadId);
+                threadImageDrafts.set(threadId, composerSnapshot.images);
+              }
+              syncReplyDraftToStorage(threadId, composerSnapshot.reply);
+              setThreadHasDraft(threadId, true);
+            }
+            if (mountedRef.current) {
+              setInput(composerSnapshot.input);
+              setImages(composerSnapshot.images);
+              if (composerSnapshot.reply) setReplyToStore(composerSnapshot.reply);
+            }
+          } else {
+            addHistoryEntry(trimmed);
+          }
+        } finally {
+          sendInFlightRef.current = false;
+          if (mountedRef.current) setIsSending(false);
+        }
       }
     },
     [
       input,
-      disabled,
+      composerDisabled,
       onSend,
       images,
       sendTemporarilyDisabled,
@@ -277,6 +337,9 @@ export function ChatInput({
       addHistoryEntry,
       replyToMessage,
       clearReplyTo,
+      setReplyToStore,
+      setThreadHasDraft,
+      threadId,
     ],
   );
 
@@ -294,7 +357,7 @@ export function ChatInput({
   const startGame = useCallback(
     async (payload: GameStartPayload) => {
       closeMenus();
-      if (disabled || sendTemporarilyDisabled || gameStarting) return;
+      if (composerDisabled || sendTemporarilyDisabled || gameStarting) return;
       setGameStarting(true);
       try {
         const res = await apiFetch('/api/game/start', {
@@ -334,7 +397,7 @@ export function ChatInput({
         setGameStarting(false);
       }
     },
-    [closeMenus, disabled, sendTemporarilyDisabled, gameStarting],
+    [closeMenus, composerDisabled, sendTemporarilyDisabled, gameStarting],
   );
 
   const insertMention = useCallback(
@@ -781,7 +844,7 @@ export function ChatInput({
           onWhisperToggle={handleWhisperToggle}
           onGameClick={handleGameClick}
           onClose={() => setMobileToolbar(false)}
-          disabled={disabled}
+          disabled={composerDisabled}
           sendDisabled={sendTemporarilyDisabled}
           maxImages={images.length >= 5}
           whisperMode={whisperMode}
@@ -792,6 +855,7 @@ export function ChatInput({
         {/* Mobile: + toggle button */}
         <button
           onClick={() => setMobileToolbar((v) => !v)}
+          disabled={composerDisabled}
           className={`p-3 rounded-xl transition-all md:hidden ${
             mobileToolbar
               ? 'text-cafe-accent bg-cafe-surface-sunken rotate-45'
@@ -811,7 +875,7 @@ export function ChatInput({
         {/* Desktop: tool buttons always visible */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || sendTemporarilyDisabled || images.length >= 5}
+          disabled={composerDisabled || sendTemporarilyDisabled || images.length >= 5}
           className="hidden md:block p-3 rounded-xl text-cafe-muted hover:text-cafe-accent hover:bg-cafe-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Attach images"
         >
@@ -820,7 +884,7 @@ export function ChatInput({
 
         <button
           onClick={handleWhisperToggle}
-          disabled={disabled || sendTemporarilyDisabled}
+          disabled={composerDisabled || sendTemporarilyDisabled}
           className={`hidden md:block p-3 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
             whisperMode
               ? 'text-cafe-accent bg-accent-50'
@@ -841,7 +905,7 @@ export function ChatInput({
         <button
           ref={gameBtnRef}
           onClick={handleGameClick}
-          disabled={disabled || sendTemporarilyDisabled}
+          disabled={composerDisabled || sendTemporarilyDisabled}
           className="hidden md:block p-3 rounded-xl text-cafe-muted hover:text-cafe-accent hover:bg-cafe-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Game mode"
           title="游戏模式"
@@ -873,7 +937,7 @@ export function ChatInput({
                 : 'border-[var(--console-border-soft)] bg-transparent focus:bg-[var(--console-card-bg)] focus:ring-[var(--console-input-stroke)]'
             }`}
             rows={1}
-            disabled={disabled}
+            disabled={composerDisabled}
           />
           {ghostSuggestion && !pathCompletion.isOpen && (
             <div
@@ -893,7 +957,7 @@ export function ChatInput({
           onStop={onStop}
           onQueueSend={handleQueueSend}
           onForceSend={handleForceSend}
-          disabled={disabled}
+          disabled={composerDisabled}
           sendDisabled={sendTemporarilyDisabled}
           hasActiveInvocation={whisperTargetsAllIdle ? false : hasActiveInvocation}
           hasText={!!input.trim()}

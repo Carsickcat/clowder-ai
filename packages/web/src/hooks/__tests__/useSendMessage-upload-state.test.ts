@@ -5,6 +5,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 const mockApiFetch = vi.fn();
 const mockAddMessage = vi.fn();
 const mockAddMessageToThread = vi.fn();
+const mockRemoveMessage = vi.fn();
+const mockRemoveThreadMessage = vi.fn();
+const mockReplaceThreadMessageId = vi.fn();
 const mockSetLoading = vi.fn();
 const mockSetHasActiveInvocation = vi.fn();
 const mockSetThreadLoading = vi.fn();
@@ -29,6 +32,9 @@ vi.mock('@/stores/chatStore', () => ({
     () => ({
       addMessage: mockAddMessage,
       addMessageToThread: mockAddMessageToThread,
+      removeMessage: mockRemoveMessage,
+      removeThreadMessage: mockRemoveThreadMessage,
+      replaceThreadMessageId: mockReplaceThreadMessageId,
       setLoading: mockSetLoading,
       setHasActiveInvocation: mockSetHasActiveInvocation,
       setThreadLoading: mockSetThreadLoading,
@@ -125,6 +131,9 @@ describe('useSendMessage upload status', () => {
     mockApiFetch.mockReset();
     mockAddMessage.mockReset();
     mockAddMessageToThread.mockReset();
+    mockRemoveMessage.mockReset();
+    mockRemoveThreadMessage.mockReset();
+    mockReplaceThreadMessageId.mockReset();
     mockSetLoading.mockReset();
     mockSetHasActiveInvocation.mockReset();
     mockSetThreadLoading.mockReset();
@@ -183,6 +192,7 @@ describe('useSendMessage upload status', () => {
     expect(last.status).toBe('failed');
     expect(last.error).toContain('上传超时');
     expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockRemoveMessage).toHaveBeenCalledWith(mockAddMessage.mock.calls[0]?.[0]?.id);
     expect(mockAddMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'system', variant: 'error' }));
   });
 
