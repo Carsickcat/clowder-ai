@@ -25,6 +25,8 @@ Quality evidence: `project-evidence/f010-mobile-pwa/README.md`
 - Repaired the remaining review blockers in `e74be7c`: an AppShell-resident all-thread/Approval Hub transient-work guard, explicit Workbox waiting-worker activation, foreground recovery without SW, runtime manifest verification, and install-banner layering below mobile work surfaces.
 - Repaired Terra's mount-before-installing P2 in `fbe4e6d` by observing an already-present installing worker through the same deduplicated path used by recovery and future `updatefound` events.
 - Repaired Opus 4.5's chat-composer overlap P2 in `5429913`: chat surfaces no longer render the contextual banner, while the persistent drawer entry keeps installation discoverable. A real-component integration test proves the existing drawer→guide→close focus restoration, so that separate concern required no production patch.
+- Repaired Terra's single-use install-prompt P2 in `986049e`: the deferred event is cleared before its first `prompt()` attempt, so dismissal or an exception falls back to manual guidance without offering a stale native action.
+- Repaired Opus 4.5's 768–1023 drawer-close P2 in `986049e`: thread create/select paths now consume the shared `RESPONSIVE_BREAKPOINTS.wide` boundary and close throughout the complete mobile work surface.
 
 ## Why
 
@@ -92,6 +94,8 @@ Check especially:
 8. modal focus cannot leave the drawer/install sheet and always returns to a still-mounted opener;
 9. manifest 404/HTML and no-Service-Worker environments remain truthful and recoverable.
 10. contextual install UI never obscures chat composer controls, while installation remains discoverable.
+11. a consumed `beforeinstallprompt` event can never be offered a second time after dismissal or exception;
+12. both thread-create and thread-select close the drawer across the complete `<1024` mobile work surface.
 
 ## Review Sandbox
 
@@ -110,6 +114,8 @@ Check especially:
 - Post-P2 real Chrome keyboard path at 390×844: drawer 14-control and install-sheet 2-control focus boundaries wrap in both directions; Escape closes and restores `mobile-global-nav-trigger`; screenshot `project-evidence/f010-mobile-pwa/focus-trap-install-sheet.png`.
 - Full Web baseline: 5005/5071 passed. The 66 failures are isolated to 11 pre-existing files and documented in the evidence report; none are F010 tests.
 - Full check baseline limitations (Windows child process resolution and one unrelated API Biome format item) are documented rather than silently waived.
+- Post-`986049e` repair: focused Red was 4 failed / 10 passed, focused Green is 14/14, and the fresh F010 selection is 21 files / 103 tests. Next/PWA 8/8, TypeScript, ESLint, targeted Biome, capability tips, hardcoded-color rule, production build, and `git diff --check` pass.
+- Isolated `986049e` preview: `/settings` returned HTTP 200 (42,830 bytes) on port 4310 and opened in Hub Browser Preview; the command-line-verified listener was stopped and the port was confirmed clear.
 
 ## Re-review delta: `fbe4e6d`
 
@@ -130,6 +136,15 @@ Opus 4.5's re-review of `461c5e3..c882900` reported two P2 items and one P3 in a
 - **P3 dismissal when storage is unavailable — non-blocking pushback.** The provider's catch path retains dismissal in React state for the current document session. A browser refresh creates a new document session; persisting across refresh without Web Storage would require a second persistence mechanism such as a cookie, which is outside the approved 30-day local-storage contract and would add fallback complexity without a P1/P2 user-safety benefit.
 - **Fresh verification:** 20 F010 Vitest files / 98 tests, Next/PWA 8/8, no-hardcoded-colors rule, TypeScript, ESLint, targeted Biome, capability-tips, and Web production build all pass. The build generated 22 routes and the custom PWA worker.
 - **Preview evidence:** isolated port 4310 returned `/settings` as HTTP 200; Hub Browser Preview opened both `/settings` and the current chat route. The exact listener process was command-line verified, stopped, and the port confirmed clear.
+
+## Re-review delta: `986049e`
+
+Terra found that `beforeinstallprompt` is a single-use capability, while Opus 4.5 found that `ThreadSidebar` still treated only `<768` as mobile even though F010 defines the mobile work surface as `<1024`.
+
+- **P2 single-use prompt — fixed.** The focused tests failed on the prior implementation because a dismissed or thrown prompt still exposed "立即安装". The provider now consumes the deferred event before calling `prompt()`; both cases fall back to manual guidance without a stale retry. Chrome's first-party lifecycle contract is recorded in the quality evidence.
+- **P2 768–1023 drawer close — fixed.** Both creation and selection now share one helper backed by `RESPONSIVE_BREAKPOINTS.wide`; tests cover close at 768 and 1023 and preserve the no-close desktop behavior at 1024.
+- **Red→Green:** the two focused suites moved from 4/14 failures to 14/14 passing. The complete fresh F010 selection is 21 files / 103 tests.
+- **Failure-mode audit:** no other affected create/select sibling retains a hard-coded `<768` close rule, and no other deferred-prompt consumer can retain the event after an attempt. Architecture ownership remains `Map delta: none`.
 
 ## Known boundary and risk
 
