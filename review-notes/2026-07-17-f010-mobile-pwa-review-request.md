@@ -23,6 +23,8 @@ Quality evidence: `project-evidence/f010-mobile-pwa/README.md`
 - Fixed a production-only SSR crash found during browser dogfood by keeping install facts deterministic until hydration completes.
 - Repaired Terra's modal-focus P2 with a shared focus boundary, dialog semantics, Tab/Shift+Tab containment, Escape handling, and real AppShell opener restoration (`e92afd4`).
 - Repaired the remaining review blockers in `e74be7c`: an AppShell-resident all-thread/Approval Hub transient-work guard, explicit Workbox waiting-worker activation, foreground recovery without SW, runtime manifest verification, and install-banner layering below mobile work surfaces.
+- Repaired Terra's mount-before-installing P2 in `fbe4e6d` by observing an already-present installing worker through the same deduplicated path used by recovery and future `updatefound` events.
+- Repaired Opus 4.5's chat-composer overlap P2 in `5429913`: chat surfaces no longer render the contextual banner, while the persistent drawer entry keeps installation discoverable. A real-component integration test proves the existing drawer→guide→close focus restoration, so that separate concern required no production patch.
 
 ## Why
 
@@ -51,7 +53,9 @@ F010 must remain one Next.js product and one state/data model. The change re-com
 
 ### 技术 OQ
 
-`fbe4e6d` 是否完整覆盖 registration 首次取得、同一对象恢复重查与未来 `updatefound` 三个 installing-worker 入口，同时保持单 worker 单监听？
+1. `fbe4e6d` 是否完整覆盖 registration 首次取得、同一对象恢复重查与未来 `updatefound` 三个 installing-worker 入口，同时保持单 worker 单监听？
+2. `5429913` 以 surface ownership 隐藏聊天页 contextual banner、保留抽屉持久入口，是否比猜测 composer 高度更稳健？
+3. 真实 `MobileGlobalNavDrawer` 集成测试是否足以证明抽屉卸载时先归还持久 opener、安装说明关闭时最终回到同一 opener？
 
 ### 价值 OQ
 
@@ -87,6 +91,7 @@ Check especially:
 7. desktop AppShell and global approval semantics remain intact.
 8. modal focus cannot leave the drawer/install sheet and always returns to a still-mounted opener;
 9. manifest 404/HTML and no-Service-Worker environments remain truthful and recoverable.
+10. contextual install UI never obscures chat composer controls, while installation remains discoverable.
 
 ## Review Sandbox
 
@@ -116,20 +121,30 @@ Terra's re-review found one additional P2: if `registration.installing` already 
 - Production dogfood: `/` and `/manifest.json` returned HTTP 200 in the isolated 4310/4311 preview; generated `sw.js` has one message-gated `skipWaiting()` call; Hub Browser Preview opened successfully.
 - Baseline disclosure: a fresh full-Web run still fails in non-F010 suites, and root `pnpm check` still stops on the unrelated committed `SocketManager.ts` format error. Neither was modified or reported as green.
 
+## Re-review delta: `5429913`
+
+Opus 4.5's re-review of `461c5e3..c882900` reported two P2 items and one P3 in addition to the already-repaired installing-worker issue.
+
+- **P2 chat banner/composer overlap — fixed.** The new regression was red on the prior implementation because `hasMobileNav=true` still rendered `pwa-install-banner`. Chat surfaces now suppress the contextual banner and retain the persistent drawer entry; the focused tests are green.
+- **P2 drawer/install focus handoff — verified, no source change.** A new integration test mounts the real `MobileGlobalNavDrawer`, focuses its install entry, opens the shared install guide, closes it with Escape, and verifies `document.activeElement` is the persistent AppShell-style menu trigger. This test passed on the pre-fix production code and remains green, matching the earlier real-Chrome keyboard evidence; adding another focus fallback would duplicate a mechanism that already works.
+- **P3 dismissal when storage is unavailable — non-blocking pushback.** The provider's catch path retains dismissal in React state for the current document session. A browser refresh creates a new document session; persisting across refresh without Web Storage would require a second persistence mechanism such as a cookie, which is outside the approved 30-day local-storage contract and would add fallback complexity without a P1/P2 user-safety benefit.
+- **Fresh verification:** 20 F010 Vitest files / 98 tests, Next/PWA 8/8, no-hardcoded-colors rule, TypeScript, ESLint, targeted Biome, capability-tips, and Web production build all pass. The build generated 22 routes and the custom PWA worker.
+- **Preview evidence:** isolated port 4310 returned `/settings` as HTTP 200; Hub Browser Preview opened both `/settings` and the current chat route. The exact listener process was command-line verified, stopped, and the port confirmed clear.
+
 ## Known boundary and risk
 
 - This is a temporary local Git sandbox because the project does not yet have the operator's formal repository. Do not merge or push; review the local diff/commits.
 - AC-A4 real iPhone/Android journeys and Tailscale HTTPS evidence remain operator/device work. A code approval is not a feature-complete declaration.
 - The isolated browser preview intentionally had no API; the desktop screenshot's recoverable session warning is expected.
 - Highest-risk areas are update/draft coordination, SSR/browser state boundaries, and Workbox route ordering.
-- Original review verdicts were `REQUEST_CHANGES`; this request asks each reviewer to confirm their own findings against `e74be7c`, not to substitute another reviewer's verdict.
+- Earlier verdicts were mixed: Fable 5 approved the pre-latest delta, while Terra and Opus 4.5 requested changes that are addressed above. Because `fbe4e6d` and `5429913` changed executable behavior, all three reviewers are asked for a fresh verdict on current HEAD.
 
 ## Requested verdict
 
+Return one explicit verdict: `APPROVE` or `REQUEST_CHANGES`. Every finding must include severity (`P1`, `P2`, or `P3`), exact file/line evidence, impact, and a concrete recommended resolution. P1/P2 must be clear blockers; P3 must be explicitly non-blocking.
+
 ## Next Action
 
-Terra 请只复核 `fbe4e6d..853b393` 对其 mount-before-installing P2 的闭合情况，并对当前 `853b393` 给一个新的明确 verdict。
-
-Return one explicit verdict: `APPROVE` or `REQUEST_CHANGES`. Every finding must include severity (`P1`, `P2`, or `P3`), exact file/line evidence, impact, and a concrete recommended resolution. P1/P2 must be clear blockers; P3 must be explicitly non-blocking.
+Terra、Opus 4.5、Fable 5 请各自复核完整 `461c5e3..HEAD`，重点审查 `fbe4e6d` 与 `5429913` 的新增行为，并分别给出当前 HEAD 的明确 verdict。不要沿用旧 SHA 的结论。
 
 [宪宪/gpt-5.6-sol🐾]
