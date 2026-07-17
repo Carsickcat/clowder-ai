@@ -2,11 +2,12 @@
 
 Review-Target-ID: f010
 Branch: `feat/f010-mobile-pwa`
-Code SHA: `2852721733176828e28f5090d1f53c3bbdb3b2c4`
+Code SHA: `85d0cb13844e7547069558a5ffe0771fca1583f1`
+Re-review base: `7d2bca8627258a7bc043fb3b2c79569dc4710a73`
 
 ## What
 
-This recovery slice replaces the competing iOS viewport/fixed-chrome model with one VisualViewport rectangle, one AppShell frame, one transcript scroll owner, and one Dock reserve. It makes the mobile composer usable at narrow widths, bounds the mention tray, compresses connection/PWA noise, reconciles ambiguous sends with the original idempotency key, and adds an acceptance-only fail-closed roster gate.
+This recovery slice replaces the competing iOS viewport/fixed-chrome model with one VisualViewport rectangle, one AppShell frame, one transcript scroll owner, and one Dock reserve. The current re-review delta `85d0cb1` closes the remaining message lifecycle gaps: a durable message survives recoverable record-backfill failure, and a deterministic HTTP rejection removes its optimistic bubble while restoring the exact text/image/reply composition.
 
 ## Why
 
@@ -21,13 +22,13 @@ The reporting iPhone showed zooming, incorrect scroll geometry, a clipped compos
 
 ## Tradeoff
 
-The implementation does not hard-code an iPhone size, prohibit user zoom, or add another keyboard offset fallback. It also does not introduce a product-wide `dispatchReady` capability model: F010 only fails closed in the isolated acceptance environment when a roster member has no registered AgentService. Real iOS Chinese-IME and installed-PWA behavior remains a device-owned acceptance step because desktop Chromium cannot prove the native keyboard frame.
+The implementation does not hard-code an iPhone size, prohibit user zoom, or add another keyboard offset fallback. For message recovery, the durable message store is the commit point and `InvocationRecord.userMessageId` is repairable metadata. Only a definite server rejection restores the composer; a twice-ambiguous transport outcome keeps the optimistic state because the server may already have committed the UUID. Real iOS Chinese-IME and installed-PWA behavior remains a device-owned acceptance step because desktop Chromium cannot prove the native keyboard frame.
 
 ## Architecture Ownership (required)
 
 Architecture cell: `hub-action-surface`, `bubble-pipeline`, `dispatch`
 Map delta: none
-Why: the slice repairs the existing mobile surface, message projection, and dispatch acknowledgment paths without introducing a parallel Store, Queue, Router, Adapter, Dispatcher, or Binding.
+Why: the slice repairs the existing mobile surface, message projection, and dispatch acknowledgment paths. The existing message-store port/adapters gain one scoped idempotency lookup; no parallel Store, Queue, Router, Adapter, Dispatcher, or Binding is introduced.
 
 Please verify:
 
@@ -41,6 +42,8 @@ Please verify:
 
 - Does the VisualViewport rectangle get consumed exactly once, with safe area only at frame/Dock edges and no double-counted keyboard inset?
 - Do immediate, queue, TOCTOU queue, multipart, and force paths preserve the same idempotency key and distinguish `acknowledged`, `confirming`, durable failure, and invariant violation without creating a contradictory failed bubble?
+- If `InvocationRecord.userMessageId` backfill fails after append, does replay resolve the original durable message without duplicate append/owner or unsafe Redis stale-index deletion?
+- Does a deterministic rejection remove the correct active/split-pane optimistic bubble and restore exactly the originating thread's text, images, and reply, while ambiguous outcomes avoid duplicate-send invitation?
 - Can keyboard/viewport/Dock changes remount or reset the composer's text, image, or reply context?
 - Is the acceptance-only roster gate fail-closed without changing production identity/dispatch semantics?
 
@@ -50,7 +53,7 @@ None. These are reversible implementation choices within the approved recovery d
 
 ## Next Action
 
-Independently inspect and rerun the high-risk validation chain. Return a formal `APPROVE` or `REQUEST_CHANGES` verdict with every finding classified P1/P2/P3. Approval covers code SHA `2852721`; the reporting iPhone touch journey remains a separate release-acceptance boundary.
+Opus 4.5: independently inspect `7d2bca8..85d0cb1` and rerun the high-risk validation chain. Return a formal `APPROVE` or `REQUEST_CHANGES` verdict with every finding classified P1/P2/P3. Approval covers code SHA `85d0cb1`; the reporting iPhone touch journey remains a separate release-acceptance boundary.
 
 ## Review Sandbox (required)
 
@@ -75,6 +78,26 @@ pnpm --filter @cat-cafe/api run build
 `review-notes/2026-07-18-f010-mobile-experience-recovery-quality-gate.md` records a PASS for independent code review. It maps every operator complaint to an implementation invariant, documents the isolated roster fail/pass exercise, records baseline limitations, and leaves the native iPhone touch journey explicitly open.
 
 ### Test results
+
+Post-review repair:
+
+```powershell
+# API durable-message reconciliation and store adapters
+pnpm --filter @cat-cafe/api run build
+node --test packages/api/test/messages-delivery-mode.test.js packages/api/test/message-store.test.js packages/api/test/redis-message-idempotency-index.test.js packages/api/test/redis-message-store.test.js
+# 73/73 passed; isolated Redis integration skips without its isolation flag
+
+# Web deterministic rejection and real-composer recovery
+pnpm --filter @cat-cafe/web exec vitest run `
+  src/hooks/__tests__/useSendMessage-thread-source.test.ts `
+  src/hooks/__tests__/useSendMessage-upload-state.test.ts `
+  src/components/__tests__/chat-input-draft-persistence.test.ts
+# 3 files / 28 tests passed
+```
+
+Broader affected selections: API **196/196**, Web **10 files / 67 tests**. Repository `pnpm lint`, production API/Web builds, targeted Biome, capability tips, and `git diff --check` pass. A fresh full-Web run remains baseline-red only in unrelated failure families; root `pnpm check` remains red only on untouched `SocketManager.ts` formatting.
+
+Original recovery evidence:
 
 ```powershell
 # API high-risk races and acceptance roster gate
@@ -102,7 +125,7 @@ pnpm --filter @cat-cafe/web build
 # PASS; lint has repository baseline warnings only; build generated 22 routes and custom worker
 ```
 
-Additional passes: targeted Biome, `check:features` (254 docs), `check:capability-tips`, Next/PWA config 8/8, hardcoded-color harness, and `git diff --check`. Repository-wide Windows/baseline failures are listed rather than promoted to green in the quality report.
+Additional original passes: targeted Biome, `check:features` (254 docs), `check:capability-tips`, Next/PWA config 8/8, hardcoded-color harness, and `git diff --check`. Repository-wide Windows/baseline failures are listed rather than promoted to green in the quality report.
 
 ### Browser evidence
 
@@ -125,5 +148,7 @@ At both mobile widths, device metrics reported matching viewport/client/VisualVi
 - Design standard: `docs/design/F010-mobile-pwa-standard.md`
 - Feature truth: `docs/features/F010-mobile-cat.md`
 - Evidence ledger: `project-evidence/f010-mobile-pwa/README.md`
+- API diagnosis: `docs/bug-report/f010-message-backfill-reconciliation/bug-report.md`
+- Web diagnosis: `docs/bug-report/f010-deterministic-send-composer-recovery/bug-report.md`
 
 [宪宪/gpt-5.6-sol🐾]

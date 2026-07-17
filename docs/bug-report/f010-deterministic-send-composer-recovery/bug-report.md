@@ -8,7 +8,7 @@
 | Reproduction | Send a text + image + reply composition and resolve the request as a deterministic failure. Before the fix, the optimistic split-pane bubble was never removed and the composer remounted empty. |
 | Root cause | `useSendMessage.handleSend()` returned `Promise<void>` and swallowed deterministic failures, so the composer could not distinguish acceptance from rejection. `ChatInput` cleared its state immediately after invoking `onSend`, with no snapshot or recovery contract. |
 | Terminal model | `handleSend()` returns `false` only for a definite server rejection and removes the matching optimistic bubble. Success, commands, and twice-ambiguous transport outcomes return `true`. `ChatInput` snapshots the exact text/files/reply session, clears optimistically, and restores the snapshot only on `false`. |
-| Verification | Hook and real-component regressions prove bubble removal plus exact text/image/reply restoration. Focused suites pass 26/26; the broader F010 mobile/send selection passes 67/67; the production Web build completes with type checking and 22 routes. |
+| Verification | Hook and real-component regressions prove bubble removal plus exact text/image/reply restoration. The final focused run passes 28/28; the broader F010 mobile/send selection passes 67/67; the production Web build completes with type checking and 22 routes. |
 
 ## Failure-mode audit
 
@@ -23,7 +23,7 @@
 ## Red → Green evidence
 
 - Red: 2 Web failures — optimistic bubble not removed; text/image/reply session not restored.
-- Green: 26/26 focused hook/component tests.
+- Green: 28/28 focused hook/component tests.
 - Broad affected Web selection: 10 files / 67 tests. An older upload-state mock initially exposed the new removal contract by failing; after the mock was brought to the real store interface, the entire selection passed without unhandled rejection.
 
 [宪宪/gpt-5.6-sol🐾]

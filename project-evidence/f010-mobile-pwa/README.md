@@ -6,11 +6,11 @@ Source of truth: `docs/design/F010-mobile-pwa-standard.md`
 
 Implementation plan: `feature-specs/2026-07-17-f010-mobile-pwa.md`
 
-Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; review repairs `e92afd4`, `e74be7c`, `fbe4e6d`, `5429913`, `986049e`)
+Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; latest message-recovery repair `85d0cb1`)
 
 ## Verdict
 
-The A0–A3 code slice is in independent code review. Earlier review findings were repaired in `e92afd4` and `e74be7c`; Terra's mount-before-installing finding is repaired in `fbe4e6d`; Opus 4.5's chat-banner finding is repaired in `5429913`; Terra's single-use install-prompt finding and Opus 4.5's 768–1023 drawer-boundary finding are repaired together in `986049e`. The reported drawer/install focus risk is covered by a real-component integration test and does not reproduce, so no speculative focus patch was added. F010 is **not feature-complete** yet: operator-owned iPhone/Android journeys, the real Tailscale HTTPS install/recovery loop, and final reviewer verdicts on current HEAD remain open.
+The A0–A3 code slice remains in independent code review. `7d2bca8` moved the atomic invocation claim ahead of tracker/queue/force side effects and Terra approved that implementation. Opus 4.5 then found two recovery gaps; `85d0cb1` repairs both by reconciling a durably appended message when `InvocationRecord.userMessageId` backfill fails and by restoring the exact text/image/reply composition after a deterministic HTTP rejection. Opus 4.5's re-review of `85d0cb1` is still pending. F010 is **not feature-complete**: the reporting iPhone's Chinese-IME keyboard frame and installed standalone-PWA/Tailscale HTTPS recovery journey remain operator-owned release acceptance.
 
 ## Acceptance status
 
@@ -21,7 +21,7 @@ The A0–A3 code slice is in independent code review. Earlier review findings we
 | AC-A2 | Code-complete, real-device pending | Installability diagnostics, runtime manifest status/content-type validation, iOS/manual and native prompt paths, WebView/secure/SW blockers, 30-day dismissal, and permanent entry are tested. Real Tailscale HTTPS install evidence remains open. |
 | AC-A3 | Code-complete | Foreground/online recovery works even without SW; new workers wait for consent; all-thread drafts/attachments and Approval Hub transient work veto activation; controllerchange reloads once; NetworkOnly business artifacts are production-built. |
 | AC-A4 | Partial | Light compact, dark medium, and light desktop browser evidence exists. iPhone/Android journeys and complete real-device parity remain open. |
-| AC-A5 | Pending review | F010-focused tests, lint, typecheck, production build, and browser dogfood pass. The complete current delta awaits independent confirmation from Terra, Opus 4.5, and Fable 5; repository-wide Windows baseline limitations are listed below. |
+| AC-A5 | Pending review | The affected API/Web selections, lint, typecheck, production build, and prior browser dogfood pass. Terra approved the atomic-claim implementation; Opus 4.5 re-review of `85d0cb1` remains open. Repository-wide Windows baseline limitations are listed below. |
 
 ## Browser viewport matrix
 
@@ -108,6 +108,7 @@ The embedded preview tool does not expose programmatic iOS keyboard control. The
 - Post-Terra existing-installing repair (`fbe4e6d`): the regression was **RED at 7/8** in the controller suite, then **GREEN at 8/8**; the final F010 selection is **19 Vitest files, 96 tests passed**, including mount-time observation and duplicate-listener prevention during same-registration recovery checks.
 - Post-Opus 4.5 chat-surface repair (`5429913`): the banner regression was **RED** because `hasMobileNav=true` still rendered the fixed banner, then **GREEN** after chat surfaces stopped rendering it. The real `MobileGlobalNavDrawer` → install guide → Escape integration test was green before and after the repair and restores focus to the persistent menu trigger. The current F010 selection is **20 Vitest files, 98 tests passed**.
 - Post-`986049e` re-review repair: the two focused suites were **RED at 4 failed / 10 passed** on the prior implementation, then **GREEN at 14/14** after consuming the deferred prompt before its first attempt and aligning both thread create/select close paths to the shared `wide=1024` boundary. The final F010 selection is **21 Vitest files, 103 tests passed**.
+- Post-`85d0cb1` message recovery repair: API was **RED at 4 failures** (missing scoped lookup plus immediate/explicit-queue/TOCTOU backfill failures) and Web was **RED at 2 failures** (ghost optimistic bubble plus lost text/image/reply). The final focused runs are API build + **73/73** and Web **3 files / 28 tests**. Broader affected selections pass API **196/196** and Web **10 files / 67 tests**.
 - Next/PWA configuration: **8/8 passed**; `skipWaiting` is explicitly false and API, Socket, and uploads remain on network truth.
 - Custom color rule test: passed.
 - Repository lint: exit 0 (existing warnings only); Web TypeScript: exit 0.
@@ -118,6 +119,15 @@ The embedded preview tool does not expose programmatic iOS keyboard control. The
 - The `5429913` production build completed with all 22 routes and a generated custom worker. An isolated 4310 preview returned `/settings` as HTTP 200 and opened both `/settings` and the current thread route in Hub Browser Preview; the exact `next start -p 4310` listener PID was verified by command line, stopped, and the port was confirmed clear.
 - The `986049e` production build completed with all 22 routes and a generated custom worker. An isolated 4310 preview returned `/settings` as HTTP 200 (42,830 bytes) and opened in Hub Browser Preview; the exact `next start -p 4310` listener PID was command-line verified, stopped, and the port was confirmed clear.
 - Production SSR dogfood after repair: Chrome `pageErrors=[]`; server stdout contained only `Starting` / `Ready`, with no `window is not defined` error.
+
+## Post-review message recovery: `85d0cb1`
+
+- **Durable-message reconciliation:** `IMessageStore` now resolves the existing `(userId, threadId, idempotencyKey)` owner. A failed `InvocationRecord.userMessageId` backfill is recoverable metadata failure, not a rollback of the already durable user message. Replay repairs the record best-effort and acknowledges the original message ID.
+- **Redis race safety:** stale idempotency-index cleanup uses compare-and-delete Lua, so an old reader cannot erase a concurrent append's new owner. Dependency-free adapter tests actively exercise the lookup and cleanup; the isolated Redis integration remains present but is skipped when the repository isolation flag is absent.
+- **Deterministic rejection recovery:** `useSendMessage` returns `false` only for a definite server rejection and removes the matching active/split-pane optimistic bubble. `ChatInput` restores the exact text, images, and reply snapshot, persists it to the originating thread if unmounted, blocks double-submit while awaiting the decision, and records history only after acceptance.
+- **Ambiguous outcome boundary:** a twice-ambiguous transport result keeps the optimistic bubble and cleared composer because the server may have committed the UUID; restoring the draft there would invite a duplicate send.
+- **Fresh gate:** focused API **73/73**, focused Web **28/28**, broader affected API **196/196**, broader affected Web **67/67**, API/Web production builds, repository lint, targeted Biome, capability tips, and `git diff --check` pass. Root `pnpm check` remains red only on the untouched `SocketManager.ts` formatting baseline.
+- **Dogfood boundary:** the route regressions use the real Fastify route and the Web regression mounts the real composer. No new live acceptance screenshot is claimed for a non-visual failure lifecycle; the earlier `2852721` HTTPS build cannot prove the later `85d0cb1` delta.
 
 ## Re-review repair: `986049e`
 
@@ -132,6 +142,7 @@ These failures are outside the F010 diff and are not hidden as green:
 
 - Full Web Vitest: **5005/5071 passed**, 66 failures in 11 pre-existing files. Failure families are Windows-only `grep`, stale repo/brand assertions, and pre-existing mocks missing `ensureSession`; no F010 test failed.
 - A fresh full-Web rerun after `fbe4e6d` remained red only in non-F010 suites; the scoped 19-file F010 selection remained 96/96 green. This rerun is recorded as baseline-red, not silently promoted to a full-suite pass.
+- A fresh full-Web rerun after `85d0cb1` also exited non-zero only in unrelated skills/F232, socket, governance, header/color-token, and adaptive-pass-ball families. The affected hook/composer files were absent from the failure list; no exact full-suite count is claimed because the runner output was truncated.
 - Full Biome: F010 files are clean; the only remaining error is pre-existing formatting in `packages/api/src/infrastructure/websocket/SocketManager.ts`.
 - `check:biome-review-worktrees`, `check:sop-definitions`, and `check:start-profile-isolation` fail because their tests spawn bare `pnpm`/POSIX commands on Windows (`status=null` / `ENOENT`).
 - `check:pre-merge-gate` contains platform-specific bash/Redis harness failures. The remaining ten `pnpm check` subchecks pass, including feature truth, capability tips, skills, env checks, guides, follow-up tails, and script encoding.
@@ -153,5 +164,7 @@ These failures are outside the F010 diff and are not hidden as green:
 - `fbe4e6d` observes an installing worker that predates controller mount, reuses the same observer for initial/recovery/`updatefound` entry points, and prevents duplicate listeners for the same worker.
 - `5429913` removes the contextual install banner from chat surfaces while preserving the persistent install entry, and locks the existing drawer-to-guide focus handoff with a real-component integration test.
 - `986049e` consumes each native install prompt exactly once and closes the canonical drawer throughout the 768–1023 mobile work surface using shared breakpoint truth.
+- `7d2bca8` atomically claims a message UUID before tracker/queue/force side effects and keeps one invocation owner through queue processing.
+- `85d0cb1` reconciles durable messages across record-backfill failure and makes deterministic send rejection restore the exact composer session without leaving a ghost bubble.
 
 [宪宪/gpt-5.6-sol🐾]

@@ -3,12 +3,12 @@
 **Spec:** `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`  
 **Discussion:** `feature-discussions/2026-07-18-f010-mobile-experience-recovery-meeting-notes.md`  
 **Worktree:** `E:\ClowderAI\clowder-ai-f010-local-sandbox`  
-**HEAD:** `2852721733176828e28f5090d1f53c3bbdb3b2c4`  
-**Checked:** 2026-07-18 03:15 +08:00
+**HEAD:** `85d0cb13844e7547069558a5ffe0771fca1583f1`
+**Checked:** 2026-07-18 05:10 +08:00
 
 ## Verdict
 
-**PASS for independent code review.** The recovery slice is implemented, production-built, and running in the isolated HTTPS acceptance environment. Full F010 release acceptance is not claimed: the reporting iPhone still needs the final Chinese-IME/standalone-PWA touch journey, and code review verdicts must clear P1/P2.
+**PASS for independent re-review.** The two implementation findings reported after the original recovery build are repaired in `85d0cb1`: durable-message acknowledgment no longer depends on recoverable `InvocationRecord` metadata, and a deterministic send rejection returns the exact composition to the user without a ghost bubble. Full F010 release acceptance is not claimed: Opus 4.5 must re-review this SHA, and the reporting iPhone still needs the final Chinese-IME/standalone-PWA touch journey.
 
 ## Vision coverage
 
@@ -18,7 +18,7 @@
 | Make the composer usable, not merely functional | 16px editable, one compact primary action, 44px targets, bounded mention tray, draft/image/reply preservation | PASS |
 | Remove permanent update-check obstruction | Background update-check failures are diagnostic-only; update-ready remains actionable | PASS |
 | Return vertical space to conversation | Mobile nav hides and reserves 0px during composition; connection state is a one-line projection | PASS |
-| Stop contradictory `Load failed` after server acceptance | Same UUID reconciles once; duplicate responses distinguish acknowledged/confirming/failed/invariant violation | PASS |
+| Stop contradictory `Load failed` after server acceptance | Same UUID reconciles once; durable message-store truth heals a failed record backfill; definite rejection removes the optimistic bubble and restores text/image/reply | PASS |
 | Do not advertise cats that cannot route | Acceptance-only AgentRegistry fail-closed gate; five-cat failure and four-cat passing roster recorded | PASS |
 
 ## Invariant coverage
@@ -29,12 +29,12 @@
 | One scroll owner / one Dock reserve | `ChatContainer.tsx`, `MobileOpsShell.tsx` | `chat-container-mobile.test.ts`, `MobileOpsShell.test.tsx` |
 | Composer and mention UX | `ChatInput.tsx`, `ChatInputActionButton.tsx`, `ChatInputMenus.tsx` | mobile + draft persistence tests |
 | Update and connection noise compression | `PwaUpdateController.tsx`, `ConnectionStatusBar.tsx` | controller/status tests |
-| Ambiguous-send reconciliation | `useSendMessage.ts`, `messages.ts` | Web hook tests + API delivery-mode race tests |
+| Ambiguous/deterministic send recovery | `useSendMessage.ts`, `ChatInput.tsx`, `messages.ts`, message-store adapters | Web hook/real-composer tests + API delivery-mode/store race tests |
 | Acceptance roster truth | `acceptance-roster-gate.ts`, API startup | `acceptance-roster-gate.test.js` + isolated startup evidence |
 
 ## Dogfood-Your-Slice
 
-Scope verdict: **required and exercised**.
+Scope verdict: **required and exercised for the original `2852721` recovery build; current `85d0cb1` non-visual failure paths are exercised through the real Fastify route and real React composer.**
 
 End-to-end path:
 
@@ -58,18 +58,31 @@ Dogfood findings fixed in the same turn:
 - Corrected acceptance startup ownership: catalog selection requires `CAT_TEMPLATE_PATH`; `CAT_CAFE_CONFIG_ROOT` alone only selects account/config roots.
 - Corrected an over-specific CSS contract assertion so quote serialization does not create a false failure.
 
+The earlier HTTPS environment is retained as historical layout/PWA evidence only. It is not represented as runtime proof for the later `85d0cb1` message-recovery delta. That delta adds no visual styling claim; its end-to-end boundary is the real route/store transaction and mounted composer lifecycle covered below.
+
+## Post-review repair evidence (`85d0cb1`)
+
+| Finding | Red | Green / terminal model |
+| --- | --- | --- |
+| Durable append followed by `InvocationRecord.userMessageId` backfill failure returned 500 and poisoned replay | 4 API failures across missing lookup, immediate, explicit queue, and TOCTOU queue | Message append is the commit point; scoped idempotency lookup repairs metadata on replay. Focused API build + tests **73/73**; broader affected selection **196/196**. |
+| Deterministic HTTP rejection stranded an optimistic bubble and cleared text/image/reply | 2 Web failures | Hook removes the correct active/split-pane bubble and returns `false`; real `ChatInput` restores the exact snapshot. Focused **3 files / 28 tests**; broader affected **10 files / 67 tests**. |
+
+The Redis adapter uses compare-and-delete Lua for stale-index cleanup, preventing a stale reader from deleting a concurrent append's new owner. Its dependency-free adapter test is active; the repository's isolated-Redis integration is present but skips without the isolation flag, and no persistent Redis port/database was reused.
+
 ## Fresh verification
 
 | Check | Result |
 | --- | --- |
-| Web focused Vitest | 12 files / 80 tests PASS |
-| API focused Node tests | 39/39 PASS |
+| Web post-review focused Vitest | 3 files / 28 tests PASS |
+| Web broader affected Vitest | 10 files / 67 tests PASS |
+| API post-review focused Node tests | build + 73/73 PASS |
+| API broader affected Node tests | 196/196 PASS |
 | Web TypeScript | PASS |
 | API build | PASS |
-| Web lint | exit 0; baseline warnings only |
+| Repository lint | exit 0; baseline warnings only |
 | Targeted Biome | PASS |
 | `check:features` | PASS; 254 feature docs scanned |
-| `check:capability-tips` | PASS; unrelated stale-anchor warnings recorded |
+| `check:capability-tips` | 11/11 PASS; missing `origin/main` and unrelated stale-anchor warnings recorded |
 | Next/PWA config | 8/8 PASS |
 | Hardcoded-color rule harness | PASS |
 | Production Web build | PASS; 22 routes; custom worker generated |
@@ -77,7 +90,7 @@ Dogfood findings fixed in the same turn:
 
 Repository-wide limitations are not promoted to green:
 
-- The full Web test wrapper cannot spawn bare `pnpm` on this Windows host; the direct full suite has pre-existing failures in unrelated `ensureSession` mocks and Windows-only commands.
+- A fresh direct full-Web run exits non-zero in unrelated skills/F232, socket, governance, header/color-token, and adaptive-pass-ball families. The affected hook/composer files do not appear among failures; the runner output was truncated, so no exact total is invented.
 - Root `pnpm check` remains red only on untouched `packages/api/src/infrastructure/websocket/SocketManager.ts` formatting.
 - `scripts/check-hotfix-pattern.mjs`, `scripts/check-fallback-layers.mjs`, and `check:architecture-ownership` are absent in this worktree, so no synthetic verdict is reported.
 
@@ -85,7 +98,7 @@ Repository-wide limitations are not promoted to green:
 
 - Matching `designs/**/*.pen`: none; UI changed without a Pencil design, so design comparison is marked unavailable.
 - Root media/design artifacts in worktree or commit diff: none.
-- Architecture cells: `hub-action-surface`, `bubble-pipeline`, `dispatch`; map delta `none`. No new Store/Queue/Router/Adapter/Dispatcher/Binding ownership boundary was introduced.
+- Architecture cells: `hub-action-surface`, `bubble-pipeline`, `dispatch`; map delta `none`. The existing message-store port/adapters gain one scoped lookup, but no parallel Store/Queue/Router/Adapter/Dispatcher/Binding ownership boundary was introduced.
 - Capability tips: exempted in F010 frontmatter because the slice changes passive layout, reliability and error projection rather than adding a discoverable action.
 
 ## Visual evidence boundary
