@@ -7,6 +7,7 @@ import { CallbackAuthSnapshotMount } from '@/stores/callbackAuthStore';
 import { initSidebarWidth, useSidebarStore } from '@/stores/sidebarStore';
 import { ActivityBar } from './ActivityBar';
 import { ConciergeHost } from './concierge/ConciergeHost';
+import { MobileGlobalNavDrawer } from './MobileGlobalNavDrawer';
 import { PwaInstallPrompt } from './PwaInstallPrompt';
 import { ThreadSidebar } from './ThreadSidebar';
 import { FloatingPresentationSurfaceHost } from './workspace/FloatingPresentationSurfaceHost';
@@ -32,12 +33,16 @@ function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
   const isExport = searchParams.get('export') === 'true';
-  const { isOpen, width, close, handleResize, resetWidth } = useSidebarStore();
+  const { isOpen, width, close, toggle, handleResize, resetWidth } = useSidebarStore();
   const isDesktop = useIsDesktop();
 
   useLayoutEffect(() => {
     initSidebarWidth();
   }, []);
+
+  useLayoutEffect(() => {
+    if (!isDesktop) close();
+  }, [close, isDesktop]);
 
   if (isExport || CHROMELESS_ROUTES.some((r) => pathname.startsWith(r))) {
     return <>{children}</>;
@@ -48,10 +53,23 @@ function AppShellContent({ children }: AppShellProps) {
 
   return (
     <div className="console-shell flex h-screen h-dvh overflow-hidden">
+      {!isChatRoute && !isOpen && (
+        <button
+          type="button"
+          onClick={toggle}
+          className="fixed left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden"
+          aria-label="打开全局导航"
+          aria-expanded="false"
+          data-testid="mobile-global-nav-trigger"
+        >
+          ☰
+        </button>
+      )}
+      {isOpen && !isDesktop && <MobileGlobalNavDrawer open onClose={close} />}
       <Suspense
-        fallback={<div className={isChatRoute ? 'hidden w-12 flex-shrink-0 lg:block' : 'w-12 flex-shrink-0'} aria-hidden="true" />}
+        fallback={<div className="hidden w-12 flex-shrink-0 lg:block" aria-hidden="true" />}
       >
-        <ActivityBar className={isChatRoute ? 'hidden lg:flex' : undefined} />
+        <ActivityBar className="hidden lg:flex" />
       </Suspense>
       {/* Callback-auth snapshot provider: mounted at AppShell level (not chat
           layout) so the zustand store is populated on ALL routes — settings,

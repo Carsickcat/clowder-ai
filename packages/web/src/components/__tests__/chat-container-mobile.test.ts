@@ -100,10 +100,6 @@ vi.mock('../ChatContainerHeader', () => ({
       }),
     ),
 }));
-vi.mock('../ThreadSidebar', () => ({
-  ThreadSidebar: (props: { onClose: () => void }) =>
-    React.createElement('div', { 'data-testid': 'sidebar', onClick: props.onClose }, 'Sidebar'),
-}));
 vi.mock('../RightStatusPanel', () => ({ RightStatusPanel: () => null }));
 vi.mock('../MobileStatusSheet', () => ({
   MobileStatusSheet: (props: { open: boolean }) =>
@@ -164,9 +160,10 @@ describe('ChatContainer mobile interactions', () => {
       root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
     });
     expect(container.querySelector('[data-testid="sidebar"]')).toBeNull();
+    expect(useSidebarStore.getState().isOpen).toBe(false);
   });
 
-  it('opens sidebar overlay when toggle button is clicked', () => {
+  it('delegates the mobile drawer state to AppShell when the header toggle is clicked', () => {
     act(() => {
       root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
     });
@@ -174,12 +171,11 @@ describe('ChatContainer mobile interactions', () => {
     act(() => {
       toggleBtn.click();
     });
-    expect(container.querySelector('[data-testid="sidebar"]')).toBeTruthy();
-    // Backdrop should also appear
-    expect(container.querySelector('[class*="console-overlay-backdrop"]')).toBeTruthy();
+    expect(useSidebarStore.getState().isOpen).toBe(true);
+    expect(container.querySelector('[data-testid="sidebar"]')).toBeNull();
   });
 
-  it('closes sidebar when backdrop is clicked', () => {
+  it('closes the AppShell-owned drawer state when the header toggle is clicked again', () => {
     act(() => {
       root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
     });
@@ -188,13 +184,10 @@ describe('ChatContainer mobile interactions', () => {
     act(() => {
       toggleBtn.click();
     });
-    expect(container.querySelector('[data-testid="sidebar"]')).toBeTruthy();
-    // Click backdrop
-    const backdrop = container.querySelector('[class*="console-overlay-backdrop"]') as HTMLElement;
     act(() => {
-      backdrop.click();
+      toggleBtn.click();
     });
-    expect(container.querySelector('[data-testid="sidebar"]')).toBeNull();
+    expect(useSidebarStore.getState().isOpen).toBe(false);
   });
 
   it('mobile status sheet starts closed and opens on trigger', () => {

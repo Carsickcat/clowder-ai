@@ -70,7 +70,6 @@ import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { SplitPaneView } from './SplitPaneView';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import { ThreadExecutionBar } from './ThreadExecutionBar';
-import { ThreadSidebar } from './ThreadSidebar';
 import { assignDocumentRoute, pushThreadRouteWithHistory } from './ThreadSidebar/thread-navigation';
 import { VoteActiveBar } from './VoteActiveBar';
 import { type VoteConfig, VoteConfigModal } from './VoteConfigModal';
@@ -170,7 +169,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
   usePreviewAutoOpen(workspaceWorktreeId, threadId);
   useWorkspaceNavigate(workspaceWorktreeId, threadId);
   useTeleport(); // F227: drive the Hub to a teleport target message (thread:teleport)
-  const { isOpen: sidebarOpen, open: openSidebar, close: closeSidebar, toggle: toggleSidebar } = useSidebarStore();
+  const { isOpen: sidebarOpen, open: openSidebar, toggle: toggleSidebar } = useSidebarStore();
   const [statusPanelOpen, setStatusPanelOpen] = useState(true);
   const [mobileStatusOpen, setMobileStatusOpen] = useState(false);
   const [mobileOpsSurface, setMobileOpsSurface] = useState<MobileOpsSurface>('chat');
@@ -879,20 +878,6 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
 
   return (
     <div ref={containerRef} className="flex h-screen h-dvh">
-      {/* Mobile-only sidebar overlay — desktop sidebar is in AppShell */}
-      {sidebarOpen && !isDesktop && (
-        <>
-          <div
-            className="fixed inset-0 bg-[var(--console-overlay-backdrop)] backdrop-blur-sm z-20"
-            onClick={closeSidebar}
-            aria-hidden="true"
-          />
-          <div className="fixed inset-y-0 left-0 z-30 w-[240px]">
-            <ThreadSidebar onClose={closeSidebar} className="w-full" />
-          </div>
-        </>
-      )}
-
       <div
         className="flex flex-col min-w-0"
         style={

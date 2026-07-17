@@ -11,16 +11,11 @@ import { HubIcon } from './hub-icons';
 import { MemoryIcon } from './icons/MemoryIcon';
 import { SETTINGS_SECTIONS } from './settings/settings-nav-config';
 import { ThemeMenu } from './ThemeMenu';
-import { getThreadIdFromPathname } from './ThreadSidebar/thread-navigation';
+import { GLOBAL_NAVIGATION_ITEMS, resolveGlobalNavTarget } from './global-navigation';
 
 const OklchTuner = lazy(() => import('./dev/OklchTuner').then((m) => ({ default: m.OklchTuner })));
 
-const NAV_ITEMS = [
-  { id: 'home', path: '/', label: '对话', match: (p: string) => p === '/' || p.startsWith('/thread/') },
-  { id: 'memory', path: '/memory', label: '记忆', match: (p: string) => p.startsWith('/memory') },
-  { id: 'mission', path: '/mission-hub', label: 'Mission Hub', match: (p: string) => p.startsWith('/mission') },
-  { id: 'signals', path: '/signals', label: '信号', match: (p: string) => p.startsWith('/signals') },
-] as const;
+const PRIMARY_NAV_ITEMS = GLOBAL_NAVIGATION_ITEMS.filter((item) => item.id !== 'settings');
 
 function ChatIcon({ className = 'w-5 h-5' }: { className?: string }) {
   return (
@@ -89,30 +84,6 @@ const ICON_MAP: Record<string, ({ className }: { className?: string }) => JSX.El
 
 interface ActivityBarProps {
   className?: string;
-}
-
-function readFromParam(): string | null {
-  if (typeof window === 'undefined') return null;
-  return new URLSearchParams(window.location.search).get('from');
-}
-
-function getNavigationReferrer(pathname: string): string | null {
-  const threadId = getThreadIdFromPathname(pathname);
-  return threadId !== 'default' ? threadId : readFromParam();
-}
-
-function appendReferrer(path: string, referrer: string): string {
-  const sep = path.includes('?') ? '&' : '?';
-  return `${path}${sep}from=${encodeURIComponent(referrer)}`;
-}
-
-function resolveNavTarget(path: string, pathname: string): string {
-  if (path === '/') {
-    const fromParam = readFromParam();
-    return fromParam ? `/thread/${encodeURIComponent(fromParam)}` : '/';
-  }
-  const referrer = getNavigationReferrer(pathname);
-  return referrer ? appendReferrer(path, referrer) : path;
 }
 
 function PinnedSections({ pinned, onNav }: { pinned: readonly string[]; onNav: (path: string) => void }) {
@@ -290,7 +261,7 @@ export function ActivityBar({ className }: ActivityBarProps) {
 
   const handleNav = useCallback(
     (path: string) => {
-      router.push(resolveNavTarget(path, pathname));
+      router.push(resolveGlobalNavTarget(path, pathname, typeof window === 'undefined' ? '' : window.location.search));
     },
     [pathname, router],
   );
@@ -300,7 +271,7 @@ export function ActivityBar({ className }: ActivityBarProps) {
       className={`flex w-[52px] flex-shrink-0 flex-col items-center gap-1.5 py-2.5 px-[6px] bg-[var(--console-rail-bg)] ${className ?? ''}`}
       aria-label="主导航"
     >
-      {NAV_ITEMS.map((item) => {
+      {PRIMARY_NAV_ITEMS.map((item) => {
         const Icon = ICON_MAP[item.id];
         const active = item.match(pathname);
         return (
