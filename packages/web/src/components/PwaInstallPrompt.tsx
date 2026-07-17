@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import { useModalFocus } from '@/hooks/useModalFocus';
 import type { InstallPlatform, PwaInstallFacts } from '@/lib/pwa-installability';
 import { usePwaInstallExperience } from './pwa/PwaInstallExperienceProvider';
 
@@ -50,6 +51,12 @@ function InstallDiagnostics({ facts }: { facts: PwaInstallFacts }) {
 export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: boolean }) {
   const { facts, installability, isBannerDismissed, guideOpen, openGuide, closeGuide, dismissBanner, promptInstall } =
     usePwaInstallExperience();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useModalFocus<HTMLElement>({
+    active: guideOpen,
+    onEscape: closeGuide,
+    initialFocusRef: closeButtonRef,
+  });
   const manualSteps = useMemo(() => getManualSteps(facts.platform), [facts.platform]);
   const showBanner = installability.bannerEligible && !isBannerDismissed;
   const primaryLabel =
@@ -118,13 +125,20 @@ export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: bool
       )}
 
       {guideOpen && (
-        <div
-          className="mobile-visual-viewport safe-area-inline fixed inset-x-0 z-[60] flex items-end bg-[var(--console-overlay-medium)] px-3"
-          onClick={closeGuide}
-        >
+        <div className="mobile-visual-viewport safe-area-inline fixed inset-x-0 z-[60] flex items-end px-3">
+          <button
+            type="button"
+            tabIndex={-1}
+            className="absolute inset-0 bg-[var(--console-overlay-medium)]"
+            aria-label="关闭 PWA 安装说明"
+            onClick={closeGuide}
+          />
           <section
-            className="mx-auto w-full max-w-lg rounded-t-[28px] border border-[var(--console-border-soft)] bg-[var(--console-card-bg)] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
+            className="relative mx-auto w-full max-w-lg rounded-t-[28px] border border-[var(--console-border-soft)] bg-[var(--console-card-bg)] px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl"
             aria-label="PWA 安装说明"
             data-testid="pwa-install-sheet"
           >
@@ -152,6 +166,7 @@ export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: bool
 
             <div className="mt-4 flex justify-end gap-2">
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={closeGuide}
                 className="min-h-11 rounded-xl px-3 py-2 text-sm text-cafe-secondary transition-colors hover:bg-[var(--console-hover-bg)] hover:text-cafe-black"

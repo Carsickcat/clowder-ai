@@ -1,4 +1,4 @@
-import React, { act } from 'react';
+import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
@@ -89,6 +89,39 @@ describe('MobileGlobalNavDrawer', () => {
     act(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })));
 
     expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it('traps Tab in the dialog and restores focus to the opener when it closes', () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+    renderDrawer();
+
+    const closeButton = container.querySelector('aside [aria-label="关闭全局导航"]') as HTMLButtonElement;
+    const settingsButton = [...container.querySelectorAll('button')].find(
+      (button) => button.textContent === 'Settings',
+    ) as HTMLButtonElement;
+    expect(document.activeElement).toBe(closeButton);
+
+    settingsButton.focus();
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    act(() => settingsButton.dispatchEvent(tab));
+    expect(tab.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(closeButton);
+
+    const shiftTab = new KeyboardEvent('keydown', {
+      key: 'Tab',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => closeButton.dispatchEvent(shiftTab));
+    expect(shiftTab.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(settingsButton);
+
+    act(() => root.render(<MobileGlobalNavDrawer open={false} onClose={onClose} />));
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
   });
 
   it('does not mount an overlay while closed', () => {

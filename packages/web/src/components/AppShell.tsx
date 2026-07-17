@@ -58,13 +58,17 @@ function AppShellContent({ children }: AppShellProps) {
   return (
     <PwaInstallExperienceProvider>
       <div className="console-shell app-viewport safe-area-inline flex overflow-hidden overscroll-none">
-        {!isChatRoute && !isOpen && (
+        {!isChatRoute && (
           <button
             type="button"
             onClick={toggle}
-            className="fixed left-[calc(env(safe-area-inset-left)+0.75rem)] top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden"
+            className={`fixed left-[calc(env(safe-area-inset-left)+0.75rem)] top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden ${
+              isOpen ? 'pointer-events-none' : ''
+            }`}
             aria-label="打开全局导航"
-            aria-expanded="false"
+            aria-expanded={isOpen}
+            aria-hidden={isOpen || undefined}
+            tabIndex={isOpen ? -1 : 0}
             data-testid="mobile-global-nav-trigger"
           >
             ☰

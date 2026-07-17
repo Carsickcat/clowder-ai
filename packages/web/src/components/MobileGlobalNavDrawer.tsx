@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { useModalFocus } from '@/hooks/useModalFocus';
 import { GLOBAL_NAVIGATION_ITEMS, resolveGlobalNavTarget } from './global-navigation';
 import { usePwaInstallExperience } from './pwa/PwaInstallExperienceProvider';
 import { ThreadSidebar } from './ThreadSidebar';
@@ -19,24 +20,16 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
   const searchParams = useSearchParams();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { facts: pwaFacts, openGuide: openInstallGuide } = usePwaInstallExperience();
+  const dialogRef = useModalFocus<HTMLElement>({ active: open, onEscape: onClose, initialFocusRef: closeButtonRef });
 
   useEffect(() => {
     if (!open) return;
-    const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      previousActiveElement?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -63,6 +56,8 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
         data-testid="mobile-global-nav-backdrop"
       />
       <aside
+        ref={dialogRef}
+        tabIndex={-1}
         className="safe-area-left relative flex h-full w-[min(88vw,360px)] flex-col border-r border-cafe bg-cafe-surface pt-[env(safe-area-inset-top)] shadow-2xl"
         role="dialog"
         aria-modal="true"

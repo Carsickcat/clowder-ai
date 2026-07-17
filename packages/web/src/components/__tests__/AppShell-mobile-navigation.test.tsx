@@ -1,4 +1,4 @@
-import React, { act } from 'react';
+import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSidebarStore } from '@/stores/sidebarStore';
@@ -57,6 +57,22 @@ describe('AppShell mobile global navigation ownership', () => {
     expect(trigger).not.toBeNull();
     act(() => trigger.click());
     expect(container.querySelector('[data-testid="mobile-global-nav-drawer"]')).not.toBeNull();
+  });
+
+  it('keeps the mobile global-route opener mounted while its drawer owns focus', () => {
+    act(() => root.render(<AppShell>content</AppShell>));
+    const trigger = container.querySelector('[data-testid="mobile-global-nav-trigger"]') as HTMLButtonElement;
+
+    trigger.focus();
+    act(() => trigger.click());
+
+    expect(container.querySelector('[data-testid="mobile-global-nav-trigger"]')).toBe(trigger);
+    expect(trigger.tabIndex).toBe(-1);
+    expect(trigger.getAttribute('aria-hidden')).toBe('true');
+
+    act(() => useSidebarStore.getState().close());
+    expect(trigger.tabIndex).toBe(0);
+    expect(trigger.getAttribute('aria-hidden')).toBeNull();
   });
 
   it('lets the chat header open the same AppShell-owned drawer without a duplicate trigger', () => {

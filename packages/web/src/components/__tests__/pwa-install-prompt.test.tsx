@@ -172,6 +172,56 @@ describe('PwaInstallPrompt', () => {
     expect(diagnostics?.textContent).toContain('请改用系统浏览器');
   });
 
+  it('treats install guidance as a focus-contained dialog and restores its opener', async () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1',
+    );
+    await renderHarness();
+
+    const installEvent = new Event('beforeinstallprompt');
+    Object.defineProperty(installEvent, 'prompt', { value: vi.fn().mockResolvedValue(undefined) });
+    Object.defineProperty(installEvent, 'userChoice', {
+      value: Promise.resolve({ outcome: 'dismissed', platform: 'web' }),
+    });
+    act(() => window.dispatchEvent(installEvent));
+    await flush();
+
+    const opener = container.querySelector('[data-testid="open-install-guide"]') as HTMLButtonElement;
+    opener.focus();
+    act(() => opener.click());
+
+    const sheet = container.querySelector('[data-testid="pwa-install-sheet"]') as HTMLElement;
+    const closeButton = [...sheet.querySelectorAll('button')].find(
+      (button) => button.textContent === '稍后',
+    ) as HTMLButtonElement;
+    const installButton = [...sheet.querySelectorAll('button')].find(
+      (button) => button.textContent === '立即安装',
+    ) as HTMLButtonElement;
+    expect(sheet.getAttribute('role')).toBe('dialog');
+    expect(sheet.getAttribute('aria-modal')).toBe('true');
+    expect(document.activeElement).toBe(closeButton);
+
+    installButton.focus();
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    act(() => installButton.dispatchEvent(tab));
+    expect(tab.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(closeButton);
+
+    const shiftTab = new KeyboardEvent('keydown', {
+      key: 'Tab',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    act(() => closeButton.dispatchEvent(shiftTab));
+    expect(shiftTab.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(installButton);
+
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    expect(container.querySelector('[data-testid="pwa-install-sheet"]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+
   it('remembers banner dismissal across provider remounts', async () => {
     setUserAgent(
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1',
