@@ -254,7 +254,7 @@ export function MobileOpsShell({
               <SurfaceIcon name={item.icon} />
               <span>{item.label}</span>
               {item.id === 'approval' && approvalCount > 0 && (
-                <span className="absolute right-[24%] top-1.5 min-w-4 rounded-full bg-[var(--semantic-warning)] px-1 text-[10px] font-bold leading-4 text-[var(--cafe-accent-foreground)]">
+                <span className="absolute right-[24%] top-1.5 min-w-4 rounded-full bg-[var(--semantic-warning)] px-1 text-micro font-bold leading-4 text-[var(--cafe-accent-foreground)]">
                   {approvalCount > 99 ? '99+' : approvalCount}
                 </span>
               )}
