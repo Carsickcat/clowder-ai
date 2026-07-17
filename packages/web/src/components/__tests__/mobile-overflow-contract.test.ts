@@ -12,7 +12,7 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(css).toContain('env(safe-area-inset-left');
     expect(css).toContain('env(safe-area-inset-right');
     expect(css).toContain('.app-viewport');
-    expect(css).toContain('var(--app-viewport-height, 100dvh)');
+    expect(css).toContain('calc(var(--app-viewport-height, 100dvh) + var(--visual-viewport-offset-top, 0px))');
     expect(css).toContain('.mobile-keyboard-offset');
   });
 

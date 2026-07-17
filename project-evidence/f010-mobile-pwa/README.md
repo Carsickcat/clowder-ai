@@ -50,6 +50,22 @@ Post-review Chrome keyboard verification at 390×844 confirmed:
 - both overlays close on Escape and restore focus to `mobile-global-nav-trigger`;
 - the install sheet exposes `role="dialog"` and `aria-modal="true"`.
 
+## 2026-07-17 iPhone keyboard follow-up
+
+The co-creator's real iPhone screenshot exposed a Visual Viewport coordinate bug that the earlier Chrome viewport matrix could not reproduce: opening the keyboard gave Safari a non-zero `visualViewport.offsetTop`, while `.app-viewport` consumed only `visualViewport.height`. Because AppShell starts at the layout viewport origin, its bottom edge became too high by exactly that omitted offset and lifted the composer far above the keyboard.
+
+The repaired invariant is:
+
+```css
+height: calc(var(--app-viewport-height, 100dvh) + var(--visual-viewport-offset-top, 0px));
+```
+
+This keeps `useVisualViewportCssVars` as the single runtime source. No UA sniffing, focus-specific height, extra observer, or second keyboard inset was added. The regression was RED in `mobile-overflow-contract.test.ts`, then the viewport hook, mobile overflow, chat container, and chat input selection passed at **4 files / 19 tests**.
+
+The repaired production build is live from worktree `E:\ClowderAI\clowder-ai-f010-local-sandbox` at `https://desktop-9o1va3o.tail58c13e.ts.net:8443/` with BUILD_ID `ACK6eNPRIsEDqb70A0Elf`. The root page, manifest, service worker, same-origin health endpoint, and the BUILD_ID asset return HTTP 200; the bundled CSS contains the repaired formula. Final positive evidence remains the co-creator repeating the same keyboard journey on the reporting iPhone.
+
+The acceptance API continues to use isolated Redis `127.0.0.1:6398/15`. Its cat catalog now comes from a disposable, hash-verified snapshot of the current local roster rather than the stale feature-worktree catalog. `/api/cats` exposes five current cats: `opus` (`gpt-5.6-terra`), `sonnet` (`gpt-5.6-sol`), `opus-45` (`gpt-5.6-luna`), `fable-5` (`gpt-5.4`), and `cat-komzvl9r` (`kimi/k3`). The source runtime configuration was not rewritten; credentials were not copied; existing conversation stores remain in the isolated Redis database.
+
 ## Automated and build evidence
 
 - Pre-review broad selection: **19 test files, 359 tests passed** (includes the F190 visual contract and Node-only SSR regression).

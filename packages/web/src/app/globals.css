@@ -37,7 +37,7 @@ body {
 .app-viewport {
   height: 100vh;
   height: 100dvh;
-  height: var(--app-viewport-height, 100dvh);
+  height: calc(var(--app-viewport-height, 100dvh) + var(--visual-viewport-offset-top, 0px));
 }
 
 .mobile-visual-viewport {
