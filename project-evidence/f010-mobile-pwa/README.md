@@ -50,21 +50,55 @@ Post-review Chrome keyboard verification at 390×844 confirmed:
 - both overlays close on Escape and restore focus to `mobile-global-nav-trigger`;
 - the install sheet exposes `role="dialog"` and `aria-modal="true"`.
 
-## 2026-07-17 iPhone keyboard follow-up
+## 2026-07-17 iPhone keyboard follow-up (superseded)
 
-The co-creator's real iPhone screenshot exposed a Visual Viewport coordinate bug that the earlier Chrome viewport matrix could not reproduce: opening the keyboard gave Safari a non-zero `visualViewport.offsetTop`, while `.app-viewport` consumed only `visualViewport.height`. Because AppShell starts at the layout viewport origin, its bottom edge became too high by exactly that omitted offset and lifted the composer far above the keyboard.
+The co-creator's real iPhone screenshot exposed a Visual Viewport coordinate bug that the earlier Chrome viewport matrix could not reproduce. The first follow-up used `height + offsetTop` as a transitional repair. The 2026-07-18 recovery review rejected that formula because it mixed two coordinate models and could double-count the visual offset.
 
-The repaired invariant is:
+The current invariant is a complete VisualViewport rectangle in layout-viewport CSS pixels:
 
 ```css
-height: calc(var(--app-viewport-height, 100dvh) + var(--visual-viewport-offset-top, 0px));
+top: var(--app-viewport-top);
+left: var(--app-viewport-left);
+width: var(--app-viewport-width);
+height: var(--app-viewport-height);
 ```
 
-This keeps `useVisualViewportCssVars` as the single runtime source. No UA sniffing, focus-specific height, extra observer, or second keyboard inset was added. The regression was RED in `mobile-overflow-contract.test.ts`, then the viewport hook, mobile overflow, chat container, and chat input selection passed at **4 files / 19 tests**.
+`useVisualViewportCssVars` is the only writer. AppShell consumes the rectangle once; safe area is consumed only at frame/Dock edges; a keyboard inset is not added to an already-shrunken visual viewport.
 
-The repaired production build is live from worktree `E:\ClowderAI\clowder-ai-f010-local-sandbox` at `https://desktop-9o1va3o.tail58c13e.ts.net:8443/` with BUILD_ID `ACK6eNPRIsEDqb70A0Elf`. The root page, manifest, service worker, same-origin health endpoint, and the BUILD_ID asset return HTTP 200; the bundled CSS contains the repaired formula. Final positive evidence remains the co-creator repeating the same keyboard journey on the reporting iPhone.
+## 2026-07-18 mobile experience recovery
 
-The acceptance API continues to use isolated Redis `127.0.0.1:6398/15`. Its cat catalog now comes from a disposable, hash-verified snapshot of the current local roster rather than the stale feature-worktree catalog. `/api/cats` exposes five current cats: `opus` (`gpt-5.6-terra`), `sonnet` (`gpt-5.6-sol`), `opus-45` (`gpt-5.6-luna`), `fable-5` (`gpt-5.4`), and `cat-komzvl9r` (`kimi/k3`). The source runtime configuration was not rewritten; credentials were not copied; existing conversation stores remain in the isolated Redis database.
+- Worktree: `E:\ClowderAI\clowder-ai-f010-local-sandbox`
+- Commit: `2852721733176828e28f5090d1f53c3bbdb3b2c4`
+- Production BUILD_ID: `UFvg9ZmNKinCNMPq0huTu`
+- Build time: `2026-07-18T03:13:09+08:00`
+- Acceptance Web/API: `4310` / `4311`
+- Persistence boundary: Redis `127.0.0.1:6398/15`; no flush/delete was performed. DB size moved from 54 to 62 keys through normal isolated service startup.
+
+The current HTTPS entry at `https://desktop-9o1va3o.tail58c13e.ts.net:8443/thread/thread_mrogfco44bos1sgn` returns HTTP 200 and embeds the BUILD_ID above. `/manifest.json`, `/sw.js`, and `/api/health` return HTTP 200. The generated rewrites point API, Socket.IO, and uploads to `localhost:4311`.
+
+The acceptance-only roster gate was exercised in both directions:
+
+- The five-cat snapshot exited 1 because `cat-komzvl9r` (`kimi/k3`) had no registered AgentService; the failure listed the missing cat and all four passing entries.
+- A disposable catalog projection removed only that unverified member. With the gate enabled, `/api/cats` exposes `opus`, `sonnet`, `opus-45`, and `fable-5`, and the API listens on 4311. Product configuration and credentials were not rewritten or copied.
+
+Fresh recovery verification:
+
+- Web: 12 Vitest files / 80 tests passed.
+- API: 39/39 Node tests passed, including immediate, queue, TOCTOU and message-id backfill races.
+- Web TypeScript, API build, targeted Biome, feature truth, capability tips, next/PWA configuration (8/8), and hardcoded-color rule passed.
+- Web lint exited 0 with repository baseline warnings only.
+- Production build completed with 22 routes and a custom service worker.
+- Hub Browser Preview opened the current thread from port 4310.
+
+Current-build Chrome device-emulation evidence (maximum three recovery screenshots):
+
+- `recovery-20260718-mobile-390x844.png`
+- `recovery-20260718-mobile-430x932.png`
+- `recovery-20260718-desktop-1024x768.png`
+
+The mobile captures were produced through Chromium device metrics rather than a cropped browser window. At 390×844 and 430×932, `innerWidth`, `documentElement.clientWidth`, and `visualViewport.width` matched exactly; document/body `scrollWidth` also matched the viewport. The mobile Dock measured exactly 390px and 430px wide, and the textarea ended at x=322 and x=362 respectively, leaving the compact primary action inside the frame. Visual inspection confirmed all four Dock destinations, the composer action, and the header actions remain visible without horizontal clipping.
+
+The embedded preview tool does not expose programmatic iOS keyboard control. Therefore the final positive evidence for Chinese IME, the real iPhone keyboard frame, and the installed standalone PWA remains a short operator-owned touch test on the reporting iPhone; it is not represented as automated proof.
 
 ## Automated and build evidence
 
