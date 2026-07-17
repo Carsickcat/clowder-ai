@@ -11,7 +11,7 @@
 | **5. 超时策略** | 15 分钟内若最小复现不红，改用真实 Chromium Service Worker 生命周期日志核对事件顺序，不继续猜测 mock。 |
 | **6. 预警策略** | 若共享 helper 仍需三个以上 fallback，或同一状态对象连续第三轮出现漏边，则停止补丁，回到状态转移表补协议。 |
 | **7. 用户可见交互修正** | 页面在加载期间已经开始安装的新版本，完成后也会立即展示更新提示，无需等下一次前台恢复或联网事件。 |
-| **8. 验收** | 新增“mount 前已有 installing worker，随后进入 waiting”回归测试，先在原实现失败；修复后运行 controller 套件、F010 受影响套件、类型检查、lint 与生产构建。 |
+| **8. 验收** | 回归用例在原实现 RED（controller 7/8），修复后 GREEN（8/8）；F010 19 files / 96 tests、Next/PWA 8/8、TypeScript、ESLint、定向 Biome 与 production build 均通过。全 Web 仍红于本 diff 外既有 suites，未伪报为绿。 |
 
 ## Failure-mode audit
 
