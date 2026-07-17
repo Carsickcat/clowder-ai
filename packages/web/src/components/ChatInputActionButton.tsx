@@ -101,8 +101,8 @@ export function ChatInputActionButton({
         </div>
       )}
 
-      {/* Stop button: visible alongside queue send (primary stop covers disabled state) */}
-      {hasActiveInvocation && !disabled && onStop && (
+      {/* Stop is the primary action only while the composer is empty. */}
+      {hasActiveInvocation && !hasText && !disabled && onStop && (
         <button
           onClick={() => onStop()}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-conn-red-text text-[var(--cafe-surface)] transition-colors hover:bg-conn-red-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-conn-red-text/40"
@@ -152,7 +152,7 @@ export function ChatInputActionButton({
           <button
             onClick={onQueueSend}
             disabled={isSendDisabled}
-            className="p-3 rounded-xl bg-[var(--color-cocreator-primary)] text-[var(--cafe-surface)] hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-cocreator-primary)] text-[var(--cafe-surface)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
             aria-label="排队发送"
             title="排队发送 — 猫猫忙完后处理"
           >
@@ -162,7 +162,7 @@ export function ChatInputActionButton({
             <button
               onClick={onForceSend}
               disabled={isSendDisabled}
-              className="p-2 rounded-lg text-xs text-conn-red-text hover:bg-conn-red-bg disabled:opacity-40 transition-colors"
+              className="hidden h-11 w-11 items-center justify-center rounded-lg text-xs text-conn-red-text hover:bg-conn-red-bg disabled:opacity-40 transition-colors md:flex"
               aria-label="强制发送"
               title="强制发送 — 中断当前猫猫"
             >

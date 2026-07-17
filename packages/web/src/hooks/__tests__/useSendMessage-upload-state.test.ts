@@ -72,6 +72,29 @@ function SendWithImageRunner({
   return null;
 }
 
+function SendTextRunner({
+  onDone,
+  onSnapshot,
+}: {
+  onDone: () => void;
+  onSnapshot: (snapshot: UploadSnapshot) => void;
+}) {
+  const { handleSend, uploadStatus, uploadError } = useSendMessage('thread-route');
+  const called = useRef(false);
+
+  useEffect(() => {
+    onSnapshot({ status: uploadStatus, error: uploadError });
+  }, [uploadStatus, uploadError, onSnapshot]);
+
+  useEffect(() => {
+    if (called.current) return;
+    called.current = true;
+    handleSend('ambiguous text').then(onDone);
+  }, [handleSend, onDone]);
+
+  return null;
+}
+
 describe('useSendMessage upload status', () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -159,12 +182,29 @@ describe('useSendMessage upload status', () => {
     const last = snapshots[snapshots.length - 1];
     expect(last.status).toBe('failed');
     expect(last.error).toContain('上传超时');
-    expect(mockAddMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'system',
-        variant: 'error',
-        content: expect.stringContaining('Failed to send message: 上传超时'),
-      }),
-    );
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(mockAddMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'system', variant: 'error' }));
+  });
+
+  it('keeps a twice-ambiguous transport result in confirmation instead of declaring failure', async () => {
+    mockApiFetch
+      .mockRejectedValueOnce(new TypeError('Load failed'))
+      .mockRejectedValueOnce(new TypeError('Load failed'));
+    const snapshots: UploadSnapshot[] = [];
+
+    await act(async () => {
+      root.render(
+        React.createElement(SendTextRunner, {
+          onDone: () => {},
+          onSnapshot: (snapshot: UploadSnapshot) => snapshots.push(snapshot),
+        }),
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledTimes(2);
+    expect(snapshots.at(-1)).toEqual({ status: 'idle', error: null });
+    expect(mockAddMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'system', variant: 'error' }));
   });
 });

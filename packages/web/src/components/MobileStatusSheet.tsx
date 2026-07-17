@@ -51,7 +51,7 @@ export function MobileStatusSheet({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-[var(--console-overlay-backdrop)] z-40 backdrop-blur-sm transition-opacity lg:hidden ${
+        className={`mobile-visual-viewport fixed bg-[var(--console-overlay-backdrop)] z-40 backdrop-blur-sm transition-opacity lg:hidden ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -60,8 +60,8 @@ export function MobileStatusSheet({
 
       {/* Sheet */}
       <div
-        className={`mobile-keyboard-offset safe-area-inline fixed inset-x-0 z-50 bg-cafe-surface rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out lg:hidden max-h-[70vh] overflow-y-auto safe-area-bottom ${
-          open ? 'translate-y-0' : 'translate-y-full'
+        className={`mobile-visual-bottom safe-area-inline fixed z-50 bg-cafe-surface rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out lg:hidden max-h-[70vh] overflow-y-auto safe-area-bottom ${
+          open ? '-translate-y-full' : 'translate-y-0'
         }`}
       >
         {/* Handle bar + header */}

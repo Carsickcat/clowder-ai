@@ -87,6 +87,9 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
+  delete document.documentElement.dataset.mobileKeyboardOpen;
+  document.documentElement.style.removeProperty('--app-viewport-height');
+  document.documentElement.style.removeProperty('--app-viewport-top');
   URL.createObjectURL = originalCreateObjectURL;
   URL.revokeObjectURL = originalRevokeObjectURL;
 });
@@ -266,6 +269,71 @@ describe('ChatInput draft persistence', () => {
     });
 
     expect(getPreviewImage('photo.png')).toBeTruthy();
+  });
+
+  it('keeps one composer session across keyboard and visual viewport frame projections', async () => {
+    const onSend = vi.fn();
+    const image = makeImageFile('viewport.png');
+    act(() => {
+      root.render(React.createElement(ChatInput, { threadId: 'thread-VIEWPORT', onSend }));
+    });
+    const originalTextarea = getTextarea();
+    act(() => {
+      typeInto(originalTextarea, 'draft survives viewport changes');
+      useChatStore.getState().setReplyTo({
+        id: 'msg-reply',
+        content: 'quoted reply',
+        senderCatId: 'opus',
+        threadId: 'thread-VIEWPORT',
+      });
+    });
+    await attachFiles([image]);
+
+    act(() => {
+      document.documentElement.dataset.mobileKeyboardOpen = 'true';
+      document.documentElement.style.setProperty('--app-viewport-height', '500px');
+      document.documentElement.style.setProperty('--app-viewport-top', '47px');
+      window.dispatchEvent(new Event('resize'));
+      root.render(React.createElement(ChatInput, { threadId: 'thread-VIEWPORT', onSend }));
+    });
+
+    expect(getTextarea()).toBe(originalTextarea);
+    expect(getTextarea().value).toBe('draft survives viewport changes');
+    expect(getPreviewImage('viewport.png')).toBeTruthy();
+    expect(useChatStore.getState().replyToMessage?.id).toBe('msg-reply');
+    expect(threadReplyDrafts.get('thread-VIEWPORT')?.id).toBe('msg-reply');
+  });
+
+  it('closes mention UI without mutating text and never selects during IME composition', async () => {
+    const onSend = vi.fn();
+    act(() => {
+      root.render(React.createElement(ChatInput, { threadId: 'thread-MENTION', onSend }));
+    });
+    act(() => {
+      typeInto(getTextarea(), '@');
+    });
+    const textarea = getTextarea();
+    act(() => textarea.focus());
+    expect(container.querySelector('.bottom-full')).toBeTruthy();
+
+    act(() => {
+      textarea.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    expect(textarea.value).toBe('@');
+    expect(onSend).not.toHaveBeenCalled();
+
+    await act(async () => {
+      textarea.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    });
+    act(() => {
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(textarea.value).toBe('@');
+    expect(container.querySelector('.bottom-full')).toBeNull();
+    expect(document.activeElement).toBe(textarea);
   });
 
   it('maintains independent image previews per thread across switches', async () => {

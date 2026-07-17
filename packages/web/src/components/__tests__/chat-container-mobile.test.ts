@@ -206,14 +206,14 @@ describe('ChatContainer mobile interactions', () => {
     expect(statusSheetAfter.getAttribute('data-open')).toBe('true');
   });
 
-  it('reserves the full mobile navigation plus safe-area inset below the input', () => {
+  it('consumes the single mobile Dock reserve below the input', () => {
     act(() => {
       root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
     });
     const bottomChrome = [...container.querySelectorAll('div')].find(
-      (element) => element.classList.contains('lg:pb-0') && element.className.includes('safe-area-inset-bottom'),
+      (element) => element.classList.contains('lg:pb-0') && element.className.includes('mobile-dock-reserve'),
     );
-    expect(bottomChrome?.classList.contains('pb-[calc(4rem+env(safe-area-inset-bottom))]')).toBe(true);
+    expect(bottomChrome?.classList.contains('pb-[var(--mobile-dock-reserve)]')).toBe(true);
   });
 
   it('auto-opens sidebar store on desktop but does not render mobile overlay', () => {

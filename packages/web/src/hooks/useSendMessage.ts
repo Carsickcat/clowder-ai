@@ -15,6 +15,8 @@ export interface WhisperOptions {
   whisperTo: string[];
 }
 
+class DeterministicMessageSendError extends Error {}
+
 /**
  * Hook for sending messages (text + optional images + optional whisper).
  * Handles both JSON and multipart form data modes.
@@ -162,88 +164,82 @@ export function useSendMessage(activeThreadId?: string) {
       try {
         const deliveryModePayload = deliveryMode ? { deliveryMode } : {};
 
-        if (images && images.length > 0) {
-          const formData = new FormData();
-          formData.append('content', content);
-          formData.append('threadId', threadId);
-          formData.append('idempotencyKey', clientMessageId);
-          if (deliveryMode) formData.append('deliveryMode', deliveryMode);
-          if (whisper) {
-            formData.append('visibility', whisper.visibility);
-            for (const catId of whisper.whisperTo) {
-              formData.append('whisperTo', catId);
+        const sendOnce = async () => {
+          let res: Response;
+          if (images && images.length > 0) {
+            const formData = new FormData();
+            formData.append('content', content);
+            formData.append('threadId', threadId);
+            formData.append('idempotencyKey', clientMessageId);
+            if (deliveryMode) formData.append('deliveryMode', deliveryMode);
+            if (whisper) {
+              formData.append('visibility', whisper.visibility);
+              for (const catId of whisper.whisperTo) formData.append('whisperTo', catId);
             }
+            if (replyToId) formData.append('replyTo', replyToId);
+            for (const img of images) formData.append('images', img);
+            res = await apiFetch('/api/messages', { method: 'POST', body: formData });
+          } else {
+            res = await apiFetch('/api/messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content,
+                threadId,
+                idempotencyKey: clientMessageId,
+                ...(whisper ? { visibility: whisper.visibility, whisperTo: whisper.whisperTo } : {}),
+                ...deliveryModePayload,
+                ...(replyToId ? { replyTo: replyToId } : {}),
+              }),
+            });
           }
-          if (replyToId) formData.append('replyTo', replyToId);
-          for (const img of images) {
-            formData.append('images', img);
-          }
-          const res = await apiFetch('/api/messages', {
-            method: 'POST',
-            body: formData,
-          });
+
           if (!res.ok) {
-            const body = await res.json().catch(() => null);
-            throw new Error(body?.detail ?? `Server error: ${res.status}`);
+            const errorBody = await res.json().catch(() => null);
+            throw new DeterministicMessageSendError(errorBody?.detail ?? `Server error: ${res.status}`);
           }
-          const body = await res.json().catch(() => null);
-          if (!reconcileQueuedResponse(body) && body?.userMessageId) {
-            replaceThreadMessageId(threadId, optimisticMessageId, body.userMessageId);
-          }
-        } else {
-          const res = await apiFetch('/api/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              content,
-              threadId,
-              idempotencyKey: clientMessageId,
-              ...(whisper ? { visibility: whisper.visibility, whisperTo: whisper.whisperTo } : {}),
-              ...deliveryModePayload,
-              ...(replyToId ? { replyTo: replyToId } : {}),
-            }),
-          });
-          if (!res.ok) {
-            const body = await res.json().catch(() => null);
-            throw new Error(body?.detail ?? `Server error: ${res.status}`);
-          }
-          const body = await res.json().catch(() => null);
-          if (!reconcileQueuedResponse(body) && body?.userMessageId) {
-            replaceThreadMessageId(threadId, optimisticMessageId, body.userMessageId);
-          }
+          return res.json();
+        };
+
+        let body: { status?: string; userMessageId?: string; gameThreadId?: string } | null;
+        try {
+          body = await sendOnce();
+        } catch (error) {
+          if (error instanceof DeterministicMessageSendError) throw error;
+          // A transport or response-parse failure is ambiguous: the server may
+          // already have committed the message. Replay exactly once with the
+          // same idempotency key and reconcile the durable message id.
+          body = await sendOnce();
+        }
+
+        if (!reconcileQueuedResponse(body) && body?.userMessageId) {
+          replaceThreadMessageId(threadId, optimisticMessageId, body.userMessageId);
         }
         setUploadStatus('idle');
         setUploadError(null);
         // Guide engine: signal that message was sent (advance confirm steps on chat.input)
         window.dispatchEvent(new CustomEvent('guide:confirm', { detail: { target: 'chat.input' } }));
       } catch (err) {
+        const isDeterministicFailure = err instanceof DeterministicMessageSendError;
         // F39: Only clear invocation flags for normal (non-queue, non-force) sends.
         // Queue sends never set them. Force sends target a thread where a cat is
         // already running — if the force request fails (network/server error), the
         // original invocation is still active; clearing flags would hide stop/queue UI.
-        const shouldClearFlags = !isQueueSend && deliveryMode !== 'force';
+        const shouldClearFlags = isDeterministicFailure && !isQueueSend && deliveryMode !== 'force';
         if (shouldClearFlags) {
           setThreadLoading(threadId, false);
           setThreadHasActiveInvocation(threadId, false);
         }
         const errorMessage = err instanceof Error ? err.message : 'Unknown';
-        if (hasImages) {
+        if (isDeterministicFailure) {
           setUploadStatus('failed');
           setUploadError(errorMessage);
         } else {
+          // Both attempts ended without a trustworthy response. The server may
+          // already have committed the request, so keep the optimistic state and
+          // let the existing Socket/durable-message reconciliation settle it.
           setUploadStatus('idle');
-        }
-        const errorMessagePayload: ChatMessageData = {
-          id: `err-${Date.now()}`,
-          type: 'system',
-          variant: 'error',
-          content: `Failed to send message: ${errorMessage}`,
-          timestamp: Date.now(),
-        };
-        if (threadId !== activeThread) {
-          addMessageToThread(threadId, errorMessagePayload);
-        } else {
-          addMessage(errorMessagePayload);
+          setUploadError(null);
         }
       }
     },

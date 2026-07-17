@@ -166,7 +166,7 @@ describe('useSendMessage thread source', () => {
     expect(mockSetLoading).not.toHaveBeenCalled();
   });
 
-  it('routes send error message to override target thread in split-pane mode', async () => {
+  it('does not inject a contradictory system bubble for a deterministic send failure', async () => {
     mockApiFetch.mockResolvedValue({
       ok: false,
       status: 500,
@@ -187,20 +187,18 @@ describe('useSendMessage thread source', () => {
       ([, msg]) =>
         typeof msg === 'object' && msg !== null && 'type' in msg && (msg as { type?: string }).type === 'system',
     );
-    expect(systemCall?.[0]).toBe('thread-target');
-    expect(systemCall?.[1]).toMatchObject({
-      type: 'system',
-      variant: 'error',
-      content: expect.stringContaining('target thread send failed'),
-    });
+    expect(systemCall).toBeUndefined();
+    expect(mockApiFetch).toHaveBeenCalledTimes(1);
   });
 
-  it('clears invocation state for source thread when send fails after thread switch', async () => {
-    let rejectFetch: ((err: Error) => void) | null = null;
-    mockApiFetch.mockImplementation(
+  it('clears invocation state for a deterministic source-thread failure after thread switch', async () => {
+    let resolveFetch:
+      | ((response: { ok: boolean; status: number; json: () => Promise<{ detail: string }> }) => void)
+      | null = null;
+    mockApiFetch.mockImplementationOnce(
       () =>
-        new Promise((_, reject) => {
-          rejectFetch = reject;
+        new Promise((resolve) => {
+          resolveFetch = resolve;
         }),
     );
 
@@ -214,11 +212,11 @@ describe('useSendMessage thread source', () => {
       );
     });
 
-    // Simulate user switching to another thread before the request rejects.
+    // Simulate user switching to another thread before a definite server rejection.
     storeCurrentThreadId = 'thread-B';
 
     await act(async () => {
-      rejectFetch?.(new Error('network down'));
+      resolveFetch?.({ ok: false, status: 500, json: async () => ({ detail: 'send rejected' }) });
       await Promise.resolve();
       await Promise.resolve();
     });
@@ -249,6 +247,35 @@ describe('useSendMessage thread source', () => {
     const optimisticMessage = optimisticUserCall?.[0];
     expect(optimisticMessage).toMatchObject({ type: 'user' });
     expect(mockReplaceThreadMessageId).toHaveBeenCalledWith('thread-route', optimisticMessage.id, 'msg-server-1');
+  });
+
+  it('replays one ambiguous transport failure with the same idempotency key and reconciles the optimistic message', async () => {
+    mockApiFetch.mockRejectedValueOnce(new TypeError('Load failed')).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ status: 'acknowledged', userMessageId: 'msg-server-after-replay' }),
+    });
+
+    await act(async () => {
+      root.render(
+        React.createElement(SendRunner, {
+          activeThreadId: 'thread-route',
+          overrideThreadId: undefined,
+          onDone: () => {},
+        }),
+      );
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledTimes(2);
+    const firstPayload = JSON.parse(String(mockApiFetch.mock.calls[0]?.[1]?.body));
+    const replayPayload = JSON.parse(String(mockApiFetch.mock.calls[1]?.[1]?.body));
+    expect(replayPayload.idempotencyKey).toBe(firstPayload.idempotencyKey);
+    const optimisticMessage = mockAddMessage.mock.calls[0]?.[0] as { id: string };
+    expect(mockReplaceThreadMessageId).toHaveBeenCalledWith(
+      'thread-route',
+      optimisticMessage.id,
+      'msg-server-after-replay',
+    );
+    expect(mockAddMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'system', variant: 'error' }));
   });
 
   it('removes an optimistic active-thread user bubble when server smart-defaults to queued', async () => {

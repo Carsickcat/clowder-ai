@@ -101,7 +101,9 @@ function AppShellContent({ children }: AppShellProps) {
             />
           </div>
         )}
-        <div className="flex-1 min-w-0 overflow-y-auto">{children}</div>
+        <div className={`min-w-0 flex-1 ${isChatRoute ? 'min-h-0 overflow-hidden' : 'overflow-y-auto'}`}>
+          {children}
+        </div>
         <PwaInstallPrompt hasMobileNav={isChatRoute} />
         <PwaTransientWorkGuard />
         <PwaUpdateController />

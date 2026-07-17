@@ -130,10 +130,11 @@ describe('MobileOpsShell', () => {
     expect(useChatStore.getState().catInvocations.opus?.taskProgress).toBeUndefined();
   });
 
-  it('uses the same safe-area-aware height for the fixed navigation footprint', async () => {
+  it('consumes the single Dock reserve token and exposes the keyboard-hide hook', async () => {
     await act(async () => root.render(<Harness />));
     const nav = container.querySelector('[data-testid="mobile-ops-nav"]');
-    expect(nav?.classList.contains('h-[calc(4rem+env(safe-area-inset-bottom))]')).toBe(true);
+    expect(nav?.classList.contains('h-[var(--mobile-dock-reserve)]')).toBe(true);
+    expect(nav?.classList.contains('mobile-ops-nav')).toBe(true);
   });
 
   it('preserves task progress delivered after an older snapshot request began', () => {

@@ -1051,7 +1051,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           {messages.length > 5 && <MessageNavigator messages={messages} scrollContainerRef={scrollContainerRef} />}
         </div>
 
-        <div ref={attachBottomChromeRef} className="pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <div ref={attachBottomChromeRef} className="pb-[var(--mobile-dock-reserve)] lg:pb-0">
           {authPending.length > 0 && (
             <div className="border-t border-conn-amber-ring bg-conn-amber-bg/40 py-2">
               {authPending.map((req) => (

@@ -79,9 +79,11 @@ export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: bool
         <div
           className="fixed z-[29] lg:hidden"
           style={{
-            left: 'calc(env(safe-area-inset-left) + 0.75rem)',
-            right: 'calc(env(safe-area-inset-right) + 0.75rem)',
-            bottom: 'calc(var(--mobile-keyboard-inset, 0px) + env(safe-area-inset-bottom) + 0.75rem)',
+            left: 'calc(var(--app-viewport-left, 0px) + env(safe-area-inset-left) + 0.75rem)',
+            width:
+              'calc(var(--app-viewport-width, 100vw) - env(safe-area-inset-left) - env(safe-area-inset-right) - 1.5rem)',
+            top: 'calc(var(--app-viewport-top, 0px) + var(--app-viewport-height, 100dvh) - var(--mobile-dock-reserve) - 0.75rem)',
+            transform: 'translateY(-100%)',
           }}
           data-testid="pwa-install-banner"
         >

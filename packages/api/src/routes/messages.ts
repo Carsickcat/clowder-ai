@@ -782,6 +782,12 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
       tryAutoCancelPendingHolds(resolvedThreadId, opts.holdBallCancelDeps);
 
       reply.status(202);
+      if (enqueueResult.deduped && !storedUserMessageId) {
+        return {
+          status: 'confirming',
+          entryId: enqueueResult.entry?.id,
+        };
+      }
       return {
         status: 'queued',
         queuePosition: enqueueResult.queuePosition,
@@ -906,6 +912,12 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
             );
             tryAutoCancelPendingHolds(resolvedThreadId, opts.holdBallCancelDeps);
             reply.status(202);
+            if (enqueueResult.deduped && !toctouUserMessageId) {
+              return {
+                status: 'confirming',
+                entryId: enqueueResult.entry?.id,
+              };
+            }
             return {
               status: 'queued',
               queuePosition: enqueueResult.queuePosition,
@@ -946,8 +958,43 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         if (controller) {
           opts.invocationTracker?.completeAll(resolvedThreadId, targetCats, controller);
         }
-        reply.status(200);
-        return { status: 'duplicate', invocationId: createResult.invocationId };
+        const duplicateRecord = await opts.invocationRecordStore.get(createResult.invocationId);
+        if (!duplicateRecord) {
+          reply.status(500);
+          return {
+            status: 'invariant_violation',
+            invocationId: createResult.invocationId,
+            code: 'INVOCATION_RECORD_MISSING',
+          };
+        }
+        if (duplicateRecord.userMessageId) {
+          reply.status(200);
+          return {
+            status: 'acknowledged',
+            invocationId: createResult.invocationId,
+            userMessageId: duplicateRecord.userMessageId,
+          };
+        }
+        if (duplicateRecord.status === 'queued' || duplicateRecord.status === 'running') {
+          reply.status(202);
+          return { status: 'confirming', invocationId: createResult.invocationId };
+        }
+        if (duplicateRecord.status === 'failed' || duplicateRecord.status === 'canceled') {
+          reply.status(409);
+          return {
+            status: 'failed',
+            invocationId: createResult.invocationId,
+            code: 'MESSAGE_NOT_DURABLE',
+            detail: duplicateRecord.error ?? 'The original request did not create a durable message.',
+            retryWithNewIdempotencyKey: true,
+          };
+        }
+        reply.status(500);
+        return {
+          status: 'invariant_violation',
+          invocationId: createResult.invocationId,
+          code: 'INVOCATION_MESSAGE_MISSING',
+        };
       }
 
       // Force path: still uses startAll() (preemptive — cancel already happened above)
@@ -980,6 +1027,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
           mentions: targetCats,
           timestamp: Date.now(),
           threadId: resolvedThreadId,
+          idempotencyKey: resolvedIdempotencyKey,
           ...(contentBlocks ? { contentBlocks } : {}),
           ...(whisperVisibility && whisperRecipients
             ? { visibility: whisperVisibility, whisperTo: whisperRecipients }

@@ -320,7 +320,23 @@ operator 在已加入 tailnet 的手机上，可以：
 - 讨论与审核 thread：`thread_mrogfco44bos1sgn`；关联远程安全/主机验收 thread：`thread_mrm61dqqot9n7iin`
 - 外部一手资料：[Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve)、[WebKit Home Screen Web Apps / Web Push](https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/)、[Capacitor](https://capacitorjs.com/docs)
 
-## 15. 收敛检查（operator 批准后执行）
+## 15. 2026-07-18 移动体验恢复契约
+
+co-creator 真机复测确认“功能可用”仍不足以构成移动端交付。本轮恢复采用以下终态约束：
+
+1. **一个 viewport owner、一个滚动 owner、一个 Dock。** AppShell 直接消费 VisualViewport 的 `top/left/width/height` 完整矩形；根页面不滚动，消息区是唯一纵向滚动层；Dock reserve 只有一个写入者。
+2. **键盘态进入创作模式。** 键盘打开时隐藏四项底栏；composer 输入字号至少 16px，移动端同一时刻只显示发送、停止或排队中的一个主操作，触控目标不小于 44px。
+3. **mention tray 受 visual viewport 约束。** 候选区锚定在 composer 上方，最多占可见高度的 40%，移动端隐藏桌面键盘提示；关闭候选不得改写文字、附件或 reply context。
+4. **状态与错误降噪。** Socket 降级投影为单行可展开摘要；后台 PWA 注册/更新检查失败只记录诊断，只有 waiting worker 或明确可执行动作才打断用户。
+5. **不确定发送必须对账。** transport/response-parse ambiguity 仅以同一 idempotency key 重放一次；immediate、queue、TOCTOU 与 force 共用 durable message identity，duplicate 必须区分 acknowledged、confirming、terminal failure 与 invariant violation。
+6. **验收 roster 不虚假宣称能力。** 本轮不扩展通用 `dispatchReady` 产品模型；隔离验收环境在 API 启动时对当前 resolved catalog 与 AgentRegistry 做 fail-closed 预检，未注册成员使验收失败并输出逐猫证据。
+7. **构建身份可追溯。** 真机截图、浏览器证据、API roster 与验收结论必须绑定同一 commit/build ID；旧 bundle 不能用于裁决新修复是否有效。
+
+明确否决：按 iPhone 13 Pro 固定宽高、继续叠加 `height + offsetTop`/keyboard inset、保留多个 fixed chrome 各自预留空间、以禁止缩放掩盖 14px 输入框。
+
+恢复方案及状态对象 census 见 [`feature-discussions/2026-07-18-f010-mobile-experience-recovery-meeting-notes.md`](../../feature-discussions/2026-07-18-f010-mobile-experience-recovery-meeting-notes.md)，TDD 实施契约见 [`feature-specs/2026-07-18-f010-mobile-experience-recovery.md`](../../feature-specs/2026-07-18-f010-mobile-experience-recovery.md)。
+
+## 16. 收敛检查（operator 批准后执行）
 
 1. 否决理由 -> ADR？**有**：原生重写与 raw HTTP 正式路径的否决已写入 F010 Key Decisions；若成为跨 feature 长期约束再补 ADR。
 2. 踩坑教训 -> public-lessons.md？**待审核**：若确认“可安装不等于移动体验完成”是重复坑，则追加；否则没有。

@@ -172,7 +172,7 @@ export function MobileOpsShell({
     <>
       {surface !== 'chat' && (
         <section
-          className="mobile-visual-viewport safe-area-inline fixed inset-x-0 z-30 flex flex-col bg-cafe-surface text-cafe lg:hidden"
+          className="mobile-visual-viewport safe-area-inline fixed z-30 flex flex-col bg-cafe-surface text-cafe lg:hidden"
           aria-label={title}
           data-testid="mobile-ops-surface"
         >
@@ -205,7 +205,7 @@ export function MobileOpsShell({
             </button>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto pb-[calc(4rem+env(safe-area-inset-bottom))]">
+          <div className="min-h-0 flex-1 overflow-y-auto pb-[var(--mobile-dock-reserve)]">
             {surface === 'work' && (
               <div className="space-y-3 p-3" data-testid="mobile-work-surface">
                 <section className="rounded-lg border border-cafe bg-[var(--console-card-bg)] p-3 text-sm">
@@ -235,7 +235,7 @@ export function MobileOpsShell({
       )}
 
       <nav
-        className="mobile-keyboard-offset safe-area-inline fixed inset-x-0 z-[45] grid h-[calc(4rem+env(safe-area-inset-bottom))] grid-cols-4 border-t border-cafe bg-cafe-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="mobile-visual-bottom mobile-ops-nav safe-area-inline fixed z-[45] grid h-[var(--mobile-dock-reserve)] -translate-y-full grid-cols-4 border-t border-cafe bg-cafe-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
         aria-label="手机工作台"
         data-testid="mobile-ops-nav"
       >

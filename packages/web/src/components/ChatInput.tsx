@@ -752,7 +752,7 @@ export function ChatInput({
       )}
       {imageLifecycleStatus === 'failed' && uploadError && (
         <div className="px-4 pt-2 text-xs text-conn-red-text" role="alert">
-          图片发送失败：{uploadError}
+          消息发送失败：{uploadError}
         </div>
       )}
 
@@ -867,7 +867,7 @@ export function ChatInput({
                   ? '继续输入，消息会排队...'
                   : '输入消息... (@ 召唤猫猫)'
             }
-            className={`w-full resize-none rounded-xl border p-3 text-sm focus:outline-none focus:ring-2 placeholder:text-cafe-muted ${
+            className={`w-full resize-none rounded-xl border p-3 text-base focus:outline-none focus:ring-2 placeholder:text-cafe-muted ${
               whisperMode
                 ? 'border-cafe-accent/30 bg-accent-50/50 focus:ring-cafe-accent'
                 : 'border-[var(--console-border-soft)] bg-transparent focus:bg-[var(--console-card-bg)] focus:ring-[var(--console-input-stroke)]'
@@ -878,7 +878,7 @@ export function ChatInput({
           {ghostSuggestion && !pathCompletion.isOpen && (
             <div
               data-testid="ghost-suggestion"
-              className="absolute inset-0 pointer-events-none p-3 text-sm whitespace-pre-wrap break-words overflow-hidden rounded-xl"
+              className="absolute inset-0 pointer-events-none p-3 text-base whitespace-pre-wrap break-words overflow-hidden rounded-xl"
               aria-hidden="true"
             >
               <span className="invisible">{input}</span>

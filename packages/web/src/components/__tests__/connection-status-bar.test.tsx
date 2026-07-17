@@ -33,6 +33,9 @@ describe('ConnectionStatusBar', () => {
     expect(html).toContain('Socket');
     expect(html).toContain('上游模型');
     expect(html).toContain('输入区已切换为只读模式');
+    expect(html).toContain('<summary');
+    expect(html).toContain('sm:hidden');
+    expect(html).toContain('hidden sm:grid');
   });
 
   it('shows snapshot hint when using cached history in non-readonly mode', () => {

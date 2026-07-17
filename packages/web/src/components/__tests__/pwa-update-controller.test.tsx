@@ -90,6 +90,7 @@ describe('PwaUpdateController', () => {
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: originalServiceWorker });
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: originalVisibilityState });
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
+    vi.restoreAllMocks();
   });
 
   it('keeps a waiting worker inert until confirmation, then reloads once after it takes control', async () => {
@@ -244,28 +245,20 @@ describe('PwaUpdateController', () => {
     expect(container.textContent).not.toContain('新版本已就绪');
   });
 
-  it('surfaces registration failures without a reload loop and allows a manual retry', async () => {
+  it('keeps background registration failures out of the task surface', async () => {
     const harness = createServiceWorkerHarness();
-    harness.serviceWorker.getRegistration
-      .mockRejectedValueOnce(new Error('registration failed'))
-      .mockResolvedValue(harness.registration);
+    harness.serviceWorker.getRegistration.mockRejectedValueOnce(new Error('registration failed'));
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: harness.serviceWorker });
     const reloadPage = vi.fn();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     await act(async () => {
       root.render(<PwaUpdateController reloadPage={reloadPage} />);
       await Promise.resolve();
     });
-    expect(container.textContent).toContain('更新检查失败');
-
-    const retryButton = [...container.querySelectorAll('button')].find((button) => button.textContent === '重试');
-    await act(async () => {
-      retryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      await Promise.resolve();
-    });
-
+    expect(container.textContent).not.toContain('更新检查失败');
     expect(reloadPage).not.toHaveBeenCalled();
     expect(container.querySelector('[data-testid="pwa-update-status"]')).toBeNull();
-    expect(harness.registration.update).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalled();
   });
 });

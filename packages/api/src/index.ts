@@ -18,6 +18,7 @@ import fastifyCookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify, { type FastifyReply } from 'fastify';
+import { assertAcceptanceRosterReady, isAcceptanceRosterGateEnabled } from './config/acceptance-roster-gate.js';
 import { resolveAnthropicRuntimeProfile, resolveForClient } from './config/account-resolver.js';
 import { regenerateStartupCliConfigs } from './config/capabilities/startup-cli-config.js';
 import { resolveBoundAccountRefForCat } from './config/cat-account-binding.js';
@@ -1349,6 +1350,16 @@ async function main(): Promise<void> {
     await warmL0Cache(registeredCatIds, app.log);
   };
   await syncAgentRegistry(catRegistry.getAllConfigs());
+  const acceptanceRosterGate = assertAcceptanceRosterReady({
+    enabled: isAcceptanceRosterGateEnabled(),
+    configs: catRegistry.getAllConfigs(),
+    agentRegistry,
+    resolveAdapterMode: (catId, config) =>
+      getAcpConfig(catId, resolveActiveProjectRoot()) ? 'acp' : `legacy:${config.clientId}`,
+  });
+  if (acceptanceRosterGate.enabled) {
+    app.log.info({ acceptanceRoster: acceptanceRosterGate.entries }, '[api] Acceptance roster gate passed');
+  }
 
   const runtimeSessionSealReaper = new RuntimeSessionSealReaper({
     runtimeSessionStore,

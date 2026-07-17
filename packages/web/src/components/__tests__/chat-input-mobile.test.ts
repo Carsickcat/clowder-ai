@@ -137,6 +137,13 @@ describe('ChatInput textarea auto-grow', () => {
 });
 
 describe('ChatInput composer layout', () => {
+  it('uses a 16px editable font so iOS does not focus-zoom the page', () => {
+    render();
+    const textarea = container.querySelector('textarea');
+    expect(textarea?.className).toContain('text-base');
+    expect(textarea?.className).not.toContain('text-sm');
+  });
+
   it('vertically centers the right-side controls with the textarea', () => {
     render();
 
@@ -153,5 +160,21 @@ describe('ChatInput composer layout', () => {
     expect(stopButton?.className).toContain('bg-conn-red-text');
     expect(stopButton?.className).toContain('hover:bg-conn-red-hover');
     expect(stopButton?.className).toContain('focus-visible:ring-2');
+  });
+
+  it('shows queue as the only compact primary action when the cat is active and text is present', () => {
+    render({ hasActiveInvocation: true, onStop: vi.fn() });
+    const textarea = container.querySelector('textarea')!;
+    act(() => {
+      const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+      setValue?.call(textarea, '下一条消息');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    expect(container.querySelector('button[aria-label="排队发送"]')).toBeTruthy();
+    expect(container.querySelector('button[aria-label="Stop generation"]')).toBeNull();
+    const force = container.querySelector('button[aria-label="强制发送"]');
+    expect(force?.className).toContain('hidden');
+    expect(force?.className).toContain('md:flex');
   });
 });

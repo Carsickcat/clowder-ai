@@ -100,8 +100,8 @@ export function PwaUpdateController({ reloadPage = defaultReloadPage }: PwaUpdat
       watchRegistration(registration);
       await registration.update();
       surfaceWaitingWorker(registration);
-    } catch {
-      if (!activationRequestedRef.current) setState('error');
+    } catch (error) {
+      if (!activationRequestedRef.current) console.warn('[PWA] Background update check failed', error);
     }
   }, [surfaceWaitingWorker, watchRegistration]);
 
@@ -140,8 +140,8 @@ export function PwaUpdateController({ reloadPage = defaultReloadPage }: PwaUpdat
       try {
         const registration = await serviceWorker.getRegistration();
         if (active && registration) watchRegistration(registration);
-      } catch {
-        if (active) setState('error');
+      } catch (error) {
+        if (active) console.warn('[PWA] Service Worker registration lookup failed', error);
       }
     };
 

@@ -110,14 +110,14 @@ export function ChatInputMenus({
       {showMentions && (
         <div
           ref={menuRef}
-          className="absolute bottom-full left-4 mb-2 bg-cafe-surface-elevated rounded-xl shadow-lg border border-cafe overflow-hidden w-64 z-10 max-h-80 flex flex-col"
+          className="absolute bottom-full left-4 right-4 mb-2 flex max-h-[min(40dvh,20rem)] w-auto flex-col overflow-hidden rounded-xl border border-cafe bg-cafe-surface-elevated shadow-lg z-10 sm:right-auto sm:w-64 sm:max-h-80"
         >
           <div ref={scrollRef} className="overflow-y-auto flex-1">
             {catOptions.map((opt, i) => (
               <button
                 key={opt.id}
                 ref={i === selectedIdx ? selectedRef : undefined}
-                className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors ${i === selectedIdx ? 'bg-cafe-surface-sunken' : 'hover:bg-cafe-surface-elevated'}`}
+                className={`min-h-11 w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors ${i === selectedIdx ? 'bg-cafe-surface-sunken' : 'hover:bg-cafe-surface-elevated'}`}
                 onMouseEnter={() => onSelectIdx(i)}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -164,7 +164,7 @@ export function ChatInputMenus({
             </div>
           )}
           {catOptions.length === 0 && <div className="px-4 py-2.5 text-xs text-cafe-muted">无匹配猫猫</div>}
-          <div className="px-4 py-1.5 text-xs text-cafe-muted border-t border-cafe-subtle shrink-0">
+          <div className="hidden sm:block px-4 py-1.5 text-xs text-cafe-muted border-t border-cafe-subtle shrink-0">
             {'\u2191\u2193 \u9009\u62E9 \u00B7 Enter \u786E\u8BA4 \u00B7 Esc \u5173\u95ED'}
           </div>
         </div>

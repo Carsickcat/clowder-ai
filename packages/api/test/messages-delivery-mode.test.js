@@ -169,6 +169,82 @@ describe('POST /api/messages deliveryMode', () => {
     assert.equal(replayBody.userMessageId, firstBody.userMessageId, 'replay should reuse original user message');
   });
 
+  it('queue replay returns confirming while the durable message id is still being backfilled', async () => {
+    deps.invocationTracker.has.mock.mockImplementation(() => true);
+    const idempotencyKey = '33333333-3333-4333-8333-333333333333';
+    const pending = deps.invocationQueue.enqueue({
+      threadId: 'thread-1',
+      userId: 'user-1',
+      idempotencyKey,
+      content: '正在落盘',
+      source: 'user',
+      targetCats: ['opus'],
+      intent: 'execute',
+    });
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: { content: '正在落盘', threadId: 'thread-1', deliveryMode: 'queue', idempotencyKey },
+    });
+
+    assert.equal(replay.statusCode, 202);
+    assert.deepEqual(JSON.parse(replay.body), {
+      status: 'confirming',
+      entryId: pending.entry.id,
+    });
+    assert.equal(deps.messageStore.append.mock.calls.length, 0, 'confirming replay must not append a second message');
+  });
+
+  it('queue replay crosses the real append/backfill window from confirming to the same durable message', async () => {
+    deps.invocationTracker.has.mock.mockImplementation(() => true);
+    const idempotencyKey = '88888888-8888-4888-8888-888888888888';
+    let signalAppendStarted;
+    let releaseAppend;
+    const appendStarted = new Promise((resolve) => {
+      signalAppendStarted = resolve;
+    });
+    const appendRelease = new Promise((resolve) => {
+      releaseAppend = resolve;
+    });
+    deps.messageStore.append.mock.mockImplementationOnce(async (message) => {
+      signalAppendStarted();
+      await appendRelease;
+      return { id: 'msg-queue-race', ...message };
+    });
+    const payload = { content: 'queue race', threadId: 'thread-1', deliveryMode: 'queue', idempotencyKey };
+
+    const firstPromise = app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    await appendStarted;
+
+    const during = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(during.statusCode, 202);
+    assert.equal(JSON.parse(during.body).status, 'confirming');
+
+    releaseAppend();
+    const first = await firstPromise;
+    assert.equal(JSON.parse(first.body).userMessageId, 'msg-queue-race');
+    const after = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(JSON.parse(after.body).userMessageId, 'msg-queue-race');
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
+  });
+
   it('queue mode → same-user consecutive messages are independent entries (F175: no merge)', async () => {
     deps.invocationTracker.has.mock.mockImplementation(() => true);
 
@@ -300,9 +376,204 @@ describe('POST /api/messages deliveryMode', () => {
 
     // Should go through normal path
     assert.ok(deps.invocationRecordStore.create.mock.calls.length > 0);
+    assert.equal(
+      deps.messageStore.append.mock.calls[0].arguments[0].idempotencyKey,
+      deps.invocationRecordStore.create.mock.calls[0].arguments[0].idempotencyKey,
+      'immediate message and invocation record must share one idempotency key',
+    );
 
     // Queue should be empty
     assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0);
+  });
+
+  it('immediate duplicate with a durable message is acknowledged with both ids', async () => {
+    deps.invocationRecordStore.create.mock.mockImplementation(async () => ({
+      outcome: 'duplicate',
+      invocationId: 'inv-duplicate',
+    }));
+    deps.invocationRecordStore.get.mock.mockImplementation(async () => ({
+      id: 'inv-duplicate',
+      status: 'running',
+      userMessageId: 'msg-durable',
+    }));
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: {
+        content: 'duplicate acknowledged',
+        threadId: 'thread-1',
+        deliveryMode: 'immediate',
+        idempotencyKey: '44444444-4444-4444-8444-444444444444',
+      },
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(JSON.parse(res.body), {
+      status: 'acknowledged',
+      invocationId: 'inv-duplicate',
+      userMessageId: 'msg-durable',
+    });
+  });
+
+  it('immediate duplicate returns confirming while its message id is being backfilled', async () => {
+    deps.invocationRecordStore.create.mock.mockImplementation(async () => ({
+      outcome: 'duplicate',
+      invocationId: 'inv-confirming',
+    }));
+    deps.invocationRecordStore.get.mock.mockImplementation(async () => ({
+      id: 'inv-confirming',
+      status: 'running',
+      userMessageId: null,
+    }));
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: {
+        content: 'duplicate confirming',
+        threadId: 'thread-1',
+        deliveryMode: 'immediate',
+        idempotencyKey: '55555555-5555-4555-8555-555555555555',
+      },
+    });
+
+    assert.equal(res.statusCode, 202);
+    assert.deepEqual(JSON.parse(res.body), { status: 'confirming', invocationId: 'inv-confirming' });
+  });
+
+  it('immediate replay crosses the real append/backfill window from confirming to acknowledged', async () => {
+    const idempotencyKey = '99999999-9999-4999-8999-999999999999';
+    const record = {
+      id: 'inv-race',
+      status: 'queued',
+      userMessageId: null,
+      idempotencyKey,
+    };
+    let created = false;
+    deps.invocationRecordStore.create.mock.mockImplementation(async () => {
+      if (created) return { outcome: 'duplicate', invocationId: record.id };
+      created = true;
+      return { outcome: 'created', invocationId: record.id };
+    });
+    deps.invocationRecordStore.get.mock.mockImplementation(async () => ({ ...record }));
+    deps.invocationRecordStore.update.mock.mockImplementation(async (_id, update) => {
+      Object.assign(record, update);
+      return { ...record };
+    });
+    let signalAppendStarted;
+    let releaseAppend;
+    const appendStarted = new Promise((resolve) => {
+      signalAppendStarted = resolve;
+    });
+    const appendRelease = new Promise((resolve) => {
+      releaseAppend = resolve;
+    });
+    deps.messageStore.append.mock.mockImplementationOnce(async (message) => {
+      signalAppendStarted();
+      await appendRelease;
+      return { id: 'msg-immediate-race', ...message };
+    });
+    const payload = { content: 'immediate race', threadId: 'thread-1', deliveryMode: 'immediate', idempotencyKey };
+
+    const firstPromise = app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    await appendStarted;
+    const during = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(during.statusCode, 202);
+    assert.deepEqual(JSON.parse(during.body), { status: 'confirming', invocationId: record.id });
+
+    releaseAppend();
+    await firstPromise;
+    const after = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload,
+    });
+    assert.equal(after.statusCode, 200);
+    assert.deepEqual(JSON.parse(after.body), {
+      status: 'acknowledged',
+      invocationId: record.id,
+      userMessageId: 'msg-immediate-race',
+    });
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
+  });
+
+  it('immediate duplicate reports a terminal failure without inviting the same UUID replay', async () => {
+    deps.invocationRecordStore.create.mock.mockImplementation(async () => ({
+      outcome: 'duplicate',
+      invocationId: 'inv-failed',
+    }));
+    deps.invocationRecordStore.get.mock.mockImplementation(async () => ({
+      id: 'inv-failed',
+      status: 'failed',
+      userMessageId: null,
+      error: 'append failed',
+    }));
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: {
+        content: 'duplicate failed',
+        threadId: 'thread-1',
+        deliveryMode: 'immediate',
+        idempotencyKey: '66666666-6666-4666-8666-666666666666',
+      },
+    });
+
+    assert.equal(res.statusCode, 409);
+    assert.deepEqual(JSON.parse(res.body), {
+      status: 'failed',
+      invocationId: 'inv-failed',
+      code: 'MESSAGE_NOT_DURABLE',
+      detail: 'append failed',
+      retryWithNewIdempotencyKey: true,
+    });
+  });
+
+  it('immediate duplicate treats succeeded-without-message as an invariant violation', async () => {
+    deps.invocationRecordStore.create.mock.mockImplementation(async () => ({
+      outcome: 'duplicate',
+      invocationId: 'inv-invalid',
+    }));
+    deps.invocationRecordStore.get.mock.mockImplementation(async () => ({
+      id: 'inv-invalid',
+      status: 'succeeded',
+      userMessageId: null,
+    }));
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: {
+        content: 'duplicate invalid',
+        threadId: 'thread-1',
+        deliveryMode: 'immediate',
+        idempotencyKey: '77777777-7777-4777-8777-777777777777',
+      },
+    });
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(JSON.parse(res.body), {
+      status: 'invariant_violation',
+      invocationId: 'inv-invalid',
+      code: 'INVOCATION_MESSAGE_MISSING',
+    });
   });
 
   it('immediate startup watchdog releases slot when routeExecution never starts provider events', async (t) => {
@@ -419,6 +690,32 @@ describe('POST /api/messages deliveryMode', () => {
     assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 1, 'replay should not add a new queue row');
     assert.equal(replayBody.entryId, firstBody.entryId, 'replay should point to existing queue entry');
     assert.equal(replayBody.userMessageId, firstBody.userMessageId, 'replay should reuse original user message');
+  });
+
+  it('TOCTOU degrade-to-queue reports confirming for a deduped entry still awaiting message backfill', async () => {
+    deps.invocationTracker.has.mock.mockImplementation(() => false);
+    deps.invocationTracker.tryStartThreadAll.mock.mockImplementation(() => null);
+    const idempotencyKey = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const pending = deps.invocationQueue.enqueue({
+      threadId: 'thread-1',
+      userId: 'user-1',
+      idempotencyKey,
+      content: 'TOCTOU confirming',
+      source: 'user',
+      targetCats: ['opus'],
+      intent: 'execute',
+    });
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: { content: 'TOCTOU confirming', threadId: 'thread-1', deliveryMode: 'immediate', idempotencyKey },
+    });
+
+    assert.equal(replay.statusCode, 202);
+    assert.deepEqual(JSON.parse(replay.body), { status: 'confirming', entryId: pending.entry.id });
+    assert.equal(deps.messageStore.append.mock.calls.length, 0);
   });
 
   it('aborted invocation does not emit spawn_started after stop wins the race', async () => {
