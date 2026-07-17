@@ -6,11 +6,11 @@ Source of truth: `docs/design/F010-mobile-pwa-standard.md`
 
 Implementation plan: `feature-specs/2026-07-17-f010-mobile-pwa.md`
 
-Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; latest dispatch-owner repair `b62e66f`)
+Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; latest dispatch-owner repair `06c84e2`)
 
 ## Verdict
 
-The A0–A3 code slice remains in independent code review. `7d2bca8` moved the atomic invocation claim ahead of tracker/queue/force side effects and Terra approved that implementation. `85d0cb1` repaired durable-message reconciliation and deterministic composer recovery. Opus 4.5's re-review then found that the dispatch claim still expired after five minutes and that queued replay changed its external owner identity. `b62e66f` removes the claim TTL, adds a durable message-owner fallback, and links one stable `queueEntryId` through claim, queue, message, Redis, and replay; Opus 4.5's final verdict on that repair is pending. F010 is **not feature-complete**: the reporting iPhone's Chinese-IME keyboard frame and installed standalone-PWA/Tailscale HTTPS recovery journey remain operator-owned release acceptance.
+The A0–A3 code slice remains in independent code review. `7d2bca8` moved the atomic invocation claim ahead of tracker/queue/force side effects and Terra approved that implementation. `85d0cb1` repaired durable-message reconciliation and deterministic composer recovery. `b62e66f` then removed the claim TTL, added a durable message-owner fallback, and linked one stable `queueEntryId` through claim, queue, message, Redis, and replay. Opus 4.5 found one remaining capacity race: the in-memory store could evict the only claim before the first durable append completed. `06c84e2` makes that capacity bound fail-closed and soft only until a durable owner exists; Opus 4.5's final verdict on this repair is pending. F010 is **not feature-complete**: the reporting iPhone's Chinese-IME keyboard frame and installed standalone-PWA/Tailscale HTTPS recovery journey remain operator-owned release acceptance.
 
 ## Acceptance status
 
@@ -21,7 +21,7 @@ The A0–A3 code slice remains in independent code review. `7d2bca8` moved the a
 | AC-A2 | Code-complete, real-device pending | Installability diagnostics, runtime manifest status/content-type validation, iOS/manual and native prompt paths, WebView/secure/SW blockers, 30-day dismissal, and permanent entry are tested. Real Tailscale HTTPS install evidence remains open. |
 | AC-A3 | Code-complete | Foreground/online recovery works even without SW; new workers wait for consent; all-thread drafts/attachments and Approval Hub transient work veto activation; controllerchange reloads once; NetworkOnly business artifacts are production-built. |
 | AC-A4 | Partial | Light compact, dark medium, and light desktop browser evidence exists. iPhone/Android journeys and complete real-device parity remain open. |
-| AC-A5 | Pending review | The dispatch-owner repair's affected API/Web, real Redis, typecheck/build, static checks, and route dogfood pass. Opus 4.5's final re-review of `b62e66f` remains open. Repository-wide Windows baseline limitations are listed below. |
+| AC-A5 | Pending review | The dispatch-owner repair and capacity-race repair pass affected API/Web, Redis contracts, typecheck/build, static checks, and real Fastify route dogfood. Opus 4.5's final re-review of `06c84e2` remains open. Repository-wide Windows baseline limitations are listed below. |
 
 ## Browser viewport matrix
 
@@ -110,6 +110,7 @@ The embedded preview tool does not expose programmatic iOS keyboard control. The
 - Post-`986049e` re-review repair: the two focused suites were **RED at 4 failed / 10 passed** on the prior implementation, then **GREEN at 14/14** after consuming the deferred prompt before its first attempt and aligning both thread create/select close paths to the shared `wide=1024` boundary. The final F010 selection is **21 Vitest files, 103 tests passed**.
 - Post-`85d0cb1` message recovery repair: API was **RED at 4 failures** (missing scoped lookup plus immediate/explicit-queue/TOCTOU backfill failures) and Web was **RED at 2 failures** (ghost optimistic bubble plus lost text/image/reply). The final focused runs are API build + **73/73** and Web **3 files / 28 tests**. Broader affected selections pass API **196/196** and Web **10 files / 67 tests**.
 - Post-`b62e66f` dispatch-owner repair: the expanded API selection was **RED at 14 failures / 182 passes**, then **GREEN at 196/196**. The final affected API roster passes **370/370**, real isolated Redis passes **64/64**, the affected Web composer/send files pass **28/28**, and Fastify route dogfood passes **3/3**.
+- Post-`06c84e2` pending-claim capacity repair: the new store and real Fastify append-window regressions were **RED at 2 failures / 64 passes**, then **GREEN at 67/67** after protecting undurable claims. The post-refactor selection passes **73/73**, the broad affected API roster passes **350/350**, route dogfood passes **1/1**, and the full workspace build exits 0.
 - Next/PWA configuration: **8/8 passed**; `skipWaiting` is explicitly false and API, Socket, and uploads remain on network truth.
 - Custom color rule test: passed.
 - Repository lint: exit 0 (existing warnings only); Web TypeScript: exit 0.
@@ -138,6 +139,14 @@ The embedded preview tool does not expose programmatic iOS keyboard control. The
 - **Failure-mode coverage:** tests cross the former 300-second boundary, bounded-memory eviction, append/backfill failure, explicit queue and TOCTOU confirming windows, Redis hydration, and concurrent same-key requests that observe different busy states.
 - **Fresh gate:** API high-risk roster **370/370**, isolated Redis **64/64**, affected Web **28/28**, route dogfood **3/3**, targeted Biome, repository lint, capability tips, `git diff --check`, and full workspace build pass. The complete ledger, including baseline reds, is `review-notes/2026-07-18-f010-dispatch-owner-quality-gate.md`.
 - **Architecture boundary:** the universal InvocationRecord remains the atomic concurrency claim; QueueEntry is the queued API response owner. No parallel store/queue/router/adapter/dispatcher/binding or UI surface was introduced.
+
+## Pending-claim capacity safety: `06c84e2`
+
+- **Fail-closed soft bound:** the in-memory InvocationRecordStore only evicts records after `userMessageId` proves a durable recovery owner exists. Pending and terminal-without-message claims remain reserved even when the configured capacity is exceeded.
+- **Overflow repayment:** record backfill reruns safe trimming immediately, so abnormal all-undurable pressure can exceed the limit temporarily without becoming an unbounded steady state.
+- **Real route proof:** a Fastify regression blocks the first append, creates capacity pressure, and replays the same UUID. Replay returns the original `202 confirming`; tracker/queue/router/append side effects do not duplicate.
+- **Failure-mode coverage:** queued/running, failed/canceled, succeeded-without-message, safely recoverable, Redis N/A, and post-backfill states are enumerated in `docs/bug-report/f010-pending-claim-capacity-eviction/bug-report.md`.
+- **Fresh gate:** focused **67/67**, post-refactor **73/73**, broad affected API **350/350**, route dogfood **1/1**, API/workspace builds, targeted source Biome, and `git diff --check` pass. Root `pnpm check` remains red only on the untouched `SocketManager.ts` format baseline.
 
 ## Re-review repair: `986049e`
 
@@ -178,5 +187,6 @@ These failures are outside the F010 diff and are not hidden as green:
 - `7d2bca8` atomically claims a message UUID before tracker/queue/force side effects and keeps one invocation owner through queue processing.
 - `85d0cb1` reconciles durable messages across record-backfill failure and makes deterministic send rejection restore the exact composer session without leaving a ghost bubble.
 - `b62e66f` retains dispatch ownership beyond the legacy five-minute window and preserves one queued response owner through claim, message, Redis, and replay.
+- `06c84e2` preserves undurable invocation claims under in-memory capacity pressure and repays soft overflow after durable backfill.
 
 [宪宪/gpt-5.6-sol🐾]
