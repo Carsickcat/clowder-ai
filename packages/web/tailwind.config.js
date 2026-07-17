@@ -1,10 +1,17 @@
 /** @type {import('tailwindcss').Config} */
+const defaultTheme = require('tailwindcss/defaultTheme');
+const responsiveBreakpoints = require('./src/styles/responsive-breakpoints.json');
 const typographyTokens = require('./src/styles/typography-tokens.json');
 
 module.exports = {
   darkMode: ['selector', '[data-theme="dark"]'],
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}', '../shared/src/**/*.{js,ts}'],
   theme: {
+    screens: {
+      ...defaultTheme.screens,
+      md: `${responsiveBreakpoints.medium}px`,
+      lg: `${responsiveBreakpoints.wide}px`,
+    },
     extend: {
       fontSize: {
         /* token-based (from typography-tokens.json — includes micro/label/compact with lineHeight) */

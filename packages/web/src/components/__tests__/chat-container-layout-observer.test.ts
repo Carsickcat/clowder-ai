@@ -2,6 +2,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatContainer } from '@/components/ChatContainer';
+import { WIDE_SHELL_QUERY } from '@/lib/responsive-breakpoints';
 
 type StoreState = {
   messages: [];
@@ -278,7 +279,7 @@ describe('ChatContainer bottom chrome observer', () => {
     originalResizeObserver = globalThis.ResizeObserver;
     globalThis.ResizeObserver = MockResizeObserver as unknown as typeof globalThis.ResizeObserver;
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes('min-width: 768px'),
+      matches: query === WIDE_SHELL_QUERY,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),

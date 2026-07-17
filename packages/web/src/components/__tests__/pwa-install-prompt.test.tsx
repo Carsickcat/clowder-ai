@@ -1,6 +1,7 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { WIDE_SHELL_QUERY } from '@/lib/responsive-breakpoints';
 import { PwaInstallPrompt } from '../PwaInstallPrompt';
 
 function setUserAgent(userAgent: string) {
@@ -13,7 +14,7 @@ function setUserAgent(userAgent: string) {
 function mockMatchMedia({ desktop = false, standalone = false }: { desktop?: boolean; standalone?: boolean } = {}) {
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches:
-      (query.includes('min-width: 768px') && desktop) ||
+      (query === WIDE_SHELL_QUERY && desktop) ||
       (query.includes('display-mode: standalone') && standalone),
     media: query,
     onchange: null,

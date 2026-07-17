@@ -2,6 +2,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatContainer } from '@/components/ChatContainer';
+import { WIDE_SHELL_QUERY } from '@/lib/responsive-breakpoints';
 import { useSidebarStore } from '@/stores/sidebarStore';
 
 const mockStoreState = () => ({
@@ -133,7 +134,7 @@ describe('ChatContainer mobile interactions', () => {
 
   function mockMatchMedia(desktopMatch: boolean) {
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: desktopMatch && query.includes('min-width: 768px'),
+      matches: desktopMatch && query === WIDE_SHELL_QUERY,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),

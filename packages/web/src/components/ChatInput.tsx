@@ -6,6 +6,7 @@ import { reconnectGame } from '@/hooks/useGameReconnect';
 import { useIMEGuard } from '@/hooks/useIMEGuard';
 import { usePathCompletion } from '@/hooks/usePathCompletion';
 import type { UploadStatus, WhisperOptions } from '@/hooks/useSendMessage';
+import { MOBILE_WORK_SURFACE_QUERY } from '@/lib/responsive-breakpoints';
 import type { DeliveryMode } from '@/stores/chat-types';
 import { useChatStore } from '@/stores/chatStore';
 import { useInputHistoryStore } from '@/stores/inputHistoryStore';
@@ -652,7 +653,8 @@ export function ChatInput({
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = 'auto';
-    const isMobile = typeof window.matchMedia === 'function' ? window.matchMedia('(max-width: 767px)').matches : false;
+    const isMobile =
+      typeof window.matchMedia === 'function' ? window.matchMedia(MOBILE_WORK_SURFACE_QUERY).matches : false;
     const maxH = isMobile ? 120 : 200; // ~5 lines mobile, ~8 lines desktop
     ta.style.height = `${Math.min(ta.scrollHeight, maxH)}px`;
   }, [input]);
