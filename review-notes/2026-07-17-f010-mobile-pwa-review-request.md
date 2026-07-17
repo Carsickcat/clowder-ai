@@ -20,6 +20,7 @@ Quality evidence: `project-evidence/f010-mobile-pwa/README.md`
 - Added foreground/online recovery, a non-silent SW update controller, cancelable pre-reload draft protection, and NetworkOnly upload/business-artifact routing.
 - Fixed a production-only SSR crash found during browser dogfood by keeping install facts deterministic until hydration completes.
 - Repaired Terra's modal-focus P2 with a shared focus boundary, dialog semantics, Tab/Shift+Tab containment, Escape handling, and real AppShell opener restoration (`e92afd4`).
+- Repaired the remaining review blockers in `e74be7c`: an AppShell-resident all-thread/Approval Hub transient-work guard, explicit Workbox waiting-worker activation, foreground recovery without SW, runtime manifest verification, and install-banner layering below mobile work surfaces.
 
 ## Why
 
@@ -39,6 +40,7 @@ Please inspect the complete diff, with extra attention to:
 - `packages/web/src/hooks/useModalFocus.ts`
 - `packages/web/src/components/pwa/PwaInstallExperienceProvider.tsx`
 - `packages/web/src/components/pwa/PwaUpdateController.tsx`
+- `packages/web/src/components/pwa/PwaTransientWorkGuard.tsx`
 - `packages/web/src/lib/pwa-installability.ts`
 - `packages/web/next.config.js`
 - all F010-related tests in `packages/web/src/**/__tests__`
@@ -48,18 +50,20 @@ Check especially:
 1. one owner for mobile drawer state and no duplicate navigation authority;
 2. breakpoint boundary behavior at 768 and 1024;
 3. install prompt eligibility/dismissal under denied storage, WebView, offline, standalone, and native-prompt failure;
-4. update flow cannot lose text/reply/attachment/approval transient state or reload more than once;
+4. update flow cannot lose text/reply/attachment/approval transient state across route/surface unmounts, activate before consent, or reload more than once;
 5. API, Socket, uploads, and business artifacts never become stale offline truth;
 6. SSR/hydration safety of all browser-only facts;
 7. desktop AppShell and global approval semantics remain intact.
-8. modal focus cannot leave the drawer/install sheet and always returns to a still-mounted opener.
+8. modal focus cannot leave the drawer/install sheet and always returns to a still-mounted opener;
+9. manifest 404/HTML and no-Service-Worker environments remain truthful and recoverable.
 
 ## Verification already run
 
-- Pre-review broad suite: 19 files / 359 tests passed; post-P2 exact affected suite: 18 files / 83 tests passed.
-- Next/PWA configuration: 7/7; no-hardcoded-colors rule passed.
+- Pre-review broad suite: 19 files / 359 tests passed; post-P2 suite: 18 files / 83 tests; post-review transaction suite: 20 files / 112 tests passed.
+- Next/PWA configuration: 8/8; no-hardcoded-colors rule passed.
 - Repository lint: exit 0; Web TypeScript: exit 0.
-- Repository production build: exit 0; post-SSR-fix Web production build: exit 0.
+- Repository production build: exit 0; post-review Web production build: exit 0 with 22 routes.
+- Generated `sw.js` exposes the gated `SKIP_WAITING` message protocol, retains `clientsClaim`, and places `/api`, `/socket.io`, and `/uploads/` NetworkOnly routes before static caching.
 - Production browser matrix: 390×844, 430×932, 768×1024 dark, 1024×768 desktop; HTTP 200, no overflow, no page errors; server log clean after SSR repair.
 - Post-P2 real Chrome keyboard path at 390×844: drawer 14-control and install-sheet 2-control focus boundaries wrap in both directions; Escape closes and restores `mobile-global-nav-trigger`; screenshot `project-evidence/f010-mobile-pwa/focus-trap-install-sheet.png`.
 - Full Web baseline: 5005/5071 passed. The 66 failures are isolated to 11 pre-existing files and documented in the evidence report; none are F010 tests.
@@ -71,6 +75,7 @@ Check especially:
 - AC-A4 real iPhone/Android journeys and Tailscale HTTPS evidence remain operator/device work. A code approval is not a feature-complete declaration.
 - The isolated browser preview intentionally had no API; the desktop screenshot's recoverable session warning is expected.
 - Highest-risk areas are update/draft coordination, SSR/browser state boundaries, and Workbox route ordering.
+- Original review verdicts were `REQUEST_CHANGES`; this request asks each reviewer to confirm their own findings against `e74be7c`, not to substitute another reviewer's verdict.
 
 ## Requested verdict
 

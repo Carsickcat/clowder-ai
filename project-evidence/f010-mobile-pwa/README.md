@@ -6,11 +6,11 @@ Source of truth: `docs/design/F010-mobile-pwa-standard.md`
 
 Implementation plan: `feature-specs/2026-07-17-f010-mobile-pwa.md`
 
-Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; modal-focus repair `e92afd4`)
+Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; review repairs `e92afd4`, `e74be7c`)
 
 ## Verdict
 
-The A0–A3 code slice is in independent code review. Terra's modal-focus P2 is repaired in `e92afd4` and awaits reviewer confirmation. F010 is **not feature-complete** yet: operator-owned iPhone/Android journeys, the real Tailscale HTTPS install/recovery loop, and all requested final reviewer verdicts remain open.
+The A0–A3 code slice is in independent code review. The modal-focus finding is repaired in `e92afd4`; all remaining Terra/Opus 4.5/Fable 5 P1/P2 findings are repaired in `e74be7c` and await each original reviewer's confirmation. F010 is **not feature-complete** yet: operator-owned iPhone/Android journeys, the real Tailscale HTTPS install/recovery loop, and all requested final reviewer verdicts remain open.
 
 ## Acceptance status
 
@@ -18,10 +18,10 @@ The A0–A3 code slice is in independent code review. Terra's modal-focus P2 is 
 | --- | --- | --- |
 | AC-A0 | Partial | Browser viewport matrix is recorded below. Operator device models, real-device friction, and recordings remain open. |
 | AC-A1 | Code-complete | One breakpoint source feeds Tailwind and JS; the canonical drawer and four mobile work surfaces are covered by contract/component tests. |
-| AC-A2 | Code-complete, real-device pending | Installability diagnostics, iOS/manual and native prompt paths, WebView/secure/SW blockers, 30-day dismissal, and permanent entry are tested. Real Tailscale HTTPS install evidence remains open. |
-| AC-A3 | Code-complete | Foreground/online recovery, non-silent SW update, cancelable pre-reload flush, draft/attachment protection, and NetworkOnly business artifacts are tested and production-built. |
+| AC-A2 | Code-complete, real-device pending | Installability diagnostics, runtime manifest status/content-type validation, iOS/manual and native prompt paths, WebView/secure/SW blockers, 30-day dismissal, and permanent entry are tested. Real Tailscale HTTPS install evidence remains open. |
+| AC-A3 | Code-complete | Foreground/online recovery works even without SW; new workers wait for consent; all-thread drafts/attachments and Approval Hub transient work veto activation; controllerchange reloads once; NetworkOnly business artifacts are production-built. |
 | AC-A4 | Partial | Light compact, dark medium, and light desktop browser evidence exists. iPhone/Android journeys and complete real-device parity remain open. |
-| AC-A5 | Pending review | F010-focused tests, lint, typecheck, production build, and browser dogfood pass. Terra's P2 repair awaits confirmation and every requested reviewer must still return an independent final verdict; repository-wide Windows baseline limitations are listed below. |
+| AC-A5 | Pending review | F010-focused tests, lint, typecheck, production build, and browser dogfood pass. All review repairs await independent confirmation from Terra, Opus 4.5, and Fable 5; repository-wide Windows baseline limitations are listed below. |
 
 ## Browser viewport matrix
 
@@ -54,11 +54,13 @@ Post-review Chrome keyboard verification at 390×844 confirmed:
 
 - Pre-review broad selection: **19 test files, 359 tests passed** (includes the F190 visual contract and Node-only SSR regression).
 - Post-P2 exact F010 affected selection: **18 test files, 83 tests passed**; the three modal/AppShell suites contribute 17 passing focus and ownership tests.
-- Next/PWA configuration: **7/7 passed**; API, Socket, and uploads remain on network truth.
+- Post-review transaction selection: **20 test files, 112 tests passed**; this includes all-thread attachment/text/reply guards, storage failure, Approval Hub selection/deciding, waiting-worker activation, no-SW recovery, manifest 404/HTML, and the prior focus suites.
+- Next/PWA configuration: **8/8 passed**; `skipWaiting` is explicitly false and API, Socket, and uploads remain on network truth.
 - Custom color rule test: passed.
 - Repository lint: exit 0 (existing warnings only); Web TypeScript: exit 0.
-- Repository production build: exit 0 before the SSR repair; Web production builds after both the SSR repair and modal-focus repair: exit 0, 22 routes generated.
-- Generated `sw.js`: `/socket.io` and `/uploads/` register `NetworkOnly` before static-asset caching; custom worker generated successfully.
+- Repository production build: exit 0 before the SSR repair; Web production builds after SSR, modal-focus, and transaction repairs: exit 0, 22 routes generated.
+- Generated `sw.js`: activation is gated by the `SKIP_WAITING` message listener (no unconditional activation); `/api`, `/socket.io`, and `/uploads/` register `NetworkOnly` before static-asset caching; custom worker generated successfully.
+- Isolated production preview on port 4310 returned `/manifest.json` as HTTP 200 `application/json; charset=UTF-8` with name `Clowder AI`; the Hub Browser Preview opened successfully and the exact preview listener was stopped afterward.
 - Production SSR dogfood after repair: Chrome `pageErrors=[]`; server stdout contained only `Starting` / `Ready`, with no `window is not defined` error.
 
 ## Repository-wide baseline limitations
@@ -83,5 +85,6 @@ These failures are outside the F010 diff and are not hidden as green:
 - `7e03d82` aligned F010 files with repository formatting/a11y checks.
 - `0f198d8` made install-state rendering SSR and hydration safe.
 - `e92afd4` contained modal keyboard focus and preserved the real AppShell opener for restoration.
+- `e74be7c` made update activation transactional, protected cross-route transient work, verified manifest availability, preserved recovery without SW, and kept the install banner below mobile work surfaces.
 
 [宪宪/gpt-5.6-sol🐾]
