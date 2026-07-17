@@ -19,6 +19,7 @@ Quality evidence: `project-evidence/f010-mobile-pwa/README.md`
 - Replaced the candidate install prompt with an installability state machine, platform/manual guidance, durable 30-day dismissal, and precise diagnostics.
 - Added foreground/online recovery, a non-silent SW update controller, cancelable pre-reload draft protection, and NetworkOnly upload/business-artifact routing.
 - Fixed a production-only SSR crash found during browser dogfood by keeping install facts deterministic until hydration completes.
+- Repaired Terra's modal-focus P2 with a shared focus boundary, dialog semantics, Tab/Shift+Tab containment, Escape handling, and real AppShell opener restoration (`e92afd4`).
 
 ## Why
 
@@ -35,6 +36,7 @@ Please inspect the complete diff, with extra attention to:
 - `packages/web/src/components/ChatInput.tsx`
 - `packages/web/src/components/ApprovalPanel.tsx`
 - `packages/web/src/components/PwaInstallPrompt.tsx`
+- `packages/web/src/hooks/useModalFocus.ts`
 - `packages/web/src/components/pwa/PwaInstallExperienceProvider.tsx`
 - `packages/web/src/components/pwa/PwaUpdateController.tsx`
 - `packages/web/src/lib/pwa-installability.ts`
@@ -50,14 +52,16 @@ Check especially:
 5. API, Socket, uploads, and business artifacts never become stale offline truth;
 6. SSR/hydration safety of all browser-only facts;
 7. desktop AppShell and global approval semantics remain intact.
+8. modal focus cannot leave the drawer/install sheet and always returns to a still-mounted opener.
 
 ## Verification already run
 
-- F010 affected suite: 19 files / 359 tests passed.
+- Pre-review broad suite: 19 files / 359 tests passed; post-P2 exact affected suite: 18 files / 83 tests passed.
 - Next/PWA configuration: 7/7; no-hardcoded-colors rule passed.
 - Repository lint: exit 0; Web TypeScript: exit 0.
 - Repository production build: exit 0; post-SSR-fix Web production build: exit 0.
 - Production browser matrix: 390×844, 430×932, 768×1024 dark, 1024×768 desktop; HTTP 200, no overflow, no page errors; server log clean after SSR repair.
+- Post-P2 real Chrome keyboard path at 390×844: drawer 14-control and install-sheet 2-control focus boundaries wrap in both directions; Escape closes and restores `mobile-global-nav-trigger`; screenshot `project-evidence/f010-mobile-pwa/focus-trap-install-sheet.png`.
 - Full Web baseline: 5005/5071 passed. The 66 failures are isolated to 11 pre-existing files and documented in the evidence report; none are F010 tests.
 - Full check baseline limitations (Windows child process resolution and one unrelated API Biome format item) are documented rather than silently waived.
 
