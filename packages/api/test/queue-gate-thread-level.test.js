@@ -117,12 +117,14 @@ describe('Queue gate: thread-level enqueue (regression)', () => {
     const body = JSON.parse(res.body);
     assert.equal(body.status, 'queued');
 
-    // Should NOT have created InvocationRecord (queued, not executing)
-    assert.equal(
-      deps.invocationRecordStore.create.mock.calls.length,
-      0,
-      'should not start immediate execution when thread has active invocation',
-    );
+    // Queue ownership now reuses the request's atomically claimed InvocationRecord.
+    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 1);
+    const queued = deps.invocationQueue.list('thread-1', 'user-1');
+    assert.equal(queued.length, 1);
+    assert.equal(queued[0].invocationId, 'inv-stub');
+    assert.equal(deps.invocationTracker.tryStartThreadAll.mock.calls.length, 0, 'queue path must not reserve tracker');
+    assert.equal(deps.invocationTracker.startAll.mock.calls.length, 0, 'queue path must not start execution');
+    assert.equal(deps.router.routeExecution.mock.calls.length, 0, 'queue path must not invoke a cat');
   });
 
   it('no cat active in thread → message executes immediately', async () => {

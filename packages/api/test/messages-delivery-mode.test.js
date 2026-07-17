@@ -88,7 +88,7 @@ function installPersistentInvocationRecordStore(deps) {
     record = {
       id: 'inv-persistent',
       ...input,
-      status: 'running',
+      status: 'queued',
       userMessageId: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -106,6 +106,67 @@ function installPersistentInvocationRecordStore(deps) {
     Object.assign(record, update, { updatedAt: Date.now() });
     return { ...record };
   });
+}
+
+function installConcurrentInvocationClaimHarness(deps) {
+  let record = null;
+  let lookupCount = 0;
+  let releaseLookups;
+  const lookupGate = new Promise((resolve) => {
+    releaseLookups = resolve;
+  });
+  let releaseFirstCreate;
+  const firstCreateGate = new Promise((resolve) => {
+    releaseFirstCreate = resolve;
+  });
+  let signalFirstCreate;
+  const firstCreateEntered = new Promise((resolve) => {
+    signalFirstCreate = resolve;
+  });
+
+  deps.invocationRecordStore.getByIdempotencyKey.mock.mockImplementation(async () => {
+    lookupCount += 1;
+    if (lookupCount === 2) releaseLookups();
+    await lookupGate;
+    return null;
+  });
+  deps.invocationRecordStore.create.mock.mockImplementation(async (input) => {
+    if (record) return { outcome: 'duplicate', invocationId: record.id };
+    record = {
+      id: 'inv-concurrent-owner',
+      ...input,
+      status: 'queued',
+      userMessageId: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    signalFirstCreate();
+    await firstCreateGate;
+    return { outcome: 'created', invocationId: record.id };
+  });
+  deps.invocationRecordStore.get.mock.mockImplementation(async (id) => (record?.id === id ? { ...record } : null));
+  deps.invocationRecordStore.update.mock.mockImplementation(async (id, update) => {
+    if (record?.id !== id) return null;
+    Object.assign(record, update, { updatedAt: Date.now() });
+    return { ...record };
+  });
+
+  let trackerOwner = null;
+  deps.invocationTracker.has.mock.mockImplementation(() => trackerOwner !== null);
+  deps.invocationTracker.tryStartThreadAll.mock.mockImplementation(() => {
+    if (trackerOwner) return null;
+    trackerOwner = new AbortController();
+    return trackerOwner;
+  });
+  deps.invocationTracker.completeAll.mock.mockImplementation((_threadId, _targetCats, controller) => {
+    if (trackerOwner === controller) trackerOwner = null;
+  });
+
+  return {
+    firstCreateEntered,
+    releaseFirstCreate,
+    recordCount: () => (record ? 1 : 0),
+  };
 }
 
 describe('POST /api/messages deliveryMode', () => {
@@ -147,8 +208,9 @@ describe('POST /api/messages deliveryMode', () => {
     assert.equal(body.queuePosition, 1);
     assert.match(body.userMessageId, /^msg-/);
 
-    // Should NOT have created InvocationRecord (queued, not executing)
-    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 0);
+    // The request atomically claims its InvocationRecord before queue ownership.
+    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 1);
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1')[0]?.invocationId, 'inv-stub');
 
     // Should have written user message to messageStore
     assert.equal(deps.messageStore.append.mock.calls.length, 1);
@@ -161,6 +223,7 @@ describe('POST /api/messages deliveryMode', () => {
   });
 
   it('queue mode replay with same idempotencyKey does not append duplicate message', async () => {
+    installPersistentInvocationRecordStore(deps);
     deps.invocationTracker.has.mock.mockImplementation(() => true);
 
     const first = await app.inject({
@@ -188,27 +251,29 @@ describe('POST /api/messages deliveryMode', () => {
         idempotencyKey: '11111111-1111-4111-8111-111111111111',
       },
     });
-    assert.equal(replay.statusCode, 202);
+    assert.equal(replay.statusCode, 200);
     const replayBody = JSON.parse(replay.body);
 
     assert.equal(deps.messageStore.append.mock.calls.length, 1, 'replay should not append again');
     assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 1, 'replay should not add a new queue row');
-    assert.equal(replayBody.entryId, firstBody.entryId, 'replay should point to existing queue entry');
+    assert.equal(replayBody.status, 'acknowledged');
     assert.equal(replayBody.userMessageId, firstBody.userMessageId, 'replay should reuse original user message');
   });
 
   it('queue replay returns confirming while the durable message id is still being backfilled', async () => {
-    deps.invocationTracker.has.mock.mockImplementation(() => true);
     const idempotencyKey = '33333333-3333-4333-8333-333333333333';
-    const pending = deps.invocationQueue.enqueue({
+    deps.invocationRecordStore.getByIdempotencyKey.mock.mockImplementation(async () => ({
+      id: 'inv-queue-pending',
       threadId: 'thread-1',
       userId: 'user-1',
       idempotencyKey,
-      content: '正在落盘',
-      source: 'user',
       targetCats: ['opus'],
       intent: 'execute',
-    });
+      status: 'queued',
+      userMessageId: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }));
 
     const replay = await app.inject({
       method: 'POST',
@@ -220,12 +285,13 @@ describe('POST /api/messages deliveryMode', () => {
     assert.equal(replay.statusCode, 202);
     assert.deepEqual(JSON.parse(replay.body), {
       status: 'confirming',
-      entryId: pending.entry.id,
+      invocationId: 'inv-queue-pending',
     });
     assert.equal(deps.messageStore.append.mock.calls.length, 0, 'confirming replay must not append a second message');
   });
 
   it('queue replay crosses the real append/backfill window from confirming to the same durable message', async () => {
+    installPersistentInvocationRecordStore(deps);
     deps.invocationTracker.has.mock.mockImplementation(() => true);
     const idempotencyKey = '88888888-8888-4888-8888-888888888888';
     let signalAppendStarted;
@@ -337,6 +403,12 @@ describe('POST /api/messages deliveryMode', () => {
     const emitCalls = deps.socketManager.emitToUser.mock.calls;
     const fullWarning = emitCalls.find((c) => c.arguments[1] === 'queue_full_warning');
     assert.ok(fullWarning, 'should emit queue_full_warning');
+    assert.ok(
+      deps.invocationRecordStore.update.mock.calls.some(
+        (call) => call.arguments[1]?.status === 'failed' && call.arguments[1]?.error === 'QUEUE_FULL',
+      ),
+      'the rejected atomic claim must become a durable failure',
+    );
   });
 
   it('queue mode → messageStore failure rolls back queue entry', async () => {
@@ -358,6 +430,11 @@ describe('POST /api/messages deliveryMode', () => {
     // The queue should be empty (entry was rolled back)
     const queue = deps.invocationQueue.list('thread-1', 'user-1');
     assert.equal(queue.length, 0, 'queue entry should be rolled back on messageStore failure');
+    assert.ok(
+      deps.invocationRecordStore.update.mock.calls.some(
+        (call) => call.arguments[1]?.status === 'failed' && call.arguments[1]?.error === 'DB write failed',
+      ),
+    );
   });
 
   it('force mode → cancels active invocation then executes immediately', async () => {
@@ -515,6 +592,67 @@ describe('POST /api/messages deliveryMode', () => {
     assert.equal(replay.statusCode, 200);
     assert.equal(JSON.parse(replay.body).status, 'acknowledged');
     assert.equal(deps.invocationRecordStore.create.mock.calls.length, 1);
+    assert.equal(deps.messageStore.append.mock.calls.length, 1);
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0);
+  });
+
+  it('concurrent same-key JSON requests atomically claim one invocation before tracker or queue ownership', async () => {
+    const claim = installConcurrentInvocationClaimHarness(deps);
+    const payload = {
+      content: 'one concurrent intent',
+      threadId: 'thread-1',
+      idempotencyKey: '15151515-1515-4515-8515-151515151515',
+    };
+    const request = () =>
+      app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+        payload,
+      });
+
+    const responsesPromise = Promise.all([request(), request()]);
+    await claim.firstCreateEntered;
+    await new Promise((resolve) => setImmediate(resolve));
+    claim.releaseFirstCreate();
+    const responses = await responsesPromise;
+
+    assert.deepEqual(responses.map((response) => response.statusCode).sort(), [200, 202]);
+    assert.equal(claim.recordCount(), 1, 'the client key must own exactly one InvocationRecord');
+    assert.equal(deps.messageStore.append.mock.calls.length, 1, 'only the claim owner may persist the user message');
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0, 'the losing request must not enter queue');
+  });
+
+  it('concurrent same-key multipart requests atomically claim one invocation before tracker or queue ownership', async () => {
+    const claim = installConcurrentInvocationClaimHarness(deps);
+    const boundary = '----cat-cafe-concurrent-idempotency';
+    const payload = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="content"\r\n\r\none multipart intent\r\n`),
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="threadId"\r\n\r\nthread-1\r\n`),
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="idempotencyKey"\r\n\r\n16161616-1616-4616-8616-161616161616\r\n`,
+      ),
+      Buffer.from(`--${boundary}--\r\n`),
+    ]);
+    const request = () =>
+      app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        headers: {
+          'content-type': `multipart/form-data; boundary=${boundary}`,
+          'x-cat-cafe-user': 'user-1',
+        },
+        payload,
+      });
+
+    const responsesPromise = Promise.all([request(), request()]);
+    await claim.firstCreateEntered;
+    await new Promise((resolve) => setImmediate(resolve));
+    claim.releaseFirstCreate();
+    const responses = await responsesPromise;
+
+    assert.deepEqual(responses.map((response) => response.statusCode).sort(), [200, 202]);
+    assert.equal(claim.recordCount(), 1);
     assert.equal(deps.messageStore.append.mock.calls.length, 1);
     assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0);
   });
@@ -788,6 +926,7 @@ describe('POST /api/messages deliveryMode', () => {
   });
 
   it('TOCTOU degrade-to-queue replay with same idempotencyKey does not append duplicate message', async () => {
+    installPersistentInvocationRecordStore(deps);
     deps.invocationTracker.has.mock.mockImplementation(() => false);
     deps.invocationTracker.tryStartThreadAll.mock.mockImplementation(() => null);
 
@@ -816,28 +955,29 @@ describe('POST /api/messages deliveryMode', () => {
         idempotencyKey: '22222222-2222-4222-8222-222222222222',
       },
     });
-    assert.equal(replay.statusCode, 202);
+    assert.equal(replay.statusCode, 200);
     const replayBody = JSON.parse(replay.body);
 
     assert.equal(deps.messageStore.append.mock.calls.length, 1, 'replay should not append again');
     assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 1, 'replay should not add a new queue row');
-    assert.equal(replayBody.entryId, firstBody.entryId, 'replay should point to existing queue entry');
+    assert.equal(replayBody.status, 'acknowledged');
     assert.equal(replayBody.userMessageId, firstBody.userMessageId, 'replay should reuse original user message');
   });
 
   it('TOCTOU degrade-to-queue reports confirming for a deduped entry still awaiting message backfill', async () => {
-    deps.invocationTracker.has.mock.mockImplementation(() => false);
-    deps.invocationTracker.tryStartThreadAll.mock.mockImplementation(() => null);
     const idempotencyKey = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    const pending = deps.invocationQueue.enqueue({
+    deps.invocationRecordStore.getByIdempotencyKey.mock.mockImplementation(async () => ({
+      id: 'inv-toctou-pending',
       threadId: 'thread-1',
       userId: 'user-1',
       idempotencyKey,
-      content: 'TOCTOU confirming',
-      source: 'user',
       targetCats: ['opus'],
       intent: 'execute',
-    });
+      status: 'queued',
+      userMessageId: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }));
 
     const replay = await app.inject({
       method: 'POST',
@@ -847,7 +987,7 @@ describe('POST /api/messages deliveryMode', () => {
     });
 
     assert.equal(replay.statusCode, 202);
-    assert.deepEqual(JSON.parse(replay.body), { status: 'confirming', entryId: pending.entry.id });
+    assert.deepEqual(JSON.parse(replay.body), { status: 'confirming', invocationId: 'inv-toctou-pending' });
     assert.equal(deps.messageStore.append.mock.calls.length, 0);
   });
 
@@ -1485,7 +1625,8 @@ describe('POST /api/messages deliveryMode', () => {
     assert.equal(body.status, 'queued');
 
     // Should NOT have created InvocationRecord
-    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 0);
+    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 1);
+    assert.equal(deps.invocationQueue.list('thread-1', 'user-1')[0]?.invocationId, 'inv-stub');
   });
 });
 

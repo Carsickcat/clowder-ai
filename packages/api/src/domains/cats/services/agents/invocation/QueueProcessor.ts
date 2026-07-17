@@ -866,10 +866,11 @@ export class QueueProcessor {
 
     const batchedEntryIds: string[] = [];
     const batchedMessageIds: string[] = [];
+    const batchedInvocationIds: string[] = [];
     let content = entry.content;
 
     let controller: AbortController | undefined;
-    let invocationId: string | undefined;
+    let invocationId: string | undefined = entry.invocationId;
     let finalStatus: InvocationFinalStatus = 'failed';
     let responseText = '';
     const cursorBoundaries = new Map<string, string>();
@@ -885,24 +886,28 @@ export class QueueProcessor {
     let streamStartPromise: Promise<void> | undefined;
 
     try {
-      // 1. Create InvocationRecord (before batching — avoid claiming entries on duplicate)
-      // Connector-sourced entries use connector-${messageId} to match the direct-execution
-      // idempotency path, so retries after queue processing are also caught persistently.
-      const idempotencyKey = entry.source === 'connector' && messageId ? `connector-${messageId}` : `queue-${entry.id}`;
-      const createResult = await invocationRecordStore.create({
-        threadId,
-        userId,
-        targetCats,
-        intent,
-        idempotencyKey,
-      });
+      // 1. Reuse the request's atomically claimed InvocationRecord. Legacy and
+      // non-request queue entries still create their record at execution time.
+      if (!invocationId) {
+        const idempotencyKey =
+          entry.source === 'connector' && messageId
+            ? `connector-${messageId}`
+            : (entry.idempotencyKey ?? `queue-${entry.id}`);
+        const createResult = await invocationRecordStore.create({
+          threadId,
+          userId,
+          targetCats,
+          intent,
+          idempotencyKey,
+        });
 
-      if (createResult.outcome === 'duplicate') {
-        log.warn({ threadId, entryId: entry.id }, '[QueueProcessor] Duplicate invocation, skipping');
-        finalStatus = 'succeeded';
-        return 'succeeded';
+        if (createResult.outcome === 'duplicate') {
+          log.warn({ threadId, entryId: entry.id }, '[QueueProcessor] Duplicate invocation, skipping');
+          finalStatus = 'succeeded';
+          return 'succeeded';
+        }
+        invocationId = createResult.invocationId;
       }
-      invocationId = createResult.invocationId;
 
       // F175: user-message batching — collect adjacent matching entries
       // Placed after idempotency check so batched entries aren't dropped on duplicate
@@ -920,6 +925,7 @@ export class QueueProcessor {
           if (!queue.markProcessingById(threadId, be.id)) continue;
           batchedEntryIds.push(be.id);
           if (be.messageId) batchedMessageIds.push(be.messageId);
+          if (be.invocationId) batchedInvocationIds.push(be.invocationId);
           content = content + '\n' + be.content;
         }
       }
@@ -945,6 +951,12 @@ export class QueueProcessor {
         if (invocationId) {
           await invocationRecordStore.update(invocationId, { status: 'canceled' });
         }
+        for (const batchedInvocationId of batchedInvocationIds) {
+          await invocationRecordStore.update(batchedInvocationId, {
+            status: 'failed',
+            error: 'BATCH_INTERRUPTED',
+          });
+        }
         finalStatus = 'canceled_by_user';
         return 'canceled_by_user';
       }
@@ -960,6 +972,9 @@ export class QueueProcessor {
       await invocationRecordStore.update(invocationId, {
         status: 'running',
       });
+      for (const batchedInvocationId of batchedInvocationIds) {
+        await invocationRecordStore.update(batchedInvocationId, { status: 'running' });
+      }
 
       // F220 Phase 1: queued execution needs the same earliest liveness signal
       // as direct /api/messages execution. intent_mode stays deferred until the
@@ -1126,6 +1141,9 @@ export class QueueProcessor {
               );
               if (invocationId) {
                 await invocationRecordStore.update(invocationId, { status: 'succeeded' });
+              }
+              for (const batchedInvocationId of batchedInvocationIds) {
+                await invocationRecordStore.update(batchedInvocationId, { status: 'succeeded' });
               }
               finalStatus = 'succeeded';
               return 'succeeded';
@@ -1430,6 +1448,12 @@ export class QueueProcessor {
           await router.ackCollectedCursors(userId, threadId, cursorBoundaries);
         }
         await invocationRecordStore.update(invocationId, { status: 'canceled' });
+        for (const batchedInvocationId of batchedInvocationIds) {
+          await invocationRecordStore.update(batchedInvocationId, {
+            status: 'failed',
+            error: 'BATCH_INTERRUPTED',
+          });
+        }
         finalStatus = aggFinalStatus;
         // Suppress auto-resume ONLY for cancelAll (stop everything), NOT single-cat cancel.
         // Single-cat cancel should still auto-resume the next queued entry (backward compat).
@@ -1447,6 +1471,12 @@ export class QueueProcessor {
           status: 'failed',
           error: governanceErrorCode,
         });
+        for (const batchedInvocationId of batchedInvocationIds) {
+          await invocationRecordStore.update(batchedInvocationId, {
+            status: 'failed',
+            error: governanceErrorCode,
+          });
+        }
         finalStatus = 'failed';
         await this.cleanupStreamingOnFailure(threadId, invocationId, streamStartPromise, log);
         return 'failed';
@@ -1464,6 +1494,9 @@ export class QueueProcessor {
             }
           : {}),
       });
+      for (const batchedInvocationId of batchedInvocationIds) {
+        await invocationRecordStore.update(batchedInvocationId, { status: 'succeeded' });
+      }
 
       finalStatus = 'succeeded';
 
@@ -1499,6 +1532,12 @@ export class QueueProcessor {
       try {
         if (invocationId) {
           await invocationRecordStore.update(invocationId, {
+            status: 'failed',
+            error: errMsg,
+          });
+        }
+        for (const batchedInvocationId of batchedInvocationIds) {
+          await invocationRecordStore.update(batchedInvocationId, {
             status: 'failed',
             error: errMsg,
           });

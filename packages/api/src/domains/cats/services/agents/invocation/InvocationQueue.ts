@@ -20,6 +20,8 @@ export interface QueueEntry {
   userId: string;
   /** Optional request-level idempotency key for API replay dedup. */
   idempotencyKey?: string;
+  /** InvocationRecord atomically claimed by the request before this entry was enqueued. */
+  invocationId?: string;
   content: string;
   messageId: string | null;
   mergedMessageIds: string[];
@@ -207,6 +209,7 @@ export class InvocationQueue {
       threadId: input.threadId,
       userId: input.userId,
       idempotencyKey: input.idempotencyKey,
+      invocationId: input.invocationId,
       content: input.content,
       messageId: input.messageId ?? null,
       mergedMessageIds: [],

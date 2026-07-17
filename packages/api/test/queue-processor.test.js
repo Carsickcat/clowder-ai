@@ -625,6 +625,24 @@ describe('QueueProcessor', () => {
     assert.ok(createArg.idempotencyKey.startsWith('queue-'));
   });
 
+  it('executeEntry reuses the request-preclaimed InvocationRecord without creating a queue owner', async () => {
+    const entry = enqueueEntry(deps.queue, {
+      idempotencyKey: 'client-request-key',
+      invocationId: 'inv-preclaimed',
+    });
+    deps.queue.backfillMessageId('t1', 'u1', entry.id, 'msg-1');
+
+    await processor.processNext('t1', 'u1');
+    await new Promise((r) => setTimeout(r, 50));
+
+    assert.equal(deps.invocationRecordStore.create.mock.calls.length, 0, 'queue execution must not create a new owner');
+    const updates = deps.invocationRecordStore.update.mock.calls.filter(
+      (call) => call.arguments[0] === 'inv-preclaimed',
+    );
+    assert.ok(updates.some((call) => call.arguments[1]?.status === 'running'));
+    assert.ok(updates.some((call) => call.arguments[1]?.status === 'succeeded'));
+  });
+
   it('connector-sourced entry uses connector-${messageId} idempotency key', async () => {
     const entry = enqueueEntry(deps.queue, { source: 'connector' });
     deps.queue.backfillMessageId('t1', 'u1', entry.id, 'msg-conn-1');
@@ -2721,6 +2739,26 @@ describe('QueueProcessor', () => {
 
       const remaining = deps.queue.list('t1', 'u1').filter((e) => e.status === 'queued');
       assert.equal(remaining.length, 0, 'no queued entries should remain after batch');
+    });
+
+    it('settles every request-preclaimed record absorbed into a successful user batch', async () => {
+      enqueueEntry(deps.queue, { content: 'a', invocationId: 'inv-a', idempotencyKey: 'key-a' });
+      enqueueEntry(deps.queue, { content: 'b', invocationId: 'inv-b', idempotencyKey: 'key-b' });
+
+      await processor.processNext('t1', 'u1');
+      await waitFor(() =>
+        deps.invocationRecordStore.update.mock.calls.some(
+          (call) => call.arguments[0] === 'inv-b' && call.arguments[1]?.status === 'succeeded',
+        ),
+      );
+
+      for (const invocationId of ['inv-a', 'inv-b']) {
+        const updates = deps.invocationRecordStore.update.mock.calls.filter(
+          (call) => call.arguments[0] === invocationId,
+        );
+        assert.ok(updates.some((call) => call.arguments[1]?.status === 'running'));
+        assert.ok(updates.some((call) => call.arguments[1]?.status === 'succeeded'));
+      }
     });
 
     it('does not batch connector entries', async () => {

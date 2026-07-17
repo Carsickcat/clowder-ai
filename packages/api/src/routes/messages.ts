@@ -681,6 +681,42 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
     }
     const primaryCat = targetCats[0] ?? 'unknown';
 
+    // Atomically claim the client intent before any dispatch owner can enqueue,
+    // reserve tracker slots, or preempt an active invocation. The earlier lookup
+    // is only a fast path; create() is the concurrency boundary.
+    let claimedInvocationId: string | undefined;
+    if (opts.invocationRecordStore) {
+      const claimResult = await opts.invocationRecordStore.create({
+        threadId: resolvedThreadId,
+        userId,
+        targetCats,
+        intent: intent.intent,
+        idempotencyKey: resolvedIdempotencyKey,
+      });
+      if (claimResult.outcome === 'duplicate') {
+        const duplicateRecord = await opts.invocationRecordStore.get(claimResult.invocationId);
+        if (!duplicateRecord) {
+          reply.status(500);
+          return {
+            status: 'invariant_violation',
+            invocationId: claimResult.invocationId,
+            code: 'INVOCATION_RECORD_MISSING',
+          };
+        }
+        return replyForExistingInvocation(reply, duplicateRecord);
+      }
+      claimedInvocationId = claimResult.invocationId;
+    }
+
+    const failClaim = async (error: string) => {
+      if (!claimedInvocationId || !opts.invocationRecordStore) return;
+      try {
+        await opts.invocationRecordStore.update(claimedInvocationId, { status: 'failed', error });
+      } catch (claimError) {
+        log.error({ err: claimError, invocationId: claimedInvocationId }, 'Failed to close invocation claim');
+      }
+    };
+
     // F-invocation-stale-recovery P1-2: Surface routing_warnings when user's explicit @mention
     // silently fell back (e.g., @kimi → cat_not_found → default cat, user sees no feedback).
     // Non-whisper only (whisper targets are overridden above; warning is not meaningful there).
@@ -741,6 +777,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         threadId: resolvedThreadId,
         userId,
         idempotencyKey: resolvedIdempotencyKey,
+        invocationId: claimedInvocationId,
         content,
         source: 'user',
         targetCats,
@@ -749,6 +786,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
 
       // Queue full → 429, no message written (no ghost message)
       if (enqueueResult.outcome === 'full') {
+        await failClaim('QUEUE_FULL');
         const fullQueue = await enrichQueueEntries(
           opts.invocationQueue.list(resolvedThreadId, userId),
           opts.messageStore,
@@ -804,11 +842,15 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
           if (queueEntryId) {
             opts.invocationQueue.backfillMessageId(resolvedThreadId, userId, queueEntryId, userMessage.id);
           }
+          if (claimedInvocationId && opts.invocationRecordStore) {
+            await opts.invocationRecordStore.update(claimedInvocationId, { userMessageId: userMessage.id });
+          }
         } catch (err) {
           const queueEntryId = enqueueResult.entry?.id;
           if (queueEntryId) {
             opts.invocationQueue.rollbackEnqueue(resolvedThreadId, userId, queueEntryId);
           }
+          await failClaim(err instanceof Error ? err.message : String(err));
           throw err;
         }
       }
@@ -878,8 +920,8 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
       // Fall through to immediate execution below
     }
 
-    // ① F122 A.1: Occupy tracker slot BEFORE creating InvocationRecord to close TOCTOU window.
-    // Non-force paths use tryStartThread (non-preemptive); force uses start() (preemptive, already cancelled above).
+    // The InvocationRecord claim already owns this intent. Tracker acquisition now
+    // selects immediate versus TOCTOU queue execution without opening a second owner.
     if (opts.invocationRecordStore) {
       let controller: AbortController | undefined;
 
@@ -894,12 +936,14 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
               threadId: resolvedThreadId,
               userId,
               idempotencyKey: resolvedIdempotencyKey,
+              invocationId: claimedInvocationId,
               content,
               source: 'user',
               targetCats,
               intent: intent.intent,
             });
             if (enqueueResult.outcome === 'full') {
+              await failClaim('QUEUE_FULL');
               const toctouFullQueue = await enrichQueueEntries(
                 opts.invocationQueue.list(resolvedThreadId, userId),
                 opts.messageStore,
@@ -938,11 +982,17 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
                 if (queueEntryId) {
                   opts.invocationQueue.backfillMessageId(resolvedThreadId, userId, queueEntryId, toctouUserMessage.id);
                 }
+                if (claimedInvocationId && opts.invocationRecordStore) {
+                  await opts.invocationRecordStore.update(claimedInvocationId, {
+                    userMessageId: toctouUserMessage.id,
+                  });
+                }
               } catch (err) {
                 const queueEntryId = enqueueResult.entry?.id;
                 if (queueEntryId) {
                   opts.invocationQueue.rollbackEnqueue(resolvedThreadId, userId, queueEntryId);
                 }
+                await failClaim(err instanceof Error ? err.message : String(err));
                 throw err;
               }
             }
@@ -971,48 +1021,18 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
             };
           }
           // No queue available — thread is busy but we can't queue. Reject.
+          await failClaim('THREAD_BUSY');
           reply.status(409);
           return { error: '猫猫正在忙', code: 'THREAD_BUSY' };
         }
         controller = tryResult;
       }
 
-      // F122 R1 P1: Wrap create/update/append in try/catch to release slot on error.
-      // The background coroutine has its own finally for normal completion, but if we
-      // throw before entering it, the slot would leak (thread stuck as "busy").
-      let createResult: { outcome: string; invocationId: string };
-      try {
-        createResult = await opts.invocationRecordStore.create({
-          threadId: resolvedThreadId,
-          userId,
-          targetCats,
-          intent: intent.intent,
-          idempotencyKey: resolvedIdempotencyKey,
-        });
-      } catch (createErr) {
-        // Release slots occupied by tryStartThreadAll — prevent "假忙" leak
-        if (controller) {
-          opts.invocationTracker?.completeAll(resolvedThreadId, targetCats, controller);
-        }
-        throw createErr;
+      if (!claimedInvocationId) {
+        reply.status(500);
+        return { status: 'invariant_violation', code: 'INVOCATION_CLAIM_MISSING' };
       }
-
-      if (createResult.outcome === 'duplicate') {
-        // AC-A11: tryStartThreadAll succeeded but create returned duplicate — release slots
-        if (controller) {
-          opts.invocationTracker?.completeAll(resolvedThreadId, targetCats, controller);
-        }
-        const duplicateRecord = await opts.invocationRecordStore.get(createResult.invocationId);
-        if (!duplicateRecord) {
-          reply.status(500);
-          return {
-            status: 'invariant_violation',
-            invocationId: createResult.invocationId,
-            code: 'INVOCATION_RECORD_MISSING',
-          };
-        }
-        return replyForExistingInvocation(reply, duplicateRecord);
-      }
+      const createResult = { outcome: 'created' as const, invocationId: claimedInvocationId };
 
       // Force path: still uses startAll() (preemptive — cancel already happened above)
       if (!controller) {
