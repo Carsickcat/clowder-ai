@@ -58,7 +58,7 @@ Dogfood findings fixed in the same turn:
 - Corrected acceptance startup ownership: catalog selection requires `CAT_TEMPLATE_PATH`; `CAT_CAFE_CONFIG_ROOT` alone only selects account/config roots.
 - Corrected an over-specific CSS contract assertion so quote serialization does not create a false failure.
 
-The earlier HTTPS environment is retained as historical layout/PWA evidence only. It is not represented as runtime proof for the later `85d0cb1` message-recovery delta. That delta adds no visual styling claim; its end-to-end boundary is the real route/store transaction and mounted composer lifecycle covered below.
+The earlier HTTPS environment is retained as historical layout/PWA evidence only. It is not represented as runtime proof for the later `85d0cb1` message-recovery delta. The current production build (`THC1vM_Yiu8S0k4b1b1MI`) served the exact thread route on isolated port 4312 as HTTP 200 (47,060 bytes) and opened in Hub Browser Preview; the exact listener was stopped and the port verified clear. The delta adds no visual styling claim, so no new screenshot is presented as evidence for its deterministic-rejection lifecycle; that behavior is proven at the real route/store and mounted-composer boundaries below.
 
 ## Post-review repair evidence (`85d0cb1`)
 
@@ -86,6 +86,7 @@ The Redis adapter uses compare-and-delete Lua for stale-index cleanup, preventin
 | Next/PWA config | 8/8 PASS |
 | Hardcoded-color rule harness | PASS |
 | Production Web build | PASS; 22 routes; custom worker generated |
+| Current-build browser smoke | HTTP 200 / 47,060 bytes; Hub Browser Preview opened; port 4312 cleared |
 | `git diff --check` | PASS |
 
 Repository-wide limitations are not promoted to green:

@@ -129,6 +129,8 @@ Additional original passes: targeted Biome, `check:features` (254 docs), `check:
 
 ### Browser evidence
 
+- Current `85d0cb1` production Build ID `THC1vM_Yiu8S0k4b1b1MI`: exact thread route returned HTTP 200 (47,060 bytes) on isolated port 4312 and opened in Hub Browser Preview; the listener was stopped and the port verified clear. This is a runtime smoke check, not a fabricated browser proof of the deterministic-rejection branch.
+
 - `project-evidence/f010-mobile-pwa/recovery-20260718-mobile-390x844.png`
 - `project-evidence/f010-mobile-pwa/recovery-20260718-mobile-430x932.png`
 - `project-evidence/f010-mobile-pwa/recovery-20260718-desktop-1024x768.png`
