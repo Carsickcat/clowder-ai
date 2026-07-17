@@ -5,7 +5,8 @@
  * ADR-008 D1: InvocationRecord 轻量状态机
  * ADR-008 D2: IdempotencyKey 消息去重
  *
- * 有界 Map 实现，超过 MAX_RECORDS 时丢弃最旧记录。
+ * 有界 Map 实现，只淘汰已有 durable message owner 的记录。
+ * 尚未落盘的 claim 必须保留，因此 MAX_RECORDS 是安全优先的软上限。
  */
 
 import { randomUUID } from 'node:crypto';
@@ -135,6 +136,47 @@ export class InvocationRecordStore implements IInvocationRecordStore {
     return `${threadId}:${userId}:${key}`;
   }
 
+  /**
+   * Trim only records that can be recovered through the durable message index.
+   * If every over-capacity record still lacks a message owner, retain them all:
+   * dropping one would reopen the same client UUID for a second dispatch.
+   */
+  private trimSafelyRecoverableRecords(): void {
+    while (this.records.size > this.maxRecords) {
+      let evicted = false;
+      for (const [id, record] of this.records) {
+        if (record.userMessageId === null) continue;
+
+        this.records.delete(id);
+        const composite = this.compositeKey(record.threadId, record.userId, record.idempotencyKey);
+        if (this.idempotencyIndex.get(composite) === id) {
+          this.idempotencyIndex.delete(composite);
+        }
+        evicted = true;
+        break;
+      }
+      if (!evicted) return;
+    }
+  }
+
+  private hasRecordedUsage(record: InvocationRecord): boolean {
+    return record.usageByCat !== undefined && Object.keys(record.usageByCat).length > 0;
+  }
+
+  private applyUsageUpdate(record: InvocationRecord, input: UpdateInvocationInput): void {
+    if (input.usageByCat === undefined) return;
+
+    record.usageByCat = input.usageByCat;
+    // F128: stamp usageRecordedAt only on first write (stable for daily bucketing).
+    // Issue #845 backfill: explicit input.usageRecordedAt overrides — anchored to the
+    // stable historical completion signal chosen by the planner.
+    if (input.usageRecordedAt != null) {
+      record.usageRecordedAt = input.usageRecordedAt;
+    } else if (record.usageRecordedAt == null) {
+      record.usageRecordedAt = Date.now();
+    }
+  }
+
   create(input: CreateInvocationInput): CreateResult {
     const now = Date.now();
     const composite = this.compositeKey(input.threadId, input.userId, input.idempotencyKey);
@@ -164,19 +206,7 @@ export class InvocationRecordStore implements IInvocationRecordStore {
 
     this.records.set(id, record);
     this.idempotencyIndex.set(composite, id);
-
-    // Trim oldest if over capacity
-    if (this.records.size > this.maxRecords) {
-      const firstKey = this.records.keys().next().value as string;
-      const evicted = this.records.get(firstKey);
-      this.records.delete(firstKey);
-      if (evicted) {
-        const evictedComposite = this.compositeKey(evicted.threadId, evicted.userId, evicted.idempotencyKey);
-        if (this.idempotencyIndex.get(evictedComposite) === firstKey) {
-          this.idempotencyIndex.delete(evictedComposite);
-        }
-      }
-    }
+    this.trimSafelyRecoverableRecords();
 
     return { outcome: 'created', invocationId: id };
   }
@@ -198,11 +228,7 @@ export class InvocationRecordStore implements IInvocationRecordStore {
     if (input.expectedStatus !== undefined && record.status !== input.expectedStatus) {
       return null;
     }
-    if (
-      input.expectedUsageByCatAbsent === true &&
-      record.usageByCat !== undefined &&
-      Object.keys(record.usageByCat).length > 0
-    ) {
+    if (input.expectedUsageByCatAbsent === true && this.hasRecordedUsage(record)) {
       return null;
     }
 
@@ -210,18 +236,9 @@ export class InvocationRecordStore implements IInvocationRecordStore {
     if (input.userMessageId !== undefined) record.userMessageId = input.userMessageId;
     if (input.error !== undefined) record.error = input.error;
     record.queueEntryId = input.queueEntryId ?? record.queueEntryId;
-    if (input.usageByCat !== undefined) {
-      record.usageByCat = input.usageByCat;
-      // F128: stamp usageRecordedAt only on first write (stable for daily bucketing).
-      // Issue #845 backfill: explicit input.usageRecordedAt overrides — anchored to the
-      // stable historical completion signal chosen by the planner.
-      if (input.usageRecordedAt != null) {
-        record.usageRecordedAt = input.usageRecordedAt;
-      } else if (record.usageRecordedAt == null) {
-        record.usageRecordedAt = Date.now();
-      }
-    }
+    this.applyUsageUpdate(record, input);
     record.updatedAt = Date.now();
+    this.trimSafelyRecoverableRecords();
 
     return record;
   }

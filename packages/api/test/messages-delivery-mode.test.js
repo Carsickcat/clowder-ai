@@ -678,6 +678,79 @@ describe('POST /api/messages deliveryMode', () => {
     assert.equal(deps.invocationQueue.list('thread-1', 'user-1').length, 0, 'the losing request must not enter queue');
   });
 
+  it('capacity pressure cannot evict a claim while its first durable append is pending', async () => {
+    await app.close();
+    const { InvocationRecordStore } = await import(
+      '../dist/domains/cats/services/stores/ports/InvocationRecordStore.js'
+    );
+    const invocationRecordStore = new InvocationRecordStore({ maxRecords: 1 });
+    deps = buildDeps({ invocationRecordStore });
+
+    let appendCount = 0;
+    let signalFirstAppend = () => {};
+    const firstAppendEntered = new Promise((resolve) => {
+      signalFirstAppend = resolve;
+    });
+    let releaseFirstAppend = () => {};
+    const firstAppendGate = new Promise((resolve) => {
+      releaseFirstAppend = resolve;
+    });
+    deps.messageStore.append.mock.mockImplementation(async (message) => {
+      appendCount += 1;
+      if (appendCount === 1) {
+        signalFirstAppend();
+        await firstAppendGate;
+      }
+      return { id: `msg-capacity-${appendCount}`, ...message };
+    });
+
+    const { messagesRoutes } = await import('../dist/routes/messages.js');
+    app = Fastify();
+    await app.register(messagesRoutes, deps);
+    await app.ready();
+
+    const payload = {
+      content: 'pending durable owner',
+      threadId: 'thread-1',
+      idempotencyKey: '20202020-2020-4020-8020-202020202020',
+    };
+    const request = () =>
+      app.inject({
+        method: 'POST',
+        url: '/api/messages',
+        headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+        payload,
+      });
+
+    const firstPromise = request();
+    await firstAppendEntered;
+    invocationRecordStore.create({
+      threadId: 'thread-pressure',
+      userId: 'user-pressure',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'capacity-pressure-owner',
+    });
+
+    const replay = await request();
+    const sideEffectsDuringAppend = {
+      tracker: deps.invocationTracker.tryStartThreadAll.mock.calls.length,
+      queue: deps.invocationQueue.list('thread-1', 'user-1').length,
+      router: deps.router.routeExecution.mock.calls.length,
+    };
+    releaseFirstAppend();
+    const first = await firstPromise;
+
+    assert.equal(first.statusCode, 200);
+    assert.equal(replay.statusCode, 202);
+    assert.deepEqual(JSON.parse(replay.body), {
+      status: 'confirming',
+      invocationId: JSON.parse(first.body).invocationId,
+    });
+    assert.deepEqual(sideEffectsDuringAppend, { tracker: 1, queue: 0, router: 0 });
+    assert.equal(deps.messageStore.append.mock.calls.length, 1, 'replay must not start a second durable append');
+  });
+
   it('concurrent same-key requests cannot split between immediate and queue owners', async () => {
     const claim = installConcurrentInvocationClaimHarness(deps);
     let busyObservation = 0;

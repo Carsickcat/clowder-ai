@@ -311,7 +311,7 @@ describe('InvocationRecordStore', () => {
     assert.equal(store.getByIdempotencyKey('thread-1', 'user-2', 'scoped-key'), null);
   });
 
-  test('bounded capacity evicts oldest records', async () => {
+  test('bounded capacity evicts oldest safely recoverable records', async () => {
     const { InvocationRecordStore } = await import(
       '../dist/domains/cats/services/stores/ports/InvocationRecordStore.js'
     );
@@ -327,6 +327,7 @@ describe('InvocationRecordStore', () => {
         idempotencyKey: `cap-key-${i}`,
       });
       ids.push(result.invocationId);
+      store.update(result.invocationId, { userMessageId: `msg-cap-${i}` });
     }
 
     assert.equal(store.size, 3);
@@ -337,6 +338,81 @@ describe('InvocationRecordStore', () => {
     assert.ok(store.get(ids[2]));
     assert.ok(store.get(ids[3]));
     assert.ok(store.get(ids[4]));
+  });
+
+  test('capacity pressure preserves claims without a durable message owner', async () => {
+    const { InvocationRecordStore } = await import(
+      '../dist/domains/cats/services/stores/ports/InvocationRecordStore.js'
+    );
+
+    const store = new InvocationRecordStore({ maxRecords: 1 });
+    const first = store.create({
+      threadId: 'thread-capacity',
+      userId: 'user-capacity',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'pending-owner',
+    });
+    const pressure = store.create({
+      threadId: 'thread-capacity',
+      userId: 'user-capacity',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'pressure-owner',
+    });
+
+    const replay = store.create({
+      threadId: 'thread-capacity',
+      userId: 'user-capacity',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'pending-owner',
+    });
+
+    assert.equal(store.size, 2, 'the capacity bound is soft while every claim lacks a durable owner');
+    assert.ok(store.get(first.invocationId), 'the original pending claim must remain addressable');
+    assert.equal(replay.outcome, 'duplicate');
+    assert.equal(replay.invocationId, first.invocationId);
+
+    store.update(first.invocationId, { userMessageId: 'msg-pending-owner' });
+    assert.equal(store.size, 1, 'durable backfill should immediately repay the soft-capacity overflow');
+    assert.equal(store.get(first.invocationId), null, 'the newly recoverable oldest record may now be evicted');
+    assert.ok(store.get(pressure.invocationId), 'the remaining undurable claim must stay reserved');
+  });
+
+  test('capacity pressure preserves terminal claims that never created a durable message', async () => {
+    const { InvocationRecordStore } = await import(
+      '../dist/domains/cats/services/stores/ports/InvocationRecordStore.js'
+    );
+
+    const store = new InvocationRecordStore({ maxRecords: 1 });
+    const failed = store.create({
+      threadId: 'thread-failed-capacity',
+      userId: 'user-failed-capacity',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'failed-owner',
+    });
+    store.update(failed.invocationId, { status: 'failed', error: 'MESSAGE_NOT_DURABLE' });
+    store.create({
+      threadId: 'thread-failed-capacity',
+      userId: 'user-failed-capacity',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'pressure-owner',
+    });
+
+    const replay = store.create({
+      threadId: 'thread-failed-capacity',
+      userId: 'user-failed-capacity',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'failed-owner',
+    });
+
+    assert.equal(replay.outcome, 'duplicate');
+    assert.equal(replay.invocationId, failed.invocationId);
+    assert.equal(store.get(failed.invocationId)?.status, 'failed');
   });
 
   test('F194 Phase B — listRunningByThread returns only running + matching thread/user', async () => {
