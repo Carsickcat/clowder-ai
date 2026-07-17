@@ -60,7 +60,7 @@ export function MobileStatusSheet({
 
       {/* Sheet */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 bg-cafe-surface rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out lg:hidden max-h-[70vh] overflow-y-auto safe-area-bottom ${
+        className={`mobile-keyboard-offset safe-area-inline fixed inset-x-0 z-50 bg-cafe-surface rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out lg:hidden max-h-[70vh] overflow-y-auto safe-area-bottom ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >

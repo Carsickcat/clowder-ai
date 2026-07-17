@@ -3,6 +3,7 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense, useLayoutEffect } from 'react';
 import { useIsDesktop } from '@/hooks/useIsDesktop';
+import { useVisualViewportCssVars } from '@/hooks/useVisualViewportCssVars';
 import { CallbackAuthSnapshotMount } from '@/stores/callbackAuthStore';
 import { initSidebarWidth, useSidebarStore } from '@/stores/sidebarStore';
 import { ActivityBar } from './ActivityBar';
@@ -35,6 +36,7 @@ function AppShellContent({ children }: AppShellProps) {
   const isExport = searchParams.get('export') === 'true';
   const { isOpen, width, close, toggle, handleResize, resetWidth } = useSidebarStore();
   const isDesktop = useIsDesktop();
+  useVisualViewportCssVars();
 
   useLayoutEffect(() => {
     initSidebarWidth();
@@ -52,12 +54,12 @@ function AppShellContent({ children }: AppShellProps) {
   const isChatRoute = pathname === '/' || pathname.startsWith('/thread/');
 
   return (
-    <div className="console-shell flex h-screen h-dvh overflow-hidden">
+    <div className="console-shell app-viewport safe-area-inline flex overflow-hidden overscroll-none">
       {!isChatRoute && !isOpen && (
         <button
           type="button"
           onClick={toggle}
-          className="fixed left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden"
+          className="fixed left-[calc(env(safe-area-inset-left)+0.75rem)] top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden"
           aria-label="打开全局导航"
           aria-expanded="false"
           data-testid="mobile-global-nav-trigger"

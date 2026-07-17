@@ -48,7 +48,10 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
   const settings = GLOBAL_NAVIGATION_ITEMS.find((item) => item.id === 'settings');
 
   return (
-    <div className="fixed inset-0 z-[60] lg:hidden" data-testid="mobile-global-nav-drawer">
+    <div
+      className="mobile-visual-viewport fixed inset-x-0 z-[60] lg:hidden"
+      data-testid="mobile-global-nav-drawer"
+    >
       <button
         type="button"
         className="absolute inset-0 bg-[var(--console-overlay-backdrop)] backdrop-blur-sm"
@@ -57,7 +60,7 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
         data-testid="mobile-global-nav-backdrop"
       />
       <aside
-        className="relative flex h-full w-[min(88vw,360px)] flex-col border-r border-cafe bg-cafe-surface pt-[env(safe-area-inset-top)] shadow-2xl"
+        className="safe-area-left relative flex h-full w-[min(88vw,360px)] flex-col border-r border-cafe bg-cafe-surface pt-[env(safe-area-inset-top)] shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-label="全局导航"

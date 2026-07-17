@@ -176,7 +176,7 @@ export function MobileOpsShell({
     <>
       {surface !== 'chat' && (
         <section
-          className="fixed inset-0 z-30 flex flex-col bg-cafe-surface text-cafe lg:hidden"
+          className="mobile-visual-viewport safe-area-inline fixed inset-x-0 z-30 flex flex-col bg-cafe-surface text-cafe lg:hidden"
           aria-label={title}
           data-testid="mobile-ops-surface"
         >
@@ -239,7 +239,7 @@ export function MobileOpsShell({
       )}
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-[45] grid h-[calc(4rem+env(safe-area-inset-bottom))] grid-cols-4 border-t border-cafe bg-cafe-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="mobile-keyboard-offset safe-area-inline fixed inset-x-0 z-[45] grid h-[calc(4rem+env(safe-area-inset-bottom))] grid-cols-4 border-t border-cafe bg-cafe-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
         aria-label="手机工作台"
         data-testid="mobile-ops-nav"
       >

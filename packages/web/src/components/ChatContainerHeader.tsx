@@ -41,7 +41,7 @@ export function ChatContainerHeader({
       <div className="px-5 py-3 flex items-center gap-2">
         <button
           onClick={onToggleSidebar}
-          className="p-1 rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors mr-1"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors mr-1"
           title={sidebarOpen ? '收起侧栏' : '展开侧栏'}
           aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
         >
@@ -79,7 +79,7 @@ export function ChatContainerHeader({
         {/* Mobile/tablet: status sheet trigger */}
         <button
           onClick={onOpenMobileStatus}
-          className="p-1 rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors ml-1 lg:hidden"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors ml-1 lg:hidden"
           title="打开状态面板"
           aria-label="打开状态面板"
         >

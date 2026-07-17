@@ -877,7 +877,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
   }
 
   return (
-    <div ref={containerRef} className="flex h-screen h-dvh">
+    <div ref={containerRef} className="flex h-full min-h-0">
       <div
         className="flex flex-col min-w-0"
         style={
@@ -915,7 +915,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           <main
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="h-full overflow-y-auto p-4"
+            className="h-full overflow-x-hidden overflow-y-auto overscroll-contain p-4"
             data-guide-id="bootcamp.preview-result"
             data-bootcamp-host="chat-messages"
             data-chat-container
