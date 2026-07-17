@@ -20,6 +20,8 @@ export type InvocationStatus = 'queued' | 'running' | 'succeeded' | 'failed' | '
  */
 export interface InvocationRecord {
   id: string;
+  /** Stable QueueEntry API owner when this invocation is queued. */
+  queueEntryId?: string;
   threadId: string;
   userId: string;
   /** Associated user message ID (null = message not yet written, needs compensation) */
@@ -47,6 +49,8 @@ export interface CreateInvocationInput {
   targetCats: CatId[];
   intent: 'execute' | 'ideate';
   idempotencyKey: string;
+  /** Preassigned QueueEntry API owner for requests known to queue at claim time. */
+  queueEntryId?: string;
 }
 
 /** Result of atomic create-or-deduplicate */
@@ -60,6 +64,8 @@ export interface UpdateInvocationInput {
   status?: InvocationStatus;
   userMessageId?: string | null;
   error?: string;
+  /** Link an immediate claim to its QueueEntry when the tracker gate degrades to queue. */
+  queueEntryId?: string;
   /** CAS guard: update only if current status matches. Returns null on mismatch. */
   expectedStatus?: InvocationStatus;
   /** CAS guard: update only if usageByCat is missing or an empty object. Returns null on mismatch. */
@@ -111,17 +117,14 @@ export interface IInvocationRecordStore {
 /** Max records in memory store */
 const MAX_RECORDS = 500;
 
-/** Idempotency key TTL (5 minutes) */
-const IDEMPOTENCY_TTL_MS = 5 * 60 * 1000;
-
 /**
  * In-memory bounded InvocationRecord store.
  * Node.js single-threaded → synchronous Map operations are atomically equivalent.
  */
 export class InvocationRecordStore implements IInvocationRecordStore {
   private records = new Map<string, InvocationRecord>();
-  /** Map: compositeKey → { invocationId, expiresAt } */
-  private idempotencyIndex = new Map<string, { invocationId: string; expiresAt: number }>();
+  /** Persistent process-local claim index: compositeKey -> invocationId. */
+  private idempotencyIndex = new Map<string, string>();
   private readonly maxRecords: number;
 
   constructor(options?: { maxRecords?: number }) {
@@ -136,15 +139,18 @@ export class InvocationRecordStore implements IInvocationRecordStore {
     const now = Date.now();
     const composite = this.compositeKey(input.threadId, input.userId, input.idempotencyKey);
 
-    // Check idempotency (with TTL expiry)
-    const existing = this.idempotencyIndex.get(composite);
-    if (existing && existing.expiresAt > now) {
-      return { outcome: 'duplicate', invocationId: existing.invocationId };
+    const existingId = this.idempotencyIndex.get(composite);
+    if (existingId && this.records.has(existingId)) {
+      return { outcome: 'duplicate', invocationId: existingId };
+    }
+    if (existingId) {
+      this.idempotencyIndex.delete(composite);
     }
 
     const id = randomUUID();
     const record: InvocationRecord = {
       id,
+      ...(input.queueEntryId ? { queueEntryId: input.queueEntryId } : {}),
       threadId: input.threadId,
       userId: input.userId,
       userMessageId: null,
@@ -157,12 +163,19 @@ export class InvocationRecordStore implements IInvocationRecordStore {
     };
 
     this.records.set(id, record);
-    this.idempotencyIndex.set(composite, { invocationId: id, expiresAt: now + IDEMPOTENCY_TTL_MS });
+    this.idempotencyIndex.set(composite, id);
 
     // Trim oldest if over capacity
     if (this.records.size > this.maxRecords) {
       const firstKey = this.records.keys().next().value as string;
+      const evicted = this.records.get(firstKey);
       this.records.delete(firstKey);
+      if (evicted) {
+        const evictedComposite = this.compositeKey(evicted.threadId, evicted.userId, evicted.idempotencyKey);
+        if (this.idempotencyIndex.get(evictedComposite) === firstKey) {
+          this.idempotencyIndex.delete(evictedComposite);
+        }
+      }
     }
 
     return { outcome: 'created', invocationId: id };
@@ -196,6 +209,7 @@ export class InvocationRecordStore implements IInvocationRecordStore {
     if (input.status !== undefined) record.status = input.status;
     if (input.userMessageId !== undefined) record.userMessageId = input.userMessageId;
     if (input.error !== undefined) record.error = input.error;
+    record.queueEntryId = input.queueEntryId ?? record.queueEntryId;
     if (input.usageByCat !== undefined) {
       record.usageByCat = input.usageByCat;
       // F128: stamp usageRecordedAt only on first write (stable for daily bucketing).
@@ -214,9 +228,11 @@ export class InvocationRecordStore implements IInvocationRecordStore {
 
   getByIdempotencyKey(threadId: string, userId: string, key: string): InvocationRecord | null {
     const composite = this.compositeKey(threadId, userId, key);
-    const entry = this.idempotencyIndex.get(composite);
-    if (!entry || entry.expiresAt <= Date.now()) return null;
-    return this.records.get(entry.invocationId) ?? null;
+    const invocationId = this.idempotencyIndex.get(composite);
+    if (!invocationId) return null;
+    const record = this.records.get(invocationId) ?? null;
+    if (!record) this.idempotencyIndex.delete(composite);
+    return record;
   }
 
   listRunningByThread(threadId: string, userId: string): InvocationRecord[] {

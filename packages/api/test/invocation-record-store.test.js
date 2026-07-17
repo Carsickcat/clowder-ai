@@ -53,6 +53,24 @@ describe('InvocationRecordStore', () => {
     assert.equal(record.createdAt, record.updatedAt);
   });
 
+  test('create() persists the linked QueueEntry response owner', async () => {
+    const { InvocationRecordStore } = await import(
+      '../dist/domains/cats/services/stores/ports/InvocationRecordStore.js'
+    );
+
+    const store = new InvocationRecordStore();
+    const { invocationId } = store.create({
+      threadId: 'thread-queue-owner',
+      userId: 'user-queue-owner',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'queue-owner-key',
+      queueEntryId: 'queue-owner-id',
+    });
+
+    assert.equal(store.get(invocationId)?.queueEntryId, 'queue-owner-id');
+  });
+
   test('idempotency dedup returns duplicate on same key', async () => {
     const { InvocationRecordStore } = await import(
       '../dist/domains/cats/services/stores/ports/InvocationRecordStore.js'
@@ -78,6 +96,41 @@ describe('InvocationRecordStore', () => {
     assert.equal(second.outcome, 'duplicate');
     assert.equal(second.invocationId, first.invocationId);
     assert.equal(store.size, 1);
+  });
+
+  test('idempotency ownership remains stable after five minutes', async () => {
+    const { InvocationRecordStore } = await import(
+      '../dist/domains/cats/services/stores/ports/InvocationRecordStore.js'
+    );
+
+    const realNow = Date.now;
+    let now = 1_700_000_000_000;
+    Date.now = () => now;
+    try {
+      const store = new InvocationRecordStore();
+      const first = store.create({
+        threadId: 'thread-retained',
+        userId: 'user-retained',
+        targetCats: ['opus'],
+        intent: 'execute',
+        idempotencyKey: 'retained-key',
+      });
+
+      now += 5 * 60 * 1000 + 1;
+      const replay = store.create({
+        threadId: 'thread-retained',
+        userId: 'user-retained',
+        targetCats: ['opus'],
+        intent: 'execute',
+        idempotencyKey: 'retained-key',
+      });
+
+      assert.equal(replay.outcome, 'duplicate');
+      assert.equal(replay.invocationId, first.invocationId);
+      assert.equal(store.size, 1);
+    } finally {
+      Date.now = realNow;
+    }
   });
 
   test('different threadId with same key does not dedup', async () => {

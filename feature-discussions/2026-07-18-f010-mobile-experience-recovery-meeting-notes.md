@@ -41,6 +41,7 @@
 5. **状态让位于任务。** Socket 降级压缩成一行；更新检查失败不再常驻大横幅；真正 update-ready 才显示动作。
 6. **消息结果可对账。** 同一 client UUID 写入 InvocationRecord 与 Message；duplicate acknowledgement 返回原 `userMessageId`；响应不明时先重放同一幂等请求对账，最终失败附着在用户消息上，而不是插入红色系统气泡。
 7. **版本证据是验收前置条件。** 验收构建必须晚于目标提交，并记录 `BUILD_ID`、commit 与启动时间。
+8. **实现复审后的 owner 澄清。** 所有可派发请求先用持久化 `InvocationRecord` 做跨模式原子 claim；queue/TOCTOU 路径再链接同一个稳定 `queueEntryId`。前者只承担并发 claim/lifecycle，`InvocationQueue` entry 仍是 queued API response owner。这个链路取代“queue 完全不创建 InvocationRecord”的早期表述，避免同 UUID 请求在 busy 状态变化时分裂为 immediate 与 queue 两次派发。
 
 ## 4. 分歧处理
 
@@ -73,7 +74,7 @@ F010 只增加**验收环境专属的 fail-closed 门禁**：API 完成 `AgentRe
 | Mention tray | `ChatInput`（open/filter/selection/IME）+ `ChatInputMenus`（anchor/visual bound） | closed/open/filtering/composing/selecting | 上锚 composer，最大高度受 visual viewport 约束；IME composition 中不触发选择；关闭后恢复 composer 焦点且不改输入 |
 | Connection status projection | `useConnectionStatus` 数据 + `ConnectionStatusBar` 纯投影 | healthy/degraded/recovering/offline | healthy 不占位；移动端异常只占一行摘要，可展开明细；恢复不新建持久状态 |
 | Immediate/force send cycle | `useSendMessage` + `InvocationRecord` | optimistic -> processing/acknowledged / confirming -> reconciled / failed | JSON/multipart/force 共用一个 client UUID；仅 transport/parse ambiguity 同 key 对账一次；duplicate 从 record 返回原 message id；确定 4xx 不重放 |
-| Queue send cycle | `useSendMessage` + existing `InvocationQueue` entry | enqueued/deduped-confirming/queued/full/failed | queue 没有 optimistic 气泡或 InvocationRecord；deduped entry 有 message id 即返回原 id，无 id 则 confirming；TOCTOU、QUEUE_FULL 与确定 validation error 不重放 |
+| Queue send cycle | `useSendMessage` + `InvocationRecord` atomic claim + existing `InvocationQueue` entry | claimed -> enqueued/deduped-confirming/queued/full/failed | queue 没有 optimistic 气泡；record 持久化同一 `queueEntryId`，entry 是外部 response owner；deduped entry 有 message id 即返回原 id，无 id 则 confirming；TOCTOU、QUEUE_FULL 与确定 validation error 不重放 |
 | PWA update state | `PwaUpdateController` | idle/checking/update-ready/error-diagnostic | 检查失败不遮挡任务面；waiting worker 才可提示安装 |
 
 对抗场景：POST 提交后响应丢失、即时/排队路径在 message id 回填前收到重复请求、重复重试、Socket 降级、键盘快速开关、地址栏/方向改变、frame 变化与线程切换期间的 composer session、SW update check rejection。以上均有聚焦测试，且不创建第二套 durable UI state。

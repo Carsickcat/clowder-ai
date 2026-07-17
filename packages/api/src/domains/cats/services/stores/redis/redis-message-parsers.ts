@@ -65,6 +65,7 @@ export function safeParseExtra(raw: string | undefined):
       isExplicitPost?: boolean;
       tracing?: { traceId: string; spanId: string; parentSpanId?: string };
       systemKind?: 'a2a_routing' | 'context_briefing';
+      dispatch?: { ownerKind: 'invocation' | 'queue'; ownerId: string };
     }
   | undefined {
   if (!raw) return undefined;
@@ -95,6 +96,7 @@ export function safeParseExtra(raw: string | undefined):
       tracing?: { traceId: string; spanId: string; parentSpanId?: string };
       systemKind?: 'a2a_routing' | 'context_briefing';
       a2aRouting?: { fromCatId?: string; targetCatId?: string; invocationId?: string };
+      dispatch?: { ownerKind: 'invocation' | 'queue'; ownerId: string };
     } = {};
     let hasField = false;
 
@@ -172,6 +174,20 @@ export function safeParseExtra(raw: string | undefined):
       if (typeof parsed.a2aRouting.targetCatId === 'string') routing.targetCatId = parsed.a2aRouting.targetCatId;
       if (typeof parsed.a2aRouting.invocationId === 'string') routing.invocationId = parsed.a2aRouting.invocationId;
       result.a2aRouting = routing;
+      hasField = true;
+    }
+
+    if (
+      parsed.dispatch &&
+      typeof parsed.dispatch === 'object' &&
+      (parsed.dispatch.ownerKind === 'invocation' || parsed.dispatch.ownerKind === 'queue') &&
+      typeof parsed.dispatch.ownerId === 'string' &&
+      parsed.dispatch.ownerId.length > 0
+    ) {
+      result.dispatch = {
+        ownerKind: parsed.dispatch.ownerKind,
+        ownerId: parsed.dispatch.ownerId,
+      };
       hasField = true;
     }
 

@@ -92,4 +92,20 @@ describe('F194 Phase Z9 hotfix — safeParseExtra preserves turnInvocationId', (
       turnInvocationId: 'explicit-turn',
     });
   });
+
+  it('round-trip: durable dispatch ownership survives Redis hydration', async () => {
+    const { serializeExtra, safeParseExtra } = await import(
+      '../dist/domains/cats/services/stores/redis/redis-message-parsers.js'
+    );
+
+    const invocationOwner = safeParseExtra(
+      serializeExtra({ dispatch: { ownerKind: 'invocation', ownerId: 'inv-owner-retained' } }),
+    );
+    const queueOwner = safeParseExtra(
+      serializeExtra({ dispatch: { ownerKind: 'queue', ownerId: 'queue-owner-retained' } }),
+    );
+
+    assert.deepEqual(invocationOwner?.dispatch, { ownerKind: 'invocation', ownerId: 'inv-owner-retained' });
+    assert.deepEqual(queueOwner?.dispatch, { ownerKind: 'queue', ownerId: 'queue-owner-retained' });
+  });
 });

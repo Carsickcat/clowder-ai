@@ -62,7 +62,7 @@ import type {
   IInvocationRecordStore,
   InvocationRecord,
 } from '../domains/cats/services/stores/ports/InvocationRecordStore.js';
-import type { IMessageStore } from '../domains/cats/services/stores/ports/MessageStore.js';
+import type { IMessageStore, StoredMessage } from '../domains/cats/services/stores/ports/MessageStore.js';
 import { isDelivered } from '../domains/cats/services/stores/ports/MessageStore.js';
 import type { ISummaryStore } from '../domains/cats/services/stores/ports/SummaryStore.js';
 import type { IThreadStore } from '../domains/cats/services/stores/ports/ThreadStore.js';
@@ -305,6 +305,31 @@ async function backfillInvocationMessageId(
   }
 }
 
+function replyForDurableMessage(reply: FastifyReply, message: StoredMessage) {
+  const owner = message.extra?.dispatch;
+  if (owner?.ownerKind === 'queue') {
+    reply.status(202);
+    return {
+      status: 'queued',
+      entryId: owner.ownerId,
+      userMessageId: message.id,
+    };
+  }
+  reply.status(200);
+  if (owner?.ownerKind === 'invocation') {
+    return {
+      status: 'acknowledged',
+      invocationId: owner.ownerId,
+      userMessageId: message.id,
+    };
+  }
+  log.warn({ messageId: message.id }, 'Durable idempotent message has no dispatch owner; replay suppressed');
+  return {
+    status: 'acknowledged',
+    userMessageId: message.id,
+  };
+}
+
 async function replyForExistingInvocation(
   reply: FastifyReply,
   record: InvocationRecord,
@@ -324,22 +349,28 @@ async function replyForExistingInvocation(
     }
   }
   if (userMessageId) {
+    if (record.queueEntryId) {
+      reply.status(202);
+      return {
+        status: 'queued',
+        entryId: record.queueEntryId,
+        userMessageId,
+      };
+    }
     reply.status(200);
-    return {
-      status: 'acknowledged',
-      invocationId: record.id,
-      userMessageId,
-    };
+    return { status: 'acknowledged', invocationId: record.id, userMessageId };
   }
   if (record.status === 'queued' || record.status === 'running') {
     reply.status(202);
-    return { status: 'confirming', invocationId: record.id };
+    return record.queueEntryId
+      ? { status: 'confirming', entryId: record.queueEntryId }
+      : { status: 'confirming', invocationId: record.id };
   }
   if (record.status === 'failed' || record.status === 'canceled') {
     reply.status(409);
     return {
       status: 'failed',
-      invocationId: record.id,
+      ...(record.queueEntryId ? { entryId: record.queueEntryId } : { invocationId: record.id }),
       code: 'MESSAGE_NOT_DURABLE',
       detail: record.error ?? 'The original request did not create a durable message.',
       retryWithNewIdempotencyKey: true,
@@ -348,7 +379,7 @@ async function replyForExistingInvocation(
   reply.status(500);
   return {
     status: 'invariant_violation',
-    invocationId: record.id,
+    ...(record.queueEntryId ? { entryId: record.queueEntryId } : { invocationId: record.id }),
     code: 'INVOCATION_MESSAGE_MISSING',
   };
 }
@@ -556,14 +587,24 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
       };
     }
 
-    if (idempotencyKey && opts.invocationRecordStore) {
-      const existingRecord = await opts.invocationRecordStore.getByIdempotencyKey(
-        resolvedThreadId,
+    if (idempotencyKey) {
+      if (opts.invocationRecordStore) {
+        const existingRecord = await opts.invocationRecordStore.getByIdempotencyKey(
+          resolvedThreadId,
+          userId,
+          resolvedIdempotencyKey,
+        );
+        if (existingRecord) {
+          return replyForExistingInvocation(reply, existingRecord, opts.messageStore, opts.invocationRecordStore);
+        }
+      }
+      const durableMessage = await opts.messageStore.getByIdempotencyKey(
         userId,
+        resolvedThreadId,
         resolvedIdempotencyKey,
       );
-      if (existingRecord) {
-        return replyForExistingInvocation(reply, existingRecord, opts.messageStore, opts.invocationRecordStore);
+      if (durableMessage) {
+        return replyForDurableMessage(reply, durableMessage);
       }
     }
 
@@ -718,6 +759,36 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
     }
     const primaryCat = targetCats[0] ?? 'unknown';
 
+    // Resolve the expected dispatch branch before the atomic claim so a queued
+    // request can persist its external QueueEntry owner in the same operation.
+    // These checks are read-only; create() below remains before every side effect.
+    const hasActive = (() => {
+      if (!opts.invocationTracker) {
+        return opts.queueProcessor?.hasActiveExecution?.(resolvedThreadId) ?? false;
+      }
+      if (whisperVisibility === 'whisper' && primaryCat !== 'unknown') {
+        return (
+          opts.invocationTracker.has(resolvedThreadId, primaryCat) ||
+          (opts.queueProcessor?.isCatBusy?.(resolvedThreadId, primaryCat) ?? false)
+        );
+      }
+      if (hasMentions) {
+        return targetCats.some(
+          (cat) =>
+            cat !== 'unknown' &&
+            (opts.invocationTracker!.has(resolvedThreadId, cat) ||
+              (opts.queueProcessor?.isCatBusy?.(resolvedThreadId, cat) ?? false)),
+        );
+      }
+      return (
+        opts.invocationTracker.has(resolvedThreadId) ||
+        (opts.queueProcessor?.hasActiveExecution?.(resolvedThreadId) ?? false)
+      );
+    })();
+    const mode = deliveryMode ?? (hasActive ? 'queue' : 'immediate');
+    const initialQueueEntryId = mode === 'queue' && hasActive && opts.invocationQueue ? randomUUID() : undefined;
+    log.debug({ threadId: resolvedThreadId, targetCats, intent: intent.intent, mode, hasActive }, 'Dispatch decision');
+
     // Atomically claim the client intent before any dispatch owner can enqueue,
     // reserve tracker slots, or preempt an active invocation. The earlier lookup
     // is only a fast path; create() is the concurrency boundary.
@@ -729,6 +800,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         targetCats,
         intent: intent.intent,
         idempotencyKey: resolvedIdempotencyKey,
+        ...(initialQueueEntryId ? { queueEntryId: initialQueueEntryId } : {}),
       });
       if (claimResult.outcome === 'duplicate') {
         const duplicateRecord = await opts.invocationRecordStore.get(claimResult.invocationId);
@@ -782,35 +854,10 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
     // next starting from queue (tracker not yet registered).
     // Whisper / @mention use cat-specific isCatBusy; broadcast uses active execution,
     // not queued leftovers, to avoid enqueue-only dead ends.
-    const hasActive = (() => {
-      if (!opts.invocationTracker) {
-        return opts.queueProcessor?.hasActiveExecution?.(resolvedThreadId) ?? false;
-      }
-      if (whisperVisibility === 'whisper' && primaryCat !== 'unknown') {
-        return (
-          opts.invocationTracker.has(resolvedThreadId, primaryCat) ||
-          (opts.queueProcessor?.isCatBusy?.(resolvedThreadId, primaryCat) ?? false)
-        );
-      }
-      if (hasMentions) {
-        return targetCats.some(
-          (cat) =>
-            cat !== 'unknown' &&
-            (opts.invocationTracker!.has(resolvedThreadId, cat) ||
-              (opts.queueProcessor?.isCatBusy?.(resolvedThreadId, cat) ?? false)),
-        );
-      }
-      return (
-        opts.invocationTracker.has(resolvedThreadId) ||
-        (opts.queueProcessor?.hasActiveExecution?.(resolvedThreadId) ?? false)
-      );
-    })();
-    const mode = deliveryMode ?? (hasActive ? 'queue' : 'immediate');
-    log.debug({ threadId: resolvedThreadId, targetCats, intent: intent.intent, mode, hasActive }, 'Dispatch decision');
-
     if (mode === 'queue' && hasActive && opts.invocationQueue) {
       // ① Enqueue first (sync, capacity gatekeeper) — messageId is null at this point
       const enqueueResult = opts.invocationQueue.enqueue({
+        entryId: initialQueueEntryId,
         threadId: resolvedThreadId,
         userId,
         idempotencyKey: resolvedIdempotencyKey,
@@ -841,8 +888,14 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
           queueSize: opts.invocationQueue.size(resolvedThreadId, userId),
         };
       }
+      const queuedEntry = enqueueResult.entry;
+      if (!queuedEntry) {
+        await failClaim('QUEUE_ENTRY_MISSING');
+        reply.status(500);
+        return { status: 'invariant_violation', code: 'QUEUE_ENTRY_MISSING' };
+      }
 
-      let storedUserMessageId: string | null = enqueueResult.entry?.messageId ?? null;
+      let storedUserMessageId: string | null = queuedEntry.messageId;
 
       // ② Write user message (F117: mark as queued — invisible until dequeue)
       // If enqueue returned a deduped active entry, reuse existing messageId and skip append.
@@ -857,6 +910,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
             threadId: resolvedThreadId,
             idempotencyKey: resolvedIdempotencyKey,
             deliveryStatus: 'queued', // F117: not visible in history/context/mentions until delivered
+            extra: { dispatch: { ownerKind: 'queue', ownerId: queuedEntry.id } },
             ...(contentBlocks ? { contentBlocks } : {}),
             ...(whisperVisibility && whisperRecipients
               ? { visibility: whisperVisibility, whisperTo: whisperRecipients }
@@ -969,7 +1023,21 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
         if (tryResult === null) {
           // TOCTOU: thread became busy between has() and here — degrade to queue
           if (opts.invocationQueue) {
+            const toctouQueueEntryId = randomUUID();
+            const linkedRecord = await opts.invocationRecordStore.update(claimedInvocationId!, {
+              queueEntryId: toctouQueueEntryId,
+            });
+            if (linkedRecord === null) {
+              await failClaim('QUEUE_OWNER_LINK_FAILED');
+              reply.status(500);
+              return {
+                status: 'invariant_violation',
+                invocationId: claimedInvocationId,
+                code: 'QUEUE_OWNER_LINK_FAILED',
+              };
+            }
             const enqueueResult = opts.invocationQueue.enqueue({
+              entryId: toctouQueueEntryId,
               threadId: resolvedThreadId,
               userId,
               idempotencyKey: resolvedIdempotencyKey,
@@ -994,9 +1062,15 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
               reply.status(429);
               return { error: '消息队列已满', code: 'QUEUE_FULL' };
             }
+            const queuedEntry = enqueueResult.entry;
+            if (!queuedEntry) {
+              await failClaim('QUEUE_ENTRY_MISSING');
+              reply.status(500);
+              return { status: 'invariant_violation', code: 'QUEUE_ENTRY_MISSING' };
+            }
             // F122 R1-gpt52 P1-1: Wrap append+backfill in try/catch with rollback,
             // matching original queue path (lines 340-374) to prevent ghost queue entries.
-            let toctouUserMessageId: string | null = enqueueResult.entry?.messageId ?? null;
+            let toctouUserMessageId: string | null = queuedEntry.messageId;
             if (!enqueueResult.deduped) {
               try {
                 const toctouUserMessage = await opts.messageStore.append({
@@ -1008,6 +1082,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
                   threadId: resolvedThreadId,
                   idempotencyKey: resolvedIdempotencyKey,
                   deliveryStatus: 'queued',
+                  extra: { dispatch: { ownerKind: 'queue', ownerId: queuedEntry.id } },
                   ...(contentBlocks ? { contentBlocks } : {}),
                   ...(whisperVisibility && whisperRecipients
                     ? { visibility: whisperVisibility, whisperTo: whisperRecipients }
@@ -1104,6 +1179,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
           timestamp: Date.now(),
           threadId: resolvedThreadId,
           idempotencyKey: resolvedIdempotencyKey,
+          extra: { dispatch: { ownerKind: 'invocation', ownerId: createResult.invocationId } },
           ...(contentBlocks ? { contentBlocks } : {}),
           ...(whisperVisibility && whisperRecipients
             ? { visibility: whisperVisibility, whisperTo: whisperRecipients }

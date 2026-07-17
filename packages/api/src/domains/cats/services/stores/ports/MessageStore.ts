@@ -115,6 +115,8 @@ export interface StoredMessage {
     tracing?: { traceId: string; spanId: string; parentSpanId?: string };
     systemKind?: 'a2a_routing' | 'context_briefing';
     a2aRouting?: { fromCatId?: string; targetCatId?: string; invocationId?: string };
+    /** Persistent recovery owner for user-message idempotency replays. */
+    dispatch?: { ownerKind: 'invocation' | 'queue'; ownerId: string };
   };
   /** CatIds mentioned in this message */
   mentions: readonly CatId[];

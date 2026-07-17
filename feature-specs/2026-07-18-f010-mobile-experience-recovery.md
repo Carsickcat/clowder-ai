@@ -6,7 +6,8 @@
 **Architecture cell:** `hub-action-surface`, `bubble-pipeline`, `dispatch`
 **Map delta:** none
 **Map delta why:** 本轮收敛既有 AppShell、消息气泡和 messages route 行为，不改变 ownership 边界或新增扩展点。
-**Architecture:** `useVisualViewportCssVars` 继续作为 viewport 唯一写入者；chat route 使用一个受控 frame、一个 transcript scroll owner 和一个 Dock。消息发送复用现有 UUID 幂等边界完成 duplicate acknowledgement 与一次对账，不建立新队列或 store。
+**tips_exempt:** `{ reason: "Existing send-reliability contract repair; no new user action, capability, or guide entry point." }`
+**Architecture:** `useVisualViewportCssVars` 继续作为 viewport 唯一写入者；chat route 使用一个受控 frame、一个 transcript scroll owner 和一个 Dock。消息发送复用现有 UUID 幂等边界完成 duplicate acknowledgement 与一次对账，不建立新队列或 store。每个可派发请求先持久化一个 `InvocationRecord` 原子 claim；实际排队时该 record 链接稳定的 `queueEntryId`，而 `InvocationQueue` entry 继续作为 queued API response owner。
 **Tech Stack:** Next.js/React, Tailwind/CSS variables, Fastify, Vitest/Testing Library, Playwright/browser acceptance
 **前端验证:** Yes — reviewer 必须检查 390/430/768/1024 浏览器状态，production PWA，键盘开闭、mention、Socket 降级和 update-check failure。
 
@@ -26,11 +27,11 @@
   - duplicate 且 durable message 已存在：`200 { status: 'acknowledged', invocationId, userMessageId }`；
   - duplicate record 为 `queued | running` 且 `userMessageId` 尚未回填：`202 { status: 'confirming', invocationId }`；客户端保留 optimistic 气泡并等待/对账，不生成新 UUID；
   - duplicate record 为 `failed | canceled` 且没有 durable message：`409 { status: 'failed', invocationId, retryWithNewIdempotencyKey: true }`；客户端才可明确失败，并由显式重试生成新 UUID。
-- Queue/TOCTOU response（`InvocationQueue` entry owner，不创建 optimistic 气泡或 `InvocationRecord`）：
+- Queue/TOCTOU response（`InvocationQueue` entry 是外部 response owner，不创建 optimistic 气泡；内部仍保留统一 `InvocationRecord` 原子 claim/lifecycle record，并持久化同一 `queueEntryId`）：
   - entry 已有 durable message：`202 { status: 'queued', entryId, userMessageId }`；deduped replay 返回同一组 ID；
   - deduped entry 尚未 backfill message id：`202 { status: 'confirming', entryId }`；客户端不添加气泡、不生成新 UUID，等待/再次查询既有 entry；
   - `429 QUEUE_FULL` 与 validation error 是确定失败，不做 ambiguous replay。
-- 同一 UUID 的重放不产生第二条消息或队列 entry；`confirming` 不是失败，也不是第二次提交许可。
+- 同一 UUID 的重放不产生第二条消息、InvocationRecord 或队列 entry；幂等 owner 不设置 TTL。durable message 持久化 `{ ownerKind, ownerId }` recovery pointer，旧 record/index 丢失时也必须在 tracker/queue/force side effect 前停止重派发。`confirming` 不是失败，也不是第二次提交许可。
 - immediate/force record 为 `succeeded` 却没有 `userMessageId` 属于服务端不变量破坏，返回 `500 invariant_violation` 并告警，禁止客户端自动生成新 UUID，以免重复执行猫猫动作。
 - Update UI: `update-ready` 可见；update-check error 只进入诊断/log，不占据常驻 chrome。
 - Acceptance roster: 仅当验收开关启用时，在 API 启动阶段比较 resolved catalog IDs 与已注册 `AgentService` IDs；不一致即拒绝启动并列出缺失 ID，不向产品 schema 增加 `dispatchReady`。
@@ -43,7 +44,7 @@
 - **INV-3:** editable 字号在 compact/medium 上不小于 16 CSS px；用户缩放保持可用。
 - **INV-4:** composer 主操作在 320px 以上宽度完整可见，触控目标至少 44px。
 - **INV-5:** update-check rejection 不渲染阻塞 banner；waiting worker 仍渲染更新动作。
-- **INV-6:** 同一 idempotency key 至多产生一条 durable user message、一个 InvocationRecord 或一个 queue entry；duplicate 按对应 owner 的上述状态响应，message id 未回填时不得伪造 acknowledged/queued。
+- **INV-6:** 同一 idempotency key 至多产生一条 durable user message 与一个持久化 InvocationRecord；若实际排队，再且仅再链接一个使用相同 `queueEntryId` 的 queue entry。InvocationRecord 是跨模式原子 claim，QueueEntry 是 queued response owner；duplicate 按对应外部 owner 响应，message id 未回填时不得伪造 acknowledged/queued。
 - **INV-7:** response 丢失但 durable message 存在时，客户端不插入 failure system bubble。
 - **INV-8:** 键盘/viewport/frame 变化不重挂载 composer；thread-scoped 文字、附件与 reply context 不丢失，mention tray 关闭不改写输入内容。
 - **INV-9:** 验收 `/api/cats` 的展示集合必须是验收 API 的运行时 `AgentRegistry` 子集；否则启动门禁失败，证据不得宣称该 roster 可调用。
@@ -112,8 +113,8 @@
 - Modify: `packages/web/src/hooks/__tests__/useSendMessage-thread-source.test.ts`
 - Modify: `packages/web/src/hooks/__tests__/useSendMessage-upload-state.test.ts`
 
-1. API RED：JSON/multipart 的 immediate、force、queue 与 TOCTOU queue 分支都传递同一 `resolvedIdempotencyKey`；已有 message id 的 duplicate 返回 `200 acknowledged`。
-2. API 竞态 RED：分别暂停 immediate 的 append/backfill 与 queue entry 的 append/backfill，在窗口内重放同 UUID，必须分别返回含 `invocationId` 或 `entryId` 的 `202 confirming`；放行后再次重放返回同一 `userMessageId`。Immediate record 的 `failed | canceled` 且无 durable message 才返回 `409 failed` 与新 UUID 指引。
+1. API RED：JSON/multipart 的 immediate、force、queue 与 TOCTOU queue 分支都传递同一 `resolvedIdempotencyKey`；immediate/force 已有 message id 的 duplicate 返回 `200 acknowledged`，queue/TOCTOU 返回 `202 queued` 与稳定 `entryId`。
+2. API 竞态 RED：分别暂停 immediate 的 append/backfill 与 queue entry 的 append/backfill，在窗口内重放同 UUID，必须分别返回含 `invocationId` 或 `entryId` 的 `202 confirming`；放行后再次重放返回同一 `userMessageId`。Immediate record 的 `failed | canceled` 且无 durable message 才返回 `409 failed` 与新 UUID 指引。另覆盖 300 秒后重放、bounded record eviction 与 Redis message owner round-trip，均不得再次进入派发 side effect。
 3. Web RED：只有 transport exception 或 response parse ambiguity 才用同一 UUID 做一次对账重放；确定 4xx、validation error 与 `QUEUE_FULL` 不重放。`acknowledged` 替换 immediate/force optimistic identity；`confirming` 保留已有 optimistic 气泡并等待既有 Socket/后续对账；queue 本来没有 optimistic 气泡，直接采用服务端 `userMessageId`。只有确定 `failed` 才进入可重试状态，不插红色系统消息。
 4. 确认 RED；最小实现到 GREEN；复跑 queue/immediate sibling paths 防止重复。
 

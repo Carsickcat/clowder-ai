@@ -86,6 +86,21 @@ describe('RedisInvocationRecordStore', { skip: redisIsolationSkipReason(REDIS_UR
     assert.equal(record.error, undefined);
   });
 
+  it('create() persists the linked QueueEntry response owner', async (t) => {
+    if (!connected) return t.skip('Redis not connected');
+    const { invocationId } = await store.create({
+      threadId: 'thread-queue-owner',
+      userId: 'user-queue-owner',
+      targetCats: ['opus'],
+      intent: 'execute',
+      idempotencyKey: 'redis-queue-owner-key',
+      queueEntryId: 'redis-queue-owner-id',
+    });
+
+    const record = await store.get(invocationId);
+    assert.equal(record?.queueEntryId, 'redis-queue-owner-id');
+  });
+
   it('Lua atomic dedup returns duplicate on same key', async () => {
     const first = await store.create({
       threadId: 'thread-1',
@@ -686,6 +701,11 @@ describe('RedisInvocationRecordStore', { skip: redisIsolationSkipReason(REDIS_UR
     const newAfter = await redis.smembers('invoc:running:thread-T:user-new');
     assert.equal(oldAfter.includes(r.invocationId), false, 'removed from old user Set');
     assert.deepEqual(newAfter.sort(), [r.invocationId].sort(), 'added to new user Set');
+    assert.equal(
+      await redis.ttl('idemp:thread-T:user-new:reassign-key'),
+      -1,
+      'reassigned dispatch ownership remains persistent',
+    );
 
     // listRunningByThread reflects migration
     const oldList = await store.listRunningByThread('thread-T', 'user-old');

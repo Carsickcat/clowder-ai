@@ -22,25 +22,24 @@ import type {
 import { InvocationKeys } from '../redis-keys/invocation-keys.js';
 
 const DEFAULT_TTL_SECONDS = 0; // persistent — set >0 via env to enable expiry
-const IDEMPOTENCY_TTL_SECONDS = 300; // 5 minutes
 
 /**
  * Lua script for atomic idempotency check + record creation.
  * KEYS[1] = idempotency key (ioredis auto-prefixes)
  * KEYS[2] = invocation record key (ioredis auto-prefixes)
- * ARGV[1..7] = id, threadId, userId, targetCats(JSON), intent, idempotencyKey, now
+ * ARGV[1..8] = id, threadId, userId, targetCats(JSON), intent, idempotencyKey, now, queueEntryId
  */
 const CREATE_ATOMIC_LUA = `
 local existing = redis.call('GET', KEYS[1])
 if existing then
   return {'duplicate', existing}
 end
-redis.call('SET', KEYS[1], ARGV[1], 'EX', ${IDEMPOTENCY_TTL_SECONDS})
+redis.call('SET', KEYS[1], ARGV[1])
 redis.call('HSET', KEYS[2],
   'id', ARGV[1], 'threadId', ARGV[2], 'userId', ARGV[3],
   'targetCats', ARGV[4], 'intent', ARGV[5],
   'idempotencyKey', ARGV[6], 'status', 'queued',
-  'userMessageId', '', 'error', '',
+  'userMessageId', '', 'error', '', 'queueEntryId', ARGV[8],
   'createdAt', ARGV[7], 'updatedAt', ARGV[7])
 ${DEFAULT_TTL_SECONDS > 0 ? `redis.call('EXPIRE', KEYS[2], ${DEFAULT_TTL_SECONDS})` : '-- persistent mode: no EXPIRE'}
 return {'created', ARGV[1]}
@@ -226,6 +225,7 @@ export class RedisInvocationRecordStore implements IInvocationRecordStore {
       input.intent,
       input.idempotencyKey,
       now,
+      input.queueEntryId ?? '',
     )) as [string, string];
 
     return {
@@ -285,6 +285,7 @@ export class RedisInvocationRecordStore implements IInvocationRecordStore {
     if (input.status !== undefined) pairs.push('status', input.status);
     if (input.userMessageId !== undefined) pairs.push('userMessageId', input.userMessageId ?? '');
     if (input.error !== undefined) pairs.push('error', input.error);
+    if (input.queueEntryId !== undefined) pairs.push('queueEntryId', input.queueEntryId);
     if (input.usageByCat !== undefined) {
       pairs.push('usageByCat', JSON.stringify(input.usageByCat));
       // F128: stamp usageRecordedAt on first usageByCat write (HSETNX semantics).
@@ -493,14 +494,10 @@ export class RedisInvocationRecordStore implements IInvocationRecordStore {
     const newIdempKey = InvocationKeys.idempotency(record.threadId, nextUserId, record.idempotencyKey);
     const claimedId = await this.redis.get(oldIdempKey);
     if (claimedId === id) {
-      const ttl = await this.redis.ttl(oldIdempKey);
       const pipeline = this.redis.multi();
       pipeline.del(oldIdempKey);
-      if (ttl > 0) {
-        pipeline.set(newIdempKey, id, 'EX', ttl);
-      } else {
-        pipeline.set(newIdempKey, id);
-      }
+      // Ownership is persistent even when migrating a legacy key that still has a TTL.
+      pipeline.set(newIdempKey, id);
       await pipeline.exec();
     }
 
@@ -513,6 +510,7 @@ export class RedisInvocationRecordStore implements IInvocationRecordStore {
     const usageByCat = safeParseObject(data.usageByCat);
     return {
       id: data.id!,
+      ...(data.queueEntryId ? { queueEntryId: data.queueEntryId } : {}),
       threadId: data.threadId!,
       userId: data.userId!,
       userMessageId: data.userMessageId === '' ? null : data.userMessageId!,

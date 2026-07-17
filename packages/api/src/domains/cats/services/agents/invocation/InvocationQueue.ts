@@ -150,6 +150,8 @@ export class InvocationQueue {
       | 'position'
       | 'suggestedSkill'
     > & {
+      /** Stable ID preassigned by the request's atomic claim owner. */
+      entryId?: string;
       autoExecute?: boolean;
       callerCatId?: string;
       priority?: 'urgent' | 'normal';
@@ -205,7 +207,7 @@ export class InvocationQueue {
     }
 
     const entry: QueueEntry = {
-      id: randomUUID(),
+      id: input.entryId ?? randomUUID(),
       threadId: input.threadId,
       userId: input.userId,
       idempotencyKey: input.idempotencyKey,

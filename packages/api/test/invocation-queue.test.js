@@ -94,6 +94,14 @@ describe('InvocationQueue', () => {
     assert.equal(queue.list('t1', 'u1')[0].content, 'first');
   });
 
+  it('uses a preassigned entryId so the atomic claim and queue share one owner', () => {
+    const result = queue.enqueue(entry({ entryId: 'queue-owner-stable' }));
+
+    assert.equal(result.outcome, 'enqueued');
+    assert.equal(result.entry.id, 'queue-owner-stable');
+    assert.equal(queue.list('t1', 'u1')[0].id, 'queue-owner-stable');
+  });
+
   // ── F175: no merge — every entry is independent ──
 
   it('same-source same-target entries are independent (F175 no merge)', () => {
