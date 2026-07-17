@@ -107,4 +107,18 @@ describe('next.config rewrites', () => {
       'Realtime chat must reconnect without next-pwa injecting location.reload() on the online event',
     );
   });
+
+  it('keeps API, Socket, and uploaded business artifacts on network truth', () => {
+    const pwaOptions = loadConfigWithPwaCapture();
+    const runtimeCaching = pwaOptions?.workboxOptions?.runtimeCaching ?? [];
+    const handlerFor = (url) => runtimeCaching.find((rule) => rule.urlPattern.test(url))?.handler;
+
+    assert.equal(handlerFor('https://cafe.example/api/messages'), 'NetworkOnly');
+    assert.equal(handlerFor('https://cafe.example/socket.io/?EIO=4'), 'NetworkOnly');
+    assert.equal(
+      handlerFor('https://cafe.example/uploads/thread-1/artifact.png'),
+      'NetworkOnly',
+      'User artifacts must not fall through to the static-image CacheFirst rule',
+    );
+  });
 });

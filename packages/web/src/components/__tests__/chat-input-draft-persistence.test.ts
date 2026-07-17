@@ -11,6 +11,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatInput, threadDrafts, threadImageDrafts, threadReplyDrafts } from '@/components/ChatInput';
+import { PWA_BEFORE_RELOAD_EVENT } from '@/lib/pwa-lifecycle';
 import { useChatStore } from '@/stores/chatStore';
 
 // ── Mocks ──
@@ -385,6 +386,23 @@ describe('ChatInput draft persistence', () => {
     expect(stored).not.toBeNull();
     const entries: [string, string][] = JSON.parse(stored!);
     expect(entries).toContainEqual(['thread-SS', 'persisted draft']);
+  });
+
+  it('allows an update after flushing text but blocks reload while attachment drafts remain in memory', async () => {
+    const onSend = vi.fn();
+    act(() => {
+      root.render(React.createElement(ChatInput, { threadId: 'thread-update', onSend }));
+    });
+    act(() => typeInto(getTextarea(), 'survives reload'));
+
+    const textOnlyEvent = new Event(PWA_BEFORE_RELOAD_EVENT, { cancelable: true });
+    expect(window.dispatchEvent(textOnlyEvent)).toBe(true);
+    expect(window.sessionStorage.getItem('cat-cafe:thread-drafts')).toContain('survives reload');
+
+    await attachFiles([makeImageFile('not-yet-persistable.png')]);
+    const attachmentEvent = new Event(PWA_BEFORE_RELOAD_EVENT, { cancelable: true });
+    expect(window.dispatchEvent(attachmentEvent)).toBe(false);
+    expect(attachmentEvent.defaultPrevented).toBe(true);
   });
 
   it('clears sessionStorage entry when draft is emptied', () => {

@@ -19,6 +19,9 @@ vi.mock('../MobileGlobalNavDrawer', () => ({
 }));
 vi.mock('../ThreadSidebar', () => ({ ThreadSidebar: () => <aside data-testid="desktop-thread-sidebar" /> }));
 vi.mock('../PwaInstallPrompt', () => ({ PwaInstallPrompt: () => null }));
+vi.mock('../pwa/PwaUpdateController', () => ({
+  PwaUpdateController: () => <div data-testid="pwa-update-controller" />,
+}));
 vi.mock('../concierge/ConciergeHost', () => ({ ConciergeHost: () => null }));
 vi.mock('../workspace/FloatingPresentationSurfaceHost', () => ({ FloatingPresentationSurfaceHost: () => null }));
 vi.mock('../workspace/ResizeHandle', () => ({ ResizeHandle: () => null }));
@@ -49,6 +52,7 @@ describe('AppShell mobile global navigation ownership', () => {
   it('provides the canonical menu trigger on mobile global routes', () => {
     act(() => root.render(<AppShell>content</AppShell>));
 
+    expect(container.querySelector('[data-testid="pwa-update-controller"]')).not.toBeNull();
     const trigger = container.querySelector('[data-testid="mobile-global-nav-trigger"]') as HTMLButtonElement;
     expect(trigger).not.toBeNull();
     act(() => trigger.click());
@@ -73,5 +77,12 @@ describe('AppShell mobile global navigation ownership', () => {
     expect(container.querySelector('[data-testid="mobile-global-nav-drawer"]')).toBeNull();
     expect(container.querySelector('[data-testid="desktop-thread-sidebar"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="activity-bar"]')?.classList.contains('lg:flex')).toBe(true);
+  });
+
+  it('does not mount PWA lifecycle controls on chromeless presentation routes', () => {
+    navigation.pathname = '/story/story-1';
+    act(() => root.render(<AppShell>story</AppShell>));
+
+    expect(container.querySelector('[data-testid="pwa-update-controller"]')).toBeNull();
   });
 });

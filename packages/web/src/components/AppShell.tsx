@@ -11,6 +11,7 @@ import { ConciergeHost } from './concierge/ConciergeHost';
 import { MobileGlobalNavDrawer } from './MobileGlobalNavDrawer';
 import { PwaInstallPrompt } from './PwaInstallPrompt';
 import { PwaInstallExperienceProvider } from './pwa/PwaInstallExperienceProvider';
+import { PwaUpdateController } from './pwa/PwaUpdateController';
 import { ThreadSidebar } from './ThreadSidebar';
 import { FloatingPresentationSurfaceHost } from './workspace/FloatingPresentationSurfaceHost';
 import { ResizeHandle } from './workspace/ResizeHandle';
@@ -99,6 +100,7 @@ function AppShellContent({ children }: AppShellProps) {
       )}
       <div className="flex-1 min-w-0 overflow-y-auto">{children}</div>
       <PwaInstallPrompt hasMobileNav={isChatRoute} />
+      <PwaUpdateController />
       {/* F226: presentation surface floating window — mounted at AppShell root (outside route
           children) so the float survives both workspace mode-tab switches AND full-page route
           changes (/memory, /settings, /mission-hub). KD-1. */}

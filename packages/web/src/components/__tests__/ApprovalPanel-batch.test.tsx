@@ -9,6 +9,7 @@ import type { ApprovalItem } from '@cat-cafe/shared';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PWA_BEFORE_RELOAD_EVENT } from '@/lib/pwa-lifecycle';
 
 // --- Mock data ---
 const NOW = Date.now();
@@ -184,6 +185,17 @@ describe('F246 AC-D5: ApprovalPanel batch operations', () => {
 
     expect(container.querySelector('[data-testid="approval-batch-approve"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="approval-batch-reject"]')).not.toBeNull();
+  });
+
+  it('blocks a PWA reload while a batch approval selection is still transient', async () => {
+    mockSelectedIds = new Set(['dp-inline-1']);
+    await act(async () => {
+      root.render(React.createElement(ApprovalPanel));
+    });
+
+    const beforeReload = new Event(PWA_BEFORE_RELOAD_EVENT, { cancelable: true });
+    expect(window.dispatchEvent(beforeReload)).toBe(false);
+    expect(beforeReload.defaultPrevented).toBe(true);
   });
 
   it('approve/reject buttons hidden when nothing selected', async () => {

@@ -13,6 +13,7 @@
 
 import type { ApprovalItem } from '@cat-cafe/shared';
 import { useEffect, useMemo, useState } from 'react';
+import { PWA_BEFORE_RELOAD_EVENT } from '@/lib/pwa-lifecycle';
 import { useApprovalHubStore } from '@/stores/approvalHubStore';
 import { ApprovalItemCard } from './ApprovalItemCard';
 import { SettledHistoryCard } from './SettledHistoryCard';
@@ -122,6 +123,13 @@ export function ApprovalPanel({ currentThreadId }: ApprovalPanelProps = {}) {
   const hasSelection = selectedIds.size > 0;
   const filteredIds = useMemo(() => filteredItems.map((i) => i.proposalId), [filteredItems]);
   const batchFailedCount = batchResults.filter((r) => !r.success).length;
+
+  useEffect(() => {
+    if (!hasSelection) return;
+    const protectApprovalSelection = (event: Event) => event.preventDefault();
+    window.addEventListener(PWA_BEFORE_RELOAD_EVENT, protectApprovalSelection);
+    return () => window.removeEventListener(PWA_BEFORE_RELOAD_EVENT, protectApprovalSelection);
+  }, [hasSelection]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col" data-testid="approval-panel">

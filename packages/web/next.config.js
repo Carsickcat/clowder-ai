@@ -104,6 +104,11 @@ module.exports = withPWA({
         handler: 'NetworkOnly',
       },
       {
+        // User artifacts are mutable business data, not versioned static assets.
+        urlPattern: /^https?:\/\/.*\/uploads\//,
+        handler: 'NetworkOnly',
+      },
+      {
         // Static assets: cache for performance
         urlPattern: /\.(png|jpg|jpeg|svg|gif|ico|woff2?)$/,
         handler: 'CacheFirst',

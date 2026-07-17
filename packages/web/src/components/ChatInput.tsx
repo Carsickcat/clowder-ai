@@ -3,6 +3,7 @@
 import { KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCatData } from '@/hooks/useCatData';
 import { reconnectGame } from '@/hooks/useGameReconnect';
+import { PWA_BEFORE_RELOAD_EVENT } from '@/lib/pwa-lifecycle';
 import { useIMEGuard } from '@/hooks/useIMEGuard';
 import { usePathCompletion } from '@/hooks/usePathCompletion';
 import type { UploadStatus, WhisperOptions } from '@/hooks/useSendMessage';
@@ -640,6 +641,19 @@ export function ChatInput({
     setThreadHasDraft(threadId, hasDraft || Boolean(replyDraft));
     replyPersistenceThreadRef.current = threadId;
   }, [input, images, threadId, setThreadHasDraft, replyToMessage]);
+
+  useEffect(() => {
+    if (!threadId) return;
+    const flushBeforePwaReload = (event: Event) => {
+      syncDraftToStorage(threadId, input || undefined);
+      syncReplyDraftToStorage(threadId, replyToMessage ?? threadReplyDrafts.get(threadId) ?? null);
+      // File objects are intentionally memory-only. Refuse a version reload until
+      // the operator sends or removes them instead of silently dropping attachments.
+      if (images.length > 0) event.preventDefault();
+    };
+    window.addEventListener(PWA_BEFORE_RELOAD_EVENT, flushBeforePwaReload);
+    return () => window.removeEventListener(PWA_BEFORE_RELOAD_EVENT, flushBeforePwaReload);
+  }, [images, input, replyToMessage, threadId]);
 
   // F080: recalculate ghost suggestion whenever input changes (covers all setInput paths)
   useEffect(() => {

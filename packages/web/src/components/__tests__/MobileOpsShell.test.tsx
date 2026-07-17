@@ -1,6 +1,7 @@
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PWA_RECOVERY_EVENT } from '@/lib/pwa-lifecycle';
 import { useApprovalHubStore } from '@/stores/approvalHubStore';
 import { useChatStore } from '@/stores/chatStore';
 
@@ -83,6 +84,19 @@ describe('MobileOpsShell', () => {
 
     await act(async () => {
       workButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith('/api/tasks?threadId=thread-1&kind=work');
+    expect(apiFetch).toHaveBeenCalledWith('/api/threads/thread-1/task-progress');
+  });
+
+  it('reconciles authoritative snapshots after the app returns to the foreground', async () => {
+    await act(async () => root.render(<Harness />));
+    apiFetch.mockClear();
+
+    await act(async () => {
+      window.dispatchEvent(new Event(PWA_RECOVERY_EVENT));
       await Promise.resolve();
     });
 

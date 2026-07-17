@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { PWA_RECOVERY_EVENT } from '@/lib/pwa-lifecycle';
 import { useApprovalHubStore } from '@/stores/approvalHubStore';
 import type { CatInvocationInfo, TaskProgressState } from '@/stores/chat-types';
 import { nextTaskProgressSnapshotStartedAt, useChatStore } from '@/stores/chatStore';
@@ -157,16 +158,11 @@ export function MobileOpsShell({
   }, [socketConnected, reconcile]);
 
   useEffect(() => {
-    const handleForeground = () => {
-      if (document.visibilityState === 'visible') void reconcile();
-    };
-    const handleOnline = () => void reconcile();
-    document.addEventListener('visibilitychange', handleForeground);
-    window.addEventListener('online', handleOnline);
+    const handleRecovery = () => void reconcile();
+    window.addEventListener(PWA_RECOVERY_EVENT, handleRecovery);
     return () => {
       generationRef.current += 1;
-      document.removeEventListener('visibilitychange', handleForeground);
-      window.removeEventListener('online', handleOnline);
+      window.removeEventListener(PWA_RECOVERY_EVENT, handleRecovery);
     };
   }, [reconcile]);
 
