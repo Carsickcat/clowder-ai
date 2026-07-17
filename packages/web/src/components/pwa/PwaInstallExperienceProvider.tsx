@@ -31,6 +31,18 @@ export interface PwaInstallExperience {
 
 const PwaInstallExperienceContext = createContext<PwaInstallExperience | null>(null);
 
+const SERVER_INSTALL_FACTS: PwaInstallFacts = {
+  platform: 'other',
+  isDesktop: false,
+  isSecureContext: false,
+  isStandalone: false,
+  isWebView: false,
+  isOnline: true,
+  serviceWorkerSupported: false,
+  serviceWorkerReady: false,
+  hasNativePrompt: false,
+};
+
 function isStandaloneDisplayMode(): boolean {
   const standaloneByMedia =
     typeof window.matchMedia === 'function' ? window.matchMedia('(display-mode: standalone)').matches : false;
@@ -68,11 +80,13 @@ export function PwaInstallExperienceProvider({ children }: { children: ReactNode
   const [serviceWorkerReady, setServiceWorkerReady] = useState(
     () => typeof navigator !== 'undefined' && Boolean(navigator.serviceWorker?.controller),
   );
+  const [environmentReady, setEnvironmentReady] = useState(false);
   const [, setEnvironmentRevision] = useState(0);
   const [dismissedUntil, setDismissedUntil] = useState(readInitialDismissal);
   const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
+    setEnvironmentReady(true);
     const mediaQueries =
       typeof window.matchMedia === 'function'
         ? [window.matchMedia('(display-mode: standalone)'), window.matchMedia(WIDE_SHELL_QUERY)]
@@ -119,7 +133,7 @@ export function PwaInstallExperienceProvider({ children }: { children: ReactNode
     };
   }, []);
 
-  const facts = readFacts(serviceWorkerReady, Boolean(deferredPrompt));
+  const facts = environmentReady ? readFacts(serviceWorkerReady, Boolean(deferredPrompt)) : SERVER_INSTALL_FACTS;
   const installability = derivePwaInstallability(facts);
   const isBannerDismissed = dismissedUntil > Date.now();
 
