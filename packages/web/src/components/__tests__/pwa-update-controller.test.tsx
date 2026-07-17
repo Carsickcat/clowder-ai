@@ -7,22 +7,47 @@ import { PwaUpdateController } from '../pwa/PwaUpdateController';
 type Listener = EventListenerOrEventListenerObject;
 
 function createServiceWorkerHarness(initialController: object | null = {}) {
-  const listeners = new Map<string, Set<Listener>>();
+  const serviceWorkerListeners = new Map<string, Set<Listener>>();
+  const registrationListeners = new Map<string, Set<Listener>>();
+  const installingListeners = new Map<string, Set<Listener>>();
+  const waitingWorker = { postMessage: vi.fn() };
+  let installingState: ServiceWorkerState = 'installing';
+  const installingWorker = {
+    get state() {
+      return installingState;
+    },
+    addEventListener: vi.fn((type: string, listener: Listener) => {
+      const current = installingListeners.get(type) ?? new Set<Listener>();
+      current.add(listener);
+      installingListeners.set(type, current);
+    }),
+    removeEventListener: vi.fn((type: string, listener: Listener) => installingListeners.get(type)?.delete(listener)),
+  } as unknown as ServiceWorker;
   const registration = {
+    waiting: null as typeof waitingWorker | null,
+    installing: null as ServiceWorker | null,
     update: vi.fn(async () => undefined),
+    addEventListener: vi.fn((type: string, listener: Listener) => {
+      const current = registrationListeners.get(type) ?? new Set<Listener>();
+      current.add(listener);
+      registrationListeners.set(type, current);
+    }),
+    removeEventListener: vi.fn((type: string, listener: Listener) => registrationListeners.get(type)?.delete(listener)),
   };
   const serviceWorker = {
     controller: initialController,
     getRegistration: vi.fn(async () => registration),
     addEventListener: vi.fn((type: string, listener: Listener) => {
-      const current = listeners.get(type) ?? new Set<Listener>();
+      const current = serviceWorkerListeners.get(type) ?? new Set<Listener>();
       current.add(listener);
-      listeners.set(type, current);
+      serviceWorkerListeners.set(type, current);
     }),
-    removeEventListener: vi.fn((type: string, listener: Listener) => listeners.get(type)?.delete(listener)),
+    removeEventListener: vi.fn((type: string, listener: Listener) =>
+      serviceWorkerListeners.get(type)?.delete(listener),
+    ),
   };
 
-  const emit = (type: string) => {
+  const emit = (listeners: Map<string, Set<Listener>>, type: string) => {
     const event = new Event(type);
     for (const listener of listeners.get(type) ?? []) {
       if (typeof listener === 'function') listener(event);
@@ -30,7 +55,18 @@ function createServiceWorkerHarness(initialController: object | null = {}) {
     }
   };
 
-  return { emit, registration, serviceWorker };
+  return {
+    emitRegistration: (type: string) => emit(registrationListeners, type),
+    emitServiceWorker: (type: string) => emit(serviceWorkerListeners, type),
+    emitInstallingState: (state: ServiceWorkerState) => {
+      installingState = state;
+      emit(installingListeners, 'statechange');
+    },
+    installingWorker,
+    registration,
+    serviceWorker,
+    waitingWorker,
+  };
 }
 
 describe('PwaUpdateController', () => {
@@ -56,7 +92,7 @@ describe('PwaUpdateController', () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
   });
 
-  it('surfaces a controller update without silently reloading and reloads at most once after confirmation', async () => {
+  it('keeps a waiting worker inert until confirmation, then reloads once after it takes control', async () => {
     const harness = createServiceWorkerHarness();
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: harness.serviceWorker });
     const reloadPage = vi.fn();
@@ -67,12 +103,11 @@ describe('PwaUpdateController', () => {
     });
     expect(container.textContent).not.toContain('新版本已就绪');
 
-    act(() => {
-      harness.emit('controllerchange');
-      harness.emit('controllerchange');
-    });
+    harness.registration.waiting = harness.waitingWorker;
+    act(() => harness.emitRegistration('updatefound'));
     expect(container.textContent).toContain('新版本已就绪');
     expect(reloadPage).not.toHaveBeenCalled();
+    expect(harness.waitingWorker.postMessage).not.toHaveBeenCalled();
 
     const updateButton = [...container.querySelectorAll('button')].find((button) =>
       button.textContent?.includes('更新并重新载入'),
@@ -80,6 +115,14 @@ describe('PwaUpdateController', () => {
     act(() => {
       updateButton.click();
       updateButton.click();
+    });
+    expect(harness.waitingWorker.postMessage).toHaveBeenCalledTimes(1);
+    expect(harness.waitingWorker.postMessage).toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    expect(reloadPage).not.toHaveBeenCalled();
+
+    act(() => {
+      harness.emitServiceWorker('controllerchange');
+      harness.emitServiceWorker('controllerchange');
     });
     expect(reloadPage).toHaveBeenCalledTimes(1);
   });
@@ -95,15 +138,34 @@ describe('PwaUpdateController', () => {
       root.render(<PwaUpdateController reloadPage={reloadPage} />);
       await Promise.resolve();
     });
-    act(() => harness.emit('controllerchange'));
+    harness.registration.waiting = harness.waitingWorker;
+    act(() => harness.emitRegistration('updatefound'));
     const updateButton = [...container.querySelectorAll('button')].find((button) =>
       button.textContent?.includes('更新并重新载入'),
     ) as HTMLButtonElement;
     act(() => updateButton.click());
 
     expect(reloadPage).not.toHaveBeenCalled();
+    expect(harness.waitingWorker.postMessage).not.toHaveBeenCalled();
     expect(container.textContent).toContain('仍有未保存的内容');
     window.removeEventListener(PWA_BEFORE_RELOAD_EVENT, protectTransientWork);
+  });
+
+  it('surfaces a worker only after its installation reaches the waiting phase', async () => {
+    const harness = createServiceWorkerHarness();
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: harness.serviceWorker });
+
+    await act(async () => {
+      root.render(<PwaUpdateController reloadPage={vi.fn()} />);
+      await Promise.resolve();
+    });
+    harness.registration.installing = harness.installingWorker;
+    act(() => harness.emitRegistration('updatefound'));
+    expect(container.textContent).not.toContain('新版本已就绪');
+
+    harness.registration.waiting = harness.waitingWorker;
+    act(() => harness.emitInstallingState('installed'));
+    expect(container.textContent).toContain('新版本已就绪');
   });
 
   it('checks for a new worker and emits one recovery signal when returning to the foreground', async () => {
@@ -127,6 +189,23 @@ describe('PwaUpdateController', () => {
     window.removeEventListener(PWA_RECOVERY_EVENT, recovery);
   });
 
+  it('still emits foreground recovery when Service Worker is unsupported', async () => {
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: undefined });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    const recovery = vi.fn();
+    window.addEventListener(PWA_RECOVERY_EVENT, recovery);
+
+    await act(async () => {
+      root.render(<PwaUpdateController reloadPage={vi.fn()} />);
+      await Promise.resolve();
+    });
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+
+    expect(recovery).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-testid="pwa-update-status"]')).toBeNull();
+    window.removeEventListener(PWA_RECOVERY_EVENT, recovery);
+  });
+
   it('does not report the first controller claim as a version update', async () => {
     const harness = createServiceWorkerHarness(null);
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: harness.serviceWorker });
@@ -136,7 +215,7 @@ describe('PwaUpdateController', () => {
       await Promise.resolve();
     });
     harness.serviceWorker.controller = {};
-    act(() => harness.emit('controllerchange'));
+    act(() => harness.emitServiceWorker('controllerchange'));
 
     expect(container.textContent).not.toContain('新版本已就绪');
   });

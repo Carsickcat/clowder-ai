@@ -124,6 +124,8 @@ export function ApprovalPanel({ currentThreadId }: ApprovalPanelProps = {}) {
   const filteredIds = useMemo(() => filteredItems.map((i) => i.proposalId), [filteredItems]);
   const batchFailedCount = batchResults.filter((r) => !r.success).length;
 
+  // Local defense for embedded ApprovalPanel consumers; AppShell also owns the
+  // cross-route guard that covers selections and in-flight decisions after unmount.
   useEffect(() => {
     if (!hasSelection) return;
     const protectApprovalSelection = (event: Event) => event.preventDefault();

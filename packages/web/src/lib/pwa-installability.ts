@@ -1,4 +1,5 @@
 export type InstallPlatform = 'ios' | 'android' | 'other';
+export type PwaManifestStatus = 'checking' | 'ready' | 'unavailable';
 export type PwaInstallBlocker =
   | 'desktop'
   | 'already-installed'
@@ -7,6 +8,7 @@ export type PwaInstallBlocker =
   | 'offline'
   | 'service-worker-unavailable'
   | 'service-worker-not-ready'
+  | 'manifest-unavailable'
   | 'not-installable';
 
 export type PwaInstallFacts = {
@@ -18,6 +20,7 @@ export type PwaInstallFacts = {
   isOnline: boolean;
   serviceWorkerSupported: boolean;
   serviceWorkerReady: boolean;
+  manifestStatus: PwaManifestStatus;
   hasNativePrompt: boolean;
 };
 
@@ -57,6 +60,7 @@ export function derivePwaInstallability(facts: PwaInstallFacts): PwaInstallabili
   if (!facts.isOnline) blockers.push('offline');
   if (!facts.serviceWorkerSupported) blockers.push('service-worker-unavailable');
   else if (!facts.serviceWorkerReady) blockers.push('service-worker-not-ready');
+  if (facts.manifestStatus !== 'ready') blockers.push('manifest-unavailable');
 
   const supportsManualInstall = facts.platform === 'ios' && !facts.isWebView;
   if (!facts.hasNativePrompt && !supportsManualInstall && blockers.length === 0) blockers.push('not-installable');

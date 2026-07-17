@@ -55,29 +55,33 @@ function hydrateReplyDrafts(): Map<string, DraftReplyContext> {
   return map;
 }
 
-function persistToStorage(map: Map<string, string>): void {
-  if (typeof window === 'undefined') return;
+function persistToStorage(map: Map<string, string>): boolean {
+  if (typeof window === 'undefined') return map.size === 0;
   try {
     if (map.size === 0) {
       window.sessionStorage.removeItem(STORAGE_KEY);
     } else {
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...map.entries()]));
     }
+    return true;
   } catch {
-    // QuotaExceededError or SecurityError — best effort
+    // Pending text must block a version reload when storage is unavailable.
+    return map.size === 0;
   }
 }
 
-function persistReplyDrafts(map: Map<string, DraftReplyContext>): void {
-  if (typeof window === 'undefined') return;
+function persistReplyDrafts(map: Map<string, DraftReplyContext>): boolean {
+  if (typeof window === 'undefined') return map.size === 0;
   try {
     if (map.size === 0) {
       window.sessionStorage.removeItem(REPLY_STORAGE_KEY);
     } else {
       window.sessionStorage.setItem(REPLY_STORAGE_KEY, JSON.stringify([...map.entries()]));
     }
+    return true;
   } catch {
-    // QuotaExceededError or SecurityError — best effort
+    // Pending reply context must block a version reload when storage is unavailable.
+    return map.size === 0;
   }
 }
 
@@ -86,23 +90,33 @@ export const threadImageDrafts = new Map<string, File[]>();
 export const threadReplyDrafts = hydrateReplyDrafts();
 
 /** Sync a draft write to sessionStorage. Call after mutating threadDrafts. */
-export function syncDraftToStorage(threadId: string, text: string | undefined): void {
+export function syncDraftToStorage(threadId: string, text: string | undefined): boolean {
   if (text && text.trim()) {
     threadDrafts.set(threadId, text);
   } else {
     threadDrafts.delete(threadId);
   }
-  persistToStorage(threadDrafts);
+  return persistToStorage(threadDrafts);
 }
 
 /** #934: Save/clear reply context for a thread draft. */
-export function syncReplyDraftToStorage(threadId: string, reply: DraftReplyContext | null): void {
+export function syncReplyDraftToStorage(threadId: string, reply: DraftReplyContext | null): boolean {
   if (reply) {
     threadReplyDrafts.set(threadId, reply);
   } else {
     threadReplyDrafts.delete(threadId);
   }
-  persistReplyDrafts(threadReplyDrafts);
+  return persistReplyDrafts(threadReplyDrafts);
+}
+
+/** Flush every in-memory text draft, including drafts whose composer is unmounted. */
+export function flushThreadDraftsToStorage(): boolean {
+  return persistToStorage(threadDrafts);
+}
+
+/** Flush every in-memory reply draft, including drafts whose composer is unmounted. */
+export function flushThreadReplyDraftsToStorage(): boolean {
+  return persistReplyDrafts(threadReplyDrafts);
 }
 
 export function hasPendingThreadDraft(threadId: string): boolean {

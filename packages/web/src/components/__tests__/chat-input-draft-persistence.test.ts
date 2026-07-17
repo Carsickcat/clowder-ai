@@ -11,6 +11,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatInput, threadDrafts, threadImageDrafts, threadReplyDrafts } from '@/components/ChatInput';
+import { PwaTransientWorkGuard } from '@/components/pwa/PwaTransientWorkGuard';
 import { PWA_BEFORE_RELOAD_EVENT } from '@/lib/pwa-lifecycle';
 import { useChatStore } from '@/stores/chatStore';
 
@@ -391,7 +392,14 @@ describe('ChatInput draft persistence', () => {
   it('allows an update after flushing text but blocks reload while attachment drafts remain in memory', async () => {
     const onSend = vi.fn();
     act(() => {
-      root.render(React.createElement(ChatInput, { threadId: 'thread-update', onSend }));
+      root.render(
+        React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(PwaTransientWorkGuard),
+          React.createElement(ChatInput, { threadId: 'thread-update', onSend }),
+        ),
+      );
     });
     act(() => typeInto(getTextarea(), 'survives reload'));
 

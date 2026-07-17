@@ -41,6 +41,7 @@ describe('PwaInstallPrompt', () => {
   let originalUserAgent: string;
   let originalServiceWorker: ServiceWorkerContainer | undefined;
   let originalSecureContext: boolean | undefined;
+  let originalFetch: typeof globalThis.fetch;
 
   beforeAll(() => {
     (globalThis as { React?: typeof React }).React = React;
@@ -49,6 +50,7 @@ describe('PwaInstallPrompt', () => {
     originalUserAgent = window.navigator.userAgent;
     originalServiceWorker = navigator.serviceWorker;
     originalSecureContext = window.isSecureContext;
+    originalFetch = globalThis.fetch;
   });
 
   beforeEach(() => {
@@ -67,6 +69,13 @@ describe('PwaInstallPrompt', () => {
         removeEventListener: vi.fn(),
       },
     });
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ name: 'Clowder AI', start_url: '/' }), {
+          status: 200,
+          headers: { 'content-type': 'application/manifest+json' },
+        }),
+    );
   });
 
   afterEach(() => {
@@ -77,6 +86,7 @@ describe('PwaInstallPrompt', () => {
     setUserAgent(originalUserAgent);
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: originalServiceWorker });
     Object.defineProperty(window, 'isSecureContext', { configurable: true, value: originalSecureContext });
+    globalThis.fetch = originalFetch;
     delete (window.navigator as Navigator & { standalone?: boolean }).standalone;
   });
 
@@ -92,6 +102,7 @@ describe('PwaInstallPrompt', () => {
           <Harness />
         </PwaInstallExperienceProvider>,
       );
+      await Promise.resolve();
       await Promise.resolve();
     });
   }
@@ -116,6 +127,32 @@ describe('PwaInstallPrompt', () => {
     act(() => primaryButton.click());
     await flush();
     expect(container.querySelector('[data-testid="pwa-install-sheet"]')?.textContent).toContain('分享');
+  });
+
+  it('keeps the contextual banner below a mobile work surface', async () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1',
+    );
+    await renderHarness();
+
+    expect(container.querySelector('[data-testid="pwa-install-banner"]')?.className).toContain('z-[29]');
+  });
+
+  it('reports an unavailable manifest instead of offering manual iOS installation', async () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1',
+    );
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response('<html>proxy fallback</html>', { status: 200, headers: { 'content-type': 'text/html' } }),
+    );
+    await renderHarness();
+
+    expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+    act(() => (container.querySelector('[data-testid="open-install-guide"]') as HTMLButtonElement).click());
+    expect(container.querySelector('[data-testid="pwa-install-diagnostics"]')?.textContent).toContain(
+      '应用清单：不可用',
+    );
   });
 
   it('invokes the browser install prompt when Android emits beforeinstallprompt', async () => {

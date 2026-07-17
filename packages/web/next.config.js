@@ -92,6 +92,8 @@ module.exports = withPWA({
   extendDefaultRuntimeCaching: true,
   workboxOptions: {
     disableDevLogs: true,
+    // Keep a new worker inert until the in-page transient-work guard accepts activation.
+    skipWaiting: false,
     runtimeCaching: [
       {
         // API calls: never cache — always fresh chat data

@@ -22,6 +22,11 @@ function InstallDiagnostics({ facts }: { facts: PwaInstallFacts }) {
     facts.serviceWorkerSupported && facts.serviceWorkerReady
       ? '离线基础：Service Worker 已就绪'
       : '离线基础：Service Worker 未就绪',
+    facts.manifestStatus === 'ready'
+      ? '应用清单：已就绪'
+      : facts.manifestStatus === 'checking'
+        ? '应用清单：正在检测'
+        : '应用清单：不可用',
     facts.isWebView ? '浏览器环境：请改用系统浏览器' : '浏览器环境：系统浏览器可用',
     facts.isOnline ? '网络状态：已连接' : '网络状态：当前离线',
     facts.isStandalone
@@ -72,7 +77,7 @@ export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: bool
     <>
       {showBanner && (
         <div
-          className="fixed z-[46] lg:hidden"
+          className="fixed z-[29] lg:hidden"
           style={{
             left: 'calc(env(safe-area-inset-left) + 0.75rem)',
             right: 'calc(env(safe-area-inset-right) + 0.75rem)',

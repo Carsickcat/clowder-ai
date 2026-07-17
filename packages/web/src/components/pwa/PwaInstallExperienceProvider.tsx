@@ -40,6 +40,7 @@ const SERVER_INSTALL_FACTS: PwaInstallFacts = {
   isOnline: true,
   serviceWorkerSupported: false,
   serviceWorkerReady: false,
+  manifestStatus: 'checking',
   hasNativePrompt: false,
 };
 
@@ -50,7 +51,11 @@ function isStandaloneDisplayMode(): boolean {
   return standaloneByMedia || standaloneByNavigator;
 }
 
-function readFacts(serviceWorkerReady: boolean, hasNativePrompt: boolean): PwaInstallFacts {
+function readFacts(
+  serviceWorkerReady: boolean,
+  manifestStatus: PwaInstallFacts['manifestStatus'],
+  hasNativePrompt: boolean,
+): PwaInstallFacts {
   const userAgent = window.navigator.userAgent;
   const platform = detectInstallPlatform(userAgent);
   return {
@@ -62,8 +67,24 @@ function readFacts(serviceWorkerReady: boolean, hasNativePrompt: boolean): PwaIn
     isOnline: window.navigator.onLine !== false,
     serviceWorkerSupported: 'serviceWorker' in window.navigator && Boolean(window.navigator.serviceWorker),
     serviceWorkerReady,
+    manifestStatus,
     hasNativePrompt,
   };
+}
+
+async function readManifestStatus(): Promise<PwaInstallFacts['manifestStatus']> {
+  try {
+    const response = await fetch('/manifest.json', { cache: 'no-store' });
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!response.ok || !/\bapplication\/(?:manifest\+json|json)\b/i.test(contentType)) return 'unavailable';
+    const manifest = (await response.json()) as { name?: unknown; short_name?: unknown } | null;
+    if (!manifest || (typeof manifest.name !== 'string' && typeof manifest.short_name !== 'string')) {
+      return 'unavailable';
+    }
+    return 'ready';
+  } catch {
+    return 'unavailable';
+  }
 }
 
 function readInitialDismissal(): number {
@@ -81,17 +102,28 @@ export function PwaInstallExperienceProvider({ children }: { children: ReactNode
     () => typeof navigator !== 'undefined' && Boolean(navigator.serviceWorker?.controller),
   );
   const [environmentReady, setEnvironmentReady] = useState(false);
+  const [manifestStatus, setManifestStatus] = useState<PwaInstallFacts['manifestStatus']>('checking');
   const [, setEnvironmentRevision] = useState(0);
   const [dismissedUntil, setDismissedUntil] = useState(readInitialDismissal);
   const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     setEnvironmentReady(true);
+    let active = true;
     const mediaQueries =
       typeof window.matchMedia === 'function'
         ? [window.matchMedia('(display-mode: standalone)'), window.matchMedia(WIDE_SHELL_QUERY)]
         : [];
     const refreshEnvironment = () => setEnvironmentRevision((revision) => revision + 1);
+    const refreshManifest = async () => {
+      const nextStatus = await readManifestStatus();
+      if (active) setManifestStatus(nextStatus);
+    };
+    const handleOnline = () => {
+      refreshEnvironment();
+      setManifestStatus('checking');
+      void refreshManifest();
+    };
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as DeferredInstallPromptEvent);
@@ -117,23 +149,27 @@ export function PwaInstallExperienceProvider({ children }: { children: ReactNode
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleInstalled);
-    window.addEventListener('online', refreshEnvironment);
+    window.addEventListener('online', handleOnline);
     window.addEventListener('offline', refreshEnvironment);
     for (const query of mediaQueries) query.addEventListener?.('change', refreshEnvironment);
     navigator.serviceWorker?.addEventListener?.('controllerchange', refreshServiceWorker);
     void refreshServiceWorker();
+    void refreshManifest();
 
     return () => {
+      active = false;
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleInstalled);
-      window.removeEventListener('online', refreshEnvironment);
+      window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', refreshEnvironment);
       for (const query of mediaQueries) query.removeEventListener?.('change', refreshEnvironment);
       navigator.serviceWorker?.removeEventListener?.('controllerchange', refreshServiceWorker);
     };
   }, []);
 
-  const facts = environmentReady ? readFacts(serviceWorkerReady, Boolean(deferredPrompt)) : SERVER_INSTALL_FACTS;
+  const facts = environmentReady
+    ? readFacts(serviceWorkerReady, manifestStatus, Boolean(deferredPrompt))
+    : SERVER_INSTALL_FACTS;
   const installability = derivePwaInstallability(facts);
   const isBannerDismissed = dismissedUntil > Date.now();
 

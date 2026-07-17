@@ -172,6 +172,7 @@ operator 在已加入 tailnet 的手机上，可以：
 - Global drawer / Settings 保留常驻“安装 Clowder AI”入口；仅在 secure、installable、非 standalone 且连接稳定时，额外显示一次 contextual banner。
 - 安装入口不得遮挡输入框、底栏、审批或全局导航。用户关闭 contextual banner 后在本机持久化 30 天；不允许每次刷新重新弹出。
 - 非 secure context、内嵌 WebView 或浏览器不支持时，应展示准确诊断而不是无条件宣称可以安装。
+- 首次加载必须实际请求 `/manifest.json` 并校验成功状态、manifest JSON content type 与基本身份字段；代理返回 404/HTML 时只展示诊断，不得给出安装承诺。
 
 仓库中现有 `PwaInstallPrompt` 是候选实现，不自动视为本方案已完成。它仍需按上述契约审核提示时机、dismiss 持久化、断点一致性、全路由遮挡和真机文案。
 
@@ -180,6 +181,9 @@ operator 在已加入 tailnet 的手机上，可以：
 - 新 Service Worker 就绪时给出明确的“更新并重新载入”路径，避免旧页面引用新构建不存在的 chunk。
 - 更新不得丢失输入草稿、当前 thread 或未提交审批状态。
 - foreground 恢复时进行版本/连接检查和服务端对账。
+- 新 worker 必须停留在 `waiting`，不得默认 `skipWaiting` 后先接管旧页面再询问；operator 确认后才发送 `SKIP_WAITING`，并在 `controllerchange` 后只 reload 一次。
+- AppShell 常驻更新保护器在确认前刷新所有 thread 的文字/引用草稿；sessionStorage 写入失败、任意 thread 仍有内存附件、存在审批 selection 或 deciding 时一律拒绝激活，且保护不依赖当前 composer / 审批面是否挂载。
+- `online` / foreground 的服务端恢复信号不依赖 Service Worker 支持；无 SW 浏览器仍须触发对账，只跳过版本检查。
 
 ## 8. 原生壳能力门
 
@@ -246,7 +250,7 @@ operator 在已加入 tailnet 的手机上，可以：
 5. 查看执行中状态、工作计划和产物；进入全局审批中心、切换当前 thread 过滤并完成审批；
 6. 从统一左侧抽屉进入并返回 Memory / Mission / Signals / Settings；
 7. 前后台切换、断网、恢复网络、Socket 重连和快照对账；
-8. Service Worker 更新时保留草稿与当前上下文；
+8. Service Worker 更新先停留 waiting；确认前保留所有 thread 草稿、附件、审批瞬态与当前上下文，确认后再激活并重载；
 9. light/dark、主要主题、长代码块、图片和 rich block 视觉回归；
 10. 桌面端现有 AppShell、聊天、工作区与设置无回归。
 

@@ -10,6 +10,7 @@ function Harness() {
     <div>
       <span data-testid="platform">{experience.facts.platform}</span>
       <span data-testid="eligible">{String(experience.installability.bannerEligible)}</span>
+      <span data-testid="manifest-status">{experience.facts.manifestStatus}</span>
       <span data-testid="dismissed">{String(experience.isBannerDismissed)}</span>
       <span data-testid="guide-open">{String(experience.guideOpen)}</span>
       <button type="button" onClick={experience.dismissBanner}>
@@ -29,6 +30,7 @@ describe('PwaInstallExperienceProvider', () => {
   let originalServiceWorker: ServiceWorkerContainer | undefined;
   let originalMatchMedia: typeof window.matchMedia | undefined;
   let originalSecureContext: boolean | undefined;
+  let originalFetch: typeof globalThis.fetch;
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -36,6 +38,7 @@ describe('PwaInstallExperienceProvider', () => {
     originalServiceWorker = navigator.serviceWorker;
     originalMatchMedia = window.matchMedia;
     originalSecureContext = window.isSecureContext;
+    originalFetch = globalThis.fetch;
     localStorage.clear();
     Object.defineProperty(navigator, 'userAgent', {
       configurable: true,
@@ -62,6 +65,13 @@ describe('PwaInstallExperienceProvider', () => {
       removeListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }));
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ name: 'Clowder AI', start_url: '/' }), {
+          status: 200,
+          headers: { 'content-type': 'application/manifest+json' },
+        }),
+    );
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -75,6 +85,7 @@ describe('PwaInstallExperienceProvider', () => {
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: originalServiceWorker });
     Object.defineProperty(window, 'isSecureContext', { configurable: true, value: originalSecureContext });
     if (originalMatchMedia) window.matchMedia = originalMatchMedia;
+    globalThis.fetch = originalFetch;
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
   });
 
@@ -90,6 +101,7 @@ describe('PwaInstallExperienceProvider', () => {
     });
 
     expect(container.querySelector('[data-testid="platform"]')?.textContent).toBe('ios');
+    expect(container.querySelector('[data-testid="manifest-status"]')?.textContent).toBe('ready');
     expect(container.querySelector('[data-testid="eligible"]')?.textContent).toBe('true');
 
     act(() => (container.querySelector('button') as HTMLButtonElement).click());
@@ -102,5 +114,28 @@ describe('PwaInstallExperienceProvider', () => {
 
     act(() => (container.querySelectorAll('button')[1] as HTMLButtonElement).click());
     expect(container.querySelector('[data-testid="guide-open"]')?.textContent).toBe('true');
+  });
+
+  it.each([
+    ['a 404 response', new Response('missing', { status: 404, headers: { 'content-type': 'text/plain' } })],
+    [
+      'an HTML fallback',
+      new Response('<html>fallback</html>', { status: 200, headers: { 'content-type': 'text/html' } }),
+    ],
+  ])('blocks install guidance when the manifest endpoint returns %s', async (_label, response) => {
+    globalThis.fetch = vi.fn(async () => response);
+
+    await act(async () => {
+      root.render(
+        <PwaInstallExperienceProvider>
+          <Harness />
+        </PwaInstallExperienceProvider>,
+      );
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-testid="manifest-status"]')?.textContent).toBe('unavailable');
+    expect(container.querySelector('[data-testid="eligible"]')?.textContent).toBe('false');
   });
 });

@@ -108,6 +108,16 @@ describe('next.config rewrites', () => {
     );
   });
 
+  it('keeps a new worker waiting until the operator accepts the update', () => {
+    const pwaOptions = loadConfigWithPwaCapture();
+
+    assert.equal(
+      pwaOptions?.workboxOptions?.skipWaiting,
+      false,
+      'A generated worker must not take control before the in-page draft guard allows activation',
+    );
+  });
+
   it('keeps API, Socket, and uploaded business artifacts on network truth', () => {
     const pwaOptions = loadConfigWithPwaCapture();
     const runtimeCaching = pwaOptions?.workboxOptions?.runtimeCaching ?? [];

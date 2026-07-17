@@ -18,6 +18,7 @@ const BASE_FACTS: PwaInstallFacts = {
   isOnline: true,
   serviceWorkerSupported: true,
   serviceWorkerReady: true,
+  manifestStatus: 'ready',
   hasNativePrompt: false,
 };
 
@@ -43,6 +44,7 @@ describe('PWA installability state machine', () => {
   it.each([
     ['insecure-context', { isSecureContext: false }],
     ['service-worker-not-ready', { serviceWorkerReady: false }],
+    ['manifest-unavailable', { manifestStatus: 'unavailable' }],
     ['webview', { isWebView: true }],
     ['offline', { isOnline: false }],
     ['already-installed', { isStandalone: true }],

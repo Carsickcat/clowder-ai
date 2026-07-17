@@ -69,23 +69,28 @@ const mockBatchApprove = vi.fn(async () => []);
 const mockBatchReject = vi.fn(async () => []);
 const mockToggleSelection = vi.fn();
 
-vi.mock('@/stores/approvalHubStore', () => ({
-  useApprovalHubStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({
-      items: mockItems,
-      count: mockCount,
-      isLoading: mockIsLoading,
-      error: mockError,
-      fetchPending: mockFetchPending,
-      selectedIds: mockSelectedIds,
-      selectAllInline: mockSelectAllInline,
-      clearSelection: mockClearSelection,
-      batchApprove: mockBatchApprove,
-      batchReject: mockBatchReject,
-      toggleSelection: mockToggleSelection,
-      batchResults: mockBatchResults,
-    }),
-}));
+vi.mock('@/stores/approvalHubStore', () => {
+  const readState = () => ({
+    items: mockItems,
+    count: mockCount,
+    isLoading: mockIsLoading,
+    error: mockError,
+    fetchPending: mockFetchPending,
+    selectedIds: mockSelectedIds,
+    selectAllInline: mockSelectAllInline,
+    clearSelection: mockClearSelection,
+    batchApprove: mockBatchApprove,
+    batchReject: mockBatchReject,
+    toggleSelection: mockToggleSelection,
+    batchResults: mockBatchResults,
+    deciding: {},
+  });
+  const useApprovalHubStore = Object.assign(
+    (selector: (s: Record<string, unknown>) => unknown) => selector(readState()),
+    { getState: readState },
+  );
+  return { useApprovalHubStore };
+});
 
 vi.mock('@/components/ApprovalItemCard', () => ({
   ApprovalItemCard: ({ item }: { item: { proposalId: string } }) =>
@@ -93,6 +98,7 @@ vi.mock('@/components/ApprovalItemCard', () => ({
 }));
 
 import { ApprovalPanel } from '../ApprovalPanel';
+import { PwaTransientWorkGuard } from '../pwa/PwaTransientWorkGuard';
 
 describe('F246 AC-D5: ApprovalPanel batch operations', () => {
   let container: HTMLDivElement;
@@ -190,7 +196,14 @@ describe('F246 AC-D5: ApprovalPanel batch operations', () => {
   it('blocks a PWA reload while a batch approval selection is still transient', async () => {
     mockSelectedIds = new Set(['dp-inline-1']);
     await act(async () => {
-      root.render(React.createElement(ApprovalPanel));
+      root.render(
+        React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(PwaTransientWorkGuard),
+          React.createElement(ApprovalPanel),
+        ),
+      );
     });
 
     const beforeReload = new Event(PWA_BEFORE_RELOAD_EVENT, { cancelable: true });
