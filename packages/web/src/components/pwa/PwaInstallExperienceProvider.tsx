@@ -6,10 +6,10 @@ import {
   detectInstallPlatform,
   detectWebView,
   PWA_BANNER_DISMISSAL_MS,
+  type PwaInstallability,
+  type PwaInstallFacts,
   readPwaDismissedUntil,
   writePwaDismissal,
-  type PwaInstallFacts,
-  type PwaInstallability,
 } from '@/lib/pwa-installability';
 import { WIDE_SHELL_QUERY } from '@/lib/responsive-breakpoints';
 

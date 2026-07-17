@@ -77,7 +77,9 @@ describe('MobileGlobalNavDrawer', () => {
     renderDrawer();
 
     act(() =>
-      container.querySelector('[data-testid="thread-choice"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true })),
+      container
+        .querySelector('[data-testid="thread-choice"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true })),
     );
     act(() =>
       container

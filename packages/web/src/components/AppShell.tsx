@@ -58,57 +58,55 @@ function AppShellContent({ children }: AppShellProps) {
   return (
     <PwaInstallExperienceProvider>
       <div className="console-shell app-viewport safe-area-inline flex overflow-hidden overscroll-none">
-      {!isChatRoute && !isOpen && (
-        <button
-          type="button"
-          onClick={toggle}
-          className="fixed left-[calc(env(safe-area-inset-left)+0.75rem)] top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden"
-          aria-label="打开全局导航"
-          aria-expanded="false"
-          data-testid="mobile-global-nav-trigger"
-        >
-          ☰
-        </button>
-      )}
-      {isOpen && !isDesktop && <MobileGlobalNavDrawer open onClose={close} />}
-      <Suspense
-        fallback={<div className="hidden w-12 flex-shrink-0 lg:block" aria-hidden="true" />}
-      >
-        <ActivityBar className="hidden lg:flex" />
-      </Suspense>
-      {/* Callback-auth snapshot provider: mounted at AppShell level (not chat
+        {!isChatRoute && !isOpen && (
+          <button
+            type="button"
+            onClick={toggle}
+            className="fixed left-[calc(env(safe-area-inset-left)+0.75rem)] top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden"
+            aria-label="打开全局导航"
+            aria-expanded="false"
+            data-testid="mobile-global-nav-trigger"
+          >
+            ☰
+          </button>
+        )}
+        {isOpen && !isDesktop && <MobileGlobalNavDrawer open onClose={close} />}
+        <Suspense fallback={<div className="hidden w-12 flex-shrink-0 lg:block" aria-hidden="true" />}>
+          <ActivityBar className="hidden lg:flex" />
+        </Suspense>
+        {/* Callback-auth snapshot provider: mounted at AppShell level (not chat
           layout) so the zustand store is populated on ALL routes — settings,
           memory, mission, etc. The observability panel and per-cat status dots
           read from this store; keeping it chat-only meant the panel showed "..."
           when navigating to settings without visiting chat first. Returns null;
           30s poll re-render is confined to this leaf. */}
-      <CallbackAuthSnapshotMount />
-      {showSidebar && (
-        <div className="flex items-stretch flex-shrink-0">
-          <div style={{ width }} className="flex-shrink-0">
-            <ThreadSidebar onClose={close} className="w-full" />
+        <CallbackAuthSnapshotMount />
+        {showSidebar && (
+          <div className="flex items-stretch flex-shrink-0">
+            <div style={{ width }} className="flex-shrink-0">
+              <ThreadSidebar onClose={close} className="w-full" />
+            </div>
+            <ResizeHandle
+              direction="horizontal"
+              label="左侧对话栏"
+              onResize={handleResize}
+              onCollapse={close}
+              onDoubleClick={resetWidth}
+              showLine={false}
+            />
           </div>
-          <ResizeHandle
-            direction="horizontal"
-            label="左侧对话栏"
-            onResize={handleResize}
-            onCollapse={close}
-            onDoubleClick={resetWidth}
-            showLine={false}
-          />
-        </div>
-      )}
-      <div className="flex-1 min-w-0 overflow-y-auto">{children}</div>
-      <PwaInstallPrompt hasMobileNav={isChatRoute} />
-      <PwaUpdateController />
-      {/* F226: presentation surface floating window — mounted at AppShell root (outside route
+        )}
+        <div className="flex-1 min-w-0 overflow-y-auto">{children}</div>
+        <PwaInstallPrompt hasMobileNav={isChatRoute} />
+        <PwaUpdateController />
+        {/* F226: presentation surface floating window — mounted at AppShell root (outside route
           children) so the float survives both workspace mode-tab switches AND full-page route
           changes (/memory, /settings, /mission-hub). KD-1. */}
-      <FloatingPresentationSurfaceHost />
-      {/* F229: concierge ball + panel — root-level mount for INV-6 route survival.
+        <FloatingPresentationSurfaceHost />
+        {/* F229: concierge ball + panel — root-level mount for INV-6 route survival.
           z-30 (ball) < z-[35] (presentation surface). */}
-      <ConciergeHost />
-      {/* F246 Phase C: Approval Hub moved to workspace panel tab — drawer removed */}
+        <ConciergeHost />
+        {/* F246 Phase C: Approval Hub moved to workspace panel tab — drawer removed */}
       </div>
     </PwaInstallExperienceProvider>
   );

@@ -33,7 +33,10 @@ function InstallDiagnostics({ facts }: { facts: PwaInstallFacts }) {
   ];
 
   return (
-    <div className="mt-4 rounded-2xl border border-cafe bg-cafe-surface-sunken p-3" data-testid="pwa-install-diagnostics">
+    <div
+      className="mt-4 rounded-2xl border border-cafe bg-cafe-surface-sunken p-3"
+      data-testid="pwa-install-diagnostics"
+    >
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-cafe-muted">环境诊断</p>
       <ul className="mt-2 space-y-1.5 text-xs leading-5 text-cafe-secondary">
         {rows.map((row) => (
@@ -45,16 +48,8 @@ function InstallDiagnostics({ facts }: { facts: PwaInstallFacts }) {
 }
 
 export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: boolean }) {
-  const {
-    facts,
-    installability,
-    isBannerDismissed,
-    guideOpen,
-    openGuide,
-    closeGuide,
-    dismissBanner,
-    promptInstall,
-  } = usePwaInstallExperience();
+  const { facts, installability, isBannerDismissed, guideOpen, openGuide, closeGuide, dismissBanner, promptInstall } =
+    usePwaInstallExperience();
   const manualSteps = useMemo(() => getManualSteps(facts.platform), [facts.platform]);
   const showBanner = installability.bannerEligible && !isBannerDismissed;
   const primaryLabel =
@@ -164,7 +159,11 @@ export function PwaInstallPrompt({ hasMobileNav = false }: { hasMobileNav?: bool
                 稍后
               </button>
               {facts.hasNativePrompt && !facts.isStandalone && (
-                <button type="button" onClick={() => void promptInstall()} className="console-button-primary min-h-11 text-sm">
+                <button
+                  type="button"
+                  onClick={() => void promptInstall()}
+                  className="console-button-primary min-h-11 text-sm"
+                >
                   立即安装
                 </button>
               )}

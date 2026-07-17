@@ -3,10 +3,10 @@
 import { KeyboardEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCatData } from '@/hooks/useCatData';
 import { reconnectGame } from '@/hooks/useGameReconnect';
-import { PWA_BEFORE_RELOAD_EVENT } from '@/lib/pwa-lifecycle';
 import { useIMEGuard } from '@/hooks/useIMEGuard';
 import { usePathCompletion } from '@/hooks/usePathCompletion';
 import type { UploadStatus, WhisperOptions } from '@/hooks/useSendMessage';
+import { PWA_BEFORE_RELOAD_EVENT } from '@/lib/pwa-lifecycle';
 import { MOBILE_WORK_SURFACE_QUERY } from '@/lib/responsive-breakpoints';
 import type { DeliveryMode } from '@/stores/chat-types';
 import { useChatStore } from '@/stores/chatStore';

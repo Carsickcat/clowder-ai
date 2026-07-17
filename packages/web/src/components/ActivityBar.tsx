@@ -7,11 +7,11 @@ import { usePinnedSections } from '@/hooks/usePinnedSections';
 import { useApprovalHubStore } from '@/stores/approvalHubStore';
 import { useChatStore } from '@/stores/chatStore';
 import { ConciergeRailToggle } from './concierge/ConciergeRailToggle';
+import { GLOBAL_NAVIGATION_ITEMS, resolveGlobalNavTarget } from './global-navigation';
 import { HubIcon } from './hub-icons';
 import { MemoryIcon } from './icons/MemoryIcon';
 import { SETTINGS_SECTIONS } from './settings/settings-nav-config';
 import { ThemeMenu } from './ThemeMenu';
-import { GLOBAL_NAVIGATION_ITEMS, resolveGlobalNavTarget } from './global-navigation';
 
 const OklchTuner = lazy(() => import('./dev/OklchTuner').then((m) => ({ default: m.OklchTuner })));
 

@@ -54,10 +54,7 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
   };
 
   return (
-    <div
-      className="mobile-visual-viewport fixed inset-x-0 z-[60] lg:hidden"
-      data-testid="mobile-global-nav-drawer"
-    >
+    <div className="mobile-visual-viewport fixed inset-x-0 z-[60] lg:hidden" data-testid="mobile-global-nav-drawer">
       <button
         type="button"
         className="absolute inset-0 bg-[var(--console-overlay-backdrop)] backdrop-blur-sm"
@@ -88,7 +85,10 @@ export function MobileGlobalNavDrawer({ open, onClose }: MobileGlobalNavDrawerPr
         </header>
 
         <section className="flex min-h-0 flex-1 flex-col" aria-labelledby="mobile-drawer-threads">
-          <h2 id="mobile-drawer-threads" className="px-4 pb-1 pt-3 text-micro font-semibold uppercase tracking-wide text-cafe-muted">
+          <h2
+            id="mobile-drawer-threads"
+            className="px-4 pb-1 pt-3 text-micro font-semibold uppercase tracking-wide text-cafe-muted"
+          >
             Threads
           </h2>
           <div className="min-h-0 flex-1 overflow-hidden">

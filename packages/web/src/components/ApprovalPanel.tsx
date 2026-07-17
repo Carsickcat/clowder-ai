@@ -235,6 +235,7 @@ export function ApprovalPanel({ currentThreadId }: ApprovalPanelProps = {}) {
           >
             <div
               className="flex items-center rounded-lg border border-cafe-subtle/40 p-0.5"
+              role="group"
               aria-label="审批范围"
               data-testid="approval-scope-toggle"
             >

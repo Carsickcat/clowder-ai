@@ -2,10 +2,7 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PWA_BANNER_DISMISSAL_MS, PWA_DISMISSAL_STORAGE_KEY } from '@/lib/pwa-installability';
-import {
-  PwaInstallExperienceProvider,
-  usePwaInstallExperience,
-} from '../pwa/PwaInstallExperienceProvider';
+import { PwaInstallExperienceProvider, usePwaInstallExperience } from '../pwa/PwaInstallExperienceProvider';
 
 function Harness() {
   const experience = usePwaInstallExperience();

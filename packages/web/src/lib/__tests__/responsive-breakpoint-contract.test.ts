@@ -1,10 +1,6 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
-import {
-  MOBILE_WORK_SURFACE_QUERY,
-  RESPONSIVE_BREAKPOINTS,
-  WIDE_SHELL_QUERY,
-} from '@/lib/responsive-breakpoints';
+import { MOBILE_WORK_SURFACE_QUERY, RESPONSIVE_BREAKPOINTS, WIDE_SHELL_QUERY } from '@/lib/responsive-breakpoints';
 
 const require = createRequire(import.meta.url);
 const tailwindConfig = require('../../../tailwind.config.js') as {

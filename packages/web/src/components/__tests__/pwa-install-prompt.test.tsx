@@ -3,10 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WIDE_SHELL_QUERY } from '@/lib/responsive-breakpoints';
 import { PwaInstallPrompt } from '../PwaInstallPrompt';
-import {
-  PwaInstallExperienceProvider,
-  usePwaInstallExperience,
-} from '../pwa/PwaInstallExperienceProvider';
+import { PwaInstallExperienceProvider, usePwaInstallExperience } from '../pwa/PwaInstallExperienceProvider';
 
 function setUserAgent(userAgent: string) {
   Object.defineProperty(window.navigator, 'userAgent', { value: userAgent, configurable: true });
@@ -122,9 +119,7 @@ describe('PwaInstallPrompt', () => {
   });
 
   it('invokes the browser install prompt when Android emits beforeinstallprompt', async () => {
-    setUserAgent(
-      'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/127.0.0.0 Mobile Safari/537.36',
-    );
+    setUserAgent('Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/127.0.0.0 Mobile Safari/537.36');
     const prompt = vi.fn().mockResolvedValue(undefined);
     await renderHarness();
 

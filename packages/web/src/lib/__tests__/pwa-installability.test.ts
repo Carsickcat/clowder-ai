@@ -4,9 +4,9 @@ import {
   detectInstallPlatform,
   detectWebView,
   PWA_BANNER_DISMISSAL_MS,
+  type PwaInstallFacts,
   readPwaDismissedUntil,
   writePwaDismissal,
-  type PwaInstallFacts,
 } from '../pwa-installability';
 
 const BASE_FACTS: PwaInstallFacts = {
@@ -55,8 +55,7 @@ describe('PWA installability state machine', () => {
   it('distinguishes system browsers from common iOS and Android WebViews', () => {
     const iosSafari =
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1';
-    const iosWebView =
-      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
+    const iosWebView = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148';
     const androidWebView =
       'Mozilla/5.0 (Linux; Android 15; Pixel Build/AP3A; wv) AppleWebKit/537.36 Version/4.0 Chrome/127 Mobile Safari/537.36';
 

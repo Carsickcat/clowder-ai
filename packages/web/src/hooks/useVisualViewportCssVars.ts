@@ -1,11 +1,7 @@
 import { useEffect } from 'react';
 
 const KEYBOARD_INSET_THRESHOLD_PX = 80;
-const CSS_PROPERTIES = [
-  '--app-viewport-height',
-  '--visual-viewport-offset-top',
-  '--mobile-keyboard-inset',
-] as const;
+const CSS_PROPERTIES = ['--app-viewport-height', '--visual-viewport-offset-top', '--mobile-keyboard-inset'] as const;
 
 export function useVisualViewportCssVars(): void {
   useEffect(() => {

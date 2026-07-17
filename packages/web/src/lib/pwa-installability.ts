@@ -64,7 +64,13 @@ export function derivePwaInstallability(facts: PwaInstallFacts): PwaInstallabili
   return {
     bannerEligible: blockers.length === 0,
     primaryAction:
-      blockers.length > 0 ? 'diagnostics' : facts.hasNativePrompt ? 'native' : supportsManualInstall ? 'manual' : 'diagnostics',
+      blockers.length > 0
+        ? 'diagnostics'
+        : facts.hasNativePrompt
+          ? 'native'
+          : supportsManualInstall
+            ? 'manual'
+            : 'diagnostics',
     blockers,
   };
 }
