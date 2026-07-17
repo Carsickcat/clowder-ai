@@ -168,6 +168,30 @@ describe('PwaUpdateController', () => {
     expect(container.textContent).toContain('新版本已就绪');
   });
 
+  it('observes an installing worker that already exists when the controller mounts', async () => {
+    const harness = createServiceWorkerHarness();
+    harness.registration.installing = harness.installingWorker;
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: harness.serviceWorker });
+
+    await act(async () => {
+      root.render(<PwaUpdateController reloadPage={vi.fn()} />);
+      await Promise.resolve();
+    });
+    expect(container.textContent).not.toContain('新版本已就绪');
+    expect(harness.installingWorker.addEventListener).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      await Promise.resolve();
+    });
+    expect(harness.installingWorker.addEventListener).toHaveBeenCalledTimes(1);
+
+    harness.registration.waiting = harness.waitingWorker;
+    act(() => harness.emitInstallingState('installed'));
+
+    expect(container.textContent).toContain('新版本已就绪');
+  });
+
   it('checks for a new worker and emits one recovery signal when returning to the foreground', async () => {
     const harness = createServiceWorkerHarness();
     Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: harness.serviceWorker });

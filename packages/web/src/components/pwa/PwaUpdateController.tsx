@@ -49,10 +49,26 @@ export function PwaUpdateController({ reloadPage = defaultReloadPage }: PwaUpdat
     installingWatchRef.current = null;
   }, []);
 
+  const watchInstallingWorker = useCallback(
+    (registration: ServiceWorkerRegistration) => {
+      const installing = registration.installing;
+      if (!installing || installingWatchRef.current?.worker === installing) return;
+      clearInstallingWatch();
+      const onStateChange = () => {
+        if (installing.state === 'installed') surfaceWaitingWorker(registration);
+      };
+      installing.addEventListener('statechange', onStateChange);
+      installingWatchRef.current = { worker: installing, onStateChange };
+      onStateChange();
+    },
+    [clearInstallingWatch, surfaceWaitingWorker],
+  );
+
   const watchRegistration = useCallback(
     (registration: ServiceWorkerRegistration) => {
       if (registrationWatchRef.current?.registration === registration) {
         surfaceWaitingWorker(registration);
+        watchInstallingWorker(registration);
         return;
       }
 
@@ -62,22 +78,16 @@ export function PwaUpdateController({ reloadPage = defaultReloadPage }: PwaUpdat
 
       const onUpdateFound = () => {
         surfaceWaitingWorker(registration);
-        const installing = registration.installing;
-        if (!installing || installingWatchRef.current?.worker === installing) return;
-        clearInstallingWatch();
-        const onStateChange = () => {
-          if (installing.state === 'installed') surfaceWaitingWorker(registration);
-        };
-        installing.addEventListener('statechange', onStateChange);
-        installingWatchRef.current = { worker: installing, onStateChange };
+        watchInstallingWorker(registration);
       };
 
       registrationRef.current = registration;
       registration.addEventListener('updatefound', onUpdateFound);
       registrationWatchRef.current = { registration, onUpdateFound };
       surfaceWaitingWorker(registration);
+      watchInstallingWorker(registration);
     },
-    [clearInstallingWatch, surfaceWaitingWorker],
+    [clearInstallingWatch, surfaceWaitingWorker, watchInstallingWorker],
   );
 
   const checkForUpdate = useCallback(async () => {
