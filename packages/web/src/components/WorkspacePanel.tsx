@@ -802,7 +802,7 @@ export function WorkspacePanel() {
               </div>
             )
           ) : workspaceMode === 'approval' ? (
-            <ApprovalPanel />
+            <ApprovalPanel currentThreadId={currentThreadId} />
           ) : workspaceMode === 'trajectory' ? (
             <TrajectoryPanel />
           ) : (

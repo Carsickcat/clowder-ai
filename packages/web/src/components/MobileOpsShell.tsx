@@ -231,7 +231,7 @@ export function MobileOpsShell({
             )}
             {surface === 'approval' && (
               <div className="flex min-h-full" data-testid="mobile-approval-surface">
-                <ApprovalPanel />
+                <ApprovalPanel currentThreadId={threadId} />
               </div>
             )}
           </div>

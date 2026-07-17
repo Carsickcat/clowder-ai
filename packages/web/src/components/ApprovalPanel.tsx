@@ -20,6 +20,11 @@ import { SettledHistoryCard } from './SettledHistoryCard';
 type ActiveTab = 'pending' | 'history';
 type FeatureFilter = 'all' | 'F128' | 'F225' | 'F193' | 'F231';
 type StatusFilter = 'all' | 'pending' | 'stale';
+type ApprovalScope = 'all' | 'current-thread';
+
+interface ApprovalPanelProps {
+  currentThreadId?: string | null;
+}
 
 /** Feature display names for filter chips. */
 const FEATURE_LABELS: Record<FeatureFilter, string> = {
@@ -35,8 +40,13 @@ function applyFilters(
   feature: FeatureFilter,
   status: StatusFilter,
   threadQuery: string,
+  scope: ApprovalScope,
+  currentThreadId?: string | null,
 ): ApprovalItem[] {
   let filtered = items;
+  if (scope === 'current-thread' && currentThreadId) {
+    filtered = filtered.filter((item) => item.sourceThreadId === currentThreadId);
+  }
   if (feature !== 'all') {
     filtered = filtered.filter((i) => i.sourceFeatureId === feature);
   }
@@ -54,7 +64,7 @@ function applyFilters(
   return filtered;
 }
 
-export function ApprovalPanel() {
+export function ApprovalPanel({ currentThreadId }: ApprovalPanelProps = {}) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('pending');
 
   const items = useApprovalHubStore((s) => s.items);
@@ -81,12 +91,18 @@ export function ApprovalPanel() {
   const [featureFilter, setFeatureFilter] = useState<FeatureFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [threadQuery, setThreadQuery] = useState('');
+  const [scope, setScope] = useState<ApprovalScope>('all');
+  const canFilterCurrentThread = Boolean(currentThreadId && currentThreadId !== 'default');
 
   // Clear batch selection when filters change — prevents stale invisible selections
   // from being batch-approved (P1 review finding: scope-mismatch across filter transitions)
   useEffect(() => {
     clearSelection();
-  }, [featureFilter, statusFilter, threadQuery, clearSelection]);
+  }, [featureFilter, statusFilter, threadQuery, scope, currentThreadId, clearSelection]);
+
+  useEffect(() => {
+    if (!canFilterCurrentThread && scope === 'current-thread') setScope('all');
+  }, [canFilterCurrentThread, scope]);
 
   // F246 Phase F: fetch settled on tab switch to history
   useEffect(() => {
@@ -96,11 +112,12 @@ export function ApprovalPanel() {
   }, [activeTab, fetchSettled]);
 
   const filteredItems = useMemo(
-    () => applyFilters(items, featureFilter, statusFilter, threadQuery),
-    [items, featureFilter, statusFilter, threadQuery],
+    () => applyFilters(items, featureFilter, statusFilter, threadQuery, scope, currentThreadId),
+    [items, featureFilter, statusFilter, threadQuery, scope, currentThreadId],
   );
 
-  const hasActiveFilters = featureFilter !== 'all' || statusFilter !== 'all' || threadQuery.trim() !== '';
+  const hasActiveFilters =
+    scope !== 'all' || featureFilter !== 'all' || statusFilter !== 'all' || threadQuery.trim() !== '';
   const inlineCount = filteredItems.filter((i) => i.inlineApprovable).length;
   const hasSelection = selectedIds.size > 0;
   const filteredIds = useMemo(() => filteredItems.map((i) => i.proposalId), [filteredItems]);
@@ -208,6 +225,40 @@ export function ApprovalPanel() {
             className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 border-b border-cafe-subtle/20"
             data-testid="approval-filter-bar"
           >
+            <div
+              className="flex items-center rounded-lg border border-cafe-subtle/40 p-0.5"
+              aria-label="审批范围"
+              data-testid="approval-scope-toggle"
+            >
+              <button
+                type="button"
+                onClick={() => setScope('all')}
+                className={`rounded-md px-2 py-0.5 text-micro font-medium transition-all ${
+                  scope === 'all' ? 'bg-cafe-surface text-cafe-interactive' : 'text-cafe-interactive/50'
+                }`}
+                aria-pressed={scope === 'all'}
+                data-testid="approval-scope-all"
+              >
+                全部
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope('current-thread')}
+                disabled={!canFilterCurrentThread}
+                className={`rounded-md px-2 py-0.5 text-micro font-medium transition-all ${
+                  scope === 'current-thread'
+                    ? 'bg-cafe-surface text-cafe-interactive'
+                    : 'text-cafe-interactive/50 disabled:cursor-not-allowed disabled:opacity-40'
+                }`}
+                aria-pressed={scope === 'current-thread'}
+                data-testid="approval-scope-current-thread"
+              >
+                当前 thread
+              </button>
+            </div>
+
+            <span className="w-px h-4 bg-cafe-subtle/40" />
+
             {/* Feature chips */}
             {(Object.keys(FEATURE_LABELS) as FeatureFilter[]).map((key) => (
               <button
@@ -257,6 +308,7 @@ export function ApprovalPanel() {
               <button
                 type="button"
                 onClick={() => {
+                  setScope('all');
                   setFeatureFilter('all');
                   setStatusFilter('all');
                   setThreadQuery('');
