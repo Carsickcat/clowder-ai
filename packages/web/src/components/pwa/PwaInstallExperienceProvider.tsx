@@ -187,11 +187,12 @@ export function PwaInstallExperienceProvider({ children }: { children: ReactNode
       setGuideOpen(true);
       return;
     }
+    const prompt = deferredPrompt;
+    setDeferredPrompt(null);
     try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
       if (choice.outcome === 'accepted') {
-        setDeferredPrompt(null);
         setGuideOpen(false);
         dismissBanner();
         return;

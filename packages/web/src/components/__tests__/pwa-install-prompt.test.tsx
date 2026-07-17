@@ -188,6 +188,50 @@ describe('PwaInstallPrompt', () => {
     expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
   });
 
+  it('consumes a dismissed browser install prompt before showing manual guidance', async () => {
+    setUserAgent('Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/127.0.0.0 Mobile Safari/537.36');
+    const prompt = vi.fn().mockResolvedValue(undefined);
+    await renderHarness();
+
+    const installEvent = new Event('beforeinstallprompt');
+    Object.defineProperty(installEvent, 'prompt', { value: prompt });
+    Object.defineProperty(installEvent, 'userChoice', {
+      value: Promise.resolve({ outcome: 'dismissed', platform: 'web' }),
+    });
+    act(() => window.dispatchEvent(installEvent));
+    await flush();
+
+    act(() => (container.querySelector('[data-testid="pwa-install-primary"]') as HTMLButtonElement).click());
+    await flush();
+
+    expect(prompt).toHaveBeenCalledTimes(1);
+    const sheet = container.querySelector('[data-testid="pwa-install-sheet"]') as HTMLElement;
+    expect(sheet).toBeTruthy();
+    expect([...sheet.querySelectorAll('button')].some((button) => button.textContent === '立即安装')).toBe(false);
+  });
+
+  it('consumes a browser install prompt that throws before showing manual guidance', async () => {
+    setUserAgent('Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/127.0.0.0 Mobile Safari/537.36');
+    const prompt = vi.fn().mockRejectedValue(new Error('prompt unavailable'));
+    await renderHarness();
+
+    const installEvent = new Event('beforeinstallprompt');
+    Object.defineProperty(installEvent, 'prompt', { value: prompt });
+    Object.defineProperty(installEvent, 'userChoice', {
+      value: Promise.resolve({ outcome: 'dismissed', platform: 'web' }),
+    });
+    act(() => window.dispatchEvent(installEvent));
+    await flush();
+
+    act(() => (container.querySelector('[data-testid="pwa-install-primary"]') as HTMLButtonElement).click());
+    await flush();
+
+    expect(prompt).toHaveBeenCalledTimes(1);
+    const sheet = container.querySelector('[data-testid="pwa-install-sheet"]') as HTMLElement;
+    expect(sheet).toBeTruthy();
+    expect([...sheet.querySelectorAll('button')].some((button) => button.textContent === '立即安装')).toBe(false);
+  });
+
   it('keeps the contextual banner hidden for desktop and standalone modes', async () => {
     setUserAgent(
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1',

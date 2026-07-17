@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RESPONSIVE_BREAKPOINTS } from '@/lib/responsive-breakpoints';
 import { type Thread, useChatStore } from '@/stores/chatStore';
 import { useLabelStore } from '@/stores/label-store';
 import { useToastStore } from '@/stores/toastStore';
@@ -44,6 +45,10 @@ function notifyThreadCreateFailure(message: string) {
     message,
     duration: 6000,
   });
+}
+
+function isMobileWorkSurface() {
+  return typeof window !== 'undefined' && window.innerWidth < RESPONSIVE_BREAKPOINTS.wide;
 }
 
 export function ThreadSidebar({ onClose, className }: ThreadSidebarProps) {
@@ -245,7 +250,7 @@ export function ThreadSidebar({ onClose, className }: ThreadSidebarProps) {
         if (opts.projectPath) setCurrentProject(opts.projectPath);
         navigateToThread(thread.id);
         // Auto-close sidebar on mobile after creating a new conversation
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        if (isMobileWorkSurface()) {
           onClose?.();
         }
         await loadThreads();
@@ -384,7 +389,7 @@ export function ThreadSidebar({ onClose, className }: ThreadSidebarProps) {
       // Pre-navigation global store writes can stall SPA thread navigation.
       navigateToThread(threadId);
       // Auto-close sidebar on mobile after selecting a thread
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      if (isMobileWorkSurface()) {
         onClose?.();
       }
     },

@@ -28,6 +28,7 @@ const mockStore: Record<string, unknown> = {
   updateThreadPin: vi.fn(),
   updateThreadFavorite: vi.fn(),
   fetchGlobalBubbleDefaults: vi.fn(),
+  clearUnread: vi.fn(),
 };
 vi.mock('@/stores/chatStore', () => {
   const hook = Object.assign(
@@ -54,6 +55,8 @@ describe('ThreadSidebar mobile auto-close', () => {
   });
 
   beforeEach(() => {
+    mockStore.currentThreadId = 'default';
+    mockStore.threads = [];
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -92,9 +95,8 @@ describe('ThreadSidebar mobile auto-close', () => {
     });
   }
 
-  it('calls onClose after createInProject succeeds on mobile viewport', async () => {
-    // Simulate mobile viewport
-    Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
+  it('calls onClose after createInProject succeeds at the 1023px mobile-work-surface boundary', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 1023, writable: true });
 
     const onClose = vi.fn();
     act(() => {
@@ -137,6 +139,23 @@ describe('ThreadSidebar mobile auto-close', () => {
     await flush();
 
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('calls onClose after selecting a thread at the 768px mobile-work-surface boundary', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 768, writable: true });
+    mockStore.currentThreadId = 'thread-current';
+
+    const onClose = vi.fn();
+    act(() => {
+      root.render(React.createElement(ThreadSidebar, { onClose }));
+    });
+    await flush();
+
+    const lobbyThread = container.querySelector('[data-thread-id="default"]') as HTMLElement;
+    expect(lobbyThread).toBeTruthy();
+    act(() => lobbyThread.click());
+
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT call onClose after createInProject on desktop viewport', async () => {
