@@ -41,9 +41,12 @@ export function MobileStatusSheet({
   const sheetRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
-    if (open && sheetRef.current) {
-      sheetRef.current.scrollTop = 0;
-    }
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    if (open) {
+      sheet.removeAttribute('inert');
+      sheet.scrollTop = 0;
+    } else sheet.setAttribute('inert', '');
   }, [open]);
 
   const activeCats = useMemo(() => {

@@ -36,13 +36,14 @@ export function useVisualViewportCssVars(): void {
     const previousKeyboardOpen = root.dataset.mobileKeyboardOpen;
     const viewport = window.visualViewport;
     let animationFrame = 0;
+    let settlingFrame = 0;
+    let keyboardOpen = previousKeyboardOpen === 'true';
     let baseline = {
       height: Math.round(viewport?.height ?? window.innerHeight),
       width: Math.round(viewport?.width ?? window.innerWidth),
     };
 
     const writeFrame = () => {
-      animationFrame = 0;
       const top = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
       const left = Math.max(0, Math.round(viewport?.offsetLeft ?? 0));
       const width = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
@@ -50,8 +51,10 @@ export function useVisualViewportCssVars(): void {
       const obscuredHeight = Math.max(0, Math.round(window.innerHeight - height - top));
       const composerFocused = hasFocusedComposer();
       baseline = resolveViewportBaseline(baseline, { height, width }, composerFocused);
-      const focusedViewportShrink = composerFocused && baseline.height - height - top >= KEYBOARD_INSET_THRESHOLD_PX;
-      const keyboardOpen = obscuredHeight >= KEYBOARD_INSET_THRESHOLD_PX || focusedViewportShrink;
+      const viewportShrink = baseline.height - height - top >= KEYBOARD_INSET_THRESHOLD_PX;
+      const focusedViewportShrink = composerFocused && viewportShrink;
+      keyboardOpen =
+        obscuredHeight >= KEYBOARD_INSET_THRESHOLD_PX || focusedViewportShrink || (keyboardOpen && viewportShrink);
       const projectedTop = keyboardOpen ? top : 0;
 
       root.style.setProperty('--app-viewport-top', `${projectedTop}px`);
@@ -64,8 +67,19 @@ export function useVisualViewportCssVars(): void {
     };
 
     const scheduleFrame = () => {
-      if (animationFrame) return;
-      animationFrame = window.requestAnimationFrame(writeFrame);
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      if (settlingFrame) window.cancelAnimationFrame(settlingFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = 0;
+        writeFrame();
+        // WebKit can publish the installed-PWA offset one frame after resize.
+        // A second read converges the same source instead of introducing a
+        // timeout, a UA-specific coordinate path, or a second geometry owner.
+        settlingFrame = window.requestAnimationFrame(() => {
+          settlingFrame = 0;
+          writeFrame();
+        });
+      });
     };
 
     writeFrame();
@@ -84,6 +98,7 @@ export function useVisualViewportCssVars(): void {
       document.removeEventListener('focusin', scheduleFrame);
       document.removeEventListener('focusout', scheduleFrame);
       if (animationFrame) window.cancelAnimationFrame(animationFrame);
+      if (settlingFrame) window.cancelAnimationFrame(settlingFrame);
       for (const property of CSS_PROPERTIES) {
         const previousValue = previousValues.get(property);
         if (previousValue) root.style.setProperty(property, previousValue);

@@ -137,6 +137,18 @@ describe('ChatInput textarea auto-grow', () => {
 });
 
 describe('ChatInput composer layout', () => {
+  it('reports composer focus to the owning chat surface', () => {
+    const onComposerFocus = vi.fn();
+    render({ onComposerFocus });
+
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    act(() => {
+      textarea.focus();
+    });
+
+    expect(onComposerFocus).toHaveBeenCalledTimes(1);
+  });
+
   it('marks the composer for keyboard projection without consuming a second safe-area inset', () => {
     render();
     const composer = container.querySelector('[data-chat-input-composer]');

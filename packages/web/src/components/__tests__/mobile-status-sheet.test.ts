@@ -90,6 +90,7 @@ describe('MobileStatusSheet', () => {
     // and the backdrop should have pointer-events-none
     const backdrop = container.querySelector('[class*="pointer-events-none"]');
     expect(backdrop).toBeTruthy();
+    expect(container.querySelector('.mobile-status-sheet')?.hasAttribute('inert')).toBe(true);
   });
 
   it('renders visible when open (translated above the visual bottom edge)', () => {
@@ -98,6 +99,7 @@ describe('MobileStatusSheet', () => {
     });
     const sheet = container.querySelector('.mobile-visual-bottom');
     expect(sheet?.classList.contains('-translate-y-full')).toBe(true);
+    expect(sheet?.hasAttribute('inert')).toBe(false);
   });
 
   it('starts every open at the sheet header instead of a stale scroll position', () => {

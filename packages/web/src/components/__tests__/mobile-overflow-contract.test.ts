@@ -19,8 +19,24 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(shellCss).toContain('height: var(--app-viewport-height, 100dvh)');
     expect(shellCss).not.toContain('height: calc(var(--app-viewport-height');
     expect(css).toContain('--mobile-dock-reserve');
+    expect(css).toContain('--mobile-chat-bottom-reserve');
+    expect(css).toContain('--mobile-browser-input-assistant-reserve');
     expect(css).toMatch(/html\[data-mobile-keyboard-open=["']true["']\]/);
     expect(css).toContain('.mobile-keyboard-secondary-chrome');
+  });
+
+  it('keeps iOS form-assistant occlusion inside the single chat bottom reserve', () => {
+    const css = readWeb('src/app/globals.css');
+    expect(css).toContain('@supports (-webkit-touch-callout: none)');
+    expect(css).toContain('--mobile-browser-input-assistant-reserve: 3.5rem');
+    expect(css).toContain('--mobile-chat-bottom-reserve: var(--mobile-browser-input-assistant-reserve)');
+  });
+
+  it('does not split modal ownership by hiding only the status sheet in CSS', () => {
+    const css = readWeb('src/app/globals.css');
+    expect(css).not.toMatch(
+      /html\[data-mobile-keyboard-open=["']true["']\]\s+\.mobile-status-sheet\s*{[^}]*visibility:\s*hidden/,
+    );
   });
 
   it('locks root scrolling so the fixed shell cannot rubber-band into blank space', () => {
@@ -47,7 +63,7 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(shell).toContain('safe-area-inline');
     expect(chat).toContain('overflow-x-hidden');
     expect(chat).toContain('overscroll-contain');
-    expect(chat).toContain('pb-[var(--mobile-dock-reserve)]');
+    expect(chat).toContain('pb-[var(--mobile-chat-bottom-reserve)]');
     expect(chat).not.toContain('pb-[calc(4rem+env(safe-area-inset-bottom))]');
     expect(input).toContain('flex-1 min-w-0 relative');
     expect(input).toContain('data-chat-input-composer');

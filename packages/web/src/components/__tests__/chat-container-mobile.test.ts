@@ -90,11 +90,14 @@ vi.mock('@/hooks/useChatSocketCallbacks', () => ({
 // Stub child components to isolate ChatContainer behavior
 vi.mock('../ChatMessage', () => ({ ChatMessage: () => null }));
 vi.mock('../ChatInput', () => ({
-  ChatInput: () =>
+  ChatInput: (props: { onComposerFocus?: () => void }) =>
     React.createElement(
       'div',
       { 'data-chat-input-composer': true },
-      React.createElement('textarea', { 'data-testid': 'composer-textarea' }),
+      React.createElement('textarea', {
+        'data-testid': 'composer-textarea',
+        onFocus: props.onComposerFocus,
+      }),
     ),
 }));
 vi.mock('../ChatContainerHeader', () => ({
@@ -234,7 +237,9 @@ describe('ChatContainer mobile interactions', () => {
     });
 
     const textarea = container.querySelector('[data-testid="composer-textarea"]') as HTMLTextAreaElement;
-    textarea.focus();
+    act(() => {
+      textarea.focus();
+    });
     expect(document.activeElement).toBe(textarea);
 
     const triggerBtn = container.querySelector('[data-testid="mobile-status-trigger"]') as HTMLButtonElement;
@@ -244,6 +249,40 @@ describe('ChatContainer mobile interactions', () => {
 
     expect(document.activeElement).not.toBe(textarea);
     expect(container.querySelector('[data-testid="mobile-status"]')?.getAttribute('data-open')).toBe('true');
+  });
+
+  it('gives the status sheet exclusive interaction ownership while it is open', () => {
+    act(() => {
+      root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
+    });
+
+    const triggerBtn = container.querySelector('[data-testid="mobile-status-trigger"]') as HTMLButtonElement;
+    act(() => {
+      triggerBtn.click();
+    });
+
+    const chatSurface = container.querySelector('[data-chat-primary-surface]');
+    expect(chatSurface?.hasAttribute('inert')).toBe(true);
+    expect(chatSurface?.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('closes the complete status journey when composer focus wins', () => {
+    act(() => {
+      root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
+    });
+
+    const triggerBtn = container.querySelector('[data-testid="mobile-status-trigger"]') as HTMLButtonElement;
+    act(() => {
+      triggerBtn.click();
+    });
+    expect(container.querySelector('[data-testid="mobile-status"]')?.getAttribute('data-open')).toBe('true');
+
+    const textarea = container.querySelector('[data-testid="composer-textarea"]') as HTMLTextAreaElement;
+    act(() => {
+      textarea.focus();
+    });
+
+    expect(container.querySelector('[data-testid="mobile-status"]')?.getAttribute('data-open')).toBe('false');
   });
 
   it('does not carry a transient status sheet into a newly selected thread', () => {
@@ -280,9 +319,9 @@ describe('ChatContainer mobile interactions', () => {
       root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
     });
     const bottomChrome = [...container.querySelectorAll('div')].find(
-      (element) => element.classList.contains('lg:pb-0') && element.className.includes('mobile-dock-reserve'),
+      (element) => element.classList.contains('lg:pb-0') && element.className.includes('mobile-chat-bottom-reserve'),
     );
-    expect(bottomChrome?.classList.contains('pb-[var(--mobile-dock-reserve)]')).toBe(true);
+    expect(bottomChrome?.classList.contains('pb-[var(--mobile-chat-bottom-reserve)]')).toBe(true);
   });
 
   it('auto-opens sidebar store on desktop but does not render mobile overlay', () => {

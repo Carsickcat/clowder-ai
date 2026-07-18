@@ -60,6 +60,7 @@ interface ChatInputProps {
   hasActiveInvocation?: boolean;
   uploadStatus?: UploadStatus;
   uploadError?: string | null;
+  onComposerFocus?: () => void;
 }
 
 const ACCEPTED_TYPES = 'image/png,image/jpeg,image/gif,image/webp';
@@ -72,6 +73,7 @@ export function ChatInput({
   hasActiveInvocation,
   uploadStatus = 'idle',
   uploadError = null,
+  onComposerFocus,
 }: ChatInputProps) {
   const { cats } = useCatData();
   const ime = useIMEGuard();
@@ -926,6 +928,7 @@ export function ChatInput({
             onKeyDown={handleKeyDown}
             onCompositionStart={ime.onCompositionStart}
             onCompositionEnd={ime.onCompositionEnd}
+            onFocus={onComposerFocus}
             onPaste={handlePaste}
             enterKeyHint="send"
             placeholder={

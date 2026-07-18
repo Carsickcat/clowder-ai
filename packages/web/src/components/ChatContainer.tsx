@@ -171,13 +171,20 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
   useTeleport(); // F227: drive the Hub to a teleport target message (thread:teleport)
   const { isOpen: sidebarOpen, open: openSidebar, toggle: toggleSidebar } = useSidebarStore();
   const [statusPanelOpen, setStatusPanelOpen] = useState(true);
+  const chatPrimarySurfaceRef = useRef<HTMLDivElement | null>(null);
   const [mobileStatusState, setMobileStatusState] = useState({ threadId, open: false });
   const mobileStatusOpen = mobileStatusState.threadId === threadId && mobileStatusState.open;
+  const closeMobileStatus = useCallback(() => {
+    setMobileStatusState((current) =>
+      current.threadId === threadId && !current.open ? current : { threadId, open: false },
+    );
+  }, [threadId]);
   const openMobileStatus = useCallback(() => {
     if (typeof document !== 'undefined') {
-      const activeElement = document.activeElement;
-      if (activeElement instanceof HTMLElement && activeElement.closest('[data-chat-input-composer]')) {
-        activeElement.blur();
+      for (const editable of chatPrimarySurfaceRef.current?.querySelectorAll<HTMLElement>(
+        '[data-chat-input-composer] textarea, [data-chat-input-composer] [contenteditable="true"]',
+      ) ?? []) {
+        editable.blur();
       }
     }
     setMobileStatusState({ threadId, open: true });
@@ -256,6 +263,16 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
   }, [closeRightPanel]);
 
   const isDesktop = useIsDesktop();
+  const mobileStatusOwnsInteraction = mobileStatusOpen && !isDesktop;
+
+  useLayoutEffect(() => {
+    const surface = chatPrimarySurfaceRef.current;
+    if (!surface) return;
+    if (mobileStatusOwnsInteraction) surface.setAttribute('inert', '');
+    else surface.removeAttribute('inert');
+    if (isDesktop && mobileStatusOpen) closeMobileStatus();
+    return () => surface.removeAttribute('inert');
+  }, [closeMobileStatus, isDesktop, mobileStatusOpen, mobileStatusOwnsInteraction]);
 
   // Desktop: open sidebar before first paint (useLayoutEffect avoids false→true flicker).
   useLayoutEffect(() => {
@@ -889,7 +906,10 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
   return (
     <div ref={containerRef} className="flex h-full min-h-0">
       <div
+        ref={chatPrimarySurfaceRef}
         className="flex flex-col min-w-0"
+        data-chat-primary-surface
+        aria-hidden={mobileStatusOwnsInteraction || undefined}
         style={
           statusPanelOpen && isDesktop && (rightPanelMode === 'workspace' || rightPanelMode === 'transcript')
             ? { flexBasis: `${chatBasis}%`, flexGrow: 0, flexShrink: 0 }
@@ -1080,7 +1100,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           {messages.length > 5 && <MessageNavigator messages={messages} scrollContainerRef={scrollContainerRef} />}
         </div>
 
-        <div ref={attachBottomChromeRef} className="pb-[var(--mobile-dock-reserve)] lg:pb-0">
+        <div ref={attachBottomChromeRef} className="pb-[var(--mobile-chat-bottom-reserve)] lg:pb-0">
           {isDesktop && authPending.length > 0 && (
             <div className="border-t border-conn-amber-ring bg-conn-amber-bg/40 py-2">
               {authPending.map((req) => (
@@ -1148,6 +1168,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
               hasActiveInvocation={hasActiveInvocation}
               uploadStatus={uploadStatus}
               uploadError={uploadError}
+              onComposerFocus={closeMobileStatus}
             />
           </div>
 
@@ -1279,8 +1300,8 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
         hasActiveInvocation={Boolean(hasActiveInvocation)}
       />
       <MobileStatusSheet
-        open={mobileStatusOpen}
-        onClose={() => setMobileStatusState({ threadId, open: false })}
+        open={mobileStatusOwnsInteraction}
+        onClose={closeMobileStatus}
         intentMode={intentMode}
         targetCats={targetCats}
         catStatuses={catStatuses}
