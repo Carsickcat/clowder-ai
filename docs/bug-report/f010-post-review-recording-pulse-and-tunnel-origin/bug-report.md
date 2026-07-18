@@ -84,6 +84,7 @@ origin before `/api/cats` and Socket.IO could use the valid same-origin proxy.
 - Web TypeScript: passed.
 - Targeted Biome: passed with no errors or warnings.
 - `git diff --check`: passed.
-- Exact candidate `6786790` production build: passed; isolated BUILD_ID
-  `rYqKxCbawUG2k3lDMculK` served HTTP 200 on temporary port 4312 and opened in Hub Browser Preview.
+- Exact candidate `466436f` production build: passed; isolated BUILD_ID
+  `NLgMJFRRSV9bzl_iQLbc5` served HTTP 200 on temporary port 4312 from PID `35176` and opened in Hub
+  Browser Preview. The temporary listener was terminated after verification.
 - Independent review remains the next gate; reporting-iPhone replay remains the device acceptance.
