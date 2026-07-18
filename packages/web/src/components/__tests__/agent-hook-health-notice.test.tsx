@@ -102,6 +102,19 @@ describe('AgentHookHealthNotice', () => {
     expect(html).not.toContain('Claude：正常');
     expect(html).not.toContain('Codex：正常');
   });
+
+  it('renders a one-row mobile summary without configuration details', () => {
+    const html = renderToStaticMarkup(
+      <AgentHookHealthNotice compact health={null} error="agent hook status failed (403)" onSync={() => {}} />,
+    );
+
+    expect(html).toContain('data-mobile-compact="true"');
+    expect(html).toContain('Agent 运行环境检测失败');
+    expect(html).toContain('>同步<');
+    expect(html).not.toContain('agent hook status failed (403)');
+    expect(html).not.toContain('Claude：');
+    expect(html).not.toContain('预览将修复的改动');
+  });
 });
 
 describe('ProjectSetupCard agent hook entry', () => {

@@ -224,7 +224,7 @@ export function ChatInput({
       });
     }
     setPendingChatInsert(null);
-    textareaRef.current?.focus();
+    focusComposerWithoutScroll(textareaRef.current);
   }, [pendingChatInsert, setPendingChatInsert, setThreadHasDraft, threadId]);
 
   const handleTranscript = useCallback((text: string) => {
@@ -407,7 +407,7 @@ export function ChatInput({
       setInput(before + option.insert + after);
       setShowMentions(false);
       setMentionStart(-1);
-      setTimeout(() => textareaRef.current?.focus(), 0);
+      setTimeout(() => focusComposerWithoutScroll(textareaRef.current), 0);
     },
     [input, mentionStart],
   );
@@ -455,7 +455,7 @@ export function ChatInput({
       setGhostSuggestion(null);
       closeMenus();
       setMentionFilter('');
-      setTimeout(() => textareaRef.current?.focus(), 0);
+      setTimeout(() => focusComposerWithoutScroll(textareaRef.current), 0);
     },
     [closeMenus],
   );
@@ -770,7 +770,7 @@ export function ChatInput({
           onSelect={(entry) => {
             const newText = pathCompletion.selectEntry(entry);
             setInput(newText);
-            setTimeout(() => textareaRef.current?.focus(), 0);
+            setTimeout(() => focusComposerWithoutScroll(textareaRef.current), 0);
           }}
         />
       )}
@@ -854,7 +854,7 @@ export function ChatInput({
         />
       )}
 
-      <div className="flex gap-2 items-center p-2 sm:p-4 sm:pt-2" data-testid="chat-input-composer-row">
+      <div className="flex items-center gap-2 px-2 py-1 sm:p-4 sm:pt-2" data-testid="chat-input-composer-row">
         {/* Mobile: + toggle button */}
         <button
           onClick={() => setMobileToolbar((v) => !v)}
@@ -927,6 +927,7 @@ export function ChatInput({
             onCompositionStart={ime.onCompositionStart}
             onCompositionEnd={ime.onCompositionEnd}
             onPaste={handlePaste}
+            enterKeyHint="send"
             placeholder={
               whisperMode
                 ? '悄悄话...'
@@ -934,7 +935,7 @@ export function ChatInput({
                   ? '继续输入，消息会排队...'
                   : '输入消息... (@ 召唤猫猫)'
             }
-            className={`w-full resize-none rounded-xl border p-3 text-base focus:outline-none focus:ring-2 placeholder:text-cafe-muted ${
+            className={`block min-h-11 w-full resize-none rounded-xl border px-3 py-2 text-base focus:outline-none focus:ring-2 placeholder:text-cafe-muted sm:p-3 ${
               whisperMode
                 ? 'border-cafe-accent/30 bg-accent-50/50 focus:ring-cafe-accent'
                 : 'border-[var(--console-border-soft)] bg-transparent focus:bg-[var(--console-card-bg)] focus:ring-[var(--console-input-stroke)]'
@@ -945,7 +946,7 @@ export function ChatInput({
           {ghostSuggestion && !pathCompletion.isOpen && (
             <div
               data-testid="ghost-suggestion"
-              className="absolute inset-0 pointer-events-none p-3 text-base whitespace-pre-wrap break-words overflow-hidden rounded-xl"
+              className="absolute inset-0 min-h-11 pointer-events-none px-3 py-2 text-base whitespace-pre-wrap break-words overflow-hidden rounded-xl sm:p-3"
               aria-hidden="true"
             >
               <span className="invisible">{input}</span>
@@ -983,4 +984,7 @@ export function ChatInput({
       )}
     </div>
   );
+}
+function focusComposerWithoutScroll(textarea: HTMLTextAreaElement | null) {
+  textarea?.focus({ preventScroll: true });
 }

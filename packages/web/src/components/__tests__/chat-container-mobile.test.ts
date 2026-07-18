@@ -82,7 +82,14 @@ vi.mock('@/hooks/useChatSocketCallbacks', () => ({
 
 // Stub child components to isolate ChatContainer behavior
 vi.mock('../ChatMessage', () => ({ ChatMessage: () => null }));
-vi.mock('../ChatInput', () => ({ ChatInput: () => null }));
+vi.mock('../ChatInput', () => ({
+  ChatInput: () =>
+    React.createElement(
+      'div',
+      { 'data-chat-input-composer': true },
+      React.createElement('textarea', { 'data-testid': 'composer-textarea' }),
+    ),
+}));
 vi.mock('../ChatContainerHeader', () => ({
   ChatContainerHeader: (props: { onToggleSidebar: () => void; onOpenMobileStatus: () => void }) =>
     React.createElement(
@@ -204,6 +211,41 @@ describe('ChatContainer mobile interactions', () => {
 
     const statusSheetAfter = container.querySelector('[data-testid="mobile-status"]') as HTMLElement;
     expect(statusSheetAfter.getAttribute('data-open')).toBe('true');
+  });
+
+  it('dismisses the software keyboard before opening mobile status', () => {
+    act(() => {
+      root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
+    });
+
+    const textarea = container.querySelector('[data-testid="composer-textarea"]') as HTMLTextAreaElement;
+    textarea.focus();
+    expect(document.activeElement).toBe(textarea);
+
+    const triggerBtn = container.querySelector('[data-testid="mobile-status-trigger"]') as HTMLButtonElement;
+    act(() => {
+      triggerBtn.click();
+    });
+
+    expect(document.activeElement).not.toBe(textarea);
+    expect(container.querySelector('[data-testid="mobile-status"]')?.getAttribute('data-open')).toBe('true');
+  });
+
+  it('does not carry a transient status sheet into a newly selected thread', () => {
+    act(() => {
+      root.render(React.createElement(ChatContainer, { threadId: 'thread-one' }));
+    });
+    const triggerBtn = container.querySelector('[data-testid="mobile-status-trigger"]') as HTMLButtonElement;
+    act(() => {
+      triggerBtn.click();
+    });
+    expect(container.querySelector('[data-testid="mobile-status"]')?.getAttribute('data-open')).toBe('true');
+
+    act(() => {
+      root.render(React.createElement(ChatContainer, { threadId: 'thread-two' }));
+    });
+
+    expect(container.querySelector('[data-testid="mobile-status"]')?.getAttribute('data-open')).toBe('false');
   });
 
   it('consumes the single mobile Dock reserve below the input', () => {

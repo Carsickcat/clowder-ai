@@ -92,12 +92,26 @@ describe('MobileStatusSheet', () => {
     expect(backdrop).toBeTruthy();
   });
 
-  it('renders visible when open (translate-y-0)', () => {
+  it('renders visible when open (translated above the visual bottom edge)', () => {
     act(() => {
       root.render(React.createElement(MobileStatusSheet, { ...baseProps, open: true }));
     });
-    const sheet = container.querySelector('[class*="translate-y-0"]');
-    expect(sheet).toBeTruthy();
+    const sheet = container.querySelector('.mobile-visual-bottom');
+    expect(sheet?.classList.contains('-translate-y-full')).toBe(true);
+  });
+
+  it('starts every open at the sheet header instead of a stale scroll position', () => {
+    act(() => {
+      root.render(React.createElement(MobileStatusSheet, baseProps));
+    });
+    const sheet = container.querySelector('.mobile-visual-bottom') as HTMLDivElement;
+    sheet.scrollTop = 240;
+
+    act(() => {
+      root.render(React.createElement(MobileStatusSheet, { ...baseProps, open: true }));
+    });
+
+    expect(sheet.scrollTop).toBe(0);
   });
 
   it('displays thread ID and message summary', () => {

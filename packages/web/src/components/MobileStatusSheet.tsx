@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { formatCatName, useCatData } from '@/hooks/useCatData';
 import { catColorVar } from '@/lib/cat-slug';
 import { CatTokenUsage } from './CatTokenUsage';
@@ -36,6 +36,13 @@ export function MobileStatusSheet({
   messageSummary,
 }: MobileStatusSheetProps) {
   const { getCatById } = useCatData();
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (open && sheetRef.current) {
+      sheetRef.current.scrollTop = 0;
+    }
+  }, [open]);
 
   const activeCats = useMemo(() => {
     const snapshotCats = collectSnapshotActiveCats(catInvocations);
@@ -60,7 +67,12 @@ export function MobileStatusSheet({
 
       {/* Sheet */}
       <div
-        className={`mobile-visual-bottom safe-area-inline fixed z-50 bg-cafe-surface rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out lg:hidden max-h-[70vh] overflow-y-auto safe-area-bottom ${
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-hidden={!open}
+        aria-label="状态面板"
+        className={`mobile-status-sheet mobile-visual-bottom safe-area-inline fixed z-50 bg-cafe-surface rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out lg:hidden max-h-[70vh] overflow-y-auto overscroll-contain safe-area-bottom ${
           open ? '-translate-y-full' : 'translate-y-0'
         }`}
       >
@@ -70,11 +82,12 @@ export function MobileStatusSheet({
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-cafe-black">状态面板</h2>
             <button
+              type="button"
               onClick={onClose}
-              className="text-cafe-muted hover:text-cafe-secondary p-1 -mr-1"
+              className="-mr-2 flex h-11 w-11 items-center justify-center rounded-lg text-cafe-muted hover:bg-cafe-surface-elevated hover:text-cafe-secondary"
               aria-label="关闭状态面板"
             >
-              <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
                 <path
                   fillRule="evenodd"
                   d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -161,6 +174,7 @@ export function MobileStatusSheet({
             <div className="text-xs text-cafe-secondary">
               Thread:{' '}
               <button
+                type="button"
                 className="text-cafe-secondary font-mono hover:text-cafe transition-colors"
                 title={`点击复制: ${threadId}`}
                 onClick={() => {

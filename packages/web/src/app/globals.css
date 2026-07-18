@@ -57,6 +57,12 @@ html[data-mobile-keyboard-open="true"] .mobile-ops-nav {
   html[data-mobile-keyboard-open="true"] .mobile-keyboard-secondary-chrome {
     display: none;
   }
+
+  /* Status is a separate task surface: never stack it with the software keyboard. */
+  html[data-mobile-keyboard-open="true"] .mobile-status-sheet {
+    visibility: hidden;
+    pointer-events: none;
+  }
 }
 
 /* Quest input highlight: gentle amber glow on input area */

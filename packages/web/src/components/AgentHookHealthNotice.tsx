@@ -10,6 +10,7 @@ interface AgentHookHealthNoticeProps {
   synced?: boolean;
   onSync: () => void | Promise<void>;
   className?: string;
+  compact?: boolean;
 }
 
 interface RenderProbe {
@@ -125,20 +126,50 @@ function previewTargets(health: AgentHookStatusResponse | null): AgentHookTarget
     .slice(0, 5);
 }
 
-export function AgentHookHealthNotice({
+interface AgentHookHealthNoticeViewProps {
+  health: AgentHookStatusResponse | null;
+  error?: string | null;
+  syncing: boolean;
+  onSync: () => void | Promise<void>;
+  className: string;
+  tone: ReturnType<typeof toneFor>;
+  canSync: boolean;
+}
+
+function CompactAgentHookHealthNotice({ syncing, onSync, className, tone, canSync }: AgentHookHealthNoticeViewProps) {
+  return (
+    <div
+      data-testid="agent-hook-health-notice"
+      data-mobile-compact="true"
+      className={`flex min-h-11 items-center gap-2 rounded-lg border pl-3 ${tone.classes} ${className}`}
+    >
+      <HubIcon name={tone.icon} className="h-4 w-4 flex-shrink-0" />
+      <p className="min-w-0 flex-1 truncate text-sm font-semibold">{tone.title}</p>
+      {canSync && (
+        <button
+          type="button"
+          onClick={() => void onSync()}
+          className="flex h-11 shrink-0 items-center rounded-r-lg px-3 text-sm font-medium transition-colors hover:bg-cafe-surface-elevated/40"
+          aria-label="同步 Agent 运行环境"
+        >
+          同步
+        </button>
+      )}
+      {syncing && <span className="shrink-0 pr-3 text-xs font-medium">同步中...</span>}
+    </div>
+  );
+}
+
+function DetailedAgentHookHealthNotice({
   health,
   error,
-  syncing = false,
-  synced = false,
+  syncing,
   onSync,
-  className = '',
-}: AgentHookHealthNoticeProps) {
-  if (!shouldRenderAgentHookHealthNotice({ health, error, syncing, synced })) return null;
-
-  const currentStatus = error ? 'error' : syncing ? 'syncing' : synced ? 'synced' : health ? health.status : 'error';
-  const tone = toneFor(currentStatus);
+  className,
+  tone,
+  canSync,
+}: AgentHookHealthNoticeViewProps) {
   const problematicTargets = previewTargets(health);
-  const canSync = !syncing && currentStatus !== 'synced';
 
   return (
     <div data-testid="agent-hook-health-notice" className={`rounded-lg border p-3 ${tone.classes} ${className}`}>
@@ -201,4 +232,27 @@ export function AgentHookHealthNotice({
       </div>
     </div>
   );
+}
+
+export function AgentHookHealthNotice({
+  health,
+  error,
+  syncing = false,
+  synced = false,
+  onSync,
+  className = '',
+  compact = false,
+}: AgentHookHealthNoticeProps) {
+  if (!shouldRenderAgentHookHealthNotice({ health, error, syncing, synced })) return null;
+
+  const currentStatus = error ? 'error' : syncing ? 'syncing' : synced ? 'synced' : health ? health.status : 'error';
+  const tone = toneFor(currentStatus);
+  const canSync = !syncing && currentStatus !== 'synced';
+  const viewProps = { health, error, syncing, onSync, className, tone, canSync };
+
+  if (compact) {
+    return <CompactAgentHookHealthNotice {...viewProps} />;
+  }
+
+  return <DetailedAgentHookHealthNotice {...viewProps} />;
 }

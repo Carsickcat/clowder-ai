@@ -171,7 +171,17 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
   useTeleport(); // F227: drive the Hub to a teleport target message (thread:teleport)
   const { isOpen: sidebarOpen, open: openSidebar, toggle: toggleSidebar } = useSidebarStore();
   const [statusPanelOpen, setStatusPanelOpen] = useState(true);
-  const [mobileStatusOpen, setMobileStatusOpen] = useState(false);
+  const [mobileStatusState, setMobileStatusState] = useState({ threadId, open: false });
+  const mobileStatusOpen = mobileStatusState.threadId === threadId && mobileStatusState.open;
+  const openMobileStatus = useCallback(() => {
+    if (typeof document !== 'undefined') {
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement && activeElement.closest('[data-chat-input-composer]')) {
+        activeElement.blur();
+      }
+    }
+    setMobileStatusState({ threadId, open: true });
+  }, [threadId]);
   const [mobileOpsSurface, setMobileOpsSurface] = useState<MobileOpsSurface>('chat');
   const [showBootcampList, setShowBootcampList] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
@@ -893,7 +903,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           authPendingCount={authPending.length}
           viewMode={viewMode}
           onToggleViewMode={() => setViewMode(viewMode === 'single' ? 'split' : 'single')}
-          onOpenMobileStatus={() => setMobileStatusOpen(true)}
+          onOpenMobileStatus={openMobileStatus}
           statusPanelOpen={statusPanelOpen}
           onToggleStatusPanel={() => {
             if (statusPanelOpen) {
@@ -923,18 +933,24 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
             data-chat-container
           >
             {isLoadingHistory && <div className="text-center py-3 text-sm text-cafe-muted">加载历史消息...</div>}
-            <ConnectionStatusBar
-              api={connectionStatus.api}
-              socket={connectionStatus.socket}
-              upstream={connectionStatus.upstream}
-              isReadonly={connectionStatus.isReadonly}
-              checkedAt={connectionStatus.checkedAt}
-              isOfflineSnapshot={isOfflineSnapshot}
-            />
+            <div className="mobile-keyboard-secondary-chrome">
+              <ConnectionStatusBar
+                api={connectionStatus.api}
+                socket={connectionStatus.socket}
+                upstream={connectionStatus.upstream}
+                isReadonly={connectionStatus.isReadonly}
+                checkedAt={connectionStatus.checkedAt}
+                isOfflineSnapshot={isOfflineSnapshot}
+              />
+            </div>
             {showAgentHookNotice && (
-              <div className="mb-3 flex justify-center text-left">
-                <div className="max-w-[85%] w-full">
+              <>
+                <div
+                  data-mobile-hook-health-summary
+                  className="mobile-keyboard-secondary-chrome mb-2 text-left lg:hidden"
+                >
                   <AgentHookHealthNotice
+                    compact
                     health={agentHookHealth.health}
                     error={agentHookHealth.error}
                     syncing={agentHookHealth.syncing}
@@ -942,13 +958,24 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
                     onSync={agentHookHealth.sync}
                   />
                 </div>
-              </div>
+                <div className="mb-3 hidden justify-center text-left lg:flex">
+                  <div className="w-full max-w-[85%]">
+                    <AgentHookHealthNotice
+                      health={agentHookHealth.health}
+                      error={agentHookHealth.error}
+                      syncing={agentHookHealth.syncing}
+                      synced={agentHookHealth.synced}
+                      onSync={agentHookHealth.sync}
+                    />
+                  </div>
+                </div>
+              </>
             )}
             {!hasMore && messages.length > 0 && (
               <div className="text-center py-3 text-xs text-cafe-muted">没有更多消息了</div>
             )}
             {messages.length === 0 && !isLoadingHistory ? (
-              <div className="text-center mt-20">
+              <div className="mobile-keyboard-secondary-chrome text-center mt-20">
                 <PawIcon className="w-12 h-12 text-cafe-muted mx-auto mb-4" />
                 <p className="text-lg text-cafe-secondary mb-1">欢迎来到 Clowder AI!</p>
                 <p className="text-sm text-cafe-muted" suppressHydrationWarning>
@@ -1055,7 +1082,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
 
         <div ref={attachBottomChromeRef} className="pb-[var(--mobile-dock-reserve)] lg:pb-0">
           {authPending.length > 0 && (
-            <div className="border-t border-conn-amber-ring bg-conn-amber-bg/40 py-2">
+            <div className="mobile-keyboard-secondary-chrome border-t border-conn-amber-ring bg-conn-amber-bg/40 py-2">
               {authPending.map((req) => (
                 <AuthorizationCard key={req.requestId} request={req} onRespond={authRespond} />
               ))}
@@ -1077,18 +1104,20 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
                 | undefined;
               if (!questState) return null;
               return (
-                <QuestBanner
-                  phase={questState.phase}
-                  firstCatName={questState.firstCatName}
-                  onAddSecondCat={() => setShowQuestWizard(true)}
-                  onStartBootcamp={() => setShowBootcampList(true)}
-                  onComplete={() => assignDocumentRoute('/hub', typeof window !== 'undefined' ? window : undefined)}
-                />
+                <div className="mobile-keyboard-secondary-chrome">
+                  <QuestBanner
+                    phase={questState.phase}
+                    firstCatName={questState.firstCatName}
+                    onAddSecondCat={() => setShowQuestWizard(true)}
+                    onStartBootcamp={() => setShowBootcampList(true)}
+                    onComplete={() => assignDocumentRoute('/hub', typeof window !== 'undefined' ? window : undefined)}
+                  />
+                </div>
               );
             })()}
 
           {isResearchMode && (
-            <div className="mx-4 mb-2 rounded-lg border border-[var(--semantic-success)] bg-[var(--semantic-success-surface)] px-3 py-2 text-xs text-conn-emerald-text">
+            <div className="mobile-keyboard-secondary-chrome mx-4 mb-2 rounded-lg border border-[var(--semantic-success)] bg-[var(--semantic-success-surface)] px-3 py-2 text-xs text-conn-emerald-text">
               多猫研究模式 — 文章上下文已注入。请输入研究问题，猫猫会自动调用 multi_mention 邀请其他猫参与分析。
             </div>
           )}
@@ -1125,8 +1154,9 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           {/* F101: "Return to game" banner when overlay is minimized */}
           {isGameActive && overlayMinimized && gameView?.threadId === threadId && (
             <button
+              type="button"
               onClick={() => useGameStore.getState().restoreOverlay()}
-              className="mx-4 mb-2 flex items-center justify-center gap-2 rounded-lg border border-[var(--color-cafe-accent)] bg-[var(--accent-50)] px-3 py-2 text-sm text-[var(--color-cafe-accent)] hover:bg-[var(--color-cocreator-surface)] transition-colors"
+              className="mobile-keyboard-secondary-chrome mx-4 mb-2 flex items-center justify-center gap-2 rounded-lg border border-[var(--color-cafe-accent)] bg-[var(--accent-50)] px-3 py-2 text-sm text-[var(--color-cafe-accent)] hover:bg-[var(--color-cocreator-surface)] transition-colors"
             >
               🎮 返回游戏
             </button>
@@ -1250,7 +1280,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
       />
       <MobileStatusSheet
         open={mobileStatusOpen}
-        onClose={() => setMobileStatusOpen(false)}
+        onClose={() => setMobileStatusState({ threadId, open: false })}
         intentMode={intentMode}
         targetCats={targetCats}
         catStatuses={catStatuses}

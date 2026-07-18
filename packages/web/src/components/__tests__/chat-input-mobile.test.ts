@@ -159,6 +159,21 @@ describe('ChatInput composer layout', () => {
     expect(row?.className).not.toContain('items-end');
   });
 
+  it('keeps the single-line mobile composer within the compact chrome budget', () => {
+    render();
+
+    const row = container.querySelector('[data-testid="chat-input-composer-row"]');
+    const textarea = container.querySelector('textarea');
+    expect(row?.className).toContain('py-1');
+    expect(row?.classList.contains('p-2')).toBe(false);
+    expect(textarea?.className).toContain('min-h-11');
+    expect(textarea?.className).toContain('block');
+    expect(textarea?.className).toContain('px-3');
+    expect(textarea?.className).toContain('py-2');
+    expect(textarea?.classList.contains('p-3')).toBe(false);
+    expect(textarea?.getAttribute('enterkeyhint')).toBe('send');
+  });
+
   it('keeps the active invocation stop affordance visible while preserving hover and keyboard focus styling', () => {
     render({ hasActiveInvocation: true, onStop: vi.fn() });
 

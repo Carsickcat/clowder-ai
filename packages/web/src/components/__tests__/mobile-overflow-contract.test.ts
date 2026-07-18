@@ -33,13 +33,11 @@ describe('F010 mobile viewport and overflow contract', () => {
   it('limits composing-only secondary chrome hiding to widths below the shared wide breakpoint', () => {
     const css = readWeb('src/app/globals.css');
     const breakpoints = JSON.parse(readWeb('src/styles/responsive-breakpoints.json')) as { wide: number };
-    const compactRule = `@media (max-width: ${breakpoints.wide - 1}px) {
-  html[data-mobile-keyboard-open="true"] .mobile-keyboard-secondary-chrome {
-    display: none;
-  }
-}`;
+    const compactRule = new RegExp(
+      `@media \\(max-width: ${breakpoints.wide - 1}px\\) \\{[\\s\\S]*?html\\[data-mobile-keyboard-open="true"\\] \\.mobile-keyboard-secondary-chrome \\{[\\s\\S]*?display: none;`,
+    );
 
-    expect(css).toContain(compactRule);
+    expect(css).toMatch(compactRule);
   });
 
   it('keeps the chat surface narrow, scroll-contained, and keyboard-safe', () => {
@@ -55,6 +53,9 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(input).toContain('data-chat-input-composer');
     expect(input).not.toContain('bg-[var(--console-shell-bg)] safe-area-bottom');
     expect(chat).toContain('mobile-keyboard-secondary-chrome');
+    expect(chat).toContain('data-mobile-hook-health-summary');
+    expect(input).toContain('focus({ preventScroll: true })');
+    expect(input).not.toContain('textareaRef.current?.focus()');
   });
 
   it('bounds mobile mentions and keeps the desktop keyboard legend out of compact layouts', () => {

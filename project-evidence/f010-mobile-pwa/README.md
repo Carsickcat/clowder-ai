@@ -279,3 +279,30 @@ Detailed diagnosis and review packet:
 - `review-notes/2026-07-18-f010-mobile-chat-shell-quality-gate.md`
 
 [宪宪/gpt-5.6-sol🐾]
+
+## 2026-07-18 mobile composer product recovery
+
+The third reporting-iPhone pass exposed a lifecycle and product-density defect rather than another VisualViewport threshold: client navigation preserved an open status sheet across threads; status opening did not dismiss the composer; browser-default refocus could scroll; the sheet retained a stale position; and a full Agent environment error card competed with the composer and Safari's system form assistant.
+
+The recovery establishes one mobile terminal state:
+
+- browsing uses a 57px header, one transcript scroller, a 52px composer, and one 56px Dock;
+- composing keeps the header/transcript/composer only; Dock, sheets, diagnostics, liveness/task/quest chrome, and their reserve leave layout;
+- status is a separate sheet journey that blurs the composer first and always starts at its header;
+- mobile Agent health is one 44px summary row, while full diagnostics remain in desktop/governance surfaces;
+- all internal composer refocus paths use `preventScroll`, and the editable surface remains a 44px IME target with `enterKeyHint="send"`.
+
+Fresh pre-review evidence:
+
+- RED→GREEN: initial six failures plus isolated thread-lifecycle and textarea-line-box reds; final affected suites **44/44**.
+- TypeScript, targeted Biome (zero errors), `git diff --check`, and production Web build pass.
+- Full Web Vitest remains transparently baseline-red at **5050/5117 passed**, 67 failures in 14 files, improving from the prior **5044/5112**, 68 failures in 15 files. All five directly changed suites are green and no new failing test file was introduced.
+- Isolated Web `4310` serves BUILD_ID `mGL-QVkc-C-VUCAe52vBT` from PID `42512`; HTTP `/` is 200 and isolated API remains `4311`.
+- No-cache 390×844 CDP: document width `390`, root scrollTop `0`, header `57`, composer `52`, textarea `44`, Dock `56` with four items.
+- 390×430 composing projection: composer bottom equals visual bottom; Dock is absent, visible secondary chrome is zero, and the status sheet is hidden.
+- Status journey: focused textarea is blurred before open; sheet `scrollTop=0`; title is visible.
+- Visuals: `composer-recovery-final-20260718-bypass-sw-mobile-390x844.png`, `composer-recovery-final-20260718-status-sheet-390x844.png`, `composer-recovery-final-20260718-composing-surface-390x430.png`.
+
+The remaining release boundary is reporting-iPhone installed-PWA Safari with the Chinese IME. Chrome projection is structural evidence, not a substitute for that device truth.
+
+[宪宪/gpt-5.6-sol🐾]
