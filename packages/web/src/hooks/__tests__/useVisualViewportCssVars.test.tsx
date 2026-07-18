@@ -40,7 +40,7 @@ describe('useVisualViewportCssVars', () => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
   });
 
-  it('projects one complete visual viewport rectangle without adding the offset to its height', async () => {
+  it('projects visual viewport dimensions without translating the fixed app shell', async () => {
     const viewport = new EventTarget() as EventTarget & {
       height: number;
       width: number;
@@ -58,8 +58,8 @@ describe('useVisualViewportCssVars', () => {
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
     expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('47px');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-left')).toBe('3px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-left')).toBe('0px');
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
 
     viewport.height = 820;
@@ -150,7 +150,7 @@ describe('useVisualViewportCssVars', () => {
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
   });
 
-  it('resamples an installed-PWA offset that settles one frame after resize', async () => {
+  it('does not double-apply an installed-PWA pan that settles after resize', async () => {
     const viewport = new EventTarget() as EventTarget & {
       height: number;
       width: number;
@@ -176,7 +176,8 @@ describe('useVisualViewportCssVars', () => {
       await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
     });
 
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('96px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
   });
 
   it('does not project a stale visual offset after the keyboard is closed', () => {

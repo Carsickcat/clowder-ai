@@ -1,7 +1,6 @@
 /* Mobile chat shell geometry and keyboard projection. */
 :root {
   --mobile-dock-reserve: calc(3.5rem + env(safe-area-inset-bottom, 0px));
-  --mobile-browser-input-assistant-reserve: 0px;
   --mobile-chat-bottom-reserve: var(--mobile-dock-reserve);
 }
 
@@ -10,25 +9,9 @@ html[data-mobile-keyboard-open="true"] {
   --mobile-chat-bottom-reserve: 0px;
 }
 
-/*
- * iOS Safari/PWA renders its native Form Assistant above the keyboard but
- * does not expose that overlay through VisualViewport or VirtualKeyboard.
- * Keep the chat composer above the observed iOS 26 assistant surface without
- * penalizing Android or desktop layouts. This is the only keyboard-adjacent
- * bottom reserve consumed by the chat shell.
- */
-@supports (-webkit-touch-callout: none) {
-  @media (max-width: 1023px) and (hover: none) and (pointer: coarse) {
-    html[data-mobile-keyboard-open="true"] {
-      --mobile-browser-input-assistant-reserve: 3.5rem;
-      --mobile-chat-bottom-reserve: var(--mobile-browser-input-assistant-reserve);
-    }
-  }
-}
-
 .mobile-visual-bottom {
-  top: calc(var(--app-viewport-top, 0px) + var(--app-viewport-height, 100dvh));
-  left: var(--app-viewport-left, 0px);
+  top: var(--app-viewport-height, 100dvh);
+  left: 0;
   width: var(--app-viewport-width, 100vw);
   bottom: auto;
 }

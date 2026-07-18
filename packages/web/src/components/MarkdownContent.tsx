@@ -381,7 +381,7 @@ export function MarkdownContent({
   }
 
   return (
-    <div className={`markdown-content text-sm break-words ${className ?? ''}`}>
+    <div className={`markdown-content text-base sm:text-sm break-words ${className ?? ''}`}>
       {cmdMatch && <span className="font-semibold text-[var(--semantic-info)]">{cmdMatch[1]}</span>}
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={components}>
         {md}

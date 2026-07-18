@@ -94,6 +94,30 @@ describe('ChatInput mobile toolbar', () => {
     });
     expect(plusBtn.className).toContain('rotate-45');
   });
+
+  it('dismisses the IME before entering the expanded mobile tool state', () => {
+    render();
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const plusBtn = container.querySelector('[data-testid="mobile-tools-toggle"]') as HTMLButtonElement;
+    act(() => textarea.focus());
+
+    act(() => plusBtn.click());
+
+    expect(document.activeElement).not.toBe(textarea);
+    expect(container.textContent).toContain('附件');
+  });
+
+  it('closes the expanded mobile tools when the composer regains focus', () => {
+    render();
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    const plusBtn = container.querySelector('[data-testid="mobile-tools-toggle"]') as HTMLButtonElement;
+    act(() => plusBtn.click());
+    expect(container.textContent).toContain('附件');
+
+    act(() => textarea.focus());
+
+    expect(container.textContent).not.toContain('附件');
+  });
 });
 
 describe('ChatInput textarea auto-grow', () => {
@@ -176,7 +200,8 @@ describe('ChatInput composer layout', () => {
 
     const row = container.querySelector('[data-testid="chat-input-composer-row"]');
     const textarea = container.querySelector('textarea');
-    expect(row?.className).toContain('py-1');
+    expect(row?.className).toContain('py-0.5');
+    expect(row?.className).not.toContain('py-1');
     expect(row?.classList.contains('p-2')).toBe(false);
     expect(textarea?.className).toContain('min-h-11');
     expect(textarea?.className).toContain('block');

@@ -143,6 +143,16 @@ export function ChatInput({
   const [ghostSuggestion, setGhostSuggestion] = useState<string | null>(null);
   const ghostRef = useRef<string | null>(null);
   const [showHistorySearch, setShowHistorySearch] = useState(false);
+
+  const handleMobileToolbarToggle = () => {
+    if (!mobileToolbar) textareaRef.current?.blur();
+    setMobileToolbar((open) => !open);
+  };
+
+  const handleComposerFocus = () => {
+    setMobileToolbar(false);
+    onComposerFocus?.();
+  };
   const [lobbyMode, setLobbyMode] = useState<'player' | 'god-view' | 'detective' | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -856,11 +866,12 @@ export function ChatInput({
         />
       )}
 
-      <div className="flex items-center gap-2 px-2 py-1 sm:p-4 sm:pt-2" data-testid="chat-input-composer-row">
+      <div className="flex items-center gap-1 px-2 py-0.5 sm:gap-2 sm:p-4 sm:pt-2" data-testid="chat-input-composer-row">
         {/* Mobile: + toggle button */}
         <button
-          onClick={() => setMobileToolbar((v) => !v)}
+          onClick={handleMobileToolbarToggle}
           disabled={composerDisabled}
+          data-testid="mobile-tools-toggle"
           className={`p-3 rounded-xl transition-all md:hidden ${
             mobileToolbar
               ? 'text-cafe-accent bg-cafe-surface-sunken rotate-45'
@@ -928,7 +939,7 @@ export function ChatInput({
             onKeyDown={handleKeyDown}
             onCompositionStart={ime.onCompositionStart}
             onCompositionEnd={ime.onCompositionEnd}
-            onFocus={onComposerFocus}
+            onFocus={handleComposerFocus}
             onPaste={handlePaste}
             enterKeyHint="send"
             placeholder={
@@ -938,7 +949,7 @@ export function ChatInput({
                   ? '继续输入，消息会排队...'
                   : '输入消息... (@ 召唤猫猫)'
             }
-            className={`block min-h-11 w-full resize-none rounded-xl border px-3 py-2 text-base focus:outline-none focus:ring-2 placeholder:text-cafe-muted sm:p-3 ${
+            className={`block min-h-11 w-full resize-none rounded-xl border px-3 py-2 text-base leading-5 focus:outline-none focus:ring-1 placeholder:text-cafe-muted sm:p-3 sm:focus:ring-2 ${
               whisperMode
                 ? 'border-cafe-accent/30 bg-accent-50/50 focus:ring-cafe-accent'
                 : 'border-[var(--console-border-soft)] bg-transparent focus:bg-[var(--console-card-bg)] focus:ring-[var(--console-input-stroke)]'
@@ -949,7 +960,7 @@ export function ChatInput({
           {ghostSuggestion && !pathCompletion.isOpen && (
             <div
               data-testid="ghost-suggestion"
-              className="absolute inset-0 min-h-11 pointer-events-none px-3 py-2 text-base whitespace-pre-wrap break-words overflow-hidden rounded-xl sm:p-3"
+              className="absolute inset-0 min-h-11 pointer-events-none px-3 py-2 text-base leading-5 whitespace-pre-wrap break-words overflow-hidden rounded-xl sm:p-3"
               aria-hidden="true"
             >
               <span className="invisible">{input}</span>

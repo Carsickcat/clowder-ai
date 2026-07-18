@@ -14,23 +14,26 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(css).toContain('env(safe-area-inset-left');
     expect(css).toContain('env(safe-area-inset-right');
     expect(shellCss).toContain('.app-viewport');
-    expect(shellCss).toContain('top: var(--app-viewport-top, 0px)');
-    expect(shellCss).toContain('left: var(--app-viewport-left, 0px)');
+    expect(shellCss).toMatch(/\.app-viewport\s*{[^}]*top:\s*0;/);
+    expect(shellCss).toMatch(/\.app-viewport\s*{[^}]*left:\s*0;/);
     expect(shellCss).toContain('width: var(--app-viewport-width, 100vw)');
     expect(shellCss).toContain('height: var(--app-viewport-height, 100dvh)');
     expect(shellCss).not.toContain('height: calc(var(--app-viewport-height');
     expect(mobileCss).toContain('--mobile-dock-reserve');
     expect(mobileCss).toContain('--mobile-chat-bottom-reserve');
-    expect(mobileCss).toContain('--mobile-browser-input-assistant-reserve');
+    expect(mobileCss).not.toContain('--mobile-browser-input-assistant-reserve');
     expect(mobileCss).toMatch(/html\[data-mobile-keyboard-open=["']true["']\]/);
     expect(mobileCss).toContain('.mobile-keyboard-secondary-chrome');
   });
 
-  it('keeps iOS form-assistant occlusion inside the single chat bottom reserve', () => {
+  it('does not duplicate the native iOS form-assistant height in app chrome', () => {
     const css = readWeb('src/app/mobile-shell.css');
-    expect(css).toContain('@supports (-webkit-touch-callout: none)');
-    expect(css).toContain('--mobile-browser-input-assistant-reserve: 3.5rem');
-    expect(css).toContain('--mobile-chat-bottom-reserve: var(--mobile-browser-input-assistant-reserve)');
+    expect(css).not.toContain('@supports (-webkit-touch-callout: none)');
+    expect(css).toMatch(
+      /html\[data-mobile-keyboard-open=["']true["']\]\s*{[^}]*--mobile-dock-reserve:\s*0px;[^}]*--mobile-chat-bottom-reserve:\s*0px;/,
+    );
+    expect(css).toContain('top: var(--app-viewport-height, 100dvh)');
+    expect(css).not.toContain('var(--app-viewport-top');
   });
 
   it('does not split modal ownership by hiding only the status sheet in CSS', () => {
@@ -81,6 +84,14 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(chat).toContain('data-mobile-hook-health-summary');
     expect(input).toContain('focus({ preventScroll: true })');
     expect(input).not.toContain('textareaRef.current?.focus()');
+  });
+
+  it('keeps mobile message and composer copy on one optical text scale', () => {
+    const input = readWeb('src/components/ChatInput.tsx');
+    const markdown = readWeb('src/components/MarkdownContent.tsx');
+
+    expect(input).toContain('text-base leading-5');
+    expect(markdown).toContain('markdown-content text-base sm:text-sm');
   });
 
   it('bounds mobile mentions and keeps the desktop keyboard legend out of compact layouts', () => {

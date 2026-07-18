@@ -45,7 +45,6 @@ export function useVisualViewportCssVars(): void {
 
     const writeFrame = () => {
       const top = Math.max(0, Math.round(viewport?.offsetTop ?? 0));
-      const left = Math.max(0, Math.round(viewport?.offsetLeft ?? 0));
       const width = Math.max(0, Math.round(viewport?.width ?? window.innerWidth));
       const height = Math.max(0, Math.round(viewport?.height ?? window.innerHeight));
       const obscuredHeight = Math.max(0, Math.round(window.innerHeight - height - top));
@@ -55,10 +54,11 @@ export function useVisualViewportCssVars(): void {
       const focusedViewportShrink = composerFocused && viewportShrink;
       keyboardOpen =
         obscuredHeight >= KEYBOARD_INSET_THRESHOLD_PX || focusedViewportShrink || (keyboardOpen && viewportShrink);
-      const projectedTop = keyboardOpen ? top : 0;
-
-      root.style.setProperty('--app-viewport-top', `${projectedTop}px`);
-      root.style.setProperty('--app-viewport-left', `${left}px`);
+      // The app shell is already fixed to the viewport. offsetTop/offsetLeft
+      // describe panning within the layout viewport; applying them again to
+      // the fixed root double-translates installed iOS PWAs during focus.
+      root.style.setProperty('--app-viewport-top', '0px');
+      root.style.setProperty('--app-viewport-left', '0px');
       root.style.setProperty('--app-viewport-width', `${width}px`);
       root.style.setProperty('--app-viewport-height', `${height}px`);
       if (keyboardOpen) {
@@ -72,9 +72,9 @@ export function useVisualViewportCssVars(): void {
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = 0;
         writeFrame();
-        // WebKit can publish the installed-PWA offset one frame after resize.
-        // A second read converges the same source instead of introducing a
-        // timeout, a UA-specific coordinate path, or a second geometry owner.
+        // WebKit can publish its final keyboard geometry one frame after
+        // resize. A second read converges the same dimensions without a
+        // timeout or a second geometry owner.
         settlingFrame = window.requestAnimationFrame(() => {
           settlingFrame = 0;
           writeFrame();
@@ -84,7 +84,6 @@ export function useVisualViewportCssVars(): void {
 
     writeFrame();
     viewport?.addEventListener('resize', scheduleFrame);
-    viewport?.addEventListener('scroll', scheduleFrame);
     window.addEventListener('resize', scheduleFrame);
     window.addEventListener('orientationchange', scheduleFrame);
     document.addEventListener('focusin', scheduleFrame);
@@ -92,7 +91,6 @@ export function useVisualViewportCssVars(): void {
 
     return () => {
       viewport?.removeEventListener('resize', scheduleFrame);
-      viewport?.removeEventListener('scroll', scheduleFrame);
       window.removeEventListener('resize', scheduleFrame);
       window.removeEventListener('orientationchange', scheduleFrame);
       document.removeEventListener('focusin', scheduleFrame);
