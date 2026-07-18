@@ -35,8 +35,11 @@ describe('F010 mobile viewport and overflow contract', () => {
 
   it('bounds mobile mentions and keeps the desktop keyboard legend out of compact layouts', () => {
     const menus = readWeb('src/components/ChatInputMenus.tsx');
-    expect(menus).toContain('max-h-[min(40dvh,20rem)]');
-    expect(menus).toContain('min-h-11');
+    expect(menus).toContain('max-h-52');
+    expect(menus).toContain('grid-cols-2');
+    expect(menus).toContain('overscroll-contain');
+    expect(menus).toContain('min-h-12');
+    expect(menus).toContain('sm:min-h-11');
     expect(menus).toContain('hidden sm:block');
   });
 

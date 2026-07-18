@@ -108,6 +108,26 @@ The POST returned HTTP 200. Without polling or refreshing, that socket received 
 
 The invoked Opus CLI returned `Not logged in · Please run /login`; the same content and system error were both delivered live and persisted. Therefore this probe proves the real-time transport path but does not claim a healthy Opus model reply. The CLI login state remains a separate acceptance-environment boundary. Because the API was restarted for this proof, the reporting iPhone still needs one page refresh to establish a socket against PID `7580`, followed by one message whose reply must appear in the DOM without a second refresh.
 
+## 2026-07-18 iPhone follow-up: mention picker and Sonnet binding
+
+The reporting iPhone screenshots `1784341440491-587f1546.png` and `1784341440492-3003b609.png` exposed two independent issues.
+
+First, the `@` picker still carried desktop information density into the keyboard-shrunken mobile frame: one candidate per row, descriptions always visible, and a viewport-unit height bound. The repair replaces that compact layout with a short two-column touch grid, 48px minimum targets, hidden mobile descriptions, 8px horizontal insets, and internally contained scrolling. Desktop retains the detailed single-column layout. A second regression locks the adjacent overflow-affordance bug: its effect now recomputes when the picker opens instead of running only once before the scroll DOM exists.
+
+TDD and deployment evidence:
+
+- RED: the rendered mobile contract failed on the old menu; the closed→open overflow test separately failed without the “还有更多猫猫” affordance.
+- GREEN: picker/layout/keyboard guards pass 9/9; Web TypeScript passes; targeted Biome exits 0 with repository-existing warnings only; `git diff --check` passes.
+- The production build completed with 22 routes and BUILD_ID `TzTwY4Lmu7Y6BiMErzKW9`.
+- Isolated Web PID `39088` serves the new build on `4310`; generated API, Socket.IO, and uploads rewrites target `4311`.
+- Through `https://desktop-9o1va3o.tail58c13e.ts.net:8443`, the current page embeds that BUILD_ID and page, manifest, service worker, API health, and the four-cat roster return successfully. Hub Browser Preview opened the current thread.
+
+The broader ChatInput selection passed 108/110 tests. The two repeatable failures are pre-existing, outside this diff, and recorded rather than hidden: a stale upload-error wording assertion and the current history-store append expectation. They do not involve the mention picker files.
+
+Second, the 10:19 `@sonnet` failure belongs to the pre-patch Anthropic binding. API log provenance for invocation `25abd9e1-2343-4c7d-98ca-fc817a3418af` proves it executed `claude.cmd`, which was not logged in. The operator's 10:20 catalog PATCH hot-rebound Sonnet to `clientId=openai`, `defaultModel=gpt-5.6-sol`, `accountRef=gpt-5-6-sol`. A fresh authenticated send then produced invocation `80e14818-5d80-44ec-ac72-278989766323`; the same API PID logged `codex.cmd`, model `gpt-5.6-sol`, OAuth, a final live `done`, and no error event. No restart or credential copy was required. Generated signature text is not executor provenance.
+
+The remaining acceptance boundary is one real-device touch pass: refresh or reopen the installed PWA, open the Chinese keyboard, type `@`, confirm the compact picker stays inside the visible frame, tap Sonnet, and confirm its reply appears without a second page refresh.
+
 ## Automated and build evidence
 
 - Pre-review broad selection: **19 test files, 359 tests passed** (includes the F190 visual contract and Node-only SSR regression).

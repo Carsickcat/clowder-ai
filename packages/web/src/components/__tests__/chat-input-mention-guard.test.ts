@@ -150,8 +150,7 @@ describe('ChatInput mention menu guards', () => {
     // Press Enter — should not crash (guard: activeOptions.length === 0)
     pressKey('Enter');
 
-    // Menu should be closed (no .w-64 mention menu div)
-    expect(container.querySelectorAll('.w-64').length).toBe(0);
+    expect(container.querySelectorAll('[data-testid="mention-menu"]').length).toBe(0);
   });
 
   it('Enter on mention menu with valid catOptions inserts mention', () => {
@@ -161,13 +160,13 @@ describe('ChatInput mention menu guards', () => {
     typeInTextarea('@');
 
     // Mention menu should be visible
-    expect(container.querySelectorAll('.w-64').length).toBe(1);
+    expect(container.querySelectorAll('[data-testid="mention-menu"]').length).toBe(1);
 
     // Press Enter to select first cat (selectedIdx defaults to 0)
     pressKey('Enter');
 
     // Menu should close
-    expect(container.querySelectorAll('.w-64').length).toBe(0);
+    expect(container.querySelectorAll('[data-testid="mention-menu"]').length).toBe(0);
 
     // Input should contain the inserted mention
     const ta = getTextarea();
@@ -180,7 +179,7 @@ describe('ChatInput mention menu guards', () => {
     render();
 
     typeInTextarea('@');
-    expect(container.querySelectorAll('.w-64').length).toBe(1);
+    expect(container.querySelectorAll('[data-testid="mention-menu"]').length).toBe(1);
 
     // ArrowDown once from idx 2 → idx 3 (缅因猫)
     pressKey('ArrowDown');

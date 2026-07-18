@@ -89,6 +89,10 @@ export function ChatInputMenus({
 
   // Detect if more items are hidden below
   useEffect(() => {
+    if (!showMentions || catOptions.length === 0) {
+      setCanScrollDown(false);
+      return;
+    }
     const el = scrollRef.current;
     if (!el) {
       setCanScrollDown(false);
@@ -98,7 +102,7 @@ export function ChatInputMenus({
     check();
     el.addEventListener('scroll', check);
     return () => el.removeEventListener('scroll', check);
-  }, []);
+  }, [showMentions, catOptions.length]);
 
   const handleGameDrillIn = useCallback(() => {
     onGameStepChange('modes');
@@ -110,14 +114,24 @@ export function ChatInputMenus({
       {showMentions && (
         <div
           ref={menuRef}
-          className="absolute bottom-full left-4 right-4 mb-2 flex max-h-[min(40dvh,20rem)] w-auto flex-col overflow-hidden rounded-xl border border-cafe bg-cafe-surface-elevated shadow-lg z-10 sm:right-auto sm:w-64 sm:max-h-80"
+          data-testid="mention-menu"
+          className="absolute bottom-full left-2 right-2 mb-2 flex max-h-52 w-auto flex-col overflow-hidden rounded-xl border border-cafe bg-cafe-surface-elevated shadow-lg z-30 sm:left-4 sm:right-auto sm:w-64 sm:max-h-80"
         >
-          <div ref={scrollRef} className="overflow-y-auto flex-1">
+          <div
+            ref={scrollRef}
+            role="listbox"
+            aria-label="选择猫猫"
+            className="grid flex-1 grid-cols-2 gap-1 overflow-y-auto overscroll-contain p-1 touch-pan-y sm:block sm:p-0"
+          >
             {catOptions.map((opt, i) => (
               <button
                 key={opt.id}
                 ref={i === selectedIdx ? selectedRef : undefined}
-                className={`min-h-11 w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors ${i === selectedIdx ? 'bg-cafe-surface-sunken' : 'hover:bg-cafe-surface-elevated'}`}
+                type="button"
+                role="option"
+                aria-selected={i === selectedIdx}
+                aria-label={`${opt.label}，${opt.desc}`}
+                className={`min-h-12 w-full rounded-lg px-3 py-2 text-left flex items-center gap-2 transition-colors sm:min-h-11 sm:rounded-none sm:px-4 sm:py-2.5 sm:gap-3 ${i === selectedIdx ? 'bg-cafe-surface-sunken' : 'hover:bg-cafe-surface-elevated'}`}
                 onMouseEnter={() => onSelectIdx(i)}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -125,7 +139,7 @@ export function ChatInputMenus({
                 }}
               >
                 {opt.isGroup ? (
-                  <div className="w-7 h-7 rounded-full bg-cafe-surface flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-cafe-surface flex items-center justify-center shrink-0 sm:w-7 sm:h-7">
                     <svg className="w-4 h-4 text-cafe-muted" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.5 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 0 0-1.588-3.755 4.502 4.502 0 0 1 5.874 2.636.818.818 0 0 1-.36.98A7.465 7.465 0 0 1 14.5 16Z" />
                     </svg>
@@ -135,7 +149,7 @@ export function ChatInputMenus({
                   <img
                     src={opt.avatar}
                     alt={opt.label}
-                    className="w-7 h-7 rounded-full"
+                    className="w-8 h-8 rounded-full shrink-0 sm:w-7 sm:h-7"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
@@ -143,7 +157,7 @@ export function ChatInputMenus({
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-sm font-semibold truncate" style={{ color: opt.color }}>
+                    <span className="text-sm font-semibold leading-tight truncate" style={{ color: opt.color }}>
                       {opt.label}
                     </span>
                     {opt.isCloud && opt.providerLabel && (
@@ -153,7 +167,9 @@ export function ChatInputMenus({
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-cafe-muted">{opt.desc}</div>
+                  <div data-testid="mention-option-description" className="hidden text-xs text-cafe-muted sm:block">
+                    {opt.desc}
+                  </div>
                 </div>
               </button>
             ))}
