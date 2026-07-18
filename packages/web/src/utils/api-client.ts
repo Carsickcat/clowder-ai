@@ -14,6 +14,19 @@ function getBrowserLocation(): Location | null {
   return candidate ?? null;
 }
 
+function resolveBrowserApiUrl(location: Location | null): string {
+  if (typeof window === 'undefined') return 'http://localhost:3004';
+  const protocol = location?.protocol ?? 'http:';
+  const hostname = location?.hostname ?? 'localhost';
+  const port = Number(location?.port ?? '') || 0;
+  // HTTPS origins use their same-origin /api and /socket.io proxies even when
+  // TLS listens on an explicit port. Plain HTTP direct access keeps the
+  // established Web+1 API port convention.
+  if (!port) return `${protocol}//${hostname}`;
+  if (protocol === 'https:') return `${protocol}//${hostname}:${port}`;
+  return `${protocol}//${hostname}:${port + 1}`;
+}
+
 /** @internal Exported for testing — prefer using `API_URL` constant. */
 export function resolveApiUrl(): string {
   const location = getBrowserLocation();
@@ -33,16 +46,7 @@ export function resolveApiUrl(): string {
     const mismatch = (isLocalhostDefault && isRemoteAccess) || (!isLocalhostDefault && isLocalAccess);
     if (!mismatch) return envUrl;
   }
-  if (typeof window === 'undefined') return 'http://localhost:3004';
-  const protocol = location?.protocol ?? 'http:';
-  const hostname = location?.hostname ?? 'localhost';
-  const port = Number(location?.port ?? '') || 0;
-  // Behind reverse proxy (default port 80/443 → port is empty string):
-  // API lives at the same origin, proxied via /api/ and /socket.io/ paths.
-  if (!port) return `${protocol}//${hostname}`;
-  // Direct access with explicit port: convention frontendPort + 1 = apiPort
-  // (runtime: 3001→3002, alpha: 3011→3012).
-  return `${protocol}//${hostname}:${port + 1}`;
+  return resolveBrowserApiUrl(location);
 }
 export const API_URL = resolveApiUrl();
 

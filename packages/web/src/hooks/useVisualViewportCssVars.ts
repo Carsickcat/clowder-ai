@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 const KEYBOARD_INSET_THRESHOLD_PX = 80;
 const VIEWPORT_WIDTH_RESET_THRESHOLD_PX = 40;
 const VIEWPORT_SETTLE_DELAY_MS = 120;
+const MIN_USABLE_COMPOSING_VIEWPORT_HEIGHT_PX = 240;
 const CSS_PROPERTIES = [
   '--app-viewport-top',
   '--app-viewport-left',
@@ -92,6 +93,17 @@ function projectKeyboardState(root: HTMLElement, keyboardOpen: boolean): void {
   else delete root.dataset.mobileKeyboardOpen;
 }
 
+function isUsableComposingFrame(
+  baseline: ViewportBaseline,
+  frame: ViewportFrame,
+  composerFocused: boolean,
+  keyboardOpen: boolean,
+): boolean {
+  if (!composerFocused && !keyboardOpen) return true;
+  const minimumHeight = Math.min(MIN_USABLE_COMPOSING_VIEWPORT_HEIGHT_PX, Math.round(baseline.height / 2));
+  return frame.height >= minimumHeight;
+}
+
 function restoreViewportProjection(
   root: HTMLElement,
   previousValues: ReadonlyMap<string, string>,
@@ -154,6 +166,12 @@ export function useVisualViewportCssVars(): void {
         animationFrame = 0;
         const frame = readViewportFrame(viewport);
         updateKeyboardState(frame, true);
+        // Installed iOS PWAs can pause their keyboard-opening event stream on
+        // a near-zero intermediate VisualViewport height for longer than the
+        // quiet window. Publishing that pulse collapses the complete fixed
+        // AppShell. Keep the last usable shell geometry until a later
+        // resize/scroll event supplies a frame that can contain the composer.
+        if (!isUsableComposingFrame(baseline, frame, hasFocusedComposer(), keyboardOpen)) return;
         commitFrame(frame);
       });
     };

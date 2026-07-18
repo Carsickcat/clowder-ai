@@ -106,6 +106,13 @@ describe('resolveApiUrl', () => {
     expect(resolve()).toBe('https://1.2.3.4');
   });
 
+  it('keeps an explicit HTTPS reverse-proxy port on the same origin', async () => {
+    process.env.NEXT_PUBLIC_API_URL = 'http://localhost:4311';
+    stubLocation({ hostname: 'desktop.example.ts.net', protocol: 'https:', port: '8443' });
+    const resolve = await loadResolveApiUrl();
+    expect(resolve()).toBe('https://desktop.example.ts.net:8443');
+  });
+
   // ── No env, browser, direct port → port+1 ──
 
   it('derives API port from frontend port (3003→3004)', async () => {

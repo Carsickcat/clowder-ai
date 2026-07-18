@@ -201,3 +201,35 @@ The seventh true-device recording after `ffafb56` proves that the viewport owner
 7. Unmount with a settle timer pending, then dispatch both viewport events. No delayed CSS/data write may occur. Symbols terminate mentions; numbers, combining marks, and `_` remain valid filters.
 
 [丢丢/gpt-5.6-sol🐾]
+
+## Task 10: Reject pulsed near-zero frames and remove the second HTTPS origin
+
+The post-review reporting-iPhone recording `录屏.mp4` (SHA-256 `81376E69…71D2A`, media creation
+`2026-07-18T19:24:43Z`) proves that a keyboard-opening intermediate height can remain event-quiet
+longer than the 120 ms settle timer. The same recording shows only `@thread`/`@all` because the
+explicit HTTPS Web port was incorrectly treated as a direct Web+1 API port; the optional `:8444`
+mapping had disappeared even though `:8443` already proxied `/api` and `/socket.io`.
+
+### Invariants
+
+- During composing, a frame too short to contain a minimum usable chat shell cannot replace the
+  last usable AppShell geometry. Keyboard state may latch immediately; a later legal resize/scroll
+  frame remains the terminal geometry source.
+- This is a safety invariant, not another debounce layer: the quiet-window duration stays unchanged,
+  and no UA/device sniff or second geometry owner is added.
+- An HTTPS browser origin remains the API/Socket origin even when it has an explicit port. Plain HTTP
+  direct-access origins retain the established Web+1 API-port convention.
+- The installed PWA must not depend on a second TLS listener when its current origin already exposes
+  `/api` and `/socket.io`.
+
+### Red contract
+
+1. Focus the composer, publish a `112px` frame, dispatch resize, and let it outlive the settle timer.
+   The old hook must commit `112px`; the terminal contract requires the previous `844px` shell to
+   remain visible.
+2. Follow with a valid `500px` scroll-only frame. It must commit normally with root top still zero.
+3. Resolve a remote HTTPS location on explicit port `8443` while the build contains a localhost API
+   URL. The old client must incorrectly return `:8444`; the terminal contract returns `:8443`.
+4. Preserve existing HTTP direct-port cases (`3003→3004`, `3011→3012`).
+
+[丢丢/gpt-5.6-sol🐾]
