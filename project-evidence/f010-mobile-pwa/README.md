@@ -284,6 +284,8 @@ Detailed diagnosis and review packet:
 
 The third reporting-iPhone pass exposed a lifecycle and product-density defect rather than another VisualViewport threshold: client navigation preserved an open status sheet across threads; status opening did not dismiss the composer; browser-default refocus could scroll; the sheet retained a stale position; and a full Agent environment error card competed with the composer and Safari's system form assistant.
 
+Implementation commit: `20adebde118b08e2b1cfb0b8e92a056846f8739a`.
+
 The recovery establishes one mobile terminal state:
 
 - browsing uses a 57px header, one transcript scroller, a 52px composer, and one 56px Dock;
@@ -297,7 +299,7 @@ Fresh pre-review evidence:
 - RED→GREEN: initial six failures plus isolated thread-lifecycle and textarea-line-box reds; final affected suites **44/44**.
 - TypeScript, targeted Biome (zero errors), `git diff --check`, and production Web build pass.
 - Full Web Vitest remains transparently baseline-red at **5050/5117 passed**, 67 failures in 14 files, improving from the prior **5044/5112**, 68 failures in 15 files. All five directly changed suites are green and no new failing test file was introduced.
-- Isolated Web `4310` serves BUILD_ID `mGL-QVkc-C-VUCAe52vBT` from PID `42512`; HTTP `/` is 200 and isolated API remains `4311`.
+- Post-commit isolated Web `4310` serves BUILD_ID `i1XgGmGXamb0QSLhn2Bgk` from PID `26716`, whose start time follows `20adebd`; HTTP `/` is 200 and isolated API remains `4311`.
 - No-cache 390×844 CDP: document width `390`, root scrollTop `0`, header `57`, composer `52`, textarea `44`, Dock `56` with four items.
 - 390×430 composing projection: composer bottom equals visual bottom; Dock is absent, visible secondary chrome is zero, and the status sheet is hidden.
 - Status journey: focused textarea is blurred before open; sheet `scrollTop=0`; title is visible.

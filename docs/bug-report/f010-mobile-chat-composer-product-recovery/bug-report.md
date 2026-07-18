@@ -31,10 +31,11 @@ This is a harness defect, not three unrelated style bugs: three real-device corr
 
 ## Verification before independent review
 
+- Implementation commit: `20adebde118b08e2b1cfb0b8e92a056846f8739a`.
 - RED: six initial failures across five suites, followed by separate red proofs for transient-sheet thread carry-over and the textarea baseline line box.
 - GREEN: five affected suites, **44/44**; TypeScript `--noEmit` passes; targeted Biome has zero errors; Next/PWA production build passes.
 - Full Web Vitest remains transparently baseline-red at **5050/5117 passed**, 67 failures in 14 files, improving from the prior **5044/5112**, 68 failures in 15 files. The five changed suites are green; the repeatable ChatInput history/upload failures are already recorded baseline debt, and no new failing test file was introduced by this slice.
-- Isolated runtime: Web `4310` PID `42512`, HTTP 200, BUILD_ID `mGL-QVkc-C-VUCAe52vBT`; API remains isolated on `4311`.
+- Post-commit isolated runtime: Web `4310` PID `26716` started after commit, HTTP 200, BUILD_ID `i1XgGmGXamb0QSLhn2Bgk`; API remains isolated on `4311`.
 - No-cache CDP at 390×844: root/body width `390`, root scrollTop `0`, header `57`, composer `52`, textarea `44`, Dock `56` with four items.
 - 390×430 composing projection: composer y=`378`, h=`52`, bottom=`430`; Dock `display:none`; visible secondary chrome count `0`; status sheet `visibility:hidden`; root scrollTop `0`.
 - Focus/status journey: textarea focused before status click; active element becomes `BODY`; sheet opens with `aria-hidden=false`, `scrollTop=0`, and its title visible.

@@ -72,10 +72,11 @@ Dogfood bugs found and fixed in this slice: transient sheet carry-over across cl
 - `git diff --check`: exit 0.
 - Production Web build: exit 0, 22 routes.
 - Full Web Vitest: transparently baseline-red at **5050/5117**, 67 failures in 14 files, improving from **5044/5112**, 68 failures in 15 files. The five changed suites are green; the known ChatInput history/upload debts remain unchanged.
-- Runtime before commit: isolated Web `4310`, API `4311`, BUILD_ID `mGL-QVkc-C-VUCAe52vBT`, HTTP `/` 200. A post-commit build/process identity is required before the review request becomes final.
+- Implementation commit: `20adebde118b08e2b1cfb0b8e92a056846f8739a`.
+- Post-commit runtime: isolated Web `4310` PID `26716` started at 2026-07-18 15:47:11 +08:00, after the candidate commit; BUILD_ID `i1XgGmGXamb0QSLhn2Bgk`; HTTP `/` 200; isolated API remains `4311`.
 
 ## Verdict
 
-Code-review gate: pass once the candidate commit and post-commit runtime identity are recorded. Release gate: open only for reporting-iPhone Safari/installed-PWA Chinese-IME acceptance.
+Code-review gate: pass. Release gate: open only for reporting-iPhone Safari/installed-PWA Chinese-IME acceptance.
 
 [宪宪/gpt-5.6-sol🐾]
