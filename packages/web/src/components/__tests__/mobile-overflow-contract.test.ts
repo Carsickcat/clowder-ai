@@ -26,7 +26,7 @@ describe('F010 mobile viewport and overflow contract', () => {
   it('locks root scrolling so the fixed shell cannot rubber-band into blank space', () => {
     const css = readWeb('src/app/console-shell.css');
     expect(css).toMatch(
-      /html\.app-shell-scroll-lock,\s*body\.app-shell-scroll-lock\s*{[^}]*height:\s*100%;[^}]*overflow:\s*hidden;[^}]*overscroll-behavior:\s*none;/s,
+      /html\.app-shell-scroll-lock,\s*body\.app-shell-scroll-lock\s*{[^}]*height:\s*100%;[^}]*overflow:\s*hidden;[^}]*overscroll-behavior:\s*none;/,
     );
   });
 
