@@ -78,12 +78,12 @@ Fresh-context is a finding generator only; Terra/Kimi remain the formal review a
 ## Formal review status
 
 - Terra reviewed exact code SHA `87ffdd5` in message `0001784400867254-000014-6e976ffa`: **REQUEST_CHANGES, P1=0, P2=1, P3=0**. He approved the viewport state machine, event ownership, cleanup, orientation baseline, mention boundaries, and the decision not to escalate to `100dvh + transform`; the sole P2 was the committed-range whitespace gate mismatch. `[FC:new]`
-- Doc-only repair `f65aa32` closes that P2 without changing runtime code. Terra's continuation signature for the repaired range is pending.
+- Doc-only repair `f65aa32` closes that P2 without changing runtime code. Terra continuation-approved the repaired evidence head `7086e37` in message `0001784401196987-000017-cd17c0f4` with **P1=0, P2=0, P3=0** after both range checks returned 0.
 - Kimi's independent visual/interaction verdict remains pending.
 
 ## Remaining gates
 
-1. Terra continuation-signs the `f65aa32` diff-check repair and Kimi returns the independent visual/interaction verdict for code SHA `87ffdd5`.
+1. Kimi returns the independent visual/interaction verdict for code SHA `87ffdd5`; Terra's correctness and continuation gates are approved.
 2. After P1/P2 are zero, replace isolated 4310 with the reviewed build while leaving 4311 untouched.
 3. Reporting-iPhone replay of the same Chinese-IME/mention journey.
 
