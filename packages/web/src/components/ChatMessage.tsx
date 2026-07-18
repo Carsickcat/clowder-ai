@@ -440,7 +440,7 @@ export function ChatMessage({
         {hasBlocks ? (
           <ContentBlocks blocks={message.contentBlocks!} />
         ) : (
-          <CollapsibleMarkdown content={message.content} />
+          <CollapsibleMarkdown content={message.content} textScale="chat" />
         )}
       </MessageBubble>
     );
@@ -583,7 +583,11 @@ export function ChatMessage({
       {hasCliBlock && isStreamOrigin ? null : !isStreamOrigin && hasBlocks ? (
         <ContentBlocks blocks={message.contentBlocks!} />
       ) : !isStreamOrigin && hasTextContent ? (
-        <CollapsibleMarkdown content={mergedSpeechContent ?? message.content} className={catStyle?.font} />
+        <CollapsibleMarkdown
+          content={mergedSpeechContent ?? message.content}
+          className={catStyle?.font}
+          textScale="chat"
+        />
       ) : message.isStreaming ? (
         <span className="text-xs text-cafe-secondary">Thinking...</span>
       ) : null}

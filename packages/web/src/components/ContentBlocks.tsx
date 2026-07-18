@@ -12,7 +12,7 @@ export function ContentBlocks({ blocks }: { blocks: MessageContent[] }) {
     <>
       {blocks.map((block, i) => {
         if (block.type === 'text') {
-          return <MarkdownContent key={i} content={block.text} />;
+          return <MarkdownContent key={i} content={block.text} textScale="chat" />;
         }
         if (block.type === 'image') {
           const src = block.url.startsWith('/uploads/') ? `${API_URL}${block.url}` : block.url;

@@ -39,7 +39,7 @@ function formatTime(ts: number): string {
 function renderContentBlocks(blocks: MessageContent[]) {
   return blocks.map((block, i) => {
     if (block.type === 'text') {
-      return <MarkdownContent key={i} content={block.text} />;
+      return <MarkdownContent key={i} content={block.text} textScale="chat" />;
     }
     if (block.type === 'image') {
       const src = block.url.startsWith('/uploads/') ? `${API_URL}${block.url}` : block.url;
@@ -210,7 +210,11 @@ export function ConnectorBubble({ message, threadId }: ConnectorBubbleProps) {
         color: 'var(--cat-msg-text, var(--cafe-text))',
       }}
     >
-      {hasBlocks ? renderContentBlocks(message.contentBlocks!) : <MarkdownContent content={message.content} />}
+      {hasBlocks ? (
+        renderContentBlocks(message.contentBlocks!)
+      ) : (
+        <MarkdownContent content={message.content} textScale="chat" />
+      )}
       {richBlocks && richBlocks.length > 0 && <RichBlocks blocks={richBlocks} messageSource={message.source} />}
       {source.connector === 'hold-ball' && typeof source.meta?.taskId === 'string' && (
         <div className="mt-2 pt-2 border-t border-cafe-border">

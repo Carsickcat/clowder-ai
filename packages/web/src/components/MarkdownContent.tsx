@@ -323,9 +323,13 @@ function buildMdComponents(tp?: (children: ReactNode) => ReactNode): Components 
 const mdComponents = buildMdComponents();
 
 /* ── Exported component ────────────────────────────────────── */
+export type MarkdownTextScale = 'default' | 'chat';
+
 interface Props {
   content: string;
   className?: string;
+  /** Keep global Markdown compact; only thread-message owners opt into the mobile chat scale. */
+  textScale?: MarkdownTextScale;
   /** Skip slash-command prefix detection (e.g. for rich block bodyMarkdown) */
   disableCommandPrefix?: boolean;
   /** Base directory path for resolving relative links (e.g. "docs/features") */
@@ -362,6 +366,7 @@ export function resolveRelativePath(base: string, relative: string): string {
 export function MarkdownContent({
   content,
   className,
+  textScale = 'default',
   disableCommandPrefix,
   basePath,
   worktreeId,
@@ -369,6 +374,7 @@ export function MarkdownContent({
 }: Props) {
   const cmdMatch = disableCommandPrefix ? null : /^(\/\w+)/.exec(content);
   const md = cmdMatch ? content.slice(cmdMatch[1].length) : content;
+  const textScaleClass = textScale === 'chat' ? 'text-base md:text-sm' : 'text-sm';
 
   let components: Components = textProcessor ? buildMdComponents(textProcessor) : mdComponents;
 
@@ -382,7 +388,7 @@ export function MarkdownContent({
   }
 
   return (
-    <div className={`markdown-content text-base sm:text-sm break-words ${className ?? ''}`}>
+    <div className={`markdown-content ${textScaleClass} break-words ${className ?? ''}`}>
       {cmdMatch && <span className="font-semibold text-[var(--semantic-info)]">{cmdMatch[1]}</span>}
       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={components}>
         {md}

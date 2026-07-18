@@ -2,11 +2,19 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { shouldFoldText, TEXT_FOLD_THRESHOLD } from '@/utils/textFold';
-import { MarkdownContent } from './MarkdownContent';
+import { MarkdownContent, type MarkdownTextScale } from './MarkdownContent';
 
 const COLLAPSED_MAX_HEIGHT = 320;
 
-export function CollapsibleMarkdown({ content, className }: { content: string; className?: string }) {
+export function CollapsibleMarkdown({
+  content,
+  className,
+  textScale,
+}: {
+  content: string;
+  className?: string;
+  textScale?: MarkdownTextScale;
+}) {
   const fold = shouldFoldText(content);
   const [expanded, setExpanded] = useState(false);
   const collapsed = fold && !expanded;
@@ -26,7 +34,7 @@ export function CollapsibleMarkdown({ content, className }: { content: string; c
   const toggle = useCallback(() => setExpanded((v) => !v), []);
 
   if (!fold) {
-    return <MarkdownContent content={content} className={className} />;
+    return <MarkdownContent content={content} className={className} textScale={textScale} />;
   }
 
   return (
@@ -35,7 +43,7 @@ export function CollapsibleMarkdown({ content, className }: { content: string; c
         className="overflow-hidden transition-[max-height] duration-200"
         style={collapsed ? { maxHeight: COLLAPSED_MAX_HEIGHT } : undefined}
       >
-        <MarkdownContent content={content} className={className} />
+        <MarkdownContent content={content} className={className} textScale={textScale} />
       </div>
       <button
         type="button"

@@ -89,9 +89,23 @@ describe('F010 mobile viewport and overflow contract', () => {
   it('keeps mobile message and composer copy on one optical text scale', () => {
     const input = readWeb('src/components/ChatInput.tsx');
     const markdown = readWeb('src/components/MarkdownContent.tsx');
+    const chatMessage = readWeb('src/components/ChatMessage.tsx');
+    const contentBlocks = readWeb('src/components/ContentBlocks.tsx');
+    const connector = readWeb('src/components/ConnectorBubble.tsx');
+    const breakpoints = JSON.parse(readWeb('src/styles/responsive-breakpoints.json')) as { medium: number };
 
     expect(input).toContain('text-base leading-5');
-    expect(markdown).toContain('markdown-content text-base sm:text-sm');
+    expect(breakpoints.medium).toBe(768);
+    expect(markdown).toContain("textScale === 'chat' ? 'text-base md:text-sm' : 'text-sm'");
+    expect([639, 640, 767, 768].map((width) => (width < breakpoints.medium ? 'text-base' : 'text-sm'))).toEqual([
+      'text-base',
+      'text-base',
+      'text-base',
+      'text-sm',
+    ]);
+    expect(chatMessage.match(/<CollapsibleMarkdown[^>]*textScale="chat"/g)).toHaveLength(2);
+    expect(contentBlocks).toContain('<MarkdownContent key={i} content={block.text} textScale="chat" />');
+    expect(connector.match(/<MarkdownContent[^>]*textScale="chat"/g)).toHaveLength(2);
   });
 
   it('bounds mobile mentions and keeps the desktop keyboard legend out of compact layouts', () => {
