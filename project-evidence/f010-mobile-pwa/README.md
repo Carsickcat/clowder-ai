@@ -397,6 +397,12 @@ Fresh evidence:
 
 Fresh-context found three P2s (orientation baseline, unmount cleanup proof, Unicode-category coverage); all three are closed in `87ffdd5`. Terra's formal review message `0001784400867254-000014-6e976ffa` approved all runtime behavior and returned **P1=0, P2=1, P3=0** only for the committed-range whitespace gate mismatch; `f65aa32` closes that doc-only P2, and Terra continuation-approved evidence head `7086e37` in message `0001784401196987-000017-cd17c0f4` with **P1=0, P2=0, P3=0**. Kimi independently approved exact code SHA `87ffdd5` in message `0001784401000653-000019-cd6cb063` with **P1=0, P2=0, P3=1**, reproducing focused **26/26** and confirming `100dvh + transform` is not currently required. His non-blocking P3 records punctuation inside typed display-name filters; current roster handles/patterns and the recorded journey are unaffected. Both blocking review gates are zero and the reviewed build now serves on 4310. The sole remaining release truth is the reporting-iPhone replay.
 
+### Later same-file reference: provenance correction and mention replay
+
+At 2026-07-19 03:29+08:00 the co-creator referenced the same desktop pathname again as the latest recording. The file is byte-identical to the earlier evidence: SHA-256 `B12DA0902CFF6B778BA13370E6FF92E0639E6AE3663DFF94BBFFEB20741F9FFA`, modified `2026-07-19T01:29:27.1175629+08:00`, with embedded creation time `2026-07-18T17:29:09Z`. It predates implementation `87ffdd5` (`02:49:49+08:00`) and reviewed Web PID `17084` (`03:05:53+08:00`). It is not a post-fix device replay and does not authorize a ninth viewport patch.
+
+The same audit separates mention selection from dispatch. The recording ends with `@opus ，刚刚刚刚刚刚` still in the composer and the send action still present; no new submission occurs. The historical bubble with that content did persist `mentions:["opus"]`, but its invocation `a05b76ce-1159-4093-8169-33e0e4006a13` was canceled after 2.899 seconds. A current-runtime replay through the existing F010 diagnostic thread completed successfully: invocation `13dc1f09-620f-4383-9a49-f574a1aacd45` targeted `opus`, reached `succeeded`, and persisted `MENTION_OK`. Current mention parsing, dispatch, provider execution, and persistence are therefore live; the old cancellation is not evidence of a punctuation/parser defect.
+
 Detailed evidence:
 
 - `docs/bug-report/f010-ios-pwa-viewport-event-commit/bug-report.md`

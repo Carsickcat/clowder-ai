@@ -31,6 +31,30 @@
 
 The video file timestamp is after the target build. An old bundle is not an admissible explanation for this recording.
 
+## 2026-07-19 re-reference audit
+
+The co-creator later referenced the same desktop pathname again after `87ffdd5` had been reviewed and deployed. A byte-level provenance check establishes that it is still the earlier source recording, not a post-fix replay:
+
+- file: `C:\Users\myh_1\Desktop\8c99ee100752d336619be399e65e3090.mp4`
+- SHA-256: `B12DA0902CFF6B778BA13370E6FF92E0639E6AE3663DFF94BBFFEB20741F9FFA`
+- bytes: `1,537,264`
+- filesystem modified time: `2026-07-19T01:29:27.1175629+08:00`
+- embedded media creation time: `2026-07-18T17:29:09Z`
+- reviewed implementation commit time: `87ffdd5` at `2026-07-19T02:49:49+08:00`
+- reviewed Web process: PID `17084`, started `2026-07-19T03:05:53.3855958+08:00`, serving BUILD_ID `davuSC0P3wlGS5zAgfHp-`
+
+Therefore this file remains valid before-evidence for the event-commit repair, but it cannot establish that `87ffdd5` still jumps. No additional viewport patch is justified from this file alone.
+
+The recording also does not show a new mention submission. The final composer retains `@opus ，刚刚刚刚刚刚` and the orange send button through the end of the app footage. The similarly worded historical bubble is a previously persisted message, not the current draft being sent.
+
+Read-only Redis provenance for that historical message closes the routing question:
+
+- message `0001784388016104-000020-353e6c2b` persisted `mentions:["opus"]` and dispatch owner `a05b76ce-1159-4093-8169-33e0e4006a13`; mention parsing succeeded;
+- its invocation targeted `opus` but transitioned to `canceled` 2.899 seconds after creation, with no persisted cancel reason; this explains the missing historical reply but does not identify the cancellation trigger;
+- a current-runtime replay in the existing F010 diagnostic thread used Chinese punctuation, invocation `13dc1f09-620f-4383-9a49-f574a1aacd45`, and completed `succeeded` with a durable `MENTION_OK` reply from `opus`.
+
+Current verdict: the reviewed viewport correction remains the deployed candidate; current mention routing and execution are live. The only unresolved release evidence is a genuinely post-`87ffdd5` reporting-iPhone focus replay. The historical cancellation-reason observability gap is not rewritten as a parser failure.
+
 ## Team convergence
 
 ### Common ground
