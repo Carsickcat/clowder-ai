@@ -410,3 +410,19 @@ Detailed evidence:
 - `review-notes/2026-07-19-f010-ios-pwa-viewport-event-commit-review-request.md`
 
 [丢丢/gpt-5.6-sol🐾]
+
+## 2026-07-19 overnight: real new recording + 8444 API-port root cause (kimi/烁烁)
+
+**Recording identity.** co-creator's intended new evidence is `C:\Users\myh_1\Desktop\录屏.mp4`, SHA-256 `81376E69119A1685D89BD83F150B62F427B08050D7206029AD0711D2FDA71D2A`, recorded 19:23 UTC (33.5s, from home screen). It is byte-identical to `1ecf26d8c7ef7181d103f7c86dfebf55.mp4`. The older `8c99ee10…mp4` (01:29) was re-sent by mistake and remains pre-fix evidence only.
+
+**Problem 1 (focus-time blank) — still open.** The new recording proves the reviewed build is on the device and the settled keyboard state is now correct: Dock leaves layout while composing (13.9s–27.8s) and returns on dismiss (28.6s). However at ~4.9s the composer tap is followed by a ~0.8s whole-page blank (header, transcript and composer all vanish). Mechanism hypothesis: the 120ms quiet window cannot survive iOS's bursty keyboard-animation event stream — a mid-animation pause >120ms commits an intermediate dirty height and collapses the fixed shell — and no commit clamp exists. Proposed patch: reject committed heights below ~60% of the stable baseline during keyboard transitions, and commit only when two reads 100ms apart agree. Fallback if the next device replay still fails: stable `100dvh` shell + composer transform.
+
+**Problem 2 (@ summons no cat) — root cause found and repaired at runtime.** In the new recording (10.6s) the mention picker shows only `@thread`/`@all` with zero cats. Chain: `useCatData` → `apiFetch` → `resolveApiUrl()` applies the "frontend port + 1" rule to explicit port 8443, pointing API traffic at **8444**, which had no listener (curl HTTP 000; netstat showed only 8443). All `apiFetch` calls (`/api/session`, `/api/cats`, `/api/config/cat-order`) and the main socket (`useSocket.ts:449` `io(API_URL)`) were dead; the page rendered only from the SSR initial payload. The older morning recording had a working picker, so the 8444 mapping existed and was dropped during today's repeated `tailscale serve` reconfigurations.
+
+Repair executed (reversible, operator-authorized overnight autonomy): `tailscale serve --bg --https=8444 http://127.0.0.1:4311`. Verified after repair: `8444 /api/health` 200, `/api/cats` returns 4 cats (`opus`, `sonnet`, `opus-45`, `fable-5`), `/api/session` returns the owner principal, `/socket.io` handshake returns a valid sid. Failure-mode audit: every phone-path consumer (`apiFetch`, `useSocket`, `resolveAssetUrl` uploads/artifacts, connection status) resolves through the single `API_URL`, so the one 8444 mapping covers the whole class. No code change or redeploy was required; the next PWA cold start picks it up.
+
+**Harness guard.** `scripts/f010-tailscale-serve-guard.mjs` now asserts all four required serve mappings (8443 `/`, `/api`, `/socket.io` + 8444 `/`) and repairs missing ones idempotently; first run after the fix: OK, exit 0. Run it after any serve reconfiguration or env restart.
+
+**Known remaining boundaries.** (a) claude CLI login is operator-owned; (b) 4310's Next rewrite targets the production API while 8443/8444 map to isolated 4311, so SSR and client data come from two catalogs with different cat display names (英短猫/山本 vs 布偶猫/宪宪) — cosmetic drift to unify; (c) historical executor failures (缅因猫 1800s timeouts, Kimi CLI exit 1, opaque `CLI Output · private` reply cards) are separate dispatch-layer items; (d) the focus-blank clamp patch still needs one code round plus device replay.
+
+[烁烁/kimi-k3🐾]
