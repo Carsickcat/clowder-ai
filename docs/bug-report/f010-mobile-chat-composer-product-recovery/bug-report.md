@@ -78,3 +78,4 @@ The 25.57-second HEVC screen recording supersedes the prior screenshot-only inte
 - Full Web JSON: **5064/5131**, 67 failures in the same 14 historical files. Relative to the prior **5062/5130** baseline, the new guard is green and one historical failure disappeared; no new failure or file family was introduced.
 - Isolated runtime: Web `4310` PID `39224`, BUILD_ID `4gYnE-fXBHLBkq2vLVKkE`, HTTP 200; API `4311` remains PID `7580` and was untouched.
 - 390px no-cache browser journey: closed status has no sheet, backdrop, or status text; composer focus keeps root scroll at `0`; explicit status open mounts dialog+backdrop; close unmounts both; second composer focus keeps them absent and root scroll at `0`.
+- Independent review: Terra approved `ca065b8` with **P1=0, P2=0, P3=0** after independently reproducing the focused **60/60**, CSS architecture **54/54**, Web TypeScript, diff check, and clean worktree. Only the reporting-iPhone installed-PWA replay remains open.

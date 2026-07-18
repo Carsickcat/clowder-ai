@@ -340,6 +340,6 @@ RED→GREEN and harness evidence:
 
 Verification: six focused files pass **60/60**; Web TypeScript, targeted Biome, diff check, and the production build pass. Full Web JSON is **5064/5131** with 67 failures in the same 14 historical files, so the new test is green and no new failure family appears. Isolated Web `4310` serves BUILD_ID `4gYnE-fXBHLBkq2vLVKkE` from PID `39224`; API `4311` PID `7580` was untouched. At 390px, closed status contributes no DOM or text, composer focus leaves root scroll at `0`, explicit open mounts dialog and backdrop, and close plus second focus leaves both absent with root scroll still `0`.
 
-The previous fourth-round review is superseded only for this newly observed closed-sheet journey. A new build, independent review, and reporting-iPhone installed-PWA pass remain required.
+The previous fourth-round review is superseded only for this newly observed closed-sheet journey. Terra independently approved candidate `ca065b8` in message `0001784383917572-000554-ec81bda1` with **P1=0, P2=0, P3=0**, reproducing the focused **60/60** selection, CSS architecture **54/54**, Web TypeScript, diff check, and clean worktree. Code and review gates pass; the reporting-iPhone installed-PWA replay remains required.
 
 [宪宪/gpt-5.6-sol🐾]
