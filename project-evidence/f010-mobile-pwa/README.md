@@ -223,6 +223,8 @@ These failures are outside the F010 diff and are not hidden as green:
 
 Three new reporting-iPhone screenshots showed that the compact mention picker was not the root fix: the desktop-density header, liveness rows, composer safe area, and four-item Dock still competed inside the keyboard-constrained VisualViewport.
 
+Implementation commit: `78ebe807f7c3303a4a26bf5b50137d098f7a1a9c`
+
 The corrected shell now has two projections:
 
 - **Browsing:** 56px single-line mobile header, sole transcript scroll, compact composer, one 56px Dock reserve plus one safe area.
