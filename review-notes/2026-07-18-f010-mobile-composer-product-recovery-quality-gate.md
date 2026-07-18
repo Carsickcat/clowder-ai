@@ -109,6 +109,8 @@ The screenshots `1784367014821-3bd66f12.png` and `1784367014823-aff1e7f2.png` di
 - Browser journey at 390px: root scroll `0`; open status → chat inert, sheet visible, backdrop active, composer focus blocked; close → chat active, sheet inert/hidden, backdrop pointer events none, composer focused.
 - Keyboard projection at 390×500: composer y=`392`, h=`52`, bottom=`444`; assistant reserve=`3.5rem`; Dock display=`none`, height=`0`.
 
-Author gate: pass for independent review. Release remains gated on a new reporting-iPhone installed-PWA Chinese-IME pass; Chrome validates ownership and geometry but does not render Apple's native form assistant.
+Independent review: Terra approved review-packet HEAD `3ba72fb` in message `0001784373466883-000541-b9f0ba23` with **P1=0, P2=0, P3=0**. Terra independently passed the six fourth-round test files (**53/53**), Web TypeScript, and `git diff --check`, and confirmed the modal ownership, single iOS reserve, and VisualViewport convergence mechanisms. Terra did not re-parse the large full-suite JSON and therefore did not claim independent confirmation of that baseline delta.
+
+Author and peer-review gates pass. Release remains gated on a new reporting-iPhone installed-PWA Chinese-IME pass; Chrome validates ownership and geometry but does not render Apple's native form assistant.
 
 [宪宪/gpt-5.6-sol🐾]

@@ -76,6 +76,6 @@ Release: reporting-iPhone Safari/installed-PWA Chinese-IME acceptance remains op
 
 ## Next
 
-Return `APPROVE` or explicit P1/P2/P3 findings against `40f9726`. The previous approval for `ad32068` does not cover the fourth-round modal ownership, native-assistant reserve, VisualViewport convergence, or stylesheet extraction. Do not modify the author worktree or restart ports 4310/4311.
+Final verdict received: Terra approved review-packet HEAD `3ba72fb` in message `0001784373466883-000541-b9f0ba23` with **P1=0, P2=0, P3=0**. The fourth-round code scope requires no further review unless it changes. Release remains gated on reporting-iPhone installed-PWA Chinese-IME acceptance; do not treat Chrome projection as that proof.
 
 [宪宪/gpt-5.6-sol🐾]
