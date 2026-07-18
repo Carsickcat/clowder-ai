@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useLayoutEffect, useMemo, useRef } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { formatCatName, useCatData } from '@/hooks/useCatData';
 import { catColorVar } from '@/lib/cat-slug';
 import { CatTokenUsage } from './CatTokenUsage';
@@ -38,16 +38,6 @@ export function MobileStatusSheet({
   authorizationContent,
 }: MobileStatusSheetProps) {
   const { getCatById } = useCatData();
-  const sheetRef = useRef<HTMLDivElement | null>(null);
-
-  useLayoutEffect(() => {
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    if (open) {
-      sheet.removeAttribute('inert');
-      sheet.scrollTop = 0;
-    } else sheet.setAttribute('inert', '');
-  }, [open]);
 
   const activeCats = useMemo(() => {
     const snapshotCats = collectSnapshotActiveCats(catInvocations);
@@ -59,27 +49,26 @@ export function MobileStatusSheet({
     return [...new Set([...activeCats, ...Object.keys(catInvocations)])];
   }, [activeCats, catInvocations]);
 
+  // A closed fixed sheet must not remain immediately below the visual viewport.
+  // Mobile Safari may scroll that offscreen descendant into view when focusing
+  // the composer, exposing the sheet body and moving the entire app shell.
+  if (!open) return null;
+
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`mobile-visual-viewport fixed bg-[var(--console-overlay-backdrop)] z-40 backdrop-blur-sm transition-opacity lg:hidden ${
-          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className="mobile-visual-viewport fixed bg-[var(--console-overlay-backdrop)] z-40 backdrop-blur-sm lg:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Sheet */}
       <div
-        ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        aria-hidden={!open}
         aria-label="状态面板"
-        className={`mobile-status-sheet mobile-visual-bottom safe-area-inline fixed z-50 bg-cafe-surface rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out lg:hidden max-h-[70vh] overflow-y-auto overscroll-contain safe-area-bottom ${
-          open ? '-translate-y-full' : 'translate-y-0'
-        }`}
+        className="mobile-status-sheet mobile-visual-bottom safe-area-inline fixed z-50 -translate-y-full bg-cafe-surface rounded-t-2xl shadow-2xl lg:hidden max-h-[70vh] overflow-y-auto overscroll-contain safe-area-bottom"
       >
         {/* Handle bar + header */}
         <div className="sticky top-0 bg-cafe-surface rounded-t-2xl pt-3 pb-2 px-4 border-b border-cafe-subtle z-10">

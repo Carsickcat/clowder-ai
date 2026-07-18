@@ -40,6 +40,14 @@ describe('F010 mobile viewport and overflow contract', () => {
     );
   });
 
+  it('does not park a closed fixed status sheet below the visual viewport', () => {
+    const sheet = readWeb('src/components/MobileStatusSheet.tsx');
+
+    expect(sheet).toContain('if (!open) return null');
+    expect(sheet).not.toMatch(/open\s*\?\s*['"]-translate-y-full['"]\s*:\s*['"]translate-y-0['"]/);
+    expect(sheet).not.toContain('aria-hidden={!open}');
+  });
+
   it('locks root scrolling so the fixed shell cannot rubber-band into blank space', () => {
     const css = readWeb('src/app/console-shell.css');
     expect(css).toMatch(

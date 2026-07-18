@@ -113,4 +113,25 @@ Independent review: Terra approved review-packet HEAD `3ba72fb` in message `0001
 
 Author and peer-review gates pass. Release remains gated on a new reporting-iPhone installed-PWA Chinese-IME pass; Chrome validates ownership and geometry but does not render Apple's native form assistant.
 
+## Fifth reporting-iPhone video correction (supersedes the fourth-round approval for this journey)
+
+The continuous recording `C:\Users\myh_1\Desktop\c3a3f0c9826983f20a00cf6d855b4ef0.mp4` proves that the user did not open status. Composer focus at about 7.75s causes Safari to expose the body of the closed status sheet at about 8.00s; after manual recovery, the same drop recurs near 20.75s. The fourth-round ownership fix left the closed fixed sheet mounted immediately below the visual viewport, so `inert` prevented taps but did not remove it from focus-scroll geometry.
+
+Corrected gate:
+
+- closed status renders no dialog, backdrop, status text, or `.mobile-visual-bottom` node;
+- open status mounts the complete modal journey, and closing unmounts it;
+- a static architecture guard rejects restoring the `open ? -translate-y-full : translate-y-0` parking pattern;
+- the native iOS assistant remains system-owned and continues to use the existing single bottom reserve.
+
+The earlier `3ba72fb` approval remains valid for its reviewed state-ownership and viewport changes but is not acceptance evidence for this newly observed journey. A new independent review and reporting-iPhone run are required.
+
+Fresh author verification:
+
+- focused suites: six files, **60/60**;
+- Web TypeScript, targeted Biome, `git diff --check`, and production build: pass;
+- full Web JSON: **5064/5131**, 67 failures in the same 14 historical files, with no new failure family;
+- runtime: isolated Web `4310` PID `39224`, BUILD_ID `4gYnE-fXBHLBkq2vLVKkE`, HTTP 200; isolated API `4311` PID `7580` untouched;
+- 390px no-cache browser journey: no closed sheet/backdrop/status text; focus root scroll `0`; explicit open mounts both modal layers; close and second focus leave both absent and root scroll `0`.
+
 [宪宪/gpt-5.6-sol🐾]

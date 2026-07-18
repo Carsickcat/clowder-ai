@@ -2,20 +2,20 @@
 
 Date: 2026-07-18
 
-Reporter: co-creator, reporting iPhone installed PWA. Earlier screenshots: `1784357537844-455e30ef.png` and `1784357537845-e8f055b9.jpg`. Fourth-round device truth: `1784367014821-3bd66f12.png` and `1784367014823-aff1e7f2.png`.
+Reporter: co-creator, reporting iPhone installed PWA. Earlier screenshots: `1784357537844-455e30ef.png` and `1784357537845-e8f055b9.jpg`. Fourth-round device truth: `1784367014821-3bd66f12.png` and `1784367014823-aff1e7f2.png`. Fifth-round continuous journey truth: `C:\Users\myh_1\Desktop\c3a3f0c9826983f20a00cf6d855b4ef0.mp4` (25.57s, HEVC, 592×1280).
 
 ## Bug diagnosis capsule
 
 | Field | Current evidence |
 |---|---|
 | **1. Symptom** | Focusing the composer can land on status-sheet content instead of a stable conversation frame. After manual repositioning, the native iOS form assistant sits over the application composer and intercepts the area the user is trying to tap. |
-| **2. Evidence** | Fourth reporting-iPhone correction in one thread. The latest screenshots show an illegal simultaneous state: visible status sheet and backdrop, active keyboard, and clipped Dock in the same visual frame. After an upward swipe, chat returns but the native Previous / Next / Done assistant overlays the composer. |
-| **3. Confirmed causes** | H1 confirmed: CSS and React separately owned status visibility, so an invisible modal backdrop could continue to intercept chat. H2 confirmed: status was visually modal but did not own focus or make the underlying chat inert. H3 confirmed: the sole chat bottom reserve ended at `VisualViewport.bottom`, underneath the iOS form assistant. H4 confirmed: the hook lacked blur hysteresis and a settling re-read for WebKit's late installed-PWA viewport offsets. |
+| **2. Evidence** | The fifth-round video records the uninterrupted journey the screenshots could not: composer focus at about 7.75s immediately scrolls to the body of a *closed* status sheet at 8.00s; manual upward swipes recover chat; the same drop recurs at about 20.75s after typing. A document-level scroll indicator moves while status details pass beneath the composer. |
+| **3. Confirmed causes** | H1–H4 from the fourth round were necessary but incomplete. H5 is the direct video root cause: when `open=false`, `MobileStatusSheet` stayed mounted at `top = visualViewport.top + visualViewport.height` with `translate-y-0`. `inert` blocked interaction but did not remove the offscreen fixed descendant from Safari's focus/scroll geometry, so WebKit scrolled that closed content into view. |
 | **4. Diagnostic strategy** | Trace every composer focus call and status-sheet transition; compare the working closed-sheet path; add RED lifecycle and chrome-budget contracts before modifying implementation; validate the complete focus journey at 390px and keep Safari truth separate from Chrome projection. |
 | **5. Timeout strategy** | If the first RED contracts cannot isolate the owner in 30 minutes, instrument focusin, activeElement, document scrollTop, sheet open state, and VisualViewport offsets in the isolated runtime; do not add another CSS offset. |
 | **6. Warning strategy** | Any fix requiring a new viewport fallback, fixed iPhone height, UA sniff, hiding authorization actions, or a fourth independent bottom reserve is the wrong coordinate system. Three unsuccessful patch rounds require redesign of the chrome state matrix, not another local spacing tweak. |
-| **7. User-visible correction** | The sheet and backdrop now share one React state and one focus owner. While status is open, chat is inert; when composer focus wins, the whole status journey closes. During iOS composing, the single chat reserve includes the native assistant height, and late WebKit viewport geometry is resampled before projection settles. |
-| **8. Acceptance** | RED→GREEN tests cover exclusive modal ownership, complete sheet close on composer focus, closed-sheet inertness, iOS assistant budgeting, keyboard-close hysteresis, late installed-PWA offset convergence, and the existing compact composer contracts. Final release proof still requires a newly built process whose start time follows the reviewed commit plus reporting-iPhone Safari/PWA screenshots. |
+| **7. User-visible correction** | A closed status journey is no longer hidden offscreen: the sheet and backdrop are absent from the DOM and scroll geometry. They mount together only after the user explicitly opens status and unmount together on close. The iOS assistant reserve remains the single keyboard-adjacent reserve. |
+| **8. Acceptance** | RED→GREEN tests now require a closed sheet to have no DOM, text, backdrop, or offscreen visual-bottom node, while preserving the existing open-modal, authorization, iOS assistant, and viewport contracts. Final release proof still requires this new build on the reporting iPhone; the prior fourth-round approval is superseded for this journey. |
 
 ## Repeated-friction classification
 
@@ -25,6 +25,7 @@ This is a harness defect, not four unrelated style bugs: four real-device correc
 
 - Safari's white Previous / Next / Done row (rendered as arrows and a checkmark on the reporting iPhone) is system-owned form-assistant UI, not a second Clowder confirmation control. The supported correction is to budget for it; no unsupported CSS suppression was added.
 - Status and composing are mutually exclusive task surfaces. Opening status blurs every editable owned by that chat surface, makes the underlying chat inert, and resets the sheet to its header. The sheet and backdrop close together through React state; keyboard CSS no longer hides only half of the modal.
+- Closing status now unmounts both sheet and backdrop. Keeping a closed sheet below the visual viewport for an exit animation is explicitly rejected because it leaves Safari-scrollable fixed geometry outside the visible frame.
 - The existing single chat-bottom reserve now budgets 3.5rem for the iOS touch form assistant while composing. Android and desktop retain zero assistant reserve; no second composer owner or fixed-device-height path was introduced.
 - Keyboard projection persists across the blur-to-close transition until the same-width viewport restores. VisualViewport changes are sampled immediately and on a settling animation frame to absorb WebKit's documented late installed-PWA offset without adding a timer or UA-specific geometry source.
 - Mobile Agent-hook health is a 44px one-row summary with a compact sync action. Detailed error text, five status pills, and repair preview remain available on desktop/governance surfaces and leave the composing layout entirely.
@@ -64,3 +65,16 @@ Primary platform evidence:
 - Final isolated runtime: Web `4310` PID `22696`, BUILD_ID `dekHachDoovqQ-6QxRcBT`; local and Tailscale HTTPS roots return HTTP 200 and embed that ID. `/vendor/app/mobile-shell.css` returns HTTP 200. API `4311` was untouched.
 - Final 4310 browser journey at 390px: open status makes the chat surface `inert`/`aria-hidden`, leaves the sheet and backdrop jointly interactive, and blocks composer focus; close makes the sheet inert, removes the backdrop hit target, and restores composer focus. Root scroll stays `0` throughout.
 - Keyboard geometry projection at 390×500: composer `52px` high with bottom `444`; the single `3.5rem` assistant reserve owns the remaining 56px; Dock and secondary chrome occupy `0`.
+
+## Fifth reporting-iPhone video correction
+
+The 25.57-second HEVC screen recording supersedes the prior screenshot-only interpretation. At about 7.75→8.00s, focusing the composer exposes the closed status-sheet body without any explicit status action. Manual swipes traverse that body and recover the chat. At about 20.75s, the same drop recurs after the mention journey. This directly identifies an offscreen geometry defect rather than a stale open modal.
+
+- RED: the closed-sheet test found `.mobile-status-sheet`, `.mobile-visual-viewport`, and all status text in the DOM.
+- GREEN: `open=false` returns no sheet journey; `open=true` mounts backdrop and dialog together; close/reopen creates a fresh sheet at `scrollTop=0`.
+- Harness: the mobile overflow contract rejects a closed `translate-y-0` status sheet or `aria-hidden={!open}` substitute. `inert` is not accepted as a geometry removal mechanism.
+- Same-family sweep: the status sheet was the only closed overlay using the visual-bottom coordinate. The always-visible mobile Dock also uses that coordinate by design and is removed with `display:none` during composing; no second closed status overlay remains.
+- Focused verification: six affected files pass **60/60**; Web TypeScript, targeted Biome, `git diff --check`, and the 22-route production build pass.
+- Full Web JSON: **5064/5131**, 67 failures in the same 14 historical files. Relative to the prior **5062/5130** baseline, the new guard is green and one historical failure disappeared; no new failure or file family was introduced.
+- Isolated runtime: Web `4310` PID `39224`, BUILD_ID `4gYnE-fXBHLBkq2vLVKkE`, HTTP 200; API `4311` remains PID `7580` and was untouched.
+- 390px no-cache browser journey: closed status has no sheet, backdrop, or status text; composer focus keeps root scroll at `0`; explicit status open mounts dialog+backdrop; close unmounts both; second composer focus keeps them absent and root scroll at `0`.

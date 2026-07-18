@@ -82,15 +82,14 @@ describe('MobileStatusSheet', () => {
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
   });
 
-  it('renders nothing visible when closed (translate-y-full)', () => {
+  it('removes the closed sheet from DOM and scroll geometry', () => {
     act(() => {
       root.render(React.createElement(MobileStatusSheet, baseProps));
     });
-    // When closed, the sheet should have translate-y-full (hidden off-screen)
-    // and the backdrop should have pointer-events-none
-    const backdrop = container.querySelector('[class*="pointer-events-none"]');
-    expect(backdrop).toBeTruthy();
-    expect(container.querySelector('.mobile-status-sheet')?.hasAttribute('inert')).toBe(true);
+
+    expect(container.querySelector('.mobile-status-sheet')).toBeNull();
+    expect(container.querySelector('.mobile-visual-viewport')).toBeNull();
+    expect(container.textContent).toBe('');
   });
 
   it('renders visible when open (translated above the visual bottom edge)', () => {
@@ -99,21 +98,27 @@ describe('MobileStatusSheet', () => {
     });
     const sheet = container.querySelector('.mobile-visual-bottom');
     expect(sheet?.classList.contains('-translate-y-full')).toBe(true);
-    expect(sheet?.hasAttribute('inert')).toBe(false);
   });
 
   it('starts every open at the sheet header instead of a stale scroll position', () => {
     act(() => {
+      root.render(React.createElement(MobileStatusSheet, { ...baseProps, open: true }));
+    });
+    const firstSheet = container.querySelector('.mobile-visual-bottom') as HTMLDivElement;
+    firstSheet.scrollTop = 240;
+
+    act(() => {
       root.render(React.createElement(MobileStatusSheet, baseProps));
     });
-    const sheet = container.querySelector('.mobile-visual-bottom') as HTMLDivElement;
-    sheet.scrollTop = 240;
+    expect(container.querySelector('.mobile-visual-bottom')).toBeNull();
 
     act(() => {
       root.render(React.createElement(MobileStatusSheet, { ...baseProps, open: true }));
     });
 
-    expect(sheet.scrollTop).toBe(0);
+    const reopenedSheet = container.querySelector('.mobile-visual-bottom') as HTMLDivElement;
+    expect(reopenedSheet).not.toBe(firstSheet);
+    expect(reopenedSheet.scrollTop).toBe(0);
   });
 
   it('hosts critical authorization actions inside the mobile status journey', () => {

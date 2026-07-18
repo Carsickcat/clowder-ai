@@ -325,4 +325,21 @@ Implementation commits: `3667199` (product/state repair) and `3956aa5` (mobile s
 
 Reporting-iPhone Safari/PWA remains the release truth because Chrome does not render the native iOS form assistant.
 
+## 2026-07-18 continuous-video correction: closed sheet polluted focus geometry
+
+The operator-provided installed-PWA recording `C:\Users\myh_1\Desktop\c3a3f0c9826983f20a00cf6d855b4ef0.mp4` is 25.57 seconds at 592×1280. Unlike the earlier screenshots, it preserves causality: no status action is tapped. Composer focus at about 7.75s is followed at 8.00s by the body of the closed status sheet; manual upward swipes recover chat; the same jump recurs near 20.75s after the mention journey.
+
+Source inspection matches the video. `MobileStatusSheet` stayed mounted while closed at the first coordinate below the visual viewport (`top = viewport top + viewport height`, `translate-y-0`). Its `inert` attribute removed interaction but not Safari focus/scroll geometry. The repair therefore does not add another offset, timer, or viewport fallback: closed status no longer renders at all. Backdrop and dialog mount only for an explicit open journey and unmount together.
+
+RED→GREEN and harness evidence:
+
+- RED proved the closed dialog, backdrop, and status text were still in the DOM.
+- GREEN requires no closed status DOM and a fresh `scrollTop=0` sheet on each explicit open.
+- `mobile-overflow-contract.test.ts` prevents reintroducing an offscreen closed `translate-y-0` sheet or using `aria-hidden` as a geometry substitute.
+- the existing iOS Form Assistant reserve is unchanged; the recording shows it, but it is not the cause of the jump into status details.
+
+Verification: six focused files pass **60/60**; Web TypeScript, targeted Biome, diff check, and the production build pass. Full Web JSON is **5064/5131** with 67 failures in the same 14 historical files, so the new test is green and no new failure family appears. Isolated Web `4310` serves BUILD_ID `4gYnE-fXBHLBkq2vLVKkE` from PID `39224`; API `4311` PID `7580` was untouched. At 390px, closed status contributes no DOM or text, composer focus leaves root scroll at `0`, explicit open mounts dialog and backdrop, and close plus second focus leaves both absent with root scroll still `0`.
+
+The previous fourth-round review is superseded only for this newly observed closed-sheet journey. A new build, independent review, and reporting-iPhone installed-PWA pass remain required.
+
 [宪宪/gpt-5.6-sol🐾]
