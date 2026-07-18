@@ -100,6 +100,14 @@ The mobile captures were produced through Chromium device metrics rather than a 
 
 The embedded preview tool does not expose programmatic iOS keyboard control. Therefore the final positive evidence for Chinese IME, the real iPhone keyboard frame, and the installed standalone PWA remains a short operator-owned touch test on the reporting iPhone; it is not represented as automated proof.
 
+## 2026-07-18 current-HEAD live-reply acceptance
+
+The isolated API was rebuilt from and restarted after current HEAD `8c4925f`; listener `4311` was PID `7580`, its start time was later than the target commit, and its log contained current-PID evidence. An authenticated Socket.IO client then joined `thread:thread_mrowmqyhrqc0um23`, with the join confirmed by the server log, before the same HTTPS session posted a real `@opus` message.
+
+The POST returned HTTP 200. Without polling or refreshing, that socket received nine `opus` `agent_message` events, including `text`, `error`, and a final `done` event with `isFinal=true`, in 6.5 seconds. Durable messages advanced from 4 to 7. This closes the P1 runtime finding that cat replies were persisted but did not appear until page refresh: current HEAD carries agent output through authenticated room join, API broadcast, and the live client connection.
+
+The invoked Opus CLI returned `Not logged in · Please run /login`; the same content and system error were both delivered live and persisted. Therefore this probe proves the real-time transport path but does not claim a healthy Opus model reply. The CLI login state remains a separate acceptance-environment boundary. Because the API was restarted for this proof, the reporting iPhone still needs one page refresh to establish a socket against PID `7580`, followed by one message whose reply must appear in the DOM without a second refresh.
+
 ## Automated and build evidence
 
 - Pre-review broad selection: **19 test files, 359 tests passed** (includes the F190 visual contract and Node-only SSR regression).
