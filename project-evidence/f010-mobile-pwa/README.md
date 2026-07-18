@@ -426,3 +426,48 @@ Repair executed (reversible, operator-authorized overnight autonomy): `tailscale
 **Known remaining boundaries.** (a) claude CLI login is operator-owned; (b) 4310's Next rewrite targets the production API while 8443/8444 map to isolated 4311, so SSR and client data come from two catalogs with different cat display names (英短猫/山本 vs 布偶猫/宪宪) — cosmetic drift to unify; (c) historical executor failures (缅因猫 1800s timeouts, Kimi CLI exit 1, opaque `CLI Output · private` reply cards) are separate dispatch-layer items; (d) the focus-blank clamp patch still needs one code round plus device replay.
 
 [烁烁/kimi-k3🐾]
+
+## 2026-07-19 terminal correction: unusable viewport pulse + same-origin transport
+
+The actual new recording `C:\Users\myh_1\Desktop\录屏.mp4`, SHA-256
+`81376E69119A1685D89BD83F150B62F427B08050D7206029AD0711D2FDA71D2A`, proves two remaining
+failures in reviewed runtime `87ffdd5`: a long-lived 112px keyboard-opening pulse can still replace
+the whole-shell geometry, and explicit HTTPS `:8443` is incorrectly rewritten to a second `:8444`
+client origin so the mention roster disappears when that optional listener is absent.
+
+Terminal code candidate: `466436f1465812ef11c9de4772da43eac413a219`.
+
+- The viewport writer rejects unusable composing frames while retaining the last committed shell;
+  provisional animation frames may latch keyboard state but cannot stage a geometry baseline.
+- A width-changing `390x844 -> 844x112` pulse cannot poison either committed width or height; a
+  later usable `844x300` frame commits normally.
+- The 144px floor rejects the recorded 112px collapse while allowing a legitimate 160px compact-
+  landscape frame.
+- Explicit HTTPS stays on the page origin. Explicit HTTP retains the existing Web+1 convention.
+- The serve guard isolates the exact `:8443` listener block and requires same-origin Web, API, and
+  Socket.IO routes there; `:8444` is compatibility-only, not a product dependency.
+
+Verification and review:
+
+- Focused viewport/origin suites: **23/23**; affected Web selection: **10 files / 91 tests**.
+- Tailscale multi-listener parser: **2/2**; Web TypeScript, targeted Biome, and diff check pass.
+- Exact detached production artifact BUILD_ID: `NLgMJFRRSV9bzl_iQLbc5`.
+- Independent formal reviewer approved exact code SHA `466436f` with **P1=0, P2=0, P3=0** after
+  reproducing the focused checks and auditing the state machine, origin resolution, parser boundary,
+  architecture ownership, and security posture.
+
+Deployment evidence:
+
+- Old Web PID `17084` / BUILD_ID `davuSC0P3wlGS5zAgfHp-` was replaced by exact reviewed Web PID
+  `47400` on isolated port 4310.
+- Local root and `https://desktop-9o1va3o.tail58c13e.ts.net:8443/` return HTTP 200 with the new
+  BUILD_ID; same-origin `/api/cats` returns `opus,sonnet,opus-45,fable-5`; the Socket.IO polling
+  handshake returns a valid session ID.
+- API 4311 remains PID `7580` and was not rebuilt, restarted, or modified.
+- Hub Browser Preview opened the deployed current-thread route.
+
+This section supersedes the preceding overnight note's “focus-time blank still open” and mandatory
+`:8444` guard claims. It does not fabricate installed-iPhone acceptance: the final release truth is
+a cold-start replay of the installed PWA with Chinese IME, `@` selection, send, and keyboard dismiss.
+
+[丢丢/gpt-5.6-sol🐾]

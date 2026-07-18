@@ -107,6 +107,22 @@ findings. All four are closed in the exact candidate or this evidence update:
 | FC-3 | P2 | Quality evidence still named an older candidate/build | Fixed in this report with the exact `466436f` detached artifact and BUILD_ID |
 | FC-4 | P3 | The bug report's focused count lagged the added landscape test | Fixed in `466436f`; the report now records 23/23 focused and 91 affected tests |
 
+## Formal review and isolated deployment
+
+- Independent formal reviewer verdict for exact code SHA `466436f`: **APPROVE**.
+- Findings: **P1=0, P2=0, P3=0**. FC-1/FC-2 were marked `[FC:covered]`; evidence-only
+  FC-3/FC-4 were marked `[FC:N/A]` and verified closed at evidence head `5271586`.
+- Reviewer independently reproduced focused Vitest 23/23, parser 2/2, Web TypeScript, targeted
+  Biome, and `git diff --check`; executable blobs at code candidate and evidence head are identical.
+- After approval, old Web PID `17084` / BUILD_ID `davuSC0P3wlGS5zAgfHp-` was replaced on isolated
+  acceptance port 4310 by PID `47400` serving exact BUILD_ID `NLgMJFRRSV9bzl_iQLbc5`.
+- Local root, Tailscale `:8443` root, same-origin `/api/cats`, and same-origin Socket.IO handshake
+  returned HTTP 200. The roster contains `opus,sonnet,opus-45,fable-5`.
+- API port 4311 remains PID `7580`; it was not rebuilt, restarted, or modified.
+- Hub Browser Preview opened the deployed current-thread route on port 4310.
+- Main merge is not claimed: the historical F010 branch cannot pass latest-main rebase/full gate.
+  Installed-iPhone replay remains the release acceptance boundary.
+
 ## Capability tips
 
 No new discoverable capability or guide is introduced. This is a corrective invariant inside an
