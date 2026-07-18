@@ -20,8 +20,8 @@ Scope: `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`, Task 8
 - RED: 5 targeted failures reproduced the simultaneous viewport shrink, missing composing chrome rule, duplicate composer safe-area, and desktop-height mobile header.
 - GREEN: focused viewport/composer/header/overflow selection passed **31/31**.
 - Full Web Vitest: **5036/5105 passed**, with 69 baseline failures in 16 files. The previous recorded baseline was 5028/5101 with 73 failures in 17 files; all four new shell regressions pass, and no changed test/source file appears in the failing-file list. The remaining failures stay in pre-existing color/Skills/F232/socket/governance/composer-copy/status-sheet/F252 families and are not represented as green.
-- Production Web build: managed command passed in **44s**, generated 22 routes and BUILD_ID `dx5CgekTIrk3zDDzG-Pos`.
-- Runtime identity: isolated Web PID `41720`, start `2026-07-18 12:06:46 +08:00`, port `4310`; root returned HTTP 200 and embedded that BUILD_ID. API `4311` was not restarted; production ports/data were untouched.
+- Current production Web build: passed in **36.8s**, generated 22 routes and BUILD_ID `w_4Uqp53TT0EkwyWK4D1U`; API, Socket and uploads rewrites all target isolated API `4311`.
+- Runtime identity: isolated Web PID `13548`, start `2026-07-18 12:47:49 +08:00`, port `4310`; root returned HTTP 200 and embedded that BUILD_ID. API `4311` was not restarted; production ports/data were untouched.
 - Hub Browser Preview opened port `4310`.
 - Small gates: Next/PWA config **8/8**, hardcoded-color rule, feature truth, capability-tips tests **11/11**, targeted Biome, and `git diff --check` pass. Capability tips retains the disclosed no-`origin/main` and stale-anchor warnings. The referenced hotfix/fallback scripts and `vision-evidence-workflow.md` are absent on this branch, so no result is fabricated for them.
 - CDP device-metric acceptance:
@@ -42,9 +42,17 @@ Scope: `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`, Task 8
 - No F010 `.pen` artifact exists in `designs/`; Pencil tooling was unavailable, so the design gate used the operator's three real-device screenshots, independent design convergence, browser projection, and exact layout metrics. Root-media and diff-media scans are both zero.
 - The failure-mode audit covers both iOS geometry models, focus/no-focus admission, viewport-width baseline reset, keyboard-open/closed chrome projection, and the non-keyboard Dock reserve. No new architecture owner or extension point was introduced.
 
+## Post-review P2 repair (`b480c1d`)
+
+- Terra found that the composing-only secondary chrome selector was not bounded to the compact work surface, so a global keyboard attribute could hide execution/queue/vote/thinking status at the shared `lg=1024px` boundary.
+- RED: the new responsive contract failed at **4/5** because `globals.css` had no `max-width: 1023px` boundary.
+- GREEN: the exact contract passes **5/5**; the complete viewport/composer/header selection passes **32/32**; Next/PWA **8/8**, hardcoded-color rule, targeted Biome, production build and `git diff --check` pass.
+- Browser Feature Gate on the current production bundle: with `data-mobile-keyboard-open=true`, both secondary wrappers compute to `display:block` at 1024px and `display:none` at 1023px.
+- Failure-mode sweep: Dock already has `lg:hidden`, and the chat reserve already has `lg:pb-0`; only the new secondary-chrome selector leaked across the wide boundary. The detector remains global while only its compact projection is width-bounded.
+
 ## Remaining gates
 
-1. Independent code review after commit.
+1. Terra re-review of `b480c1d` after the P2 repair.
 2. On the reporting iPhone, refresh the new installed PWA, open the Chinese keyboard and `@` picker, and record an after screenshot. This is the only proof for actual iOS IME chrome/safe-area behavior; browser emulation is not represented as a substitute.
 
 [宪宪/gpt-5.6-sol🐾]

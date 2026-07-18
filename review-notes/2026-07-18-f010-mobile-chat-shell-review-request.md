@@ -8,6 +8,10 @@ Implementation SHA: `78ebe807f7c3303a4a26bf5b50137d098f7a1a9c`
 
 Review range: `b17ca8b0b18c7ddb8701448e27394ef2616fb03f..78ebe807f7c3303a4a26bf5b50137d098f7a1a9c`
 
+P2 repair SHA: `b480c1ddfb13314fef5aec4f1e4b54fe2d612172`
+
+P2 re-review range: `d3dae1a0c061a826d481b5cab643646f09c2e9f3..b480c1ddfb13314fef5aec4f1e4b54fe2d612172`
+
 Author worktree: `E:\ClowderAI\clowder-ai-f010-local-sandbox`
 
 Preferred reviewer sandbox: `/tmp/cat-cafe-review/f010/opus` (or an equivalent isolated local checkout). This branch has no usable remote URL/PR, so the local SHA above is the review truth. Do not edit, push, merge, or start a reviewer runtime on the author ports `4310`/`4311`.
@@ -63,7 +67,7 @@ Please independently review the implementation range and return one verdict: `AP
 
 1. Mobile/tablet header remains one row: exactly two 44×44 global actions plus one truncated thread title; desktop layout is restored at `lg`.
 2. `--mobile-dock-reserve` is the only Dock/safe-area owner. `ChatInput` must not add `safe-area-bottom`.
-3. Keyboard open means Dock `display:none`, reserve `0px`, and `.mobile-keyboard-secondary-chrome` leaves layout; composer stays mounted.
+3. Below `wide=1024`, keyboard open means Dock `display:none`, reserve `0px`, and `.mobile-keyboard-secondary-chrome` leaves layout; at and above 1024px, secondary desktop status remains visible. Composer stays mounted.
 4. Direct visual/layout obscured height still works. The alternate path requires composer focus plus at least 80px shrink from a stable same-width baseline, and material width change resets that baseline.
 5. No UA/device sniff, fixed iPhone height, second keyboard inset, persistent keyboard store, or new Store/Queue/Router/Adapter/Dispatcher/Binding.
 
@@ -87,7 +91,7 @@ pnpm.cmd exec vitest run `
   src/components/__tests__/chat-input-mobile.test.ts `
   src/components/__tests__/mobile-overflow-contract.test.ts `
   src/components/__tests__/chat-container-header-thread-indicator.test.ts
-# 4 files / 31 tests PASS
+# 4 files / 32 tests PASS after the P2 boundary repair
 
 node --test packages/web/test/next-config.test.cjs
 # 8/8 PASS
@@ -103,12 +107,24 @@ pnpm.cmd check:capability-tips
 ```
 
 - Targeted Biome and `git diff --check`: PASS.
-- Production Web build: PASS in 44s, 22 routes, BUILD_ID `dx5CgekTIrk3zDDzG-Pos`.
+- Current production Web build: PASS in 36.8s, 22 routes, BUILD_ID `w_4Uqp53TT0EkwyWK4D1U`; API/Socket/uploads rewrites target 4311.
 - Isolated browser projection:
   - 390×500 composing with both viewport heights shrunk: header 57px, composer bottom 500, Dock/secondary chrome none, reserve 0, document 390×500.
   - 430×932 and 768×1024 browsing: composer bottom equals Dock top, Dock 56px, document equals viewport.
 - Full Web baseline remains red: **5036/5105 passed**, 69 failures in 16 pre-existing files. No changed file appears in that failure list; this is not represented as a full-suite pass.
 - No matching `.pen`, root media, or diff media. Pencil tooling was unavailable; true-device screenshots plus exact browser metrics are the design evidence.
+
+## P2 repair delta
+
+Terra's first implementation review returned `REQUEST_CHANGES` because the keyboard selector hid secondary chrome at every width, contradicting the `lg=1024` desktop restoration contract.
+
+- RED: `mobile-overflow-contract.test.ts` was **4/5**, missing a shared-wide boundary.
+- FIX: `b480c1d` scopes only `.mobile-keyboard-secondary-chrome` hiding to `max-width:1023px`; the global detector and existing Dock/reserve ownership remain unchanged.
+- GREEN: exact contract **5/5**; complete affected selection **32/32**; Next/PWA **8/8**, hardcoded-color rule, targeted Biome, production build and diff check pass.
+- Browser proof from the current 4310 bundle with the keyboard attribute forced true: 1024px → two wrappers `block`; 1023px → the same two wrappers `none`.
+- Audit: `.mobile-ops-nav` already carries `lg:hidden`, while ChatContainer reserve already carries `lg:pb-0`; no sibling boundary leak required another patch.
+
+Requested re-review verdict for `b480c1d`: `APPROVE` or `REQUEST_CHANGES`, with P1/P2/P3 labels. Real iPhone acceptance remains separate.
 
 ## Truth sources
 

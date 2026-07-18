@@ -225,6 +225,8 @@ Three new reporting-iPhone screenshots showed that the compact mention picker wa
 
 Implementation commit: `78ebe807f7c3303a4a26bf5b50137d098f7a1a9c`
 
+Post-review wide-boundary repair: `b480c1ddfb13314fef5aec4f1e4b54fe2d612172`
+
 The corrected shell now has two projections:
 
 - **Browsing:** 56px single-line mobile header, sole transcript scroll, compact composer, one 56px Dock reserve plus one safe area.
@@ -235,14 +237,15 @@ The iOS detector retains the direct layout/visual viewport difference and adds a
 Fresh evidence:
 
 - RED: 5 focused failures covered the simultaneous-shrink detector, duplicate bottom safe area, missing keyboard chrome projection, and oversized mobile header.
-- GREEN: viewport/composer/header/overflow selection **31/31**.
+- GREEN: viewport/composer/header/overflow selection **32/32** after the wide-boundary review repair.
 - Full Web Vitest is transparently baseline-red at **5036/5105 passed** (69 failures in 16 files versus the previously recorded 5028/5101 and 73 failures in 17 files). The added shell tests are all green and no changed file appears in the failing-file list; the remaining failures are pre-existing repository families, not reported as a pass.
 - Next/PWA **8/8**, hardcoded-color rule, feature truth, capability-tips **11/11**, targeted Biome, and `git diff --check` pass. Capability tips still warns that this local branch has no usable `origin/main` plus existing stale documentation anchors.
-- Managed production Web build passed in **44s**, generated BUILD_ID `dx5CgekTIrk3zDDzG-Pos`.
-- Isolated Web PID `41720` started at `2026-07-18 12:06:46 +08:00` on port `4310`; HTTP `/` returned 200 and embedded that BUILD_ID. API `4311` and production ports/data were untouched.
+- Current isolated production build passed in **36.8s**, generated BUILD_ID `w_4Uqp53TT0EkwyWK4D1U`, and keeps API/Socket/uploads rewrites on API `4311`.
+- Isolated Web PID `13548` started at `2026-07-18 12:47:49 +08:00` on port `4310`; HTTP `/` returned 200 and embedded that BUILD_ID. API `4311` and production ports/data were untouched.
 - Hub Browser Preview opened the new build.
 - At 390×500 composing with both viewport heights shrunk, document bounds were exactly 390×500, header 57px, composer y=430/h=70, Dock and secondary chrome `display:none`, reserve `0px`.
 - At 430×932 and 768×1024 browsing, header remained 57px; composer bottom equaled Dock top (`876` and `968`), Dock height was 56px, and document bounds equaled the viewport with no page overflow.
+- Post-review Red→Green: the wide-keyboard contract failed at 4/5 before `b480c1d`, then passed 5/5. Current-browser computed style with the keyboard attribute true is `block` for both secondary wrappers at 1024px and `none` for both at 1023px, preserving desktop status while retaining compact composing mode.
 - Design/artifact hygiene: no matching `.pen` artifact exists, Pencil tooling was unavailable, and both root-media and diff-media scans are zero. The operator's true-device screenshots remain the before truth; browser projection is not substituted for the pending iPhone after proof.
 
 The source audit, state matrix, RED proof, and remaining reporting-iPhone acceptance boundary are recorded in `docs/bug-report/f010-mobile-chat-shell-chrome-density/bug-report.md` and `review-notes/2026-07-18-f010-mobile-chat-shell-quality-gate.md`.
