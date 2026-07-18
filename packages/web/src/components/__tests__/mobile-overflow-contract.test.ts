@@ -9,6 +9,7 @@ describe('F010 mobile viewport and overflow contract', () => {
   it('defines four-direction safe areas and visual-viewport layout utilities', () => {
     const css = readWeb('src/app/globals.css');
     const shellCss = readWeb('src/app/console-shell.css');
+    const mobileCss = readWeb('src/app/mobile-shell.css');
     expect(css).toContain('.safe-area-inline');
     expect(css).toContain('env(safe-area-inset-left');
     expect(css).toContain('env(safe-area-inset-right');
@@ -18,22 +19,22 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(shellCss).toContain('width: var(--app-viewport-width, 100vw)');
     expect(shellCss).toContain('height: var(--app-viewport-height, 100dvh)');
     expect(shellCss).not.toContain('height: calc(var(--app-viewport-height');
-    expect(css).toContain('--mobile-dock-reserve');
-    expect(css).toContain('--mobile-chat-bottom-reserve');
-    expect(css).toContain('--mobile-browser-input-assistant-reserve');
-    expect(css).toMatch(/html\[data-mobile-keyboard-open=["']true["']\]/);
-    expect(css).toContain('.mobile-keyboard-secondary-chrome');
+    expect(mobileCss).toContain('--mobile-dock-reserve');
+    expect(mobileCss).toContain('--mobile-chat-bottom-reserve');
+    expect(mobileCss).toContain('--mobile-browser-input-assistant-reserve');
+    expect(mobileCss).toMatch(/html\[data-mobile-keyboard-open=["']true["']\]/);
+    expect(mobileCss).toContain('.mobile-keyboard-secondary-chrome');
   });
 
   it('keeps iOS form-assistant occlusion inside the single chat bottom reserve', () => {
-    const css = readWeb('src/app/globals.css');
+    const css = readWeb('src/app/mobile-shell.css');
     expect(css).toContain('@supports (-webkit-touch-callout: none)');
     expect(css).toContain('--mobile-browser-input-assistant-reserve: 3.5rem');
     expect(css).toContain('--mobile-chat-bottom-reserve: var(--mobile-browser-input-assistant-reserve)');
   });
 
   it('does not split modal ownership by hiding only the status sheet in CSS', () => {
-    const css = readWeb('src/app/globals.css');
+    const css = readWeb('src/app/mobile-shell.css');
     expect(css).not.toMatch(
       /html\[data-mobile-keyboard-open=["']true["']\]\s+\.mobile-status-sheet\s*{[^}]*visibility:\s*hidden/,
     );
@@ -47,7 +48,7 @@ describe('F010 mobile viewport and overflow contract', () => {
   });
 
   it('limits composing-only secondary chrome hiding to widths below the shared wide breakpoint', () => {
-    const css = readWeb('src/app/globals.css');
+    const css = readWeb('src/app/mobile-shell.css');
     const breakpoints = JSON.parse(readWeb('src/styles/responsive-breakpoints.json')) as { wide: number };
     const compactRule = new RegExp(
       `@media \\(max-width: ${breakpoints.wide - 1}px\\) \\{[\\s\\S]*?html\\[data-mobile-keyboard-open="true"\\] \\.mobile-keyboard-secondary-chrome \\{[\\s\\S]*?display: none;`,

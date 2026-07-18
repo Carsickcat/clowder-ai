@@ -24,6 +24,7 @@ describe('global css architecture', () => {
       'theme-extras.css',
       'console-tokens.css',
       'console-shell.css',
+      'mobile-shell.css',
       'console-controls.css',
     ];
 
@@ -47,6 +48,7 @@ describe('global css architecture', () => {
       'theme-extras.css',
       'console-tokens.css',
       'console-shell.css',
+      'mobile-shell.css',
       'console-controls.css',
     ];
     for (const sheet of vendorSheets) {

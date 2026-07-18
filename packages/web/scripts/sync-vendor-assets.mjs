@@ -15,6 +15,7 @@ const appGlobalCssFiles = [
   'cat-persona-tokens.css',
   'cat-persona-derived.css',
   'console-shell.css',
+  'mobile-shell.css',
   'console-controls.css',
   'console-tokens.css',
   'connector-tokens.css',
