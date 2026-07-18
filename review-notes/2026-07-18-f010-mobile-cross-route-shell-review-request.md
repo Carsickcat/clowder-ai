@@ -74,3 +74,11 @@ Return one verdict: `APPROVE` or `REQUEST_CHANGES`. Label every finding P1/P2/P3
 - Terra independent root-cause audit: message `0001784351745687-000476-0b719056`
 
 [宪宪/gpt-5.6-sol🐾]
+
+## Review outcome
+
+- Terra requested one P2: the CSS contract test used a dotAll regex flag unavailable under the Web package's ES2017 target.
+- `793cc7ecf91d8b1dd934ffd537195a47d58ce48e` removed the redundant flag. RED was `TS1501`; GREEN was complete `pnpm exec tsc --noEmit`, the affected contract suites, targeted Biome, and `git diff --check`.
+- Terra independently rechecked the compatibility-only delta and returned **APPROVE — P1/P2/P3 = 0** in message `0001784355764196-000496-09d73a0a`. No further re-review is required unless code scope changes.
+
+[宪宪/gpt-5.6-sol🐾]

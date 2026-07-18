@@ -2,7 +2,7 @@
 
 Date: 2026-07-18
 
-Status: **second reporting-iPhone follow-up implemented; fresh independent code review and reporting-iPhone acceptance pending**
+Status: **second reporting-iPhone follow-up independently approved; reporting-iPhone acceptance pending**
 
 Scope: `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`, Task 8
 
@@ -63,11 +63,11 @@ The first chat-shell correction improved an already-open thread, but four new tr
 - **Production/runtime:** Web build passes, all 22 routes are generated, BUILD_ID is `3sb-dbE1RU4drK_umxkvl`, and the isolated `4310` process is PID `1536`. All API/Socket/upload rewrites target isolated API `4311`; production ports/data were untouched.
 - **390×844 route matrix:** `/`, a fresh `/thread/:id`, `/memory`, `/memory/search`, `/settings?s=ops`, `/signals`, `/signals/sources`, `/mission-control`, and `/mission-hub` opened through Hub Browser Preview. Every measured document stayed 390px wide, root scroll stayed at zero after an attempted scroll, and the fixed shell remained top `0`, height `844`.
 - **Visual metrics:** Memory tabs are one 43px row (`334/492px` client/scroll width); Signals tabs are visible in one 43px row; Settings categories are one 36px horizontal rail rather than a 42vh sidebar.
-- **Independent design evidence:** Terra independently confirmed the route-lifecycle, tab-overflow, and scroll-owner root causes from committed baseline `b778c0d` in message `0001784351745687-000476-0b719056`. The implementation candidate still requires a separate code-review verdict.
+- **Independent review:** Terra confirmed the route-lifecycle, tab-overflow, and scroll-owner root causes from committed baseline `b778c0d`, then reviewed the implementation. The only P2 was an ES2018-only dotAll flag in a CSS contract test; `793cc7e` removed that redundant flag, restored complete `tsc --noEmit`, and Terra approved the final head in message `0001784355764196-000496-09d73a0a` with **P1/P2/P3 = 0**.
 
 ## Remaining gates
 
-1. Fresh cross-individual review of the second follow-up candidate.
-2. On the reporting iPhone, reopen the installed PWA and repeat: Memory tab swipe, global-page new-thread creation with Chinese keyboard already open, Dock/reserve visibility, and downward rubber-band gesture. Browser emulation is not represented as a substitute for Safari/PWA behavior.
+1. On the reporting iPhone, reopen the installed PWA and repeat: Memory tab swipe, global-page new-thread creation with Chinese keyboard already open, Dock/reserve visibility, and downward rubber-band gesture. Browser emulation is not represented as a substitute for Safari/PWA behavior.
+2. Merge-gate infrastructure is unavailable in this local snapshot: `origin` has no URL or `origin/main`, and `gh` is not installed. Latest-main rebase, `pnpm gate`, PR creation, remote review, and merge must remain fail-closed until that infrastructure exists.
 
 [宪宪/gpt-5.6-sol🐾]

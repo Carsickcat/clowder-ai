@@ -258,7 +258,7 @@ The source audit, state matrix, RED proof, and remaining reporting-iPhone accept
 
 The second reporting-iPhone pass confirmed that the first chat-shell repair was necessary but not sufficient. A thread created from a global page crossed documents and lost the stable VisualViewport baseline; the root document and page content both scrolled; Memory tabs inherited desktop compression; and the same 390px audit exposed inaccessible Signals tabs plus a half-screen Settings directory.
 
-Implementation candidate: `bd075e699a0a7a9fd722e555ff97de87ac35087a`
+Implementation candidate: `bd075e699a0a7a9fd722e555ff97de87ac35087a`; final reviewed head: `793cc7ecf91d8b1dd934ffd537195a47d58ce48e`.
 
 The recovery keeps AppShell mounted through global→thread client navigation, locks document rubber-band only while AppShell chrome is active, assigns one internal scroller per global page, zeros stale closed-keyboard viewport offsets, and projects compact single-line navigation across Memory, Signals, Settings, Ops, Scope, and Mission surfaces.
 
@@ -269,6 +269,7 @@ Fresh evidence:
 - Production Web build passed in 41.3 seconds with 22 routes and BUILD_ID `3sb-dbE1RU4drK_umxkvl`. Isolated Web 4310 PID `1536` serves that exact ID; API/Socket/uploads target isolated API `4311`.
 - Hub Browser Preview opened the nine-route matrix: chat, fresh thread, Memory root/search, Settings Ops, Signals inbox/sources, Mission Control, and Mission Hub.
 - At 390×844 every measured route had document width 390, fixed shell top 0/height 844, and root scrollTop 0 after an attempted scroll. Memory's six tabs occupy one horizontal 43px row; Signals tabs are visible in one 43px row; Settings categories occupy one 36px horizontal rail.
+- Terra's independent code review found one P2 in the new CSS contract test: its dotAll flag required ES2018 while Web targets ES2017. `793cc7e` removed the redundant flag; complete TypeScript returned to green, the affected suites passed independently, and Terra approved the final head in message `0001784355764196-000496-09d73a0a` with **P1/P2/P3 = 0**.
 - The four reporting-iPhone screenshots remain the before truth. The final release boundary is a new installed-PWA Safari pass covering global-page thread creation with the Chinese keyboard already open, Dock reserve, Memory tab swipe, and downward rubber-band.
 
 Detailed diagnosis and review packet:
