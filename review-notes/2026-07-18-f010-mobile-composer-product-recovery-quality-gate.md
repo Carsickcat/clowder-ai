@@ -87,4 +87,28 @@ Dogfood bugs found and fixed in this slice: transient sheet carry-over across cl
 
 Author quality gate: pass. Terra approved `ad32068` in message `0001784365910648-000530-9e400c32` with **P1=0, P2=0, P3=1**; the P3 evidence-count discrepancy is resolved above by listing the two additional authorization tests and does not change code. Release gate remains open only for reporting-iPhone Safari/installed-PWA Chinese-IME acceptance.
 
+## Fourth reporting-iPhone correction (supersedes the previous runtime verdict)
+
+The screenshots `1784367014821-3bd66f12.png` and `1784367014823-aff1e7f2.png` disproved the prior Safari acceptance model. The visible checkmark is iOS form-assistant UI, but the application incorrectly placed its composer beneath it and allowed React sheet state, keyboard CSS, and backdrop hit testing to diverge.
+
+### Corrected contract
+
+- React owns the whole status journey: sheet and backdrop open/close together; keyboard CSS never hides only the sheet.
+- Open status makes the underlying chat surface inert and inaccessible to focus. Closing restores the composer; no transparent backdrop remains.
+- The chat shell still has one bottom reserve. On iOS coarse-touch Safari/PWA only, composing assigns that reserve `3.5rem` for the native assistant. Desktop and Android are not charged.
+- Keyboard state survives the blur-to-close transition until the same-width viewport restores, and the VisualViewport source is read again on a settling animation frame for WebKit's late installed-PWA offset.
+
+### Fresh verification
+
+- Commits: `3667199` product repair; `3956aa5` mobile-shell stylesheet extraction.
+- Affected RED→GREEN: 10 failures before implementation; **51/51** affected tests after implementation; **53/53** including the CSS architecture guard.
+- TypeScript `--noEmit`, targeted Biome, `git diff --check`, and production Web build pass.
+- Full Web JSON before the extraction: **5062/5130**, 68 failures. Direct delta against the previous **5055/5123** proves all seven added tests are green. The one added architecture failure was closed by `3956aa5`; exact architecture tests are green, the F190 raw-pixel guard remains green, and only its unchanged modal-scrim baseline fails. No full-suite green is claimed.
+- Production build: 22 routes, BUILD_ID `dekHachDoovqQ-6QxRcBT`.
+- Final acceptance runtime: isolated Web `4310` PID `22696`; local and Tailscale HTTPS roots are HTTP 200 with the same BUILD_ID; isolated API `4311` was untouched.
+- Browser journey at 390px: root scroll `0`; open status → chat inert, sheet visible, backdrop active, composer focus blocked; close → chat active, sheet inert/hidden, backdrop pointer events none, composer focused.
+- Keyboard projection at 390×500: composer y=`392`, h=`52`, bottom=`444`; assistant reserve=`3.5rem`; Dock display=`none`, height=`0`.
+
+Author gate: pass for independent review. Release remains gated on a new reporting-iPhone installed-PWA Chinese-IME pass; Chrome validates ownership and geometry but does not render Apple's native form assistant.
+
 [宪宪/gpt-5.6-sol🐾]

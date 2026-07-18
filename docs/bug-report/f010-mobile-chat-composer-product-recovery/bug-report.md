@@ -53,3 +53,14 @@ Primary platform evidence:
 - Apple documents the Safari form assistant as browser-owned UI above the keyboard: <https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/DesigningForms/DesigningForms.html>.
 - WebKit records late/incorrect VisualViewport updates in Safari and installed web apps: <https://bugs.webkit.org/show_bug.cgi?id=265578> and <https://bugs.webkit.org/show_bug.cgi?id=237851>.
 - WebKit continues to track keyboard-created blank/scrollable regions on iOS 26: <https://bugs.webkit.org/show_bug.cgi?id=292603>.
+
+## Fourth reporting-iPhone correction verification
+
+- Product repair: `3667199` (single modal owner, inert chat surface, composer-focus close, iOS assistant reserve, blur hysteresis, settling VisualViewport read).
+- CSS architecture repair: `3956aa5` (registered `mobile-shell.css`; `globals.css` returned from 359 to 315 lines and the new sheet is 44 lines).
+- RED: 10 failures across the five affected suites before implementation. GREEN: the affected selection is **51/51**; adding the global-CSS architecture suite yields **53/53**.
+- Web package TypeScript, targeted Biome, `git diff --check`, and the 22-route production build pass.
+- The managed full-Web JSON before the CSS extraction was **5062/5130**, 68 failures. Compared directly with `f010-mobile-auth-final-vitest.json`, all seven new tests passed; the only added failure was the 350-line global-CSS guard, while the former raw-pixel typography failure disappeared. `3956aa5` then makes the exact architecture guard green; the targeted F190 run confirms its raw-pixel guard remains green and only the unchanged modal-scrim baseline fails. A second full-suite green is not claimed.
+- Final isolated runtime: Web `4310` PID `22696`, BUILD_ID `dekHachDoovqQ-6QxRcBT`; local and Tailscale HTTPS roots return HTTP 200 and embed that ID. `/vendor/app/mobile-shell.css` returns HTTP 200. API `4311` was untouched.
+- Final 4310 browser journey at 390px: open status makes the chat surface `inert`/`aria-hidden`, leaves the sheet and backdrop jointly interactive, and blocks composer focus; close makes the sheet inert, removes the backdrop hit target, and restores composer focus. Root scroll stays `0` throughout.
+- Keyboard geometry projection at 390×500: composer `52px` high with bottom `444`; the single `3.5rem` assistant reserve owns the remaining 56px; Dock and secondary chrome occupy `0`.

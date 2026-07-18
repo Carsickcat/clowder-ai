@@ -308,4 +308,21 @@ Fresh pre-review evidence:
 
 The remaining release boundary is reporting-iPhone installed-PWA Safari with the Chinese IME. Chrome projection is structural evidence, not a substitute for that device truth.
 
+## 2026-07-18 iOS form-assistant and modal-ownership correction
+
+The fourth reporting-iPhone pass showed an illegal simultaneous state: status sheet/backdrop, keyboard, and clipped Dock occupied one frame; after manual repositioning, iOS's native arrows/checkmark form assistant overlaid the Clowder composer. This was not a removable Clowder confirmation bar.
+
+Implementation commits: `3667199` (product/state repair) and `3956aa5` (mobile shell CSS extraction).
+
+- Status is now one modal state: opening makes the chat surface inert; the sheet and backdrop close together; composer focus can no longer coexist with a stale status journey.
+- The single chat reserve budgets `3.5rem` for the iOS touch form assistant during composing. Desktop/Android behavior remains unchanged.
+- VisualViewport projection retains keyboard state through blur until viewport restoration and performs a settling animation-frame read for WebKit's late installed-PWA geometry.
+- A dedicated 44-line `mobile-shell.css` owns mobile viewport projection; `globals.css` is 315 lines and the repository 350-line architecture guard is green.
+- Affected tests: **51/51**; with the CSS architecture guard: **53/53**. TypeScript, targeted Biome, diff check, and production build pass.
+- Full Web JSON before CSS extraction: **5062/5130**, 68 failures. All seven new tests pass. The sole added global-CSS length failure is green after `3956aa5`; targeted F190 confirms the raw-pixel guard remains green and only its unchanged modal-scrim baseline remains. No full-suite green is claimed.
+- Final Web runtime: port `4310`, PID `22696`, BUILD_ID `dekHachDoovqQ-6QxRcBT`; local and Tailscale HTTPS roots return HTTP 200 with that ID; `mobile-shell.css` is HTTP 200; API `4311` was untouched.
+- Final 4310 browser journey at 390px proves root scroll `0`, exclusive modal ownership, blocked underlying focus, clean close, and restored composer focus. At 390×500 composing, composer y=`392`, h=`52`, bottom=`444`; the assistant reserve owns the remaining 56px; Dock height is `0`.
+
+Reporting-iPhone Safari/PWA remains the release truth because Chrome does not render the native iOS form assistant.
+
 [宪宪/gpt-5.6-sol🐾]
