@@ -107,6 +107,9 @@ describe('PwaUpdateController', () => {
     harness.registration.waiting = harness.waitingWorker;
     act(() => harness.emitRegistration('updatefound'));
     expect(container.textContent).toContain('新版本已就绪');
+    expect(container.querySelector('[data-testid="pwa-update-status"]')?.className).toContain(
+      'mobile-keyboard-secondary-chrome',
+    );
     expect(reloadPage).not.toHaveBeenCalled();
     expect(harness.waitingWorker.postMessage).not.toHaveBeenCalled();
 

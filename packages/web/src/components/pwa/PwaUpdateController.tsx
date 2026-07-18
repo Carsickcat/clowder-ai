@@ -201,7 +201,7 @@ export function PwaUpdateController({ reloadPage = defaultReloadPage }: PwaUpdat
 
   return (
     <div
-      className="safe-area-inline fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[48] flex justify-center px-3"
+      className="mobile-keyboard-secondary-chrome safe-area-inline fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[48] flex justify-center px-3"
       role="status"
       aria-live="polite"
       data-testid="pwa-update-status"
