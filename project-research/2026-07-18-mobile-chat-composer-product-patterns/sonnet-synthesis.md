@@ -17,6 +17,7 @@ The white Previous / Next / Done strip in the reporting-iPhone screenshots is Sa
 3. Programmatic composer focus uses `focus({ preventScroll: true })`; the product decides transcript position instead of delegating it to the browser's default focus scrolling.
 4. Replace the full mobile Agent hook diagnostic card with a one-row summary and a compact sync action. Hide even that summary while composing. Preserve the full diagnostic on desktop and in the status/governance surface.
 5. Keep the mobile header as one line and keep all persistent interactive targets at least 44×44 CSS px.
+6. Signal pending authorization on the existing mobile status action; dismiss the keyboard before revealing the full 44px authorization controls in that status surface. Critical authorization stays discoverable without reintroducing a card above the IME.
 
 ## Reject
 
@@ -25,6 +26,7 @@ The white Previous / Next / Done strip in the reporting-iPhone screenshots is Sa
 - Another VisualViewport fallback, user-agent sniff, fixed iPhone height, duplicate safe-area reserve, or `scrollTo(0, 0)` loop.
 - A full configuration/403 diagnostic card in the mobile transcript.
 - Letting a bottom sheet and the software keyboard remain active at the same time.
+- Hiding authorization with ordinary secondary chrome, or restoring the full authorization card above the software keyboard.
 
 ## Acceptance contract
 
@@ -34,6 +36,7 @@ The white Previous / Next / Done strip in the reporting-iPhone screenshots is Sa
 - At widths below `lg`, hook-health diagnostics are one row when browsing and consume no layout space while composing.
 - The idle single-line composer row is at most 56px high by CSS contract; the editable surface and both actions retain 44px targets.
 - At `lg` and above, the existing detailed notice and desktop controls remain available.
+- Pending mobile authorization remains discoverable while composing, and all toolbar/authorization actions retain 44px-minimum touch height.
 
 ## Primary evidence
 

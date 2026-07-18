@@ -26,11 +26,12 @@ export function MobileInputToolbar({
   whisperMode,
 }: MobileInputToolbarProps) {
   const btnBase =
-    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors disabled:opacity-30';
+    'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs transition-colors disabled:opacity-30';
 
   return (
     <div className="flex gap-2 px-4 pt-2 md:hidden">
       <button
+        type="button"
         onClick={() => {
           onAttach();
           onClose();
@@ -38,9 +39,10 @@ export function MobileInputToolbar({
         disabled={disabled || sendDisabled || maxImages}
         className={`${btnBase} text-cafe-secondary bg-cafe-surface border-cafe hover:border-cafe-accent hover:text-cafe-accent`}
       >
-        <AttachIcon className="w-4 h-4" /> 附件
+        <AttachIcon aria-hidden="true" className="w-4 h-4" /> 附件
       </button>
       <button
+        type="button"
         onClick={() => {
           onWhisperToggle();
           onClose();
@@ -52,7 +54,7 @@ export function MobileInputToolbar({
             : 'text-cafe-secondary bg-cafe-surface border-cafe hover:border-cafe-accent hover:text-cafe-accent'
         }`}
       >
-        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+        <svg aria-hidden="true" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
           <path
             fillRule="evenodd"
             d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
@@ -62,6 +64,7 @@ export function MobileInputToolbar({
         悄悄话
       </button>
       <button
+        type="button"
         onClick={() => {
           onGameClick();
           onClose();
@@ -69,7 +72,7 @@ export function MobileInputToolbar({
         disabled={disabled || sendDisabled}
         className={`${btnBase} text-cafe-secondary bg-cafe-surface border-cafe hover:border-cafe-accent hover:text-cafe-accent`}
       >
-        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+        <svg aria-hidden="true" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
           <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
         </svg>
         游戏

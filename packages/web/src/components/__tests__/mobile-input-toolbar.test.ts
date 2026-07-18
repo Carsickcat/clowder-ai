@@ -51,6 +51,17 @@ describe('MobileInputToolbar', () => {
     expect(container.textContent).toContain('游戏');
   });
 
+  it('keeps every keyboard-adjacent action at least 44px tall', () => {
+    render();
+    const buttons = Array.from(container.querySelectorAll('button'));
+
+    expect(buttons).toHaveLength(3);
+    for (const button of buttons) {
+      expect(button.type).toBe('button');
+      expect(button.className).toContain('min-h-11');
+    }
+  });
+
   it('calls onAttach + onClose when attach button is clicked', () => {
     const fns = render();
     const attachBtn = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes('附件'));

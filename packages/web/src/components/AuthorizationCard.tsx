@@ -50,27 +50,27 @@ export function AuthorizationCard({ request, onRespond }: AuthorizationCardProps
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-2 ml-7">
+      <div className="flex flex-wrap items-center gap-2 mt-2 ml-7">
         {!expanded ? (
           <>
             <button
               type="button"
               onClick={() => onRespond(request.requestId, true, 'once')}
-              className="px-3 py-1 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
             >
               允许 (仅此次)
             </button>
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="px-3 py-1 text-xs bg-cafe-surface text-cafe-secondary rounded-md hover:bg-[var(--console-hover-bg)] transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-cafe-surface text-cafe-secondary rounded-md hover:bg-[var(--console-hover-bg)] transition-colors"
             >
               更多选项...
             </button>
             <button
               type="button"
               onClick={() => onRespond(request.requestId, false, 'once', 'skip')}
-              className="px-3 py-1 text-xs bg-conn-red-bg text-conn-red-text rounded-md hover:bg-conn-red-ring transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-conn-red-bg text-conn-red-text rounded-md hover:bg-conn-red-ring transition-colors"
             >
               拒绝
             </button>
@@ -78,7 +78,7 @@ export function AuthorizationCard({ request, onRespond }: AuthorizationCardProps
             <button
               type="button"
               onClick={() => onRespond(request.requestId, false, 'once', 'skip', true)}
-              className="px-3 py-1 text-xs bg-cafe-surface text-cafe-accent rounded-md hover:bg-cafe-accent/10 transition-colors border border-cafe-accent/40"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-cafe-surface text-cafe-accent rounded-md hover:bg-cafe-accent/10 transition-colors border border-cafe-accent/40"
               title="取消并提交问题反馈"
             >
               取消并反馈
@@ -90,21 +90,21 @@ export function AuthorizationCard({ request, onRespond }: AuthorizationCardProps
             <button
               type="button"
               onClick={() => onRespond(request.requestId, true, 'once')}
-              className="px-3 py-1 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
             >
               允许 (仅此次)
             </button>
             <button
               type="button"
               onClick={() => onRespond(request.requestId, true, 'thread')}
-              className="px-3 py-1 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
             >
               允许 (此对话)
             </button>
             <button
               type="button"
               onClick={() => onRespond(request.requestId, true, 'global')}
-              className="px-3 py-1 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-conn-green-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-green-hover transition-colors"
             >
               允许 (全局)
             </button>
@@ -117,8 +117,8 @@ export function AuthorizationCard({ request, onRespond }: AuthorizationCardProps
                 onClick={() => onRespond(request.requestId, false, v.scope, v.reason)}
                 className={
                   v.reason === 'skip'
-                    ? 'px-3 py-1 text-xs bg-conn-red-bg text-conn-red-text rounded-md hover:bg-conn-red-ring transition-colors'
-                    : 'px-2.5 py-1 text-xs bg-cafe-surface text-conn-red-text rounded-md hover:bg-conn-red-bg/30 transition-colors border border-conn-red-ring/30'
+                    ? 'inline-flex min-h-11 items-center justify-center px-3 text-xs bg-conn-red-bg text-conn-red-text rounded-md hover:bg-conn-red-ring transition-colors'
+                    : 'inline-flex min-h-11 items-center justify-center px-2.5 text-xs bg-cafe-surface text-conn-red-text rounded-md hover:bg-conn-red-bg/30 transition-colors border border-conn-red-ring/30'
                 }
               >
                 {v.label}
@@ -129,7 +129,7 @@ export function AuthorizationCard({ request, onRespond }: AuthorizationCardProps
             <button
               type="button"
               onClick={() => onRespond(request.requestId, false, 'global', 'skip')}
-              className="px-3 py-1 text-xs bg-conn-red-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-red-hover transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-conn-red-text text-[var(--cafe-surface)] rounded-md hover:bg-conn-red-hover transition-colors"
             >
               拒绝 (全局)
             </button>
@@ -137,7 +137,7 @@ export function AuthorizationCard({ request, onRespond }: AuthorizationCardProps
             <button
               type="button"
               onClick={() => onRespond(request.requestId, false, 'once', 'skip', true)}
-              className="px-3 py-1 text-xs bg-cafe-surface text-cafe-accent rounded-md hover:bg-cafe-accent/10 transition-colors border border-cafe-accent/40"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs bg-cafe-surface text-cafe-accent rounded-md hover:bg-cafe-accent/10 transition-colors border border-cafe-accent/40"
               title="取消并提交问题反馈"
             >
               取消并反馈
@@ -145,7 +145,7 @@ export function AuthorizationCard({ request, onRespond }: AuthorizationCardProps
             <button
               type="button"
               onClick={() => setExpanded(false)}
-              className="px-3 py-1 text-xs text-cafe-secondary hover:text-cafe-secondary transition-colors"
+              className="inline-flex min-h-11 items-center justify-center px-3 text-xs text-cafe-secondary hover:text-cafe-secondary transition-colors"
             >
               收起
             </button>

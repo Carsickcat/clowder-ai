@@ -113,6 +113,19 @@ describe('ChatContainerHeader thread indicator', () => {
     expect(renderHeader('default').textContent).toContain('大厅');
   });
 
+  it('keeps pending authorization visible on the mobile status entry', () => {
+    const rendered = renderToStaticMarkup(
+      React.createElement(ChatContainerHeader, { ...defaultProps, threadId: 'default', authPendingCount: 2 }),
+    );
+    container.innerHTML = rendered;
+
+    const mobileStatus = container.querySelector('[data-mobile-status-trigger]');
+    const pendingBadge = container.querySelector('[data-mobile-auth-pending-count]');
+    expect(mobileStatus?.getAttribute('aria-label')).toContain('2 个授权请求等待处理');
+    expect(pendingBadge?.textContent).toBe('2');
+    expect(pendingBadge?.className).toContain('lg:hidden');
+  });
+
   it('shows thread title and project name when a specific thread is selected', () => {
     const rendered = renderHeader('thread_xyz');
     expect(rendered.textContent).toContain('讨论 F095 设计');

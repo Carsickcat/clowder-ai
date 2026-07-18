@@ -114,6 +114,23 @@ describe('MobileStatusSheet', () => {
     expect(sheet.scrollTop).toBe(0);
   });
 
+  it('hosts critical authorization actions inside the mobile status journey', () => {
+    act(() => {
+      root.render(
+        React.createElement(MobileStatusSheet, {
+          ...baseProps,
+          open: true,
+          authorizationContent: React.createElement('div', { 'data-testid': 'mobile-authorization' }, '需要授权'),
+        }),
+      );
+    });
+
+    const authorization = container.querySelector('[data-testid="mobile-authorization"]');
+    const surface = authorization?.closest('[data-mobile-authorization-surface]');
+    expect(surface).not.toBeNull();
+    expect(surface?.textContent).toContain('需要授权');
+  });
+
   it('displays thread ID and message summary', () => {
     act(() => {
       root.render(React.createElement(MobileStatusSheet, { ...baseProps, open: true }));

@@ -27,7 +27,9 @@ This is a harness defect, not three unrelated style bugs: three real-device corr
 - Status and composing are mutually exclusive task surfaces. Opening status blurs the composer; a newly selected thread cannot inherit the old sheet; each open begins at `scrollTop = 0`; while keyboard projection is active, the sheet is hidden.
 - Mobile Agent-hook health is a 44px one-row summary with a compact sync action. Detailed error text, five status pills, and repair preview remain available on desktop/governance surfaces and leave the composing layout entirely.
 - The mobile composer is one 52px row: 44px attachment target, 44px block textarea, and 44px mic/send target. Internal refocus calls use `focus({ preventScroll: true })` and the IME receives `enterKeyHint="send"`.
-- Connection, authorization, execution, queue, vote, quest, research, game-return, and empty-state chrome all share the existing `mobile-keyboard-secondary-chrome` projection instead of acquiring new bottom reserves.
+- Noncritical connection, execution, queue, vote, quest, research, game-return, and empty-state chrome share the existing `mobile-keyboard-secondary-chrome` projection instead of acquiring new bottom reserves.
+- Authorization is deliberately not treated as secondary chrome: mobile shows a pending-count badge on the existing status action, opening it dismisses the keyboard, and the authorization controls live at the top of the status sheet. Desktop retains the inline authorization cards.
+- The expandable input toolbar and every authorization action use 44px-minimum touch targets; compact actions wrap rather than compress below the target size.
 
 ## Verification before independent review
 

@@ -5,6 +5,8 @@ import { ChatContainer } from '@/components/ChatContainer';
 import { WIDE_SHELL_QUERY } from '@/lib/responsive-breakpoints';
 import { useSidebarStore } from '@/stores/sidebarStore';
 
+const mockAuthorizationState = vi.hoisted(() => ({ pending: [] as Array<{ requestId: string }> }));
+
 const mockStoreState = () => ({
   messages: [],
   isLoading: false,
@@ -73,7 +75,12 @@ vi.mock('@/hooks/useSendMessage', () => ({
   useSendMessage: () => ({ handleSend: vi.fn() }),
 }));
 vi.mock('@/hooks/useAuthorization', () => ({
-  useAuthorization: () => ({ pending: [], respond: vi.fn(), handleAuthRequest: vi.fn(), handleAuthResponse: vi.fn() }),
+  useAuthorization: () => ({
+    pending: mockAuthorizationState.pending,
+    respond: vi.fn(),
+    handleAuthRequest: vi.fn(),
+    handleAuthResponse: vi.fn(),
+  }),
 }));
 vi.mock('@/hooks/useSplitPaneKeys', () => ({ useSplitPaneKeys: vi.fn() }));
 vi.mock('@/hooks/useChatSocketCallbacks', () => ({
@@ -109,8 +116,12 @@ vi.mock('../ChatContainerHeader', () => ({
 }));
 vi.mock('../RightStatusPanel', () => ({ RightStatusPanel: () => null }));
 vi.mock('../MobileStatusSheet', () => ({
-  MobileStatusSheet: (props: { open: boolean }) =>
-    React.createElement('div', { 'data-testid': 'mobile-status', 'data-open': String(props.open) }),
+  MobileStatusSheet: (props: { open: boolean; authorizationContent?: React.ReactNode }) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'mobile-status', 'data-open': String(props.open) },
+      props.authorizationContent,
+    ),
 }));
 vi.mock('../ParallelStatusBar', () => ({ ParallelStatusBar: () => null }));
 vi.mock('../ThinkingIndicator', () => ({ ThinkingIndicator: () => null }));
@@ -119,7 +130,10 @@ vi.mock('../MessageActions', () => ({
   MessageActions: ({ children }: { children: React.ReactNode }) => children,
 }));
 vi.mock('../SplitPaneView', () => ({ SplitPaneView: () => null }));
-vi.mock('../AuthorizationCard', () => ({ AuthorizationCard: () => null }));
+vi.mock('../AuthorizationCard', () => ({
+  AuthorizationCard: ({ request }: { request: { requestId: string } }) =>
+    React.createElement('div', { 'data-testid': 'authorization-card', 'data-request-id': request.requestId }),
+}));
 
 describe('ChatContainer mobile interactions', () => {
   let container: HTMLDivElement;
@@ -150,6 +164,7 @@ describe('ChatContainer mobile interactions', () => {
 
   beforeEach(() => {
     useSidebarStore.setState({ isOpen: false });
+    mockAuthorizationState.pending = [];
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -246,6 +261,18 @@ describe('ChatContainer mobile interactions', () => {
     });
 
     expect(container.querySelector('[data-testid="mobile-status"]')?.getAttribute('data-open')).toBe('false');
+  });
+
+  it('routes pending authorization into the mobile status surface instead of keyboard-hidden chrome', () => {
+    mockAuthorizationState.pending = [{ requestId: 'auth-1' }];
+    act(() => {
+      root.render(React.createElement(ChatContainer, { threadId: 'test-thread' }));
+    });
+
+    const authorization = container.querySelector('[data-testid="authorization-card"]');
+    expect(authorization).not.toBeNull();
+    expect(authorization?.closest('[data-testid="mobile-status"]')).not.toBeNull();
+    expect(authorization?.closest('.mobile-keyboard-secondary-chrome')).toBeNull();
   });
 
   it('consumes the single mobile Dock reserve below the input', () => {

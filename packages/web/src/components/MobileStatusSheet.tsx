@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { type ReactNode, useLayoutEffect, useMemo, useRef } from 'react';
 import { formatCatName, useCatData } from '@/hooks/useCatData';
 import { catColorVar } from '@/lib/cat-slug';
 import { CatTokenUsage } from './CatTokenUsage';
@@ -17,6 +17,7 @@ import {
 interface MobileStatusSheetProps extends RightStatusPanelProps {
   open: boolean;
   onClose: () => void;
+  authorizationContent?: ReactNode;
 }
 
 /**
@@ -34,6 +35,7 @@ export function MobileStatusSheet({
   hasActiveInvocation,
   threadId,
   messageSummary,
+  authorizationContent,
 }: MobileStatusSheetProps) {
   const { getCatById } = useCatData();
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -102,6 +104,16 @@ export function MobileStatusSheet({
         </div>
 
         <div className="p-4 space-y-3">
+          {authorizationContent && (
+            <section
+              className="rounded-lg border border-conn-amber-ring bg-conn-amber-bg/50 p-3"
+              data-mobile-authorization-surface
+            >
+              <h3 className="mb-2 text-xs font-semibold text-conn-amber-text">需要授权</h3>
+              {authorizationContent}
+            </section>
+          )}
+
           {/* ── Cat status ── */}
           <section className="rounded-lg bg-cafe-surface-elevated/70 p-3">
             <h3 className="text-xs font-semibold text-cafe-secondary mb-2">

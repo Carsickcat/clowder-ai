@@ -36,6 +36,9 @@ export function ChatContainerHeader({
   onToggleStatusPanel,
   defaultCatId,
 }: ChatContainerHeaderProps) {
+  const mobileStatusLabel =
+    authPendingCount > 0 ? `打开状态面板，${authPendingCount} 个授权请求等待处理` : '打开状态面板';
+
   return (
     <header className="safe-area-top border-b border-cafe lg:border-b-0">
       <div className="flex h-14 items-center gap-1 px-2 lg:h-auto lg:gap-2 lg:px-5 lg:py-3">
@@ -85,9 +88,10 @@ export function ChatContainerHeader({
         <button
           type="button"
           onClick={onOpenMobileStatus}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors lg:ml-1 lg:hidden"
-          title="打开状态面板"
-          aria-label="打开状态面板"
+          className="relative flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors lg:ml-1 lg:hidden"
+          title={mobileStatusLabel}
+          aria-label={mobileStatusLabel}
+          data-mobile-status-trigger
         >
           <svg aria-hidden="true" className="w-5 h-5 text-cafe-secondary" viewBox="0 0 20 20" fill="currentColor">
             <path
@@ -96,6 +100,15 @@ export function ChatContainerHeader({
               clipRule="evenodd"
             />
           </svg>
+          {authPendingCount > 0 && (
+            <span
+              className="absolute right-0.5 top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-conn-amber-text px-1 text-micro font-bold leading-none text-cafe-surface lg:hidden"
+              data-mobile-auth-pending-count
+              aria-hidden="true"
+            >
+              {authPendingCount > 9 ? '9+' : authPendingCount}
+            </span>
+          )}
         </button>
         {/* F232 AC-A8: 单一 panel 开关（桌面 lg:block）；mode 切换从底部工具栏图标触发。
             P2-2：右侧 panel desktop-only，小屏走 MobileStatusSheet。 */}

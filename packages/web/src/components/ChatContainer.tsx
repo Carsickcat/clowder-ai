@@ -1081,8 +1081,8 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
         </div>
 
         <div ref={attachBottomChromeRef} className="pb-[var(--mobile-dock-reserve)] lg:pb-0">
-          {authPending.length > 0 && (
-            <div className="mobile-keyboard-secondary-chrome border-t border-conn-amber-ring bg-conn-amber-bg/40 py-2">
+          {isDesktop && authPending.length > 0 && (
+            <div className="border-t border-conn-amber-ring bg-conn-amber-bg/40 py-2">
               {authPending.map((req) => (
                 <AuthorizationCard key={req.requestId} request={req} onRespond={authRespond} />
               ))}
@@ -1289,6 +1289,15 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
         hasActiveInvocation={Boolean(hasActiveInvocation)}
         threadId={threadId}
         messageSummary={messageSummary}
+        authorizationContent={
+          !isDesktop && authPending.length > 0 ? (
+            <div className="space-y-2">
+              {authPending.map((req) => (
+                <AuthorizationCard key={req.requestId} request={req} onRespond={authRespond} />
+              ))}
+            </div>
+          ) : undefined
+        }
       />
       {showFirstRunQuestPrompt &&
         createPortal(
