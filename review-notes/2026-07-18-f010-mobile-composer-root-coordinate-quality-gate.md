@@ -7,11 +7,11 @@ Reporting evidence:
 - `C:\Users\myh_1\Desktop\07a4d1f3c1d2cdf4acc422ab2fe0512e.mp4` — 12.40s, HEVC, 592×1280
 - `packages/api/uploads/1784388882630-270baf4d.png`
 
-Implementation candidate: `e27ee2daf9bbfb986754385b7068935f19c4833e`
+Implementation commits: root-coordinate repair `e27ee2daf9bbfb986754385b7068935f19c4833e`; reviewed typography repair `ffafb56cda54912dacfea89232a1c1c5562839ad`
 
-## Verdict before independent implementation review
+## Final verdict
 
-The candidate is ready for cross-individual review. Automated, production-build, and deterministic browser gates pass. The reporting iPhone installed-PWA replay remains the release gate.
+Terra independently approved the exact code SHA `ffafb56` with **P1/P2/P3 = 0**. Automated, production-build, deterministic browser, and cross-individual review gates pass. The reporting iPhone installed-PWA replay remains the release gate.
 
 ## Root cause
 
@@ -48,16 +48,16 @@ The oversized bottom region had a separate owner conflict. Clowder added a fixed
 
 Focused viewport/composer/overflow selection: **33/33 passed**.
 
-Broader affected selection: **12 files / 108 tests passed**. It covers viewport projection, composer state, draft persistence, mentions, mobile container chrome, toolbar, status sheet, PWA update projection, AppShell navigation, and rich Markdown rendering.
+Broader affected selection: **13 files / 110 tests passed**. It covers viewport projection, composer state, draft persistence, mentions, mobile container chrome, toolbar, status sheet, PWA update projection, AppShell navigation, rich Markdown rendering, and chat-only typography ownership.
 
 Web package TypeScript, targeted Biome with zero errors, and `git diff --check` pass.
 
-Full Web Vitest remains transparently baseline-red at **5067/5134 passed**, 67 failures in the same 14 historical files. Relative to the fifth-round **5064/5131** baseline, exactly three tests were added and all three pass; neither failure count nor failure-file roster increased.
+Full Web Vitest remains transparently baseline-red at **5069/5136 passed**, 67 failures in the same 14 historical files. Relative to the fifth-round **5064/5131** baseline, exactly five tests were added and all five pass; neither failure count nor failure-file roster increased.
 
 ## Production and browser evidence
 
-- Production BUILD_ID: `7FDxNHXymbVxqdC4HjWmh`.
-- Isolated Web: port `4310`, PID `2656`, HTTP `/` = 200.
+- Production BUILD_ID: `2JhXmOBICvwybpU-Kig8T`.
+- Isolated Web: port `4310`, PID `45656`, HTTP `/` = 200.
 - API `4311` and normal runtime ports were not restarted or modified.
 - Hub Browser Preview opened the isolated build.
 
@@ -82,10 +82,18 @@ Deterministic 390×430 composing projection:
 
 Writing a synthetic `--app-viewport-top: 96px` leaves computed AppShell `top=0` and bounding rect top `0`, proving that a late iOS pan can no longer feed back into root layout. A real pointer journey also proves that tools blur the textarea and a subsequent composer tap removes the 52px tool row.
 
-## Independent design convergence and remaining gate
+Responsive typography evidence from the compiled production CSS:
+
+- widths `639`, `640`, and `767`: chat copy `16px`, generic Markdown `14px`;
+- width `768`: chat copy and generic Markdown both `14px`;
+- textarea remains `16px`, and AppShell remains at `top=0` throughout.
+
+## Independent review and remaining gate
 
 Terra independently reviewed the new recording and reached the same root-origin, zero-assistant-reserve, 48px composer, 16px typography, and textarea-preservation recommendation in message `0001784389116629-000006-a8b895fe`.
 
-This is design convergence, not implementation approval. Cross-individual code review is still required for `e27ee2d`. After approval, the only remaining release evidence is the reporting iPhone installed-PWA replay of the original 12-second focus journey with Chinese IME and mentions.
+Terra then reviewed the implementation, found one P2 in the original global `sm` typography scope, and approved its Red→Green repair at `ffafb56` in messages `0001784394321312-000027-3ca7db79` and `0001784394411765-000029-b59f5602`. Independent evidence: **8 files / 81 tests**, Web TypeScript, `git diff --check`, and a clean worktree; final verdict **P1/P2/P3 = 0**.
 
-[宪宪/gpt-5.6-sol🐾]
+The only remaining release evidence is the reporting iPhone installed-PWA replay of the original 12-second focus journey with Chinese IME and mentions.
+
+[丢丢/gpt-5.6-sol🐾]

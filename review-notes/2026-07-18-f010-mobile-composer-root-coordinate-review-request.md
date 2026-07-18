@@ -4,7 +4,7 @@ Review-Target-ID: f010
 
 Branch: `feat/f010-mobile-pwa`
 
-Implementation commit: `e27ee2daf9bbfb986754385b7068935f19c4833e`
+Implementation commits: root-coordinate repair `e27ee2daf9bbfb986754385b7068935f19c4833e`; reviewed typography repair `ffafb56cda54912dacfea89232a1c1c5562839ad`
 
 Evidence head before this request note: `91c7128db360c6ad6608afc0ffaca48ca589ddda`
 
@@ -33,7 +33,7 @@ The annotated requirements are: remove the focus-triggered blank jump, compress 
 - Removed the fixed 3.5rem application reserve for Safari's native form assistant.
 - Reduced the mobile composer to one 48px row with 44px textarea/actions.
 - Made tools and IME mutually exclusive while retaining the textarea primitive.
-- Aligned mobile message body and composer text at 16px.
+- Aligned chat-message body and composer text at 16px through 767px while preserving the established 14px default for non-chat Markdown.
 - Added root-origin, zero-reserve, density, typography, and interaction contracts.
 - Recorded full-suite, production-build, and 390px runtime evidence.
 
@@ -60,19 +60,21 @@ Value: none. The reporting iPhone replay is acceptance evidence, not a pending p
 ## Self-check evidence
 
 - Focused selection: **33/33**.
-- Broader affected selection: **12 files / 108 tests**.
-- Full Web Vitest: **5067/5134**, 67 failures in the same 14 historical files; exactly three new tests pass relative to **5064/5131**.
+- Broader affected selection: **13 files / 110 tests**.
+- Full Web Vitest: **5069/5136**, 67 failures in the same 14 historical files; exactly five new tests pass relative to **5064/5131**.
 - Web TypeScript, targeted Biome (zero errors), and `git diff --check` pass.
-- Production BUILD_ID: `7FDxNHXymbVxqdC4HjWmh`.
-- Isolated Web: `4310`, PID `2656`, HTTP 200; API `4311` untouched.
+- Production BUILD_ID: `2JhXmOBICvwybpU-Kig8T`.
+- Isolated Web: `4310`, PID `45656`, HTTP 200; API `4311` untouched.
 - 390×430: root top/scroll `0`, reserve `0`, Dock `0`, composer `48`, bottom gap `0`.
 - Synthetic 96px offset variable cannot move the root; pointer journey proves tools/IME mutual exclusion.
 - Worktree and root-media worktree scans are clean. The root-media branch scan could not compare `origin/main...HEAD` because this local branch has no merge base with that ref; no root media is present in the current worktree or committed change list.
 
 Detailed gate: `review-notes/2026-07-18-f010-mobile-composer-root-coordinate-quality-gate.md`.
 
-## Next action
+## Review result
 
-Please independently review the exact final HEAD. Return `APPROVE` or `REQUEST_CHANGES` with P1/P2/P3 findings. Focus on root-coordinate invariance, the single reserve owner, IME/editor behavior, desktop boundary, and whether the tests can detect the recorded failure rather than only the intended CSS text.
+Terra approved the exact code SHA `ffafb56` with **P1/P2/P3 = 0** after independently passing **8 files / 81 tests**, Web TypeScript, `git diff --check`, and the clean-worktree check. The approval is recorded in messages `0001784394321312-000027-3ca7db79` and `0001784394411765-000029-b59f5602`.
 
-[宪宪/gpt-5.6-sol🐾]
+The only remaining release gate is the reporting iPhone installed-PWA replay of the original focus journey with Chinese IME and mentions.
+
+[丢丢/gpt-5.6-sol🐾]

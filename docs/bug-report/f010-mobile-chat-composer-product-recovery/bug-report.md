@@ -86,11 +86,12 @@ The 12.40-second recording `07a4d1f3c1d2cdf4acc422ab2fe0512e.mp4` supersedes the
 
 - Confirmed root cause: `visualViewport.offsetTop` was written into the fixed AppShell's own `top`, double-applying Safari's focus pan. The AppShell now has a literal `top: 0; left: 0`; VisualViewport supplies dimensions only.
 - Confirmed density cause: Clowder's fixed 3.5rem assistant reserve duplicated Safari's already visible native Form Assistant. Composing reserve is now exactly `0px`; the system bar remains system-owned.
-- Product correction: one 48px composer row, 44px editor/actions, mobile message and composer copy both 16px, and mutually exclusive tool/IME states. The textarea primitive is retained.
-- Focused verification: **33/33**; broader affected selection: **12 files / 108 tests**; Web TypeScript, targeted Biome, and diff check pass.
-- Full Web JSON: **5067/5134**, 67 failures in the same 14 historical files. Relative to **5064/5131**, exactly three new tests pass and no failure family changed.
-- Isolated runtime: Web `4310` PID `2656`, BUILD_ID `7FDxNHXymbVxqdC4HjWmh`, HTTP 200; API `4311` was untouched.
+- Product correction: one 48px composer row, 44px editor/actions, chat-message and composer copy both 16px through 767px, and mutually exclusive tool/IME states. Non-chat Markdown retains its established 14px default, and the textarea primitive is retained.
+- Focused verification: **33/33**; broader affected selection after the review repair: **13 files / 110 tests**; Web TypeScript, targeted Biome, and diff check pass.
+- Full Web JSON: **5069/5136**, 67 failures in the same 14 historical files. Relative to **5064/5131**, exactly five new tests pass and no failure family changed.
+- Isolated runtime: Web `4310` PID `45656`, BUILD_ID `2JhXmOBICvwybpU-Kig8T`, HTTP 200; API `4311` PID `7580` was untouched.
 - Browser acceptance at 390×430: AppShell top `0`, root scroll `0`, reserve `0`, Dock height `0`, composer `y=382/h=48/bottom=430`, and no application-created gap below it. A synthetic 96px offset variable cannot move the root.
 - Pointer journey: `+` blurs the textarea and shows the tool row; tapping the composer focuses the textarea and removes tools.
+- Responsive boundary journey: widths `639/640/767` render chat copy at `16px` and generic Markdown at `14px`; width `768` restores chat copy to `14px` while the textarea remains `16px`.
 
-Implementation candidate: `e27ee2daf9bbfb986754385b7068935f19c4833e`. Detailed evidence is in `review-notes/2026-07-18-f010-mobile-composer-root-coordinate-quality-gate.md`. Cross-individual implementation review and the reporting-iPhone replay remain open.
+Implementation commits: root-coordinate repair `e27ee2daf9bbfb986754385b7068935f19c4833e`; reviewed typography repair `ffafb56cda54912dacfea89232a1c1c5562839ad`. Terra approved `ffafb56` with **P1/P2/P3 = 0** in messages `0001784394321312-000027-3ca7db79` and `0001784394411765-000029-b59f5602` after independently passing **8 files / 81 tests**, Web TypeScript, diff check, and the clean-worktree check. Detailed evidence is in `review-notes/2026-07-18-f010-mobile-composer-root-coordinate-quality-gate.md`. Only the reporting-iPhone replay remains open.
