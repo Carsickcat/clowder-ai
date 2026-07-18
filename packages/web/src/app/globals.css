@@ -50,7 +50,7 @@ body {
 }
 
 :root {
-  --mobile-dock-reserve: calc(4rem + env(safe-area-inset-bottom, 0px));
+  --mobile-dock-reserve: calc(3.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 html[data-mobile-keyboard-open="true"] {
@@ -65,6 +65,10 @@ html[data-mobile-keyboard-open="true"] {
 }
 
 html[data-mobile-keyboard-open="true"] .mobile-ops-nav {
+  display: none;
+}
+
+html[data-mobile-keyboard-open="true"] .mobile-keyboard-secondary-chrome {
   display: none;
 }
 

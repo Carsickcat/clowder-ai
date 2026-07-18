@@ -718,7 +718,7 @@ export function ChatInput({
     ta.style.height = 'auto';
     const isMobile =
       typeof window.matchMedia === 'function' ? window.matchMedia(MOBILE_WORK_SURFACE_QUERY).matches : false;
-    const maxH = isMobile ? 120 : 200; // ~5 lines mobile, ~8 lines desktop
+    const maxH = isMobile ? 96 : 200; // ~3 lines mobile, ~8 lines desktop
     ta.style.height = `${Math.min(ta.scrollHeight, maxH)}px`;
   }, [input]);
 
@@ -739,10 +739,13 @@ export function ChatInput({
   }, [activeMenu, closeMenus]);
 
   return (
-    <div className="relative bg-[var(--console-shell-bg)] safe-area-bottom">
+    <div data-chat-input-composer className="relative bg-[var(--console-shell-bg)]">
       {/* F39: Queue status bar — visible when cat is running */}
       {hasActiveInvocation && (
-        <div data-testid="active-invocation-banner" className="px-4 pt-2 flex items-center gap-2">
+        <div
+          data-testid="active-invocation-banner"
+          className="mobile-keyboard-secondary-chrome px-4 pt-2 flex items-center gap-2"
+        >
           <span className="inline-block w-2 h-2 rounded-full bg-[var(--color-cocreator-primary)] animate-pulse" />
           <span className="text-xs text-[var(--color-cocreator-primary)] font-medium">猫猫正在回复中...</span>
           <span className="text-xs text-cafe-muted flex-1">继续输入，消息会排队</span>
@@ -851,7 +854,7 @@ export function ChatInput({
         />
       )}
 
-      <div className="flex gap-2 items-center p-4 pt-2" data-testid="chat-input-composer-row">
+      <div className="flex gap-2 items-center p-2 sm:p-4 sm:pt-2" data-testid="chat-input-composer-row">
         {/* Mobile: + toggle button */}
         <button
           onClick={() => setMobileToolbar((v) => !v)}

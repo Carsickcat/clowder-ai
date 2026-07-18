@@ -660,6 +660,16 @@ operator experience："简直了你和Maine Coon是没头脑（Maine Coon听不�
 | 纠正轮次 | 2（"少了痛点解决"误读为去解 EMF → "你理解错了！不是让你解决这个 case"才拉回 meta） |
 | 元心智哪条没执行 | Q3 坐标变换——没把"痛点"从 case 坐标系（EMF 技术）变换到 meta 坐标系（泛化能力 + harness），锚定在最显眼的技术名词上 |
 
+### Case E7: 把 mention picker 症状当成 mobile chat shell 终态（2026-07-18，sonnet）
+
+| 维度 | 内容 |
+|------|------|
+| 我以为 | 真机键盘态的主要问题是 `@` picker 过高；压缩 picker 后即可进入验收。 |
+| 实际要求 | 三张真机图显示的是整个 chat shell 坐标系失败：多行桌面式 header、运行/队列 chrome、composer、Dock 与 iOS 输入法共同争抢 visual viewport；需要重新设计键盘开闭两态并修改 header、状态 chrome、唯一底部 reserve 与双 iOS viewport 模型。 |
+| 偏差根因 | **局部症状锚定 + 任务边界过早收缩**：把上一轮最显眼的 picker 当成根因，没有把完整截图中的顶部、消息面、composer、Dock 与系统键盘作为一个壳层共同审计。 |
+| 纠正轮次 | operator 1 次纠正后，先与 Terra 独立收敛终态矩阵，再完成 shell 级 Red→Green、生产构建与隔离浏览器验收。 |
+| 元心智哪条没执行 | Q2 信息验证不完整：未把三张真机图的全部占位 owner 映射回代码；Q3 坐标变换缺失：没有从“picker 组件高度”切换到“visual viewport 内唯一 shell 坐标系”。 |
+
 ## Review Gate
 
 - Phase 0: **多猫协作审视**（所有猫参与各自 prompt 审视）+ 现有 system-prompt-builder 测试全绿

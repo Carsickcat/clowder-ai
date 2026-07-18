@@ -19,6 +19,7 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(css).not.toContain('height: calc(var(--app-viewport-height');
     expect(css).toContain('--mobile-dock-reserve');
     expect(css).toMatch(/html\[data-mobile-keyboard-open=["']true["']\]/);
+    expect(css).toContain('.mobile-keyboard-secondary-chrome');
   });
 
   it('keeps the chat surface narrow, scroll-contained, and keyboard-safe', () => {
@@ -31,6 +32,9 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(chat).toContain('pb-[var(--mobile-dock-reserve)]');
     expect(chat).not.toContain('pb-[calc(4rem+env(safe-area-inset-bottom))]');
     expect(input).toContain('flex-1 min-w-0 relative');
+    expect(input).toContain('data-chat-input-composer');
+    expect(input).not.toContain('bg-[var(--console-shell-bg)] safe-area-bottom');
+    expect(chat).toContain('mobile-keyboard-secondary-chrome');
   });
 
   it('bounds mobile mentions and keeps the desktop keyboard legend out of compact layouts', () => {
@@ -46,5 +50,7 @@ describe('F010 mobile viewport and overflow contract', () => {
   it('keeps the two mobile header actions at least 44px square', () => {
     const header = readWeb('src/components/ChatContainerHeader.tsx');
     expect(header.match(/min-h-11 min-w-11/g)).toHaveLength(2);
+    expect(header).toContain('h-14');
+    expect(header).toContain('hidden lg:flex');
   });
 });

@@ -908,8 +908,10 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           defaultCatId={targetCats[0] || 'opus'}
         />
 
-        {intentMode === 'ideate' && <ParallelStatusBar onStop={handleStop} threadId={threadId} />}
-        {showThinkingIndicator && <ThinkingIndicator onCancel={cancelInvocation} threadId={threadId} />}
+        <div className="mobile-keyboard-secondary-chrome">
+          {intentMode === 'ideate' && <ParallelStatusBar onStop={handleStop} threadId={threadId} />}
+          {showThinkingIndicator && <ThinkingIndicator onCancel={cancelInvocation} threadId={threadId} />}
+        </div>
 
         <div className="flex-1 relative overflow-hidden">
           <main
@@ -1060,9 +1062,11 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
             </div>
           )}
 
-          <ThreadExecutionBar threadId={threadId} />
-          <QueuePanel threadId={threadId} />
-          <VoteActiveBar threadId={threadId} onEnd={() => {}} />
+          <div className="mobile-keyboard-secondary-chrome">
+            <ThreadExecutionBar threadId={threadId} />
+            <QueuePanel threadId={threadId} />
+            <VoteActiveBar threadId={threadId} onEnd={() => {}} />
+          </div>
 
           {!showFirstRunQuestPrompt &&
             !showQuestWizard &&

@@ -72,15 +72,19 @@ describe('ChatContainerHeader thread indicator', () => {
   let container: HTMLDivElement;
   let root: Root | null;
   let originalClipboard: PropertyDescriptor | undefined;
+  let originalBrandName: string | undefined;
 
   beforeAll(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    originalBrandName = process.env.NEXT_PUBLIC_BRAND_NAME;
   });
 
   afterAll(() => {
     delete (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT;
     if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard);
+    if (originalBrandName === undefined) delete process.env.NEXT_PUBLIC_BRAND_NAME;
+    else process.env.NEXT_PUBLIC_BRAND_NAME = originalBrandName;
   });
 
   beforeEach(() => {
@@ -89,6 +93,7 @@ describe('ChatContainerHeader thread indicator', () => {
     root = null;
     mockStore.threads = TEST_THREADS;
     mockStore.rightPanelMode = 'status';
+    delete process.env.NEXT_PUBLIC_BRAND_NAME;
   });
 
   afterEach(() => {

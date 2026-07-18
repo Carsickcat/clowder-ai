@@ -143,3 +143,24 @@
 5. 发起跨个体代码 review；P1/P2 清零后再向 operator 报告实现结果，并保留同机 iPhone 最终复验入口。
 
 [宪宪/gpt-5.6-sol🐾]
+
+## Task 8: Correct the mobile chat-shell state projection
+
+True-device evidence on 2026-07-18 invalidated the earlier assumption that the layout/visual viewport height difference detects every iOS keyboard geometry. The implementation keeps one ephemeral `data-mobile-keyboard-open` projection, but its input now covers both observed models: the direct viewport difference, or a composer-focused shrink from a stable same-width VisualViewport baseline. This is an evidence-based replacement for the earlier blanket rejection of any focus guard; it is not a focus-only fixed-height fallback.
+
+**Files:**
+
+- Modify: `packages/web/src/hooks/useVisualViewportCssVars.ts`
+- Modify: `packages/web/src/app/globals.css`
+- Modify: `packages/web/src/components/ChatContainerHeader.tsx`
+- Modify: `packages/web/src/components/ChatContainer.tsx`
+- Modify: `packages/web/src/components/ChatInput.tsx`
+- Modify: focused viewport/header/composer contracts
+- Create: `docs/bug-report/f010-mobile-chat-shell-chrome-density/bug-report.md`
+
+1. RED: simultaneous `innerHeight` and `visualViewport.height` shrink while the composer is focused must enter composing mode; duplicate composer safe-area, desktop-height mobile header, and keyboard-visible secondary chrome must fail contracts.
+2. GREEN: project a 56px single-line mobile header; remove low-frequency desktop controls from its primary row; make Dock reserve the only bottom safe-area consumer; hide Dock and secondary liveness chrome in composing mode; cap the mobile composer near three lines.
+3. Preserve critical control: the composer stop action remains reachable while secondary status rows are hidden.
+4. Verify focused suites, production build, isolated compact/medium browser preview, independent review, and the same-device iPhone PWA acceptance.
+
+[宪宪/gpt-5.6-sol🐾]

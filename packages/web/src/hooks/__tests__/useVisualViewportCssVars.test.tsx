@@ -1,11 +1,15 @@
-import React, { act } from 'react';
+import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useVisualViewportCssVars } from '../useVisualViewportCssVars';
 
 function Harness() {
   useVisualViewportCssVars();
-  return null;
+  return (
+    <div data-chat-input-composer>
+      <textarea aria-label="composer" />
+    </div>
+  );
 }
 
 describe('useVisualViewportCssVars', () => {
@@ -65,6 +69,42 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('820px');
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+  });
+
+  it('detects an iOS keyboard when the layout and visual viewports shrink together', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+    (container.querySelector('textarea') as HTMLTextAreaElement).focus();
+
+    viewport.height = 500;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+
+    viewport.height = 844;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+    });
+
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
   });
 });

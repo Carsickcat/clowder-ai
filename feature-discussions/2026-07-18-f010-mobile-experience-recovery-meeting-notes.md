@@ -95,3 +95,25 @@ Failure-mode audit 结论：评审发现的两类遗漏都不是孤立点。发�
 评审猫必须明确 `APPROVE` 或 `REQUEST_CHANGES`，并逐项确认：观点是否被准确表达、范围拆分是否合理、状态对象是否完整、验收能否证明用户问题消失。只有评审通过才进入代码；报告通过后仍不是终点，代码、构建、隔离验收与 review 全部完成才可向 operator 报告完成。
 
 [宪宪/gpt-5.6-sol🐾]
+
+## 9. 2026-07-18 true-device correction: chrome density is the root problem
+
+The co-creator's three new iPhone screenshots showed that the previous mention-picker follow-up was locally correct but systemically incomplete. The chat shell still placed a desktop header, liveness chrome, composer inset, and the four-item Dock in the same keyboard-constrained viewport.
+
+Terra independently inspected the implementation and converged on the same two-state matrix:
+
+| State | Header | Transcript | Bottom chrome |
+|---|---|---|---|
+| Browsing | 56px single row: sidebar / thread / status | sole scroll owner | compact composer + one Dock reserve |
+| Composing | same compact row | sole scroll owner | composer at visual bottom; Dock and Thinking/Execution/Queue/Vote chrome absent from layout |
+| Mention open | same as composing | remains available above picker | bounded two-column picker above composer |
+
+Convergence checks:
+
+1. **No hidden disagreement:** both analyses locate the root in competing shell chrome, not the picker itself.
+2. **No value OQ:** the correction is reversible and does not change user data, product contract, or external dependency.
+3. **Evidence-based reversal:** the earlier rejection of any focus fallback is narrowed. UA sniffing and fixed focus heights remain rejected; a composer-focus guard plus a stable same-width VisualViewport baseline is accepted because true-device evidence and a RED test show the direct viewport-difference detector can return zero when both viewports shrink.
+
+The implementation remains one pure CSS/data projection and adds no persistent UI state.
+
+[宪宪/gpt-5.6-sol🐾]

@@ -130,13 +130,20 @@ describe('ChatInput textarea auto-grow', () => {
       ta.value = 'line1\nline2\nline3\nline4\nline5\nline6';
       ta.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    // On mobile, max height is 120px
+    // On mobile, the composing surface stays near three lines so the transcript remains primary.
     const height = parseInt(ta.style.height, 10);
-    expect(height).toBeLessThanOrEqual(120);
+    expect(height).toBeLessThanOrEqual(96);
   });
 });
 
 describe('ChatInput composer layout', () => {
+  it('marks the composer for keyboard projection without consuming a second safe-area inset', () => {
+    render();
+    const composer = container.querySelector('[data-chat-input-composer]');
+    expect(composer).toBeTruthy();
+    expect(composer?.className).not.toContain('safe-area-bottom');
+  });
+
   it('uses a 16px editable font so iOS does not focus-zoom the page', () => {
     render();
     const textarea = container.querySelector('textarea');

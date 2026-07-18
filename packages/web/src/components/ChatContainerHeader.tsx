@@ -37,15 +37,16 @@ export function ChatContainerHeader({
   defaultCatId,
 }: ChatContainerHeaderProps) {
   return (
-    <header className="safe-area-top">
-      <div className="px-5 py-3 flex items-center gap-2">
+    <header className="safe-area-top border-b border-cafe lg:border-b-0">
+      <div className="flex h-14 items-center gap-1 px-2 lg:h-auto lg:gap-2 lg:px-5 lg:py-3">
         <button
+          type="button"
           onClick={onToggleSidebar}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors mr-1"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors lg:mr-1"
           title={sidebarOpen ? '收起侧栏' : '展开侧栏'}
           aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
         >
-          <svg className="w-5 h-5 text-cafe-secondary" viewBox="0 0 20 20" fill="currentColor">
+          <svg aria-hidden="true" className="w-5 h-5 text-cafe-secondary" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
               d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
@@ -53,24 +54,28 @@ export function ChatContainerHeader({
             />
           </svg>
         </button>
-        <CatCafeLogo className="h-16 w-auto -my-3" />
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-cafe-black">Clowder AI</h1>
+        <CatCafeLogo className="hidden h-16 w-auto -my-3 lg:block" />
+        <div className="flex min-w-0 flex-1 items-center lg:block">
+          <h1 className="hidden text-lg font-bold text-cafe-black lg:block">Clowder AI</h1>
           <div className="flex items-center gap-2 min-w-0">
             <ThreadIndicator threadId={threadId} />
             {/* F198 Phase C AC-C5: Daemon active indicator */}
-            <DaemonActiveIndicator threadId={threadId} />
+            <div className="hidden lg:block">
+              <DaemonActiveIndicator threadId={threadId} />
+            </div>
             {/* F154 Phase B: Preferred cat pill — desktop only (KD-10) */}
             <div className="hidden lg:block flex-shrink-0">
               <ThreadCatPill threadId={threadId} />
             </div>
           </div>
         </div>
-        <ExportButton threadId={threadId} />
-        <ChatVoiceFeatureControls threadId={threadId} defaultCatId={defaultCatId} />
+        <div className="hidden lg:flex lg:items-center lg:gap-2">
+          <ExportButton threadId={threadId} />
+          <ChatVoiceFeatureControls threadId={threadId} defaultCatId={defaultCatId} />
+        </div>
         {authPendingCount > 0 && (
           <span
-            className="inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-conn-amber-bg text-conn-amber-text text-micro font-bold animate-pulse-subtle"
+            className="hidden items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-conn-amber-bg text-conn-amber-text text-micro font-bold animate-pulse-subtle lg:inline-flex"
             title={`${authPendingCount} 个授权请求等待处理`}
           >
             🔐 {authPendingCount}
@@ -78,12 +83,13 @@ export function ChatContainerHeader({
         )}
         {/* Mobile/tablet: status sheet trigger */}
         <button
+          type="button"
           onClick={onOpenMobileStatus}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors ml-1 lg:hidden"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg hover:bg-[var(--console-hover-bg)] transition-colors lg:ml-1 lg:hidden"
           title="打开状态面板"
           aria-label="打开状态面板"
         >
-          <svg className="w-5 h-5 text-cafe-secondary" viewBox="0 0 20 20" fill="currentColor">
+          <svg aria-hidden="true" className="w-5 h-5 text-cafe-secondary" viewBox="0 0 20 20" fill="currentColor">
             <path
               fillRule="evenodd"
               d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
@@ -177,7 +183,12 @@ export function ThreadIndicator({ threadId }: { threadId: string }) {
   }, []);
 
   if (threadId === 'default') {
-    return <p className="text-xs text-cafe-secondary">大厅 · Your AI team collaboration space</p>;
+    return (
+      <p className="truncate text-sm font-medium text-cafe-secondary lg:text-xs lg:font-normal">
+        <span className="lg:hidden">大厅</span>
+        <span className="hidden lg:inline">大厅 · Your AI team collaboration space</span>
+      </p>
+    );
   }
 
   // 'default' is a sentinel for threads without a real projectPath — match exact value, not basename
@@ -211,13 +222,13 @@ export function ThreadIndicator({ threadId }: { threadId: string }) {
   };
 
   return (
-    <div className="flex min-w-0 items-baseline text-xs text-cafe-secondary">
+    <div className="flex min-w-0 items-baseline text-sm text-cafe-secondary lg:text-xs">
       <span className="truncate min-w-0 font-medium text-cafe-secondary" title={title}>
         {title}
       </span>
       {projectName && (
         <span
-          className="flex-shrink-0 max-w-[40%] sm:max-w-[200px] overflow-hidden whitespace-nowrap text-cafe-muted cursor-pointer hover:text-cafe-secondary transition-colors"
+          className="hidden flex-shrink-0 max-w-[40%] sm:max-w-[200px] overflow-hidden whitespace-nowrap text-cafe-muted cursor-pointer hover:text-cafe-secondary transition-colors lg:inline"
           title={copied ? '已复制!' : `点击复制: ${copyPath}`}
           aria-label={copied ? '已复制项目路径' : `点击复制项目路径: ${copyPath}`}
           onClick={handleCopyPath}
@@ -259,7 +270,7 @@ function PanelToggle({
       aria-label={statusPanelOpen ? '收起面板' : '打开面板'}
       title={statusPanelOpen ? '收起面板' : '打开面板'}
     >
-      <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+      <svg aria-hidden="true" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
         <path
           fillRule="evenodd"
           d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 0v12h10V4H5z"
