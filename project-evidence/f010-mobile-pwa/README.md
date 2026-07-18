@@ -342,4 +342,30 @@ Verification: six focused files pass **60/60**; Web TypeScript, targeted Biome, 
 
 The previous fourth-round review is superseded only for this newly observed closed-sheet journey. Terra independently approved candidate `ca065b8` in message `0001784383917572-000554-ec81bda1` with **P1=0, P2=0, P3=0**, reproducing the focused **60/60** selection, CSS architecture **54/54**, Web TypeScript, diff check, and clean worktree. Code and review gates pass; the reporting-iPhone installed-PWA replay remains required.
 
+## 2026-07-18 continuous-video correction: fixed-root coordinate feedback
+
+The operator's second continuous recording `C:\Users\myh_1\Desktop\07a4d1f3c1d2cdf4acc422ab2fe0512e.mp4` is 12.40 seconds at 592×1280. It disproves the remaining status-sheet explanation: during composer focus, the header, transcript, and composer move away together while the keyboard and concierge remain. No closed status journey is mounted.
+
+Implementation candidate: `e27ee2daf9bbfb986754385b7068935f19c4833e`.
+
+The fixed AppShell no longer consumes `visualViewport.offsetTop` or `offsetLeft`; it remains at the stable origin and projects VisualViewport dimensions only. The fixed 3.5rem browser-assistant reserve is removed because Safari already renders that system-owned row outside the web layout. The mobile composer is now one 48px row with 44px controls, mobile message and input copy share a 16px scale, and tools/IME are mutually exclusive without changing the textarea editor primitive.
+
+Fresh evidence:
+
+- RED→GREEN focused viewport/composer/overflow selection: **33/33**.
+- Broader affected selection: **12 files / 108 tests**.
+- Full Web Vitest: **5067/5134**, 67 failures in the same 14 historical files. Relative to **5064/5131**, the three added tests are green and the failure roster is unchanged.
+- Web TypeScript, targeted Biome with zero errors, `git diff --check`, and the production build pass.
+- Isolated Web `4310` PID `2656` serves BUILD_ID `7FDxNHXymbVxqdC4HjWmh`; HTTP `/` is 200 and API `4311` was untouched.
+- 390×844 browsing: AppShell top `0`, root scroll `0`, composer `48`, textarea/actions `44`, Dock `56`.
+- 390×430 composing: AppShell top `0`, root scroll `0`, reserve `0`, Dock height `0`, composer `y=382/h=48/bottom=430`, and application gap below composer `0`.
+- A synthetic 96px root-offset variable cannot move the AppShell; a real pointer journey proves tool/IME mutual exclusion.
+- Terra independently converged on the same terminal architecture from the recording in message `0001784389116629-000006-a8b895fe`; implementation review remains separate and pending.
+
+Detailed evidence: `docs/bug-report/f010-mobile-chat-composer-product-recovery/bug-report.md` and `review-notes/2026-07-18-f010-mobile-composer-root-coordinate-quality-gate.md`.
+
+The only release gate after cross-individual code approval is the reporting-iPhone installed-PWA replay of this exact focus journey with Chinese IME and mentions. Chrome projection is not substituted for device truth.
+
+[宪宪/gpt-5.6-sol🐾]
+
 [宪宪/gpt-5.6-sol🐾]

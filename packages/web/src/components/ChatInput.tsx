@@ -866,7 +866,10 @@ export function ChatInput({
         />
       )}
 
-      <div className="flex items-center gap-1 px-2 py-0.5 sm:gap-2 sm:p-4 sm:pt-2" data-testid="chat-input-composer-row">
+      <div
+        className="flex items-center gap-1 px-2 py-0.5 sm:gap-2 sm:p-4 sm:pt-2"
+        data-testid="chat-input-composer-row"
+      >
         {/* Mobile: + toggle button */}
         <button
           onClick={handleMobileToolbarToggle}

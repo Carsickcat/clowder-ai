@@ -71,6 +71,7 @@ function CodeBlock({ children }: { children: ReactNode }) {
   return (
     <div className="relative group my-2">
       <button
+        type="button"
         onClick={handleCopy}
         className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded text-micro bg-cafe-surface-sunken text-cafe-muted md:opacity-0 md:group-hover:opacity-100 hover:bg-[var(--console-hover-bg)] transition-opacity"
       >

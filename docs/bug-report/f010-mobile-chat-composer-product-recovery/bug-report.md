@@ -79,3 +79,18 @@ The 25.57-second HEVC screen recording supersedes the prior screenshot-only inte
 - Isolated runtime: Web `4310` PID `39224`, BUILD_ID `4gYnE-fXBHLBkq2vLVKkE`, HTTP 200; API `4311` remains PID `7580` and was untouched.
 - 390px no-cache browser journey: closed status has no sheet, backdrop, or status text; composer focus keeps root scroll at `0`; explicit status open mounts dialog+backdrop; close unmounts both; second composer focus keeps them absent and root scroll at `0`.
 - Independent review: Terra approved `ca065b8` with **P1=0, P2=0, P3=0** after independently reproducing the focused **60/60**, CSS architecture **54/54**, Web TypeScript, diff check, and clean worktree. Only the reporting-iPhone installed-PWA replay remains open.
+
+## Sixth reporting-iPhone root-coordinate correction
+
+The 12.40-second recording `07a4d1f3c1d2cdf4acc422ab2fe0512e.mp4` supersedes the remaining status-sheet explanation. Around 3.5–5.0 seconds, focus removes the complete header/transcript/composer shell while the keyboard and concierge remain; manual swiping restores the shell. No closed status sheet exists in that journey.
+
+- Confirmed root cause: `visualViewport.offsetTop` was written into the fixed AppShell's own `top`, double-applying Safari's focus pan. The AppShell now has a literal `top: 0; left: 0`; VisualViewport supplies dimensions only.
+- Confirmed density cause: Clowder's fixed 3.5rem assistant reserve duplicated Safari's already visible native Form Assistant. Composing reserve is now exactly `0px`; the system bar remains system-owned.
+- Product correction: one 48px composer row, 44px editor/actions, mobile message and composer copy both 16px, and mutually exclusive tool/IME states. The textarea primitive is retained.
+- Focused verification: **33/33**; broader affected selection: **12 files / 108 tests**; Web TypeScript, targeted Biome, and diff check pass.
+- Full Web JSON: **5067/5134**, 67 failures in the same 14 historical files. Relative to **5064/5131**, exactly three new tests pass and no failure family changed.
+- Isolated runtime: Web `4310` PID `2656`, BUILD_ID `7FDxNHXymbVxqdC4HjWmh`, HTTP 200; API `4311` was untouched.
+- Browser acceptance at 390×430: AppShell top `0`, root scroll `0`, reserve `0`, Dock height `0`, composer `y=382/h=48/bottom=430`, and no application-created gap below it. A synthetic 96px offset variable cannot move the root.
+- Pointer journey: `+` blurs the textarea and shows the tool row; tapping the composer focuses the textarea and removes tools.
+
+Implementation candidate: `e27ee2daf9bbfb986754385b7068935f19c4833e`. Detailed evidence is in `review-notes/2026-07-18-f010-mobile-composer-root-coordinate-quality-gate.md`. Cross-individual implementation review and the reporting-iPhone replay remain open.
