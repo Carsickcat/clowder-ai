@@ -368,3 +368,39 @@ Detailed evidence: `docs/bug-report/f010-mobile-chat-composer-product-recovery/b
 The only remaining release gate is the reporting-iPhone installed-PWA replay of this exact focus journey with Chinese IME and mentions. Chrome projection is not substituted for device truth.
 
 [丢丢/gpt-5.6-sol🐾]
+
+## 2026-07-19 installed-PWA viewport event-commit correction
+
+The reporting-iPhone recording `C:\Users\myh_1\Desktop\8c99ee100752d336619be399e65e3090.mp4` is 23.966 seconds at 592×1280 and was created after the reviewed `ffafb56` build. It therefore disproves the sixth-round release claim rather than replaying an old bundle.
+
+Clear-frame fan-in from Terra and Kimi establishes two independent mechanisms:
+
+- a resize-time intermediate VisualViewport height is written directly into the fixed shell, producing the blank collapse and Dock/composer suspension;
+- settled height is correct, but keyboard detection subtracts the focused pan from baseline shrink and `visualViewport.scroll` is no longer observed, so `data-mobile-keyboard-open` remains false and the Dock stays in layout.
+
+The same recording also exposes a separate P2: punctuation-completed mention tokens keep the picker open.
+
+Implementation candidate: `87ffdd5aa52a819b5ca8025c1800f9969b459136`.
+
+The correction keeps root `top/left=0`, restores `visualViewport.scroll` only as an event source, immediately latches composing state, publishes width/height only after one quiet window, and preserves a closed-height baseline through open-keyboard orientation changes. Mention parsing now accepts Unicode letters/numbers/marks plus `_`/`-` and terminates on punctuation or symbols.
+
+Fresh evidence:
+
+- Original Red: 4 focused failures for scroll-only delivery, raw animation height, and punctuation-completed short tokens.
+- Fresh-context Red: open-keyboard orientation cleared composing after poisoning the new-width baseline.
+- Final focused files: **26/26**.
+- Broader affected selection: **13 files / 137 tests**.
+- Web TypeScript, targeted Biome, feature truth, capability tips, diff check, and production build pass.
+- Final candidate BUILD_ID: `davuSC0P3wlGS5zAgfHp-`; temporary Web 4312 served HTTP 200 with that exact ID and opened in Hub Browser Preview, then the temporary listener was removed.
+- Existing isolated Web 4310 still serves the previous BUILD_ID `2JhXmOBICvwybpU-Kig8T`; API 4311 was untouched pending independent review.
+- Full Web Vitest was attempted but did not terminate within 303.4 seconds amid known unrelated mock/act families; no full-suite pass or count is claimed.
+
+Fresh-context found three P2s (orientation baseline, unmount cleanup proof, Unicode-category coverage); all three are closed in `87ffdd5`. Formal Terra/Kimi review is now pending. The reporting-iPhone replay remains the release truth after both reviewers report P1/P2=0 and the reviewed build replaces 4310.
+
+Detailed evidence:
+
+- `docs/bug-report/f010-ios-pwa-viewport-event-commit/bug-report.md`
+- `review-notes/2026-07-19-f010-ios-pwa-viewport-event-commit-quality-gate.md`
+- `review-notes/2026-07-19-f010-ios-pwa-viewport-event-commit-review-request.md`
+
+[丢丢/gpt-5.6-sol🐾]
