@@ -47,8 +47,8 @@ GREEN evidence:
 - Focused picker/layout/keyboard guards: 3 files, 9 tests passed.
 - Web TypeScript: passed.
 - Targeted Biome: exited 0 with repository-existing warnings only; `git diff --check`: passed.
-- Production build: passed, 22 routes, BUILD_ID `TzTwY4Lmu7Y6BiMErzKW9`.
-- The generated `/api`, `/socket.io`, and `/uploads` rewrites target isolated API `4311`; Web PID `39088` serves the new build on `4310`.
+- Production build from implementation commit `e193c08`: passed, 22 routes, BUILD_ID `ujsC5M4kKDym9Hgqxg0J_`.
+- The generated `/api`, `/socket.io`, and `/uploads` rewrites target isolated API `4311`; Web PID `41148` serves the new build on `4310`.
 - HTTPS page, manifest, service worker, API health, four-cat roster, and current Sonnet provider projection all passed through `:8443`; Hub Browser Preview opened the current thread.
 
 Broader ChatInput selection: 108/110 tests passed. The two repeatable failures are outside this diff and remain baseline debt: `chat-input-upload-feedback` expects the former image-specific error label while the component renders the current generic message label, and `chat-input-history` expects a history-store append that the current implementation does not perform. Neither touched file participates in this repair.

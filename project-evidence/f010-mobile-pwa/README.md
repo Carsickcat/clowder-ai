@@ -118,8 +118,8 @@ TDD and deployment evidence:
 
 - RED: the rendered mobile contract failed on the old menu; the closed→open overflow test separately failed without the “还有更多猫猫” affordance.
 - GREEN: picker/layout/keyboard guards pass 9/9; Web TypeScript passes; targeted Biome exits 0 with repository-existing warnings only; `git diff --check` passes.
-- The production build completed with 22 routes and BUILD_ID `TzTwY4Lmu7Y6BiMErzKW9`.
-- Isolated Web PID `39088` serves the new build on `4310`; generated API, Socket.IO, and uploads rewrites target `4311`.
+- The production build ran after implementation commit `e193c08`, completed with 22 routes, and produced BUILD_ID `ujsC5M4kKDym9Hgqxg0J_`.
+- Isolated Web PID `41148` serves the new build on `4310`; generated API, Socket.IO, and uploads rewrites target `4311`.
 - Through `https://desktop-9o1va3o.tail58c13e.ts.net:8443`, the current page embeds that BUILD_ID and page, manifest, service worker, API health, and the four-cat roster return successfully. Hub Browser Preview opened the current thread.
 
 The broader ChatInput selection passed 108/110 tests. The two repeatable failures are pre-existing, outside this diff, and recorded rather than hidden: a stale upload-error wording assertion and the current history-store append expectation. They do not involve the mention picker files.

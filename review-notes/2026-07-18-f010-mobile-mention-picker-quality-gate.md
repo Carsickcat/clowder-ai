@@ -45,7 +45,7 @@ Scope verdict: required.
 
 - Worktree: `E:\ClowderAI\clowder-ai-f010-local-sandbox`
 - Current target: `https://desktop-9o1va3o.tail58c13e.ts.net:8443/thread/thread_mrogfco44bos1sgn`
-- Production evidence: BUILD_ID `TzTwY4Lmu7Y6BiMErzKW9`, Web PID `39088`, HTTPS 200, HTML build identity matched, API health `ok`, manifest and service worker 200, four-cat roster, Hub Browser Preview opened.
+- Production evidence: implementation commit `e193c08`, BUILD_ID `ujsC5M4kKDym9Hgqxg0J_`, Web PID `41148`, HTTPS 200, HTML build identity matched, API health `ok`, manifest and service worker 200, four-cat roster, Hub Browser Preview opened.
 - Interactive `@` dogfood: pending on the reporting iPhone. Headless Chrome loaded the composer, but CDP value injection happened before/through hydration and React reset the controlled field; this was stopped rather than treated as product failure or patched with a test-only route.
 
 ## Fresh verification
