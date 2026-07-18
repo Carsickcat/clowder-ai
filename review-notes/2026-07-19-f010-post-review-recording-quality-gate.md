@@ -9,7 +9,8 @@ Diagnosis: `docs/bug-report/f010-post-review-recording-pulse-and-tunnel-origin/b
 ## Verdict
 
 **Scoped candidate gate: PASS.** The two failures visible in the reporting-iPhone recording have
-RED-to-GREEN coverage, the affected Web selection is green, all workspace packages lint and build,
+RED-to-GREEN coverage, including compact-landscape geometry, the affected Web selection is green,
+all workspace packages lint and build,
 and the exact candidate production artifact serves successfully from an isolated port.
 
 The repository-wide `pnpm check` and `pnpm test` are not claimed green. Their failures are recorded
@@ -70,7 +71,7 @@ and dismiss the keyboard. The code is not presented as device-accepted until tha
 
 | Command | Result |
 |---|---|
-| Focused/affected Vitest selection | 10 files, 89 tests passed |
+| Focused/affected Vitest selection | 10 files, 90 tests passed |
 | `pnpm --filter @cat-cafe/web exec tsc --noEmit` | exit 0 |
 | Targeted Biome on the 5 changed executable/test files | 0 errors, 0 warnings |
 | `pnpm check:features` | pass; 254 feature docs scanned |

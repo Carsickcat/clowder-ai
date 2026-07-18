@@ -3,7 +3,9 @@ import { useEffect } from 'react';
 const KEYBOARD_INSET_THRESHOLD_PX = 80;
 const VIEWPORT_WIDTH_RESET_THRESHOLD_PX = 40;
 const VIEWPORT_SETTLE_DELAY_MS = 120;
-const MIN_USABLE_COMPOSING_VIEWPORT_HEIGHT_PX = 240;
+// Keep enough room for the 56px mobile header, 48px composer, and a minimal
+// transcript strip without rejecting legitimate compact landscape keyboards.
+const MIN_USABLE_COMPOSING_VIEWPORT_HEIGHT_PX = 144;
 const CSS_PROPERTIES = [
   '--app-viewport-top',
   '--app-viewport-left',

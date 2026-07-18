@@ -64,13 +64,15 @@ origin before `/api/cats` and Socket.IO could use the valid same-origin proxy.
   frame commits normally.
 - `resolveApiUrl` now keeps explicit HTTPS access on the page origin. HTTP direct access retains the
   existing Web+1 convention.
+- The usable-shell floor is bounded at 144px rather than 240px, so an already-landscape PWA can
+  still commit a legitimate compact keyboard frame while rejecting the recorded 112px collapse.
 - No second viewport writer, UA sniff, longer debounce, persisted keyboard state, or new runtime
   configuration owner was introduced.
 
 ## Current verification
 
 - Focused viewport + URL resolution: **21/21 passed**.
-- Bounded affected Web selection: **10 files / 91 tests passed**.
+- Bounded affected Web selection: **10 files / 90 tests passed**.
 - Three separately selected Socket suites remain baseline-red at **46 failures** because their
   pre-existing `@/utils/api-client` mock omits `ensureSession`; they fail before exercising URL
   resolution and are not claimed as this change's result.

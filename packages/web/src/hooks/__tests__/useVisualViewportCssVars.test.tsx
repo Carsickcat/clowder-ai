@@ -347,6 +347,35 @@ describe('useVisualViewportCssVars', () => {
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
   });
 
+  it('commits a compact but usable keyboard frame when the PWA starts in landscape', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 390;
+    viewport.width = 844;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+    (container.querySelector('textarea') as HTMLTextAreaElement).focus();
+    await act(async () => waitForAnimationFrames());
+
+    viewport.height = 160;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 160 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('160px');
+  });
+
   it('keeps the keyboard latched while an open-keyboard orientation baseline settles', async () => {
     const viewport = new EventTarget() as EventTarget & {
       height: number;

@@ -231,5 +231,7 @@ mapping had disappeared even though `:8443` already proxied `/api` and `/socket.
 3. Resolve a remote HTTPS location on explicit port `8443` while the build contains a localhost API
    URL. The old client must incorrectly return `:8444`; the terminal contract returns `:8443`.
 4. Preserve existing HTTP direct-port cases (`3003→3004`, `3011→3012`).
+5. A PWA that starts in `844×390` landscape may settle to a compact but usable `160px` keyboard
+   frame; the pulse guard must commit it rather than treating every sub-240px frame as invalid.
 
 [丢丢/gpt-5.6-sol🐾]
