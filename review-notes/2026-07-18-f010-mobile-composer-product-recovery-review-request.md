@@ -4,9 +4,9 @@ Review-Target-ID: f010
 
 Branch: `feat/f010-mobile-pwa`
 
-Implementation commits: `20adebde118b08e2b1cfb0b8e92a056846f8739a`, reviewer P2 repair `066762d`, browser failure-mode repair `49a4853`
+Implementation commits: `20adebde118b08e2b1cfb0b8e92a056846f8739a`, reviewer P2 repair `066762d`, browser failure-mode repair `49a4853`, reporting-iPhone repair `3667199`, mobile-shell extraction `3956aa5`
 
-Final evidence HEAD: supplied in the review handoff after this packet is committed.
+Final evidence HEAD: `40f972628992562c308d89233a8f6651268c9f02`.
 
 Author: Sonnet
 
@@ -14,20 +14,21 @@ Reviewer requested: Terra (`@opus`), independent read-only review.
 
 ## What
 
-Review the third reporting-iPhone product recovery for the mobile conversation surface and its two follow-up repairs. The candidate makes status and composing mutually exclusive, keys transient sheet state to the current thread, prevents internal focus scrolling, reduces the app-owned composer to a measured 52px row, collapses mobile Agent-hook diagnostics, keeps critical authorization discoverable through the existing mobile status journey, gives every exposed toolbar/authorization action a 44px target, and removes both ordinary secondary chrome and the waiting-worker prompt from the keyboard projection without changing desktop behavior.
+Review the complete reporting-iPhone product recovery and its fourth-round modal/Form Assistant repair. The final candidate keeps the earlier compact composer and cross-route fixes, then makes the status sheet a real exclusive modal: sheet and backdrop share one React state, the chat surface becomes inert while open, and composer focus closes the status journey. It also keeps one bottom-reserve owner, budgets 3.5rem for Safari's native Form Assistant only on the iOS coarse-touch composing projection, and lets WebKit's late VisualViewport geometry settle without a timer or UA sniff.
 
 ## Why
 
 The reporting iPhone still landed on stale status content after client thread navigation and then stacked a full 403 diagnostics card, the application composer, and Safari's system form assistant above the Chinese IME. Component/breakpoint tests had passed, but they did not cover focus ownership, sheet lifecycle, or measured chrome density.
 
-Original report: message `0001784357537884-000498-e55d75f5`, screenshots `1784357537844-455e30ef.png` and `1784357537845-e8f055b9.jpg`. Please judge the result against the operator request not to enumerate further screens and to converge on an established mobile-chat product model.
+Original product report: message `0001784357537884-000498-e55d75f5`, screenshots `1784357537844-455e30ef.png` and `1784357537845-e8f055b9.jpg`. Fourth-round report: message `0001784367014842-000534-46c6f81d`, screenshots `1784367014821-3bd66f12.png` and `1784367014823-aff1e7f2.png`. The latest evidence showed two independent failures: opening the status journey could leave the entire fixed shell in an unreachable scrolled state, and the native Previous/Next/Done assistant overlaid the app composer.
 
 ## Tradeoff
 
-- Safari's Previous/Next/Done row remains system-owned; the Web app budgets around it instead of using unsupported suppression.
+- Safari's Previous/Next/Done row remains system-owned; the Web app cannot remove it and now budgets around it instead of attempting unsupported suppression.
 - Mobile hook failure retains a one-line sync action; raw error details and five target pills remain on desktop/governance surfaces.
 - Status opening deliberately blurs the composer, so the keyboard closes before the sheet becomes usable.
-- No new VisualViewport detector, persisted keyboard flag, device sniff, fixed iPhone height, scroll loop, or reserve owner was added.
+- The iOS assistant budget is applied only below `lg`, with coarse pointer and WebKit capability support, while Android/desktop keep a zero keyboard reserve.
+- No persisted keyboard flag, UA sniff, fixed iPhone height, scroll loop, timer, or second reserve owner was added.
 
 ## Architecture ownership
 
@@ -45,18 +46,23 @@ Original report: message `0001784357537884-000498-e55d75f5`, screenshots `178435
 6. Challenge the product model itself: reject the patch if it still behaves like a desktop console compressed into a phone.
 7. Confirm pending authorization is signaled on the mobile status action and rendered at the top of the status sheet, not hidden with ordinary secondary chrome or restored above the IME.
 8. Confirm a waiting PWA update remains actionable while browsing and exits layout only while the mobile keyboard projection is active.
+9. Confirm status sheet and backdrop cannot diverge: when open, the underlying chat is inert and focus cannot enter it; when closed, the backdrop has no pointer ownership and the composer can regain focus.
+10. Confirm `--mobile-chat-bottom-reserve` remains the sole bottom-reserve owner and the 3.5rem native-assistant budget is scoped to iOS coarse-touch composing below 1024px.
+11. Confirm keyboard state survives blur while the viewport remains shrunken and the second animation-frame sample handles late WebKit VisualViewport offsets without delaying ordinary browsers.
+12. Confirm `mobile-shell.css` is registered in the app and vendor asset pipeline and restores every global CSS entrypoint below the 350-line architecture limit.
 
 ## Verification
 
-- Final affected Vitest: **10 files / 79 tests passed**.
+- Earlier product-recovery affected Vitest: **10 files / 79 tests passed**.
 - Count provenance: relative to Terra's independently reported 77, the author's explicitly listed 79-test roster includes the two `authorization-card-mobile` action tests that directly cover the authorization P2.
 - TypeScript: exit 0.
 - Targeted Biome: zero errors; existing warnings only.
 - Capability tips guard: 11/11 plus hard check pass; existing origin/stale-anchor warnings only.
 - `git diff --check`: exit 0.
 - Production Web build: exit 0, 22 routes.
-- Full Web Vitest: baseline-red. Latest managed JSON was **5055/5123**, 68 failures in the same 14-file roster; the sole new raw-pixel guard was fixed and its targeted F190 check is green. The waiting-worker follow-up is green in its 8/8 controller suite and build; no full-suite green is claimed.
-- Final runtime: BUILD_ID `jcnYuX0LWcqvp7oKHGqSM`, isolated Web `4310` PID `39524`, HTTP 200, isolated API `4311` untouched.
+- Fourth-round RED→GREEN: 10 initial failures; **51/51** directly affected tests pass and **53/53** pass with the CSS architecture guard.
+- Full Web Vitest remains baseline-red. The managed JSON after `3667199` was **5062/5130**, 68 failures versus the previous **5055/5123**, 68 failures: all seven added tests pass. Its sole added failure was the global CSS 350-line guard; `3956aa5` closes that guard, and the exact architecture tests are green. No full-suite green is claimed.
+- Final runtime: BUILD_ID `dekHachDoovqQ-6QxRcBT`, isolated Web `4310` PID `22696`, local and Tailscale HTTPS roots HTTP 200, isolated API `4311` untouched.
 - Browser dogfood: 390×844 browsing/tool expansion, focus→status transition, and 390×430 composing projection with a real waiting worker. Toolbar actions and the status trigger measure 44px; composer bottom gap, Dock height, update-prompt height, and root scroll are all zero while composing. Exact metrics and three screenshots are in the quality-gate packet.
 - Root media/design artifact gate: clear. Matching `.pen`: none.
 
@@ -70,6 +76,6 @@ Release: reporting-iPhone Safari/installed-PWA Chinese-IME acceptance remains op
 
 ## Next
 
-Final verdict received: Terra approved `ad32068` in message `0001784365910648-000530-9e400c32` with P1=0, P2=0, P3=1. The nonblocking P3 count discrepancy is resolved by the explicit suite breakdown in the quality gate; no further code review is required. Do not modify the author worktree or restart ports 4310/4311.
+Return `APPROVE` or explicit P1/P2/P3 findings against `40f9726`. The previous approval for `ad32068` does not cover the fourth-round modal ownership, native-assistant reserve, VisualViewport convergence, or stylesheet extraction. Do not modify the author worktree or restart ports 4310/4311.
 
 [宪宪/gpt-5.6-sol🐾]
