@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RESPONSIVE_BREAKPOINTS } from '@/lib/responsive-breakpoints';
 import { type Thread, useChatStore } from '@/stores/chatStore';
@@ -19,7 +20,7 @@ import { SectionGroup } from './SectionGroup';
 import { SidebarTabIcon } from './SidebarTabIcon';
 import { ThreadItem } from './ThreadItem';
 import { ThreadOrganizerModal } from './ThreadOrganizerModal';
-import { pushThreadRouteWithHistory } from './thread-navigation';
+import { getThreadHref, pushThreadRouteWithHistory } from './thread-navigation';
 import {
   buildSidebarTabContent,
   buildSidebarTabs,
@@ -52,6 +53,7 @@ function isMobileWorkSurface() {
 }
 
 export function ThreadSidebar({ onClose, className }: ThreadSidebarProps) {
+  const router = useRouter();
   const [showBootcampList, setShowBootcampList] = useState(false);
   const {
     threads,
@@ -200,9 +202,20 @@ export function ThreadSidebar({ onClose, className }: ThreadSidebarProps) {
     })();
   }, []);
 
-  const navigateToThread = useCallback((threadId: string) => {
-    pushThreadRouteWithHistory(threadId, typeof window !== 'undefined' ? window : undefined);
-  }, []);
+  const navigateToThread = useCallback(
+    (threadId: string) => {
+      if (typeof window !== 'undefined') {
+        const pathname = window.location.pathname;
+        const inChatRoute = pathname === '/' || pathname.startsWith('/thread/');
+        if (!inChatRoute) {
+          router.push(getThreadHref(threadId));
+          return;
+        }
+      }
+      pushThreadRouteWithHistory(threadId, typeof window !== 'undefined' ? window : undefined);
+    },
+    [router],
+  );
 
   const createInProject = useCallback(
     async (opts: NewThreadOptions) => {

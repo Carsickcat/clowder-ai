@@ -24,18 +24,20 @@ function NavItem({
   onSelect: () => void;
 }) {
   return (
-    <div className="group relative flex items-center">
+    <div className="group relative flex shrink-0 items-center md:w-full">
       <button
         type="button"
         onClick={onSelect}
         data-guide-id={`settings.${section.id}`}
         data-active={active ? 'true' : 'false'}
-        className={`flex w-full items-center gap-2 rounded-lg px-2.5 h-9 text-left transition-colors ${active ? 'bg-[var(--console-active-bg)] font-medium text-cafe-black' : 'hover:bg-[var(--console-hover-bg)]'}`}
+        className={`flex h-9 w-auto items-center gap-2 whitespace-nowrap rounded-lg px-2.5 text-left transition-colors md:w-full ${active ? 'bg-[var(--console-active-bg)] font-medium text-cafe-black' : 'hover:bg-[var(--console-hover-bg)]'}`}
       >
         <span className="flex-shrink-0" style={{ color: active ? 'var(--cafe-accent)' : 'var(--cafe-text-secondary)' }}>
           <HubIcon name={section.icon} className="h-4 w-4" />
         </span>
-        <span className={`text-compact truncate ${active ? 'font-medium' : 'text-cafe-secondary'}`}>
+        <span
+          className={`text-compact whitespace-nowrap md:truncate ${active ? 'font-medium' : 'text-cafe-secondary'}`}
+        >
           {section.label}
         </span>
       </button>
@@ -45,7 +47,7 @@ function NavItem({
           e.stopPropagation();
           onPin();
         }}
-        className={`absolute right-1 h-6 w-6 flex items-center justify-center rounded transition-opacity ${
+        className={`absolute right-1 hidden h-6 w-6 items-center justify-center rounded transition-opacity md:flex ${
           pinned
             ? 'opacity-80 text-cafe-secondary'
             : 'opacity-0 group-hover:opacity-60 focus-visible:opacity-80 text-cafe-muted hover:text-cafe-secondary'
@@ -95,7 +97,7 @@ export function SettingsNav({ activeSection, onSelect, searchQuery }: SettingsNa
     : SETTINGS_SECTIONS;
 
   return (
-    <nav className="flex flex-col gap-0.5" aria-label="设置导航">
+    <nav className="flex min-w-max gap-0.5 md:min-w-0 md:flex-col" aria-label="设置导航">
       {filtered.length === 0 && q ? (
         <p className="console-card-soft rounded-xl px-4 py-3 text-xs text-cafe-muted">没有匹配的设置分区</p>
       ) : (

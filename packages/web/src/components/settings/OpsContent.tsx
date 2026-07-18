@@ -39,7 +39,7 @@ export function OpsContent() {
 
   return (
     <div>
-      <nav className="flex console-divider-b mb-5">
+      <nav className="console-divider-b mb-5 flex min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {OPS_TABS.map((tab) => {
           const isActive = tab.key === activeTab;
           return (
@@ -47,7 +47,7 @@ export function OpsContent() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`inline-flex items-center px-5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`inline-flex shrink-0 items-center whitespace-nowrap px-3 py-2.5 text-sm font-semibold transition-colors sm:px-5 ${
                 isActive
                   ? 'border-b-2 border-[var(--console-button-emphasis)] text-[var(--console-button-emphasis)]'
                   : 'text-cafe-muted hover:text-cafe-secondary'

@@ -8,6 +8,7 @@ import { CallbackAuthSnapshotMount } from '@/stores/callbackAuthStore';
 import { initSidebarWidth, useSidebarStore } from '@/stores/sidebarStore';
 import { ActivityBar } from './ActivityBar';
 import { ConciergeHost } from './concierge/ConciergeHost';
+import { GLOBAL_NAVIGATION_ITEMS } from './global-navigation';
 import { MobileGlobalNavDrawer } from './MobileGlobalNavDrawer';
 import { PwaInstallPrompt } from './PwaInstallPrompt';
 import { PwaInstallExperienceProvider } from './pwa/PwaInstallExperienceProvider';
@@ -37,6 +38,7 @@ function AppShellContent({ children }: AppShellProps) {
   const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
   const isExport = searchParams.get('export') === 'true';
+  const isChromelessRoute = isExport || CHROMELESS_ROUTES.some((route) => pathname.startsWith(route));
   const { isOpen, width, close, toggle, handleResize, resetWidth } = useSidebarStore();
   const isDesktop = useIsDesktop();
   useVisualViewportCssVars();
@@ -49,32 +51,25 @@ function AppShellContent({ children }: AppShellProps) {
     if (!isDesktop) close();
   }, [close, isDesktop]);
 
-  if (isExport || CHROMELESS_ROUTES.some((r) => pathname.startsWith(r))) {
+  useLayoutEffect(() => {
+    const roots = [document.documentElement, document.body];
+    for (const root of roots) root.classList.toggle('app-shell-scroll-lock', !isChromelessRoute);
+    return () => {
+      for (const root of roots) root.classList.remove('app-shell-scroll-lock');
+    };
+  }, [isChromelessRoute]);
+
+  if (isChromelessRoute) {
     return <>{children}</>;
   }
 
   const showSidebar = isOpen && isDesktop && !SIDEBAR_HIDDEN_ROUTES.some((r) => pathname.startsWith(r));
   const isChatRoute = pathname === '/' || pathname.startsWith('/thread/');
+  const globalPageLabel = GLOBAL_NAVIGATION_ITEMS.find((item) => item.match(pathname))?.label ?? 'Clowder AI';
 
   return (
     <PwaInstallExperienceProvider>
       <div className="console-shell app-viewport safe-area-inline flex overflow-hidden overscroll-none">
-        {!isChatRoute && (
-          <button
-            type="button"
-            onClick={toggle}
-            className={`fixed left-[calc(env(safe-area-inset-left)+0.75rem)] top-[calc(env(safe-area-inset-top)+0.75rem)] z-[42] flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-cafe bg-cafe-surface text-xl text-cafe-secondary shadow-lg lg:hidden ${
-              isOpen ? 'pointer-events-none' : ''
-            }`}
-            aria-label="打开全局导航"
-            aria-expanded={isOpen}
-            aria-hidden={isOpen || undefined}
-            tabIndex={isOpen ? -1 : 0}
-            data-testid="mobile-global-nav-trigger"
-          >
-            ☰
-          </button>
-        )}
         {isOpen && !isDesktop && <MobileGlobalNavDrawer open onClose={close} />}
         <Suspense fallback={<div className="hidden w-12 flex-shrink-0 lg:block" aria-hidden="true" />}>
           <ActivityBar className="hidden lg:flex" />
@@ -101,8 +96,38 @@ function AppShellContent({ children }: AppShellProps) {
             />
           </div>
         )}
-        <div className={`min-w-0 flex-1 ${isChatRoute ? 'min-h-0 overflow-hidden' : 'overflow-y-auto'}`}>
-          {children}
+        <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+          {isChatRoute ? (
+            children
+          ) : (
+            <div className="flex h-full min-h-0 flex-col">
+              <header
+                className="safe-area-top z-40 shrink-0 border-b border-cafe bg-cafe-surface lg:hidden"
+                data-testid="mobile-global-page-header"
+              >
+                <div className="flex h-14 items-center gap-2 px-2">
+                  <button
+                    type="button"
+                    onClick={toggle}
+                    className={`flex min-h-11 min-w-11 items-center justify-center rounded-lg text-xl text-cafe-secondary transition-colors hover:bg-[var(--console-hover-bg)] ${
+                      isOpen ? 'pointer-events-none' : ''
+                    }`}
+                    aria-label="打开全局导航"
+                    aria-expanded={isOpen}
+                    aria-hidden={isOpen || undefined}
+                    tabIndex={isOpen ? -1 : 0}
+                    data-testid="mobile-global-nav-trigger"
+                  >
+                    ☰
+                  </button>
+                  <span className="min-w-0 flex-1 truncate text-base font-semibold text-cafe">{globalPageLabel}</span>
+                </div>
+              </header>
+              <div className="min-h-0 flex-1 overflow-hidden" data-testid="global-page-viewport">
+                {children}
+              </div>
+            </div>
+          )}
         </div>
         <PwaInstallPrompt hasMobileNav={isChatRoute} />
         <PwaTransientWorkGuard />

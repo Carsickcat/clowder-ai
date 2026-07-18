@@ -36,7 +36,7 @@ const initialFilters: SignalArticleFilters = {
 };
 
 const CONTENT_SURFACE_CLASS =
-  'rounded-[18px] bg-[var(--console-shell-bg)] shadow-[var(--console-shadow-soft)] m-3 px-9 py-8';
+  'rounded-[18px] bg-[var(--console-shell-bg)] shadow-[var(--console-shadow-soft)] m-3 px-4 py-5 sm:px-6 sm:py-6 lg:px-9 lg:py-8';
 
 function uniqueSources(items: readonly SignalArticle[]): readonly string[] {
   return Array.from(new Set(items.map((item) => item.source))).sort();
@@ -281,9 +281,9 @@ export function SignalInboxView({ initialReferrerThread = null }: { initialRefer
 
   return (
     <div className="flex h-full flex-col bg-[var(--console-panel-bg)]">
-      <main className="flex min-h-0 flex-1">
+      <main className="flex min-h-0 flex-1 overflow-y-auto overscroll-contain lg:overflow-hidden">
         <div
-          className={`flex min-h-0 flex-1 flex-col gap-4 overflow-hidden ${CONTENT_SURFACE_CLASS}`}
+          className={`flex min-h-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-hidden ${CONTENT_SURFACE_CLASS}`}
           data-testid="signal-inbox-content-surface"
         >
           <div>
@@ -299,8 +299,8 @@ export function SignalInboxView({ initialReferrerThread = null }: { initialRefer
             </div>
           )}
 
-          <div className="flex min-h-0 flex-1 gap-4">
-            <div className="flex w-[420px] shrink-0 flex-col gap-1 overflow-y-auto pr-4">
+          <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row">
+            <div className="flex w-full flex-col gap-1 lg:w-[420px] lg:shrink-0 lg:overflow-y-auto lg:pr-4">
               <SignalFilterBar
                 filters={filters}
                 onFilterChange={(patch) => setFilters((cur) => ({ ...cur, ...patch }))}
@@ -328,7 +328,7 @@ export function SignalInboxView({ initialReferrerThread = null }: { initialRefer
                 onToggleSelect={toggleBatchSelect}
               />
             </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto">
+            <div className="flex min-w-0 flex-1 flex-col gap-4 lg:overflow-y-auto">
               <SignalArticleDetailPanel
                 article={selectedArticle}
                 isLoading={detailLoading}

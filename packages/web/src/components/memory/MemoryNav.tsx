@@ -97,7 +97,10 @@ export function MemoryNav({ active, initialReferrerThread = null }: MemoryNavPro
   const items = useMemo(() => buildMemoryTabItems(fromSuffix, badges), [fromSuffix, badges]);
 
   return (
-    <nav aria-label="Memory navigation" className="flex console-divider-b">
+    <nav
+      aria-label="Memory navigation"
+      className="flex max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain whitespace-nowrap console-divider-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
       {items.map((item) => {
         const isActive = item.id === active;
         return (
@@ -105,7 +108,7 @@ export function MemoryNav({ active, initialReferrerThread = null }: MemoryNavPro
             key={item.id}
             href={item.href}
             aria-current={isActive ? 'page' : undefined}
-            className={`inline-flex items-center px-5 py-2.5 text-sm font-semibold transition-colors ${
+            className={`inline-flex shrink-0 items-center whitespace-nowrap px-4 py-2.5 text-sm font-semibold transition-colors sm:px-5 ${
               isActive
                 ? 'border-b-2 border-[var(--console-button-emphasis)] text-[var(--console-button-emphasis)]'
                 : 'text-cafe-muted hover:text-cafe-secondary'

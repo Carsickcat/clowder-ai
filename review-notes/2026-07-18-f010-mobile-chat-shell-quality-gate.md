@@ -2,7 +2,7 @@
 
 Date: 2026-07-18
 
-Status: **independent code review approved; formal release gate remains open only for reporting-iPhone acceptance**
+Status: **second reporting-iPhone follow-up implemented; fresh independent code review and reporting-iPhone acceptance pending**
 
 Scope: `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`, Task 8
 
@@ -51,8 +51,23 @@ Scope: `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`, Task 8
 - Failure-mode sweep: Dock already has `lg:hidden`, and the chat reserve already has `lg:pb-0`; only the new secondary-chrome selector leaked across the wide boundary. The detector remains global while only its compact projection is width-bounded.
 - Terra re-reviewed `b480c1d` in message `0001784350462169-000473-efbef0d2` and returned **APPROVE — P1/P2/P3 = 0**.
 
+## Second reporting-iPhone follow-up
+
+The first chat-shell correction improved an already-open thread, but four new true-device screenshots showed three cross-route/global-page failures: a fresh thread restored Dock reserve under the keyboard, Memory tabs collapsed vertically, and root rubber-band scrolling displaced the entire fixed shell. The same audit also found inaccessible Signals tabs and a desktop-density Settings directory at 390px.
+
+- **Navigation lifetime:** global-page thread creation/selection now uses Next client routing, preserving the mounted AppShell and its stable VisualViewport baseline instead of crossing documents with `location.assign`.
+- **One frame / one scroller:** AppShell-scoped classes lock `html/body`; the global host no longer scrolls independently of page content. Chromeless routes are excluded. A closed-keyboard stale `visualViewport.offsetTop` projects as zero.
+- **Compact global pages:** AppShell owns one 57px mobile global header. Memory, Signals, Ops, capability scope tabs, Mission Hub tabs, and the Settings directory are single-line horizontal rails. Signal content stacks at compact widths and each page owns its internal vertical scroll.
+- **TDD:** the final focused route/viewport selection passes **47/47**; the earlier broad affected selection passes **106/106**. The CSS architecture gate is newly green after moving shell geometry out of the over-limit `globals.css` entrypoint.
+- **Full baseline:** Web Vitest is transparently red at **5044/5112 passed**, 68 failures in 15 files. This improves the pre-follow-up **5042/5111**, 69 failures in 16 files: the added contract passes and `global-css-architecture` leaves the failing-file list. No remaining failed file is modified by this follow-up.
+- **Production/runtime:** Web build passes, all 22 routes are generated, BUILD_ID is `3sb-dbE1RU4drK_umxkvl`, and the isolated `4310` process is PID `1536`. All API/Socket/upload rewrites target isolated API `4311`; production ports/data were untouched.
+- **390×844 route matrix:** `/`, a fresh `/thread/:id`, `/memory`, `/memory/search`, `/settings?s=ops`, `/signals`, `/signals/sources`, `/mission-control`, and `/mission-hub` opened through Hub Browser Preview. Every measured document stayed 390px wide, root scroll stayed at zero after an attempted scroll, and the fixed shell remained top `0`, height `844`.
+- **Visual metrics:** Memory tabs are one 43px row (`334/492px` client/scroll width); Signals tabs are visible in one 43px row; Settings categories are one 36px horizontal rail rather than a 42vh sidebar.
+- **Independent design evidence:** Terra independently confirmed the route-lifecycle, tab-overflow, and scroll-owner root causes from committed baseline `b778c0d` in message `0001784351745687-000476-0b719056`. The implementation candidate still requires a separate code-review verdict.
+
 ## Remaining gates
 
-1. On the reporting iPhone, refresh the new installed PWA, open the Chinese keyboard and `@` picker, and record an after screenshot. This is the only proof for actual iOS IME chrome/safe-area behavior; browser emulation is not represented as a substitute.
+1. Fresh cross-individual review of the second follow-up candidate.
+2. On the reporting iPhone, reopen the installed PWA and repeat: Memory tab swipe, global-page new-thread creation with Chinese keyboard already open, Dock/reserve visibility, and downward rubber-band gesture. Browser emulation is not represented as a substitute for Safari/PWA behavior.
 
 [宪宪/gpt-5.6-sol🐾]

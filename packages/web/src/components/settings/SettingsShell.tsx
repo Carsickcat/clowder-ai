@@ -37,18 +37,18 @@ function SettingsShellInner() {
   return (
     <div className="console-shell flex h-full min-h-0 flex-col overflow-hidden bg-[var(--console-panel-bg)] md:flex-row">
       <aside
-        className="flex max-h-[42vh] w-full flex-shrink-0 flex-col overflow-hidden bg-[var(--console-panel-bg)] md:max-h-none md:w-[220px]"
+        className="flex w-full flex-shrink-0 flex-col overflow-hidden bg-[var(--console-panel-bg)] md:w-[220px]"
         data-console-panel="settings-nav"
       >
-        <div className="px-4 pt-4 pb-2">
+        <div className="hidden px-4 pt-4 pb-2 md:block">
           <h1 className="text-lg font-bold text-cafe">设置</h1>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+        <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain px-2 py-2 md:min-h-0 md:flex-1 md:overflow-x-hidden md:overflow-y-auto md:overscroll-contain md:pb-4">
           <SettingsNav activeSection={activeSection} onSelect={handleSelect} />
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1 overflow-y-auto">
+      <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="space-y-5 px-5 py-5 md:px-8 md:py-7">
           <SettingsContent section={activeSection} initialEditCatId={initialEditCatId} />
         </div>

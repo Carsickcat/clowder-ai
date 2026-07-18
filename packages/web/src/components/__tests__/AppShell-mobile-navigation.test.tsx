@@ -52,9 +52,16 @@ describe('AppShell mobile global navigation ownership', () => {
   it('provides the canonical menu trigger on mobile global routes', () => {
     act(() => root.render(<AppShell>content</AppShell>));
 
+    expect(document.documentElement.classList.contains('app-shell-scroll-lock')).toBe(true);
+    expect(document.body.classList.contains('app-shell-scroll-lock')).toBe(true);
     expect(container.querySelector('[data-testid="pwa-update-controller"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="mobile-global-page-header"]')).not.toBeNull();
+    const viewport = container.querySelector('[data-testid="global-page-viewport"]');
+    expect(viewport?.classList.contains('overflow-hidden')).toBe(true);
+    expect(viewport?.classList.contains('overflow-y-auto')).toBe(false);
     const trigger = container.querySelector('[data-testid="mobile-global-nav-trigger"]') as HTMLButtonElement;
     expect(trigger).not.toBeNull();
+    expect(trigger.classList.contains('fixed')).toBe(false);
     act(() => trigger.click());
     expect(container.querySelector('[data-testid="mobile-global-nav-drawer"]')).not.toBeNull();
   });
@@ -100,5 +107,7 @@ describe('AppShell mobile global navigation ownership', () => {
     act(() => root.render(<AppShell>story</AppShell>));
 
     expect(container.querySelector('[data-testid="pwa-update-controller"]')).toBeNull();
+    expect(document.documentElement.classList.contains('app-shell-scroll-lock')).toBe(false);
+    expect(document.body.classList.contains('app-shell-scroll-lock')).toBe(false);
   });
 });

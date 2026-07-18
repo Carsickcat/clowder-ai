@@ -19,15 +19,15 @@ interface MemoryHubProps {
 export function MemoryHub({ activeTab = 'feed', initialQuery, initialReferrerThread = null }: MemoryHubProps) {
   return (
     <div className="flex h-full flex-col bg-[var(--console-panel-bg)]" data-testid="memory-hub">
-      <main className="flex-1 overflow-y-auto">
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div
-          className="m-3 flex flex-col gap-[18px] rounded-[18px] bg-[var(--console-shell-bg)] px-9 py-8 shadow-[var(--console-shadow-soft)]"
+          className="m-3 flex flex-col gap-4 rounded-[18px] bg-[var(--console-shell-bg)] px-4 py-5 shadow-[var(--console-shadow-soft)] sm:px-6 sm:py-6 lg:gap-[18px] lg:px-9 lg:py-8"
           data-testid="memory-content-surface"
         >
           <header className="flex items-center gap-4">
             <div>
-              <h1 className="text-xl font-bold text-cafe">记忆</h1>
-              <p className="mt-1 text-compact text-cafe-secondary">查看知识涌现、检索证据和索引健康状态</p>
+              <h1 className="hidden text-xl font-bold text-cafe lg:block">记忆</h1>
+              <p className="text-compact text-cafe-secondary lg:mt-1">查看知识涌现、检索证据和索引健康状态</p>
             </div>
           </header>
           <div>

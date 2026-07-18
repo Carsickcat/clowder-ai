@@ -51,12 +51,14 @@ export function useVisualViewportCssVars(): void {
       const composerFocused = hasFocusedComposer();
       baseline = resolveViewportBaseline(baseline, { height, width }, composerFocused);
       const focusedViewportShrink = composerFocused && baseline.height - height - top >= KEYBOARD_INSET_THRESHOLD_PX;
+      const keyboardOpen = obscuredHeight >= KEYBOARD_INSET_THRESHOLD_PX || focusedViewportShrink;
+      const projectedTop = keyboardOpen ? top : 0;
 
-      root.style.setProperty('--app-viewport-top', `${top}px`);
+      root.style.setProperty('--app-viewport-top', `${projectedTop}px`);
       root.style.setProperty('--app-viewport-left', `${left}px`);
       root.style.setProperty('--app-viewport-width', `${width}px`);
       root.style.setProperty('--app-viewport-height', `${height}px`);
-      if (obscuredHeight >= KEYBOARD_INSET_THRESHOLD_PX || focusedViewportShrink) {
+      if (keyboardOpen) {
         root.dataset.mobileKeyboardOpen = 'true';
       } else delete root.dataset.mobileKeyboardOpen;
     };

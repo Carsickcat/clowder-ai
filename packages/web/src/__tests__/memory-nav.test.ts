@@ -146,6 +146,26 @@ describe('MemoryNav component', () => {
     container.remove();
   });
 
+  it('keeps compact navigation labels on one line inside a horizontal scroller', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(createElement(MemoryNav, { active: 'feed' }));
+    });
+
+    const nav = container.querySelector('nav');
+    const links = Array.from(container.querySelectorAll('a'));
+    expect(nav?.classList.contains('overflow-x-auto')).toBe(true);
+    expect(nav?.classList.contains('overflow-y-hidden')).toBe(true);
+    expect(links.every((link) => link.classList.contains('shrink-0'))).toBe(true);
+    expect(links.every((link) => link.classList.contains('whitespace-nowrap'))).toBe(true);
+
+    root.unmount();
+    container.remove();
+  });
+
   it('renders health badge when report has action items (P1 cloud R5)', async () => {
     const { apiFetch } = await import('@/utils/api-client');
     vi.mocked(apiFetch).mockResolvedValueOnce({

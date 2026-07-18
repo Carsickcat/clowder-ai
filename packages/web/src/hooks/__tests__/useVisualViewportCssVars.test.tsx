@@ -107,4 +107,24 @@ describe('useVisualViewportCssVars', () => {
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
   });
+
+  it('does not project a stale visual offset after the keyboard is closed', () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 120;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+  });
 });

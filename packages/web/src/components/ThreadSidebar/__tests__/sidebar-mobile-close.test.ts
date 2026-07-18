@@ -82,6 +82,7 @@ describe('ThreadSidebar mobile auto-close', () => {
     container.remove();
     vi.restoreAllMocks();
     Object.defineProperty(window, 'innerWidth', { value: originalInnerWidth, writable: true });
+    window.history.replaceState({}, '', '/');
   });
 
   afterAll(() => {
@@ -139,6 +140,41 @@ describe('ThreadSidebar mobile auto-close', () => {
     await flush();
 
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('keeps AppShell mounted when creating a thread from a global route', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 390, writable: true });
+    window.history.replaceState({}, '', '/memory');
+
+    act(() => {
+      root.render(React.createElement(ThreadSidebar, { onClose: vi.fn() }));
+    });
+    await flush();
+
+    mockApiFetch.mockImplementation((path: string, init?: RequestInit) => {
+      if (path === '/api/threads' && init?.method === 'POST') {
+        return jsonOk({ id: 'new-thread-memory' });
+      }
+      if (path === '/api/threads') return jsonOk({ threads: [] });
+      return jsonOk({});
+    });
+
+    const newBtn = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('新对话'),
+    );
+    act(() => newBtn?.click());
+    await flush();
+    const lobbyBtn = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('大厅'),
+    );
+    act(() => lobbyBtn?.click());
+    const confirmBtn = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('创建对话'),
+    );
+    act(() => confirmBtn?.click());
+    await flush();
+
+    expect(mockPush).toHaveBeenCalledWith('/thread/new-thread-memory');
   });
 
   it('calls onClose after selecting a thread at the 768px mobile-work-surface boundary', async () => {

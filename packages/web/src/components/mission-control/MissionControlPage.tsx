@@ -38,7 +38,7 @@ interface ThreadListResponse {
 type SelfClaimPolicyBlocker = 'once' | 'thread' | null;
 
 const CONTENT_SURFACE_CLASS =
-  'rounded-[18px] bg-[var(--console-shell-bg)] shadow-[var(--console-shadow-soft)] m-3 px-9 py-8';
+  'rounded-[18px] bg-[var(--console-shell-bg)] shadow-[var(--console-shadow-soft)] m-3 px-4 py-5 sm:px-6 sm:py-6 lg:px-9 lg:py-8';
 
 function detectSelfClaimPolicyBlocker(rawError: string): SelfClaimPolicyBlocker {
   if (rawError.includes('Self-claim once policy already consumed')) return 'once';
@@ -436,8 +436,8 @@ export function MissionControlPage() {
   }, [activeProject, setActiveProjectId]);
 
   return (
-    <div className="flex h-screen bg-[var(--console-panel-bg)]">
-      <main className="min-w-0 flex-1 overflow-y-auto">
+    <div className="flex h-full bg-[var(--console-panel-bg)]">
+      <main className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
         <div className={`${CONTENT_SURFACE_CLASS} flex min-h-full flex-col`} data-testid="mission-content-surface">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-xl font-bold text-cafe">Mission Hub</h1>
@@ -469,11 +469,11 @@ export function MissionControlPage() {
             />
           )}
 
-          <div className="mt-4 flex console-divider-b">
+          <div className="mt-4 flex max-w-full overflow-x-auto overflow-y-hidden whitespace-nowrap console-divider-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => setActiveTab('features')}
-              className={`px-5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`shrink-0 px-5 py-2.5 text-sm font-semibold transition-colors ${
                 activeTab === 'features'
                   ? 'rounded-lg bg-[var(--console-active-bg)] text-cafe'
                   : 'text-cafe-muted hover:text-cafe-secondary hover:bg-[var(--console-hover-bg)]'
@@ -485,7 +485,7 @@ export function MissionControlPage() {
             <button
               type="button"
               onClick={() => setActiveTab('dependencies')}
-              className={`px-5 py-2.5 text-sm font-semibold transition-colors ${
+              className={`shrink-0 px-5 py-2.5 text-sm font-semibold transition-colors ${
                 activeTab === 'dependencies'
                   ? 'rounded-lg bg-[var(--console-active-bg)] text-cafe'
                   : 'text-cafe-muted hover:text-cafe-secondary hover:bg-[var(--console-hover-bg)]'
@@ -499,7 +499,7 @@ export function MissionControlPage() {
                 key={p.id}
                 type="button"
                 onClick={() => setActiveTab(p.id)}
-                className={`px-5 py-2.5 text-sm font-semibold transition-colors ${
+                className={`shrink-0 px-5 py-2.5 text-sm font-semibold transition-colors ${
                   activeTab === p.id
                     ? 'rounded-lg bg-[var(--console-active-bg)] text-cafe'
                     : 'text-cafe-muted hover:bg-[var(--console-hover-bg)]'
@@ -556,10 +556,10 @@ export function MissionControlPage() {
                 </div>
 
                 <div className="flex min-h-0 flex-col">
-                  <div className="flex console-divider-b">
+                  <div className="flex max-w-full overflow-x-auto overflow-y-hidden whitespace-nowrap console-divider-b">
                     <button
                       type="button"
-                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`shrink-0 px-3 py-1.5 text-xs font-medium transition-colors ${
                         rightPanelTab === 'suggestion'
                           ? 'rounded-lg bg-[var(--console-active-bg)] text-cafe'
                           : 'text-cafe-muted hover:bg-[var(--console-hover-bg)]'
@@ -571,7 +571,7 @@ export function MissionControlPage() {
                     </button>
                     <button
                       type="button"
-                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`shrink-0 px-3 py-1.5 text-xs font-medium transition-colors ${
                         rightPanelTab === 'sop'
                           ? 'rounded-lg bg-[var(--console-active-bg)] text-cafe'
                           : 'text-cafe-muted hover:bg-[var(--console-hover-bg)]'
@@ -583,7 +583,7 @@ export function MissionControlPage() {
                     </button>
                     <button
                       type="button"
-                      className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`shrink-0 px-3 py-1.5 text-xs font-medium transition-colors ${
                         rightPanelTab === 'threads'
                           ? 'rounded-lg bg-[var(--console-active-bg)] text-cafe'
                           : 'text-cafe-muted hover:bg-[var(--console-hover-bg)]'
