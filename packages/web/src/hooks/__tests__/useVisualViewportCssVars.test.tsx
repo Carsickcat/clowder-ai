@@ -376,6 +376,48 @@ describe('useVisualViewportCssVars', () => {
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('160px');
   });
 
+  it('does not let a width-changing opening pulse poison the stable height baseline', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+    (container.querySelector('textarea') as HTMLTextAreaElement).focus();
+    await act(async () => waitForAnimationFrames());
+
+    viewport.width = 844;
+    viewport.height = 112;
+    viewport.offsetTop = 180;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 300 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    viewport.height = 300;
+    viewport.offsetTop = 80;
+    await act(async () => {
+      viewport.dispatchEvent(new Event('scroll'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('300px');
+  });
+
   it('keeps the keyboard latched while an open-keyboard orientation baseline settles', async () => {
     const viewport = new EventTarget() as EventTarget & {
       height: number;

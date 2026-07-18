@@ -135,17 +135,19 @@ export function useVisualViewportCssVars(): void {
       width: Math.round(viewport?.width ?? window.innerWidth),
     };
 
-    const updateKeyboardState = (frame: ViewportFrame, allowClose: boolean) => {
+    const updateKeyboardState = (frame: ViewportFrame, allowClose: boolean, stageBaseline = true) => {
       const composerFocused = hasFocusedComposer();
-      const baselineResolution = resolveViewportBaseline(
-        baseline,
-        frame,
-        composerFocused,
-        keyboardOpen,
-        pendingWidthBaseline,
-      );
-      baseline = baselineResolution.baseline;
-      pendingWidthBaseline = baselineResolution.pendingWidthBaseline;
+      if (stageBaseline) {
+        const baselineResolution = resolveViewportBaseline(
+          baseline,
+          frame,
+          composerFocused,
+          keyboardOpen,
+          pendingWidthBaseline,
+        );
+        baseline = baselineResolution.baseline;
+        pendingWidthBaseline = baselineResolution.pendingWidthBaseline;
+      }
       const indicated = frameIndicatesKeyboard(baseline, frame, composerFocused, keyboardOpen);
       if (indicated) keyboardOpen = true;
       else if (allowClose) keyboardOpen = false;
@@ -167,13 +169,22 @@ export function useVisualViewportCssVars(): void {
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = 0;
         const frame = readViewportFrame(viewport);
+        const stableBaseline = baseline;
+        const stablePendingWidthBaseline = pendingWidthBaseline;
         updateKeyboardState(frame, true);
         // Installed iOS PWAs can pause their keyboard-opening event stream on
         // a near-zero intermediate VisualViewport height for longer than the
         // quiet window. Publishing that pulse collapses the complete fixed
         // AppShell. Keep the last usable shell geometry until a later
         // resize/scroll event supplies a frame that can contain the composer.
-        if (!isUsableComposingFrame(baseline, frame, hasFocusedComposer(), keyboardOpen)) return;
+        if (!isUsableComposingFrame(stableBaseline, frame, hasFocusedComposer(), keyboardOpen)) {
+          // A rejected frame is not allowed to become the reference geometry
+          // for the next event. Keep the immediate keyboard latch, but roll
+          // back baseline staging until a usable terminal frame arrives.
+          baseline = stableBaseline;
+          pendingWidthBaseline = stablePendingWidthBaseline;
+          return;
+        }
         commitFrame(frame);
       });
     };
@@ -190,7 +201,9 @@ export function useVisualViewportCssVars(): void {
         // appears, so Dock/secondary chrome leave immediately. Whole-shell
         // dimensions remain at the last stable frame until resize/scroll has
         // been quiet long enough to avoid publishing WebKit animation frames.
-        updateKeyboardState(readViewportFrame(viewport), false);
+        // Animation-time frames may latch composing state, but only the
+        // settled commit path may stage a new geometry baseline.
+        updateKeyboardState(readViewportFrame(viewport), false, false);
         settlingTimer = window.setTimeout(commitSettledFrame, VIEWPORT_SETTLE_DELAY_MS);
       });
     };

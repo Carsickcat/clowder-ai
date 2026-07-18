@@ -233,5 +233,7 @@ mapping had disappeared even though `:8443` already proxied `/api` and `/socket.
 4. Preserve existing HTTP direct-port cases (`3003→3004`, `3011→3012`).
 5. A PWA that starts in `844×390` landscape may settle to a compact but usable `160px` keyboard
    frame; the pulse guard must commit it rather than treating every sub-240px frame as invalid.
+6. If an unusable opening pulse also changes width, it cannot stage that uncommitted frame as the
+   next baseline. Composing may latch immediately; width and height wait for a usable terminal frame.
 
 [丢丢/gpt-5.6-sol🐾]

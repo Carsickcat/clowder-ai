@@ -13,24 +13,9 @@
  * Exit 1: tailscale CLI failed or mappings still missing after repair.
  */
 import { execFileSync } from 'node:child_process';
+import { findMissingF010ServeMappings } from './lib/f010-tailscale-serve-status.mjs';
 
 const TAILSCALE = process.env.TAILSCALE_BIN ?? 'C:\\Program Files\\Tailscale\\tailscale.exe';
-
-/** Required serve state: one HTTPS origin for Web, API, and Socket.IO. */
-const REQUIRED = [
-  {
-    match: /:8443 \(tailnet only\)[\s\S]*?\|-- \/ +proxy http:\/\/127\.0\.0\.1:4310/,
-    repair: ['serve', '--bg', '--https=8443', 'http://127.0.0.1:4310'],
-  },
-  {
-    match: /:8443 \(tailnet only\)[\s\S]*?\|-- \/api +proxy http:\/\/127\.0\.0\.1:4311\/api/,
-    repair: ['serve', '--bg', '--https=8443/api', 'http://127.0.0.1:4311/api'],
-  },
-  {
-    match: /:8443 \(tailnet only\)[\s\S]*?\|-- \/socket\.io +proxy http:\/\/127\.0\.0\.1:4311\/socket\.io/,
-    repair: ['serve', '--bg', '--https=8443/socket.io', 'http://127.0.0.1:4311/socket.io'],
-  },
-];
 
 function serveStatus() {
   return execFileSync(TAILSCALE, ['serve', 'status'], { encoding: 'utf8' });
@@ -38,7 +23,7 @@ function serveStatus() {
 
 function main() {
   let status = serveStatus();
-  const missing = REQUIRED.filter((entry) => !entry.match.test(status));
+  const missing = findMissingF010ServeMappings(status);
   if (missing.length === 0) {
     console.log('OK: all F010 acceptance serve mappings present (8443 web/api/socket.io).');
     return 0;
@@ -48,7 +33,7 @@ function main() {
     execFileSync(TAILSCALE, entry.repair, { stdio: 'inherit' });
   }
   status = serveStatus();
-  const stillMissing = REQUIRED.filter((entry) => !entry.match.test(status));
+  const stillMissing = findMissingF010ServeMappings(status);
   if (stillMissing.length > 0) {
     console.error(`FAIL: ${stillMissing.length} mapping(s) still missing after repair.`);
     return 1;

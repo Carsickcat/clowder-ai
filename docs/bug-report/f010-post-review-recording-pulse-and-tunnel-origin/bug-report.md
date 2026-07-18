@@ -66,17 +66,24 @@ origin before `/api/cats` and Socket.IO could use the valid same-origin proxy.
   existing Web+1 convention.
 - The usable-shell floor is bounded at 144px rather than 240px, so an already-landscape PWA can
   still commit a legitimate compact keyboard frame while rejecting the recorded 112px collapse.
+- Animation-time frames can latch composing state but cannot stage a geometry baseline; a rejected
+  width-changing pulse rolls baseline staging back until a usable terminal frame arrives.
+- The Tailscale guard parses only the explicit `:8443` listener block, so routes from `:8444` or any
+  other listener cannot satisfy the same-origin contract accidentally.
 - No second viewport writer, UA sniff, longer debounce, persisted keyboard state, or new runtime
   configuration owner was introduced.
 
 ## Current verification
 
-- Focused viewport + URL resolution: **21/21 passed**.
-- Bounded affected Web selection: **10 files / 90 tests passed**.
+- Focused viewport + URL resolution: **23/23 passed**.
+- Bounded affected Web selection: **10 files / 91 tests passed**.
+- Tailscale multi-listener status parser: **2/2 passed**; live guard reports all 8443 routes present.
 - Three separately selected Socket suites remain baseline-red at **46 failures** because their
   pre-existing `@/utils/api-client` mock omits `ensureSession`; they fail before exercising URL
   resolution and are not claimed as this change's result.
 - Web TypeScript: passed.
 - Targeted Biome: passed with no errors or warnings.
 - `git diff --check`: passed.
-- Production build and independent review remain the next gates.
+- Exact candidate `6786790` production build: passed; isolated BUILD_ID
+  `rYqKxCbawUG2k3lDMculK` served HTTP 200 on temporary port 4312 and opened in Hub Browser Preview.
+- Independent review remains the next gate; reporting-iPhone replay remains the device acceptance.
