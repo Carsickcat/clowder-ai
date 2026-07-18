@@ -124,7 +124,7 @@ Terra's first implementation review returned `REQUEST_CHANGES` because the keybo
 - Browser proof from the current 4310 bundle with the keyboard attribute forced true: 1024px → two wrappers `block`; 1023px → the same two wrappers `none`.
 - Audit: `.mobile-ops-nav` already carries `lg:hidden`, while ChatContainer reserve already carries `lg:pb-0`; no sibling boundary leak required another patch.
 
-Requested re-review verdict for `b480c1d`: `APPROVE` or `REQUEST_CHANGES`, with P1/P2/P3 labels. Real iPhone acceptance remains separate.
+Re-review verdict: Terra approved `b480c1d` in message `0001784350462169-000473-efbef0d2` with **P1/P2/P3 = 0**. Real iPhone acceptance remains separate.
 
 ## Truth sources
 

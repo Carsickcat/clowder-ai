@@ -227,6 +227,8 @@ Implementation commit: `78ebe807f7c3303a4a26bf5b50137d098f7a1a9c`
 
 Post-review wide-boundary repair: `b480c1ddfb13314fef5aec4f1e4b54fe2d612172`
 
+Independent review verdict: Terra approved `b480c1d` in message `0001784350462169-000473-efbef0d2` with **P1/P2/P3 = 0**. The only remaining gate for this chat-shell correction is the reporting-iPhone Chinese-IME / installed-PWA after proof.
+
 The corrected shell now has two projections:
 
 - **Browsing:** 56px single-line mobile header, sole transcript scroll, compact composer, one 56px Dock reserve plus one safe area.

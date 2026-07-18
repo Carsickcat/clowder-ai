@@ -2,7 +2,7 @@
 
 Date: 2026-07-18
 
-Status: **author quality gate passed; formal release gate remains open for independent review and reporting-iPhone acceptance**
+Status: **independent code review approved; formal release gate remains open only for reporting-iPhone acceptance**
 
 Scope: `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`, Task 8
 
@@ -49,10 +49,10 @@ Scope: `feature-specs/2026-07-18-f010-mobile-experience-recovery.md`, Task 8
 - GREEN: the exact contract passes **5/5**; the complete viewport/composer/header selection passes **32/32**; Next/PWA **8/8**, hardcoded-color rule, targeted Biome, production build and `git diff --check` pass.
 - Browser Feature Gate on the current production bundle: with `data-mobile-keyboard-open=true`, both secondary wrappers compute to `display:block` at 1024px and `display:none` at 1023px.
 - Failure-mode sweep: Dock already has `lg:hidden`, and the chat reserve already has `lg:pb-0`; only the new secondary-chrome selector leaked across the wide boundary. The detector remains global while only its compact projection is width-bounded.
+- Terra re-reviewed `b480c1d` in message `0001784350462169-000473-efbef0d2` and returned **APPROVE — P1/P2/P3 = 0**.
 
 ## Remaining gates
 
-1. Terra re-review of `b480c1d` after the P2 repair.
-2. On the reporting iPhone, refresh the new installed PWA, open the Chinese keyboard and `@` picker, and record an after screenshot. This is the only proof for actual iOS IME chrome/safe-area behavior; browser emulation is not represented as a substitute.
+1. On the reporting iPhone, refresh the new installed PWA, open the Chinese keyboard and `@` picker, and record an after screenshot. This is the only proof for actual iOS IME chrome/safe-area behavior; browser emulation is not represented as a substitute.
 
 [宪宪/gpt-5.6-sol🐾]
