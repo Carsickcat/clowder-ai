@@ -40,7 +40,7 @@ The old implementation produced four focused Red failures:
 - Targeted Biome on all four code/test files: pass, zero errors.
 - Feature truth: pass.
 - Capability tips: 11/11 harness tests and hard check pass; only existing branch/anchor warnings remain.
-- `git diff --check`: pass.
+- Candidate-range diff check: the original packet incorrectly inferred a pass from a clean-worktree `git diff --check`. Terra reproduced four committed trailing-space findings with `git diff --check 85e3284..87ffdd5` (exit 2). Doc-only repair `f65aa32` removes all four; `git diff --check 85e3284..f65aa32` passes.
 - Production Web build after all fresh-context repairs: pass; BUILD_ID `davuSC0P3wlGS5zAgfHp-`.
 
 The broader selection covers viewport projection, composer density/state, draft persistence, mention parsing, mobile container/status/toolbar, AppShell navigation, PWA install/update projection, and Markdown ownership.
@@ -75,9 +75,15 @@ The fresh-context scan produced three P2 findings and no P1/P3:
 
 Fresh-context is a finding generator only; Terra/Kimi remain the formal review authorities.
 
+## Formal review status
+
+- Terra reviewed exact code SHA `87ffdd5` in message `0001784400867254-000014-6e976ffa`: **REQUEST_CHANGES, P1=0, P2=1, P3=0**. He approved the viewport state machine, event ownership, cleanup, orientation baseline, mention boundaries, and the decision not to escalate to `100dvh + transform`; the sole P2 was the committed-range whitespace gate mismatch. `[FC:new]`
+- Doc-only repair `f65aa32` closes that P2 without changing runtime code. Terra's continuation signature for the repaired range is pending.
+- Kimi's independent visual/interaction verdict remains pending.
+
 ## Remaining gates
 
-1. Terra correctness/state-machine review and Kimi visual/interaction review against the exact commit SHA.
+1. Terra continuation-signs the `f65aa32` diff-check repair and Kimi returns the independent visual/interaction verdict for code SHA `87ffdd5`.
 2. After P1/P2 are zero, replace isolated 4310 with the reviewed build while leaving 4311 untouched.
 3. Reporting-iPhone replay of the same Chinese-IME/mention journey.
 

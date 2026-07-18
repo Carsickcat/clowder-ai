@@ -390,12 +390,12 @@ Fresh evidence:
 - Fresh-context Red: open-keyboard orientation cleared composing after poisoning the new-width baseline.
 - Final focused files: **26/26**.
 - Broader affected selection: **13 files / 137 tests**.
-- Web TypeScript, targeted Biome, feature truth, capability tips, diff check, and production build pass.
+- Web TypeScript, targeted Biome, feature truth, capability tips, and production build pass. Terra's formal range audit corrected the diff-check evidence: the original clean-worktree command missed four committed trailing spaces; doc-only `f65aa32` removes them and `git diff --check 85e3284..f65aa32` passes.
 - Final candidate BUILD_ID: `davuSC0P3wlGS5zAgfHp-`; temporary Web 4312 served HTTP 200 with that exact ID and opened in Hub Browser Preview, then the temporary listener was removed.
 - Existing isolated Web 4310 still serves the previous BUILD_ID `2JhXmOBICvwybpU-Kig8T`; API 4311 was untouched pending independent review.
 - Full Web Vitest was attempted but did not terminate within 303.4 seconds amid known unrelated mock/act families; no full-suite pass or count is claimed.
 
-Fresh-context found three P2s (orientation baseline, unmount cleanup proof, Unicode-category coverage); all three are closed in `87ffdd5`. Formal Terra/Kimi review is now pending. The reporting-iPhone replay remains the release truth after both reviewers report P1/P2=0 and the reviewed build replaces 4310.
+Fresh-context found three P2s (orientation baseline, unmount cleanup proof, Unicode-category coverage); all three are closed in `87ffdd5`. Terra's formal review message `0001784400867254-000014-6e976ffa` approved all runtime behavior and returned **P1=0, P2=1, P3=0** only for the committed-range whitespace gate mismatch; `f65aa32` closes that doc-only P2 and awaits continuation signature. Kimi's formal visual/interaction verdict is pending. The reporting-iPhone replay remains the release truth after both reviewers report P1/P2=0 and the reviewed build replaces 4310.
 
 Detailed evidence:
 

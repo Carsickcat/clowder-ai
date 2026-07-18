@@ -79,13 +79,13 @@ Reviewer delta tracking: tag findings `[FC:covered]`, `[FC:new]`, or `[FC:N/A]` 
 
 ## Next Action
 
-- Terra: return `APPROVE` or `REQUEST_CHANGES` with P1/P2/P3 counts for state-machine correctness.
+- Terra: the exact-code review is complete; continuation-check doc-only repair `f65aa32` and confirm the sole diff-check P2 is closed.
 - Kimi: independently return `APPROVE` or `REQUEST_CHANGES` with P1/P2/P3 counts for the recorded visual/interaction journey.
 - Do not operate 4310/4311. The author will replace 4310 only after both P1/P2 sets are zero.
 
 ## Review Sandbox
 
-- Path: `E:\ClowderAI\clowder-ai-f010-local-sandbox` (read-only review of exact SHA `87ffdd5`)
+- Path: `E:\ClowderAI\clowder-ai-f010-local-sandbox` (runtime code SHA `87ffdd5`; doc-only diff-check repair `f65aa32`)
 - Start command: not required; focused tests are headless and production artifact evidence is already recorded.
 - Ports: none required; do not touch Web `4310` or API `4311`.
 
@@ -99,7 +99,8 @@ Quality gate: `review-notes/2026-07-19-f010-ios-pwa-viewport-event-commit-qualit
 
 - Focused viewport/mention: **26/26**.
 - Broader affected selection: **13 files / 137 tests**.
-- Web TypeScript, targeted Biome, feature truth, capability tips, and `git diff --check`: pass.
+- Web TypeScript, targeted Biome, feature truth, and capability tips: pass.
+- Diff-check correction: Terra found four committed trailing spaces because the author had checked only the clean worktree. `f65aa32` removes all four; `git diff --check 85e3284..f65aa32` passes.
 - Production Web build: pass; BUILD_ID `davuSC0P3wlGS5zAgfHp-`.
 - Temporary 4312: HTTP 200 with exact ID, Hub Browser Preview opened, listener removed after verification.
 - Full Web attempt: transparently non-terminal at 303.4s amid known unrelated mock/act families; no full-suite pass/count claimed.
