@@ -253,3 +253,28 @@ Fresh evidence:
 The source audit, state matrix, RED proof, and remaining reporting-iPhone acceptance boundary are recorded in `docs/bug-report/f010-mobile-chat-shell-chrome-density/bug-report.md` and `review-notes/2026-07-18-f010-mobile-chat-shell-quality-gate.md`.
 
 [宪宪/gpt-5.6-sol🐾]
+
+## 2026-07-18 cross-route mobile shell recovery
+
+The second reporting-iPhone pass confirmed that the first chat-shell repair was necessary but not sufficient. A thread created from a global page crossed documents and lost the stable VisualViewport baseline; the root document and page content both scrolled; Memory tabs inherited desktop compression; and the same 390px audit exposed inaccessible Signals tabs plus a half-screen Settings directory.
+
+Implementation candidate: `bd075e699a0a7a9fd722e555ff97de87ac35087a`
+
+The recovery keeps AppShell mounted through global→thread client navigation, locks document rubber-band only while AppShell chrome is active, assigns one internal scroller per global page, zeros stale closed-keyboard viewport offsets, and projects compact single-line navigation across Memory, Signals, Settings, Ops, Scope, and Mission surfaces.
+
+Fresh evidence:
+
+- Final focused route/viewport selection **47/47**; earlier broad affected selection **106/106**.
+- Full Web Vitest **5044/5112 passed**, 68 failures in 15 untouched baseline files. This improves the pre-follow-up **5042/5111**, 69 failures in 16 files; the new test passes and the former global CSS architecture failure is green.
+- Production Web build passed in 41.3 seconds with 22 routes and BUILD_ID `3sb-dbE1RU4drK_umxkvl`. Isolated Web 4310 PID `1536` serves that exact ID; API/Socket/uploads target isolated API `4311`.
+- Hub Browser Preview opened the nine-route matrix: chat, fresh thread, Memory root/search, Settings Ops, Signals inbox/sources, Mission Control, and Mission Hub.
+- At 390×844 every measured route had document width 390, fixed shell top 0/height 844, and root scrollTop 0 after an attempted scroll. Memory's six tabs occupy one horizontal 43px row; Signals tabs are visible in one 43px row; Settings categories occupy one 36px horizontal rail.
+- The four reporting-iPhone screenshots remain the before truth. The final release boundary is a new installed-PWA Safari pass covering global-page thread creation with the Chinese keyboard already open, Dock reserve, Memory tab swipe, and downward rubber-band.
+
+Detailed diagnosis and review packet:
+
+- `docs/bug-report/f010-mobile-cross-route-shell-regressions/bug-report.md`
+- `review-notes/2026-07-18-f010-mobile-cross-route-shell-review-request.md`
+- `review-notes/2026-07-18-f010-mobile-chat-shell-quality-gate.md`
+
+[宪宪/gpt-5.6-sol🐾]
