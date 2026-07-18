@@ -297,6 +297,7 @@ The recovery establishes one mobile terminal state:
 Fresh pre-review evidence:
 
 - RED→GREEN: initial lifecycle/chrome failures, reviewer P2 proofs for authorization reachability and 44px actions, and a browser-discovered waiting-worker prompt regression; final affected selection **10 files / 79 tests**.
+- Count provenance: relative to Terra's independently reported 77, the author's explicitly listed 79-test roster includes the two `authorization-card-mobile` action tests that directly guard the repaired P2. Terra approved `ad32068` with P1=0, P2=0, P3=1; the P3 is documentation-only and resolved by this explicit breakdown.
 - TypeScript, targeted Biome (zero errors), `git diff --check`, and production Web build pass.
 - Full Web Vitest remains transparently baseline-red. The latest managed JSON was **5055/5123**, 68 failures in the same 14-file roster; the sole added raw-pixel guard was fixed to `text-micro` and its targeted F190 check is green. The later waiting-worker regression is green in its 8/8 controller suite and build; no full-suite green is claimed.
 - Final isolated Web `4310` serves BUILD_ID `jcnYuX0LWcqvp7oKHGqSM` from PID `39524`; HTTP `/` is 200 and isolated API remains `4311`.

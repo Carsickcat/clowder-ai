@@ -71,6 +71,7 @@ Dogfood bugs found and fixed in this slice: transient sheet carry-over across cl
 
 - RED: six initial failures across five suites, isolated RED proofs for thread carry-over and textarea line-box inflation, two reviewer P2 proofs for authorization reachability and 44px actions, and one browser-discovered waiting-worker prompt proof.
 - Final affected Vitest: **10 files / 79 tests passed**.
+- Count provenance: `agent-hook-health-notice` 5 + `authorization-card-mobile` 2 + `chat-container-header-thread-indicator` 14 + `chat-container-mobile` 9 + `chat-input-mobile` 13 + `mobile-input-toolbar` 6 + `mobile-overflow-contract` 8 + `mobile-status-sheet` 11 + `pwa-update-controller` 8 + `useVisualViewportCssVars` 3 = **79**. Relative to Terra's independently reported 77, the author's explicitly listed roster includes the two `authorization-card-mobile` action tests because they directly prove the repaired P2.
 - TypeScript: `pnpm exec tsc --noEmit` → exit 0.
 - Targeted Biome: exit 0, zero errors; repository-existing warnings only.
 - Capability tips: 11/11 guard tests and the hard check pass; existing stale-anchor/origin warnings only. The F010 feature truth already declares `tips_exempt` for passive mobile layout/keyboard fixes.
@@ -84,6 +85,6 @@ Dogfood bugs found and fixed in this slice: transient sheet carry-over across cl
 
 ## Verdict
 
-Author quality gate: pass. Independent code-review re-sign is required for the two P2 repairs and the browser-discovered PWA projection delta. Release gate then remains open only for reporting-iPhone Safari/installed-PWA Chinese-IME acceptance.
+Author quality gate: pass. Terra approved `ad32068` in message `0001784365910648-000530-9e400c32` with **P1=0, P2=0, P3=1**; the P3 evidence-count discrepancy is resolved above by listing the two additional authorization tests and does not change code. Release gate remains open only for reporting-iPhone Safari/installed-PWA Chinese-IME acceptance.
 
 [宪宪/gpt-5.6-sol🐾]
