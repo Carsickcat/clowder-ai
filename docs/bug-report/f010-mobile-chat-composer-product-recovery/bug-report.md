@@ -30,17 +30,18 @@ This is a harness defect, not three unrelated style bugs: three real-device corr
 - Noncritical connection, execution, queue, vote, quest, research, game-return, and empty-state chrome share the existing `mobile-keyboard-secondary-chrome` projection instead of acquiring new bottom reserves.
 - Authorization is deliberately not treated as secondary chrome: mobile shows a pending-count badge on the existing status action, opening it dismisses the keyboard, and the authorization controls live at the top of the status sheet. Desktop retains the inline authorization cards.
 - The expandable input toolbar and every authorization action use 44px-minimum touch targets; compact actions wrap rather than compress below the target size.
+- A waiting PWA update remains actionable while browsing but shares the existing secondary-chrome projection while composing; it no longer covers 88px of the keyboard-constrained transcript.
 
 ## Verification before independent review
 
-- Implementation commit: `20adebde118b08e2b1cfb0b8e92a056846f8739a`.
-- RED: six initial failures across five suites, followed by separate red proofs for transient-sheet thread carry-over and the textarea baseline line box.
-- GREEN: five affected suites, **44/44**; TypeScript `--noEmit` passes; targeted Biome has zero errors; Next/PWA production build passes.
-- Full Web Vitest remains transparently baseline-red at **5050/5117 passed**, 67 failures in 14 files, improving from the prior **5044/5112**, 68 failures in 15 files. The five changed suites are green; the repeatable ChatInput history/upload failures are already recorded baseline debt, and no new failing test file was introduced by this slice.
-- Post-commit isolated runtime: Web `4310` PID `26716` started after commit, HTTP 200, BUILD_ID `i1XgGmGXamb0QSLhn2Bgk`; API remains isolated on `4311`.
-- No-cache CDP at 390×844: root/body width `390`, root scrollTop `0`, header `57`, composer `52`, textarea `44`, Dock `56` with four items.
-- 390×430 composing projection: composer y=`378`, h=`52`, bottom=`430`; Dock `display:none`; visible secondary chrome count `0`; status sheet `visibility:hidden`; root scrollTop `0`.
+- Implementation commits: product recovery `20adebde118b08e2b1cfb0b8e92a056846f8739a`; reviewer P2 repair `066762d`; browser failure-mode repair `49a4853`.
+- RED: six initial failures across five suites, separate red proofs for transient-sheet thread carry-over and the textarea baseline line box, reviewer P2 proofs for authorization/44px actions, and a waiting-worker prompt regression found in browser dogfood.
+- GREEN: final affected selection **10 files / 79 tests**; TypeScript `--noEmit` passes; targeted Biome has zero errors; Next/PWA production build passes.
+- Full Web Vitest remains transparently baseline-red. The latest managed JSON was **5055/5123**, 68 failures in the same 14-file roster; the only added failure was the reviewer repair's raw-pixel typography guard. That token was replaced by `text-micro`, the targeted F190 guard is green, and the subsequent PWA controller suite is 8/8. No full-suite green is claimed.
+- Final isolated runtime: Web `4310` PID `39524`, HTTP 200, BUILD_ID `jcnYuX0LWcqvp7oKHGqSM`; API remains isolated on `4311`.
+- No-cache CDP at 390×844: root scrollTop `0`; status target `44`; each expanded toolbar action `44`; composer `52`; Dock `56`.
+- 390×430 composing projection with a real waiting worker: composer y=`378`, h=`52`, bottom=`430`; Dock height `0`; update-prompt height `0`/`display:none`; root scrollTop `0`.
 - Focus/status journey: textarea focused before status click; active element becomes `BODY`; sheet opens with `aria-hidden=false`, `scrollTop=0`, and its title visible.
-- Evidence: `project-evidence/f010-mobile-pwa/composer-recovery-final-20260718-bypass-sw-mobile-390x844.png`, `composer-recovery-final-20260718-status-sheet-390x844.png`, and `composer-recovery-final-20260718-composing-surface-390x430.png`.
+- Evidence: `project-evidence/f010-mobile-pwa/mobile-auth-toolbar-final-20260718-390x844.png`, `mobile-status-sheet-final-20260718-390x844.png`, and `mobile-composer-final-20260718-390x430.png`.
 
 Primary product evidence and rejected alternatives are recorded in `project-research/2026-07-18-mobile-chat-composer-product-patterns/sonnet-synthesis.md`.

@@ -284,7 +284,7 @@ Detailed diagnosis and review packet:
 
 The third reporting-iPhone pass exposed a lifecycle and product-density defect rather than another VisualViewport threshold: client navigation preserved an open status sheet across threads; status opening did not dismiss the composer; browser-default refocus could scroll; the sheet retained a stale position; and a full Agent environment error card competed with the composer and Safari's system form assistant.
 
-Implementation commit: `20adebde118b08e2b1cfb0b8e92a056846f8739a`.
+Implementation commits: product recovery `20adebde118b08e2b1cfb0b8e92a056846f8739a`; reviewer P2 repair `066762d`; browser failure-mode repair `49a4853`.
 
 The recovery establishes one mobile terminal state:
 
@@ -296,14 +296,14 @@ The recovery establishes one mobile terminal state:
 
 Fresh pre-review evidence:
 
-- RED→GREEN: initial six failures plus isolated thread-lifecycle and textarea-line-box reds; final affected suites **44/44**.
+- RED→GREEN: initial lifecycle/chrome failures, reviewer P2 proofs for authorization reachability and 44px actions, and a browser-discovered waiting-worker prompt regression; final affected selection **10 files / 79 tests**.
 - TypeScript, targeted Biome (zero errors), `git diff --check`, and production Web build pass.
-- Full Web Vitest remains transparently baseline-red at **5050/5117 passed**, 67 failures in 14 files, improving from the prior **5044/5112**, 68 failures in 15 files. All five directly changed suites are green and no new failing test file was introduced.
-- Post-commit isolated Web `4310` serves BUILD_ID `i1XgGmGXamb0QSLhn2Bgk` from PID `26716`, whose start time follows `20adebd`; HTTP `/` is 200 and isolated API remains `4311`.
-- No-cache 390×844 CDP: document width `390`, root scrollTop `0`, header `57`, composer `52`, textarea `44`, Dock `56` with four items.
-- 390×430 composing projection: composer bottom equals visual bottom; Dock is absent, visible secondary chrome is zero, and the status sheet is hidden.
+- Full Web Vitest remains transparently baseline-red. The latest managed JSON was **5055/5123**, 68 failures in the same 14-file roster; the sole added raw-pixel guard was fixed to `text-micro` and its targeted F190 check is green. The later waiting-worker regression is green in its 8/8 controller suite and build; no full-suite green is claimed.
+- Final isolated Web `4310` serves BUILD_ID `jcnYuX0LWcqvp7oKHGqSM` from PID `39524`; HTTP `/` is 200 and isolated API remains `4311`.
+- No-cache 390×844 CDP: root scrollTop `0`; status target and all three expanded toolbar actions measure `44`; composer `52`; Dock `56`.
+- 390×430 composing projection with a real waiting worker: composer bottom equals visual bottom; Dock, update prompt, secondary chrome, and status sheet occupy zero layout space; root scrollTop remains `0`.
 - Status journey: focused textarea is blurred before open; sheet `scrollTop=0`; title is visible.
-- Visuals: `composer-recovery-final-20260718-bypass-sw-mobile-390x844.png`, `composer-recovery-final-20260718-status-sheet-390x844.png`, `composer-recovery-final-20260718-composing-surface-390x430.png`.
+- Visuals: `mobile-auth-toolbar-final-20260718-390x844.png`, `mobile-status-sheet-final-20260718-390x844.png`, `mobile-composer-final-20260718-390x430.png`.
 
 The remaining release boundary is reporting-iPhone installed-PWA Safari with the Chinese IME. Chrome projection is structural evidence, not a substitute for that device truth.
 

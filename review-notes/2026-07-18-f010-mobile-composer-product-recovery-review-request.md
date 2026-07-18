@@ -4,7 +4,7 @@ Review-Target-ID: f010
 
 Branch: `feat/f010-mobile-pwa`
 
-Implementation commit: `20adebde118b08e2b1cfb0b8e92a056846f8739a`
+Implementation commits: `20adebde118b08e2b1cfb0b8e92a056846f8739a`, reviewer P2 repair `066762d`, browser failure-mode repair `49a4853`
 
 Final evidence HEAD: supplied in the review handoff after this packet is committed.
 
@@ -14,7 +14,7 @@ Reviewer requested: Terra (`@opus`), independent read-only review.
 
 ## What
 
-Review the third reporting-iPhone product recovery for the mobile conversation surface. The candidate makes status and composing mutually exclusive, keys transient sheet state to the current thread, prevents internal focus scrolling, reduces the app-owned composer to a measured 52px row, collapses mobile Agent-hook diagnostics, and removes secondary chrome from the keyboard projection without changing desktop behavior.
+Review the third reporting-iPhone product recovery for the mobile conversation surface and its two follow-up repairs. The candidate makes status and composing mutually exclusive, keys transient sheet state to the current thread, prevents internal focus scrolling, reduces the app-owned composer to a measured 52px row, collapses mobile Agent-hook diagnostics, keeps critical authorization discoverable through the existing mobile status journey, gives every exposed toolbar/authorization action a 44px target, and removes both ordinary secondary chrome and the waiting-worker prompt from the keyboard projection without changing desktop behavior.
 
 ## Why
 
@@ -43,18 +43,20 @@ Original report: message `0001784357537884-000498-e55d75f5`, screenshots `178435
 4. Confirm compact Agent diagnostics preserve sync/error reachability and detailed desktop behavior.
 5. Confirm keyboard-only hiding remains `<1024px`, critical stop/send behavior stays reachable, and no secondary chrome/reserve sibling escaped the failure-mode sweep.
 6. Challenge the product model itself: reject the patch if it still behaves like a desktop console compressed into a phone.
+7. Confirm pending authorization is signaled on the mobile status action and rendered at the top of the status sheet, not hidden with ordinary secondary chrome or restored above the IME.
+8. Confirm a waiting PWA update remains actionable while browsing and exits layout only while the mobile keyboard projection is active.
 
 ## Verification
 
-- Affected Vitest: **44/44**.
+- Final affected Vitest: **10 files / 79 tests passed**.
 - TypeScript: exit 0.
 - Targeted Biome: zero errors; existing warnings only.
 - Capability tips guard: 11/11 plus hard check pass; existing origin/stale-anchor warnings only.
 - `git diff --check`: exit 0.
 - Production Web build: exit 0, 22 routes.
-- Full Web Vitest: baseline-red **5050/5117**, 67 failures in 14 files versus prior **5044/5112**, 68 failures in 15 files; no new failing file.
-- Post-commit runtime: `20adebd`, BUILD_ID `i1XgGmGXamb0QSLhn2Bgk`, isolated Web `4310` PID `26716`, HTTP 200, isolated API `4311` untouched.
-- Browser dogfood: 390×844 browsing, focus→status transition, and 390×430 composing projection; exact metrics and three screenshots are in the quality-gate packet.
+- Full Web Vitest: baseline-red. Latest managed JSON was **5055/5123**, 68 failures in the same 14-file roster; the sole new raw-pixel guard was fixed and its targeted F190 check is green. The waiting-worker follow-up is green in its 8/8 controller suite and build; no full-suite green is claimed.
+- Final runtime: BUILD_ID `jcnYuX0LWcqvp7oKHGqSM`, isolated Web `4310` PID `39524`, HTTP 200, isolated API `4311` untouched.
+- Browser dogfood: 390×844 browsing/tool expansion, focus→status transition, and 390×430 composing projection with a real waiting worker. Toolbar actions and the status trigger measure 44px; composer bottom gap, Dock height, update-prompt height, and root scroll are all zero while composing. Exact metrics and three screenshots are in the quality-gate packet.
 - Root media/design artifact gate: clear. Matching `.pen`: none.
 
 Quality gate: `review-notes/2026-07-18-f010-mobile-composer-product-recovery-quality-gate.md`.

@@ -18,6 +18,7 @@ The white Previous / Next / Done strip in the reporting-iPhone screenshots is Sa
 4. Replace the full mobile Agent hook diagnostic card with a one-row summary and a compact sync action. Hide even that summary while composing. Preserve the full diagnostic on desktop and in the status/governance surface.
 5. Keep the mobile header as one line and keep all persistent interactive targets at least 44×44 CSS px.
 6. Signal pending authorization on the existing mobile status action; dismiss the keyboard before revealing the full 44px authorization controls in that status surface. Critical authorization stays discoverable without reintroducing a card above the IME.
+7. Keep recoverable PWA update actions available while browsing, but remove their floating prompt from the keyboard-constrained projection and resurface it when composing ends.
 
 ## Reject
 
@@ -27,6 +28,7 @@ The white Previous / Next / Done strip in the reporting-iPhone screenshots is Sa
 - A full configuration/403 diagnostic card in the mobile transcript.
 - Letting a bottom sheet and the software keyboard remain active at the same time.
 - Hiding authorization with ordinary secondary chrome, or restoring the full authorization card above the software keyboard.
+- Letting a nonurgent waiting-worker prompt cover the transcript while the keyboard is open.
 
 ## Acceptance contract
 
@@ -37,6 +39,7 @@ The white Previous / Next / Done strip in the reporting-iPhone screenshots is Sa
 - The idle single-line composer row is at most 56px high by CSS contract; the editable surface and both actions retain 44px targets.
 - At `lg` and above, the existing detailed notice and desktop controls remain available.
 - Pending mobile authorization remains discoverable while composing, and all toolbar/authorization actions retain 44px-minimum touch height.
+- A waiting-worker prompt may remain mounted for lifecycle safety, but its computed height is zero below `lg` while the mobile keyboard projection is active.
 
 ## Primary evidence
 
