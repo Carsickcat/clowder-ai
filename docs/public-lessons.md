@@ -1768,3 +1768,17 @@ created: 2026-02-26
 - 原理：Spec 是 "deployable state declaration", 不是 "future intent declaration"。预先 batch 写 future PR 的 normative 字段, 等于 declare 不存在的 dist——sanity check 会真炸。边界混淆的代价是 implementer 在 PR 内反复踩 self-inflict 雷。同源于 R1 .mjs-only over-correction (把 scope decision 提前 batch 拍板) 也同源于 LL-087 plan-time invariant 思路 (declaration 也是 invariant 的一种, 必须 trace 真实 state)。
 
 - 关联：F243 Phase B (active) | LL-087 plan-time invariant table 同源 (declaration = invariant 的一种) | feedback_xiaci_yiding_self_diagnosis (糖衣话术"未来一次写完"=包装当下偷懒) | feedback_grep_consumers_before_contract_change (改 contract 前 grep 全消费方; 这里 dual——declare contract 前看每个 PR 的 actual deployable state)
+
+### LL-090: 停止消费一个坐标，不等于删除产生该坐标的事件源
+- 状态：validated
+- 更新时间：2026-07-19
+
+- 坑：F010 为阻止 installed iOS PWA 双重平移，正确地停止了把 `visualViewport.offsetTop/offsetLeft` 写回固定 AppShell；但同一修复顺手删除了 `visualViewport.scroll` 监听。真机随后出现终态状态/几何缺少 scroll-only 重读、键盘状态不进入 composing、Dock 留在键盘上方；动画中间高度又被 `resize` 直接提交，导致整壳白屏和 Dock 瞬移。清晰帧同时证明 settled height 本身是正确的，不能把状态失同步误诊为终态高度错误。
+- 根因：把“事件携带的某个字段不再是布局坐标”误写成“整个事件不再有语义”。事件源与字段消费者属于两个独立契约：`scroll` 仍然标记 WebKit 几何/状态发生变化，`offsetTop` 则只能作为键盘分类信号，不能再平移 root。
+- 触发条件：修复坐标反馈、重复投影或 stale state 时，同时删除事件监听；尤其是浏览器/系统 API 会在 `resize`、`scroll`、focus 等多个事件上分阶段发布同一个终态。
+- 修复：恢复 `visualViewport.scroll` 订阅与 cleanup；把键盘状态即时 latch 和整壳几何 settled commit 分成两阶段；固定 root `top/left=0`；用 resize-intermediate → scroll-only-final → stable-close 的事件序列回归，而非只测静态终值。
+- 防护：改事件驱动 owner 前画出“事件源 → 状态信号 → 坐标消费者”三列；删除任一 listener 时，必须为该事件的全部状态边提供替代来源。回归测试必须保留真实事件顺序，至少包含一个“最终值只由另一事件送达”的对抗场景。
+- 来源锚点：`docs/bug-report/f010-ios-pwa-viewport-event-commit/bug-report.md` | `feature-specs/2026-07-18-f010-mobile-experience-recovery.md#task-9-commit-installed-pwa-keyboard-geometry-as-a-state-machine` | `packages/web/src/hooks/__tests__/useVisualViewportCssVars.test.tsx`
+- 原理：事件是“重新读取真相”的通知，不等于其中任一字段的消费授权。删除错误的坐标投影应发生在 consumer 边界；只有证明所有状态边仍有来源，才可以删除 producer edge。
+
+- 关联：F010 | feedback_grep_consumers_before_contract_change | feedback_plan_stateful_lifecycle_state_machine

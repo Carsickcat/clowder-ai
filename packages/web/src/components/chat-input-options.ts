@@ -168,8 +168,9 @@ export function detectMenuTrigger(
   const atIdx = textBefore.lastIndexOf('@');
   if (atIdx >= 0) {
     const fragment = textBefore.slice(atIdx + 1);
-    const charBefore = atIdx > 0 ? val[atIdx - 1] : ' ';
-    if (/\s/.test(charBefore!) && fragment.length <= 12 && !/\s/.test(fragment)) {
+    const charBefore = atIdx > 0 ? (val[atIdx - 1] ?? '') : ' ';
+    const isMentionFragment = /^[\p{L}\p{N}\p{M}_-]*$/u.test(fragment);
+    if (/\s/.test(charBefore) && fragment.length <= 12 && isMentionFragment) {
       return { type: 'mention', start: atIdx, filter: fragment };
     }
   }

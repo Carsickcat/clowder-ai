@@ -12,6 +12,17 @@ function Harness() {
   );
 }
 
+async function waitForAnimationFrames(count = 2): Promise<void> {
+  for (let index = 0; index < count; index += 1) {
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+  }
+}
+
+async function waitForViewportSettle(): Promise<void> {
+  await new Promise<void>((resolve) => window.setTimeout(resolve, 160));
+  await waitForAnimationFrames();
+}
+
 describe('useVisualViewportCssVars', () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -65,7 +76,7 @@ describe('useVisualViewportCssVars', () => {
     viewport.height = 820;
     await act(async () => {
       viewport.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForViewportSettle();
     });
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('820px');
@@ -93,7 +104,7 @@ describe('useVisualViewportCssVars', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
     await act(async () => {
       viewport.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForViewportSettle();
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
@@ -102,7 +113,7 @@ describe('useVisualViewportCssVars', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
     await act(async () => {
       viewport.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForViewportSettle();
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
@@ -130,14 +141,14 @@ describe('useVisualViewportCssVars', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
     await act(async () => {
       viewport.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForViewportSettle();
     });
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
 
     textarea.blur();
     await act(async () => {
       viewport.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForViewportSettle();
     });
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
 
@@ -145,7 +156,7 @@ describe('useVisualViewportCssVars', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
     await act(async () => {
       viewport.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForViewportSettle();
     });
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
   });
@@ -171,9 +182,9 @@ describe('useVisualViewportCssVars', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
     await act(async () => {
       viewport.dispatchEvent(new Event('resize'));
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForAnimationFrames(1);
       viewport.offsetTop = 96;
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+      await waitForViewportSettle();
     });
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
@@ -198,5 +209,187 @@ describe('useVisualViewportCssVars', () => {
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+  });
+
+  it('commits a scroll-only installed-PWA keyboard frame without translating the root', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+    (container.querySelector('textarea') as HTMLTextAreaElement).focus();
+    await act(async () => waitForAnimationFrames());
+
+    viewport.height = 500;
+    viewport.offsetTop = 360;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('scroll'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+  });
+
+  it('keeps animation-time geometry provisional and commits only the settled frame', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.focus();
+    await act(async () => waitForAnimationFrames());
+
+    viewport.height = 112;
+    viewport.offsetTop = 360;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForAnimationFrames(1);
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    viewport.height = 500;
+    viewport.offsetTop = 96;
+    await act(async () => {
+      viewport.dispatchEvent(new Event('scroll'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
+
+    textarea.blur();
+    viewport.height = 700;
+    viewport.offsetTop = 40;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 700 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForAnimationFrames(1);
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+
+    viewport.height = 844;
+    viewport.offsetTop = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('scroll'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+  });
+
+  it('keeps the keyboard latched while an open-keyboard orientation baseline settles', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.focus();
+
+    viewport.height = 500;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+
+    viewport.width = 844;
+    viewport.height = 300;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 300 });
+    await act(async () => {
+      window.dispatchEvent(new Event('orientationchange'));
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('300px');
+
+    textarea.blur();
+    viewport.height = 390;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('390px');
+  });
+
+  it('cancels pending geometry and removes viewport event delivery on unmount', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+    const probeContainer = document.createElement('div');
+    document.body.appendChild(probeContainer);
+    const probeRoot = createRoot(probeContainer);
+
+    act(() => probeRoot.render(<Harness />));
+    viewport.height = 112;
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForAnimationFrames(1);
+    });
+
+    act(() => probeRoot.unmount());
+    viewport.height = 500;
+    viewport.dispatchEvent(new Event('resize'));
+    viewport.dispatchEvent(new Event('scroll'));
+    await waitForViewportSettle();
+
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('');
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+    probeContainer.remove();
   });
 });

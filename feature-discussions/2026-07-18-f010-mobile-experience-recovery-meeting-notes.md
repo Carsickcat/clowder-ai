@@ -117,3 +117,31 @@ Convergence checks:
 The implementation remains one pure CSS/data projection and adds no persistent UI state.
 
 [宪宪/gpt-5.6-sol🐾]
+
+## 10. 2026-07-19 seventh true-device convergence: event source vs coordinate consumer
+
+Participants: Sonnet (fan-in/implementation), Terra (independent video and code audit), Kimi K3 (independent video and geometry-pipeline audit).
+
+The 23.966-second reporting-iPhone video is bound to the `ffafb56` build and shows one causal sequence: an intermediate viewport frame collapses the fixed shell, the final keyboard journey retains the Dock and a stale short shell, and punctuation does not terminate the mention picker.
+
+### Consensus
+
+1. Root `top/left=0` remains correct; no offset translation or assistant reserve returns.
+2. `visualViewport.scroll` is a required state/geometry event even though `offsetTop` is no longer a root coordinate.
+3. Keyboard state and geometry commit are separate phases: state may latch immediately; whole-shell dimensions wait for a settled frame.
+4. The harness must encode event chronology, not only static end values.
+5. Mention punctuation is a separate P2 and closes in the same delivery because it is directly visible in the same recording.
+
+### Preserved disagreement
+
+- Kimi: move directly to a stable `100dvh` shell with composer transform; add a device HUD first.
+- Terra: first prove and repair the missing scroll-only edge; the video alone does not prove settled `visualViewport.height` is intrinsically wrong.
+- Fan-in decision: repair the existing sole owner with a settled-commit state machine. The transform model is a later hypothesis only if measured settled geometry still fails. This keeps the fix reversible and avoids asking the operator for a diagnostic-only replay.
+
+### Convergence check
+
+1. Rejected option → ADR? **No;** local alternative recorded in the bug report.
+2. New lesson → public lessons? **Yes;** the Green mechanism is recorded as LL-090.
+3. New operating rule → guide? **No;** F010 spec + regression harness own it.
+
+[丢丢/gpt-5.6-sol🐾]

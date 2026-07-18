@@ -164,3 +164,40 @@ True-device evidence on 2026-07-18 invalidated the earlier assumption that the l
 4. Verify focused suites, production build, isolated compact/medium browser preview, independent review, and the same-device iPhone PWA acceptance.
 
 [宪宪/gpt-5.6-sol🐾]
+
+## Task 9: Commit installed-PWA keyboard geometry as a state machine
+
+The seventh true-device recording after `ffafb56` proves that the viewport owner still lacks event chronology. A resize-time intermediate height can collapse the entire fixed AppShell, while WebKit publishes the terminal focused geometry through `visualViewport.scroll`. Removing root offset projection was correct; removing the scroll event source was not.
+
+### State transitions
+
+| State | Input | Immediate projection | Stable commit |
+| --- | --- | --- | --- |
+| `closed-stable` | composer focus + focused viewport shrink/pan | latch `data-mobile-keyboard-open=true`; keep last stable shell geometry | after the geometry event stream settles, commit current width/height |
+| `opening-uncommitted` | further `resize` / `scroll` frames | keep composing mode; do not expose animation-time height to AppShell | restart the single settle window |
+| `open-stable` | typing, mention, transcript scroll | keep fixed origin and settled height | no geometry write without a viewport/window event |
+| `closing-uncommitted` | blur + restoring geometry | retain composing projection so Dock cannot flash back mid-animation | clear keyboard state only when restored geometry settles |
+| any | width-class/orientation change | stage the new width; if the keyboard is open, retain the last closed-height baseline | commit the settled new frame, then adopt the restored height after blur/geometry growth |
+
+### Invariants
+
+- `visualViewport.resize` and `visualViewport.scroll` are both input events; cleanup removes both.
+- `offsetTop/offsetLeft` never translate AppShell. A focused pan may only help classify keyboard state.
+- Baseline height shrink is measured independently of pan; subtracting `offsetTop` must not cancel a real shrink.
+- Keyboard-open may latch before geometry commits. Keyboard-close may occur only with a settled restored frame.
+- Only one quiet-window timer and one animation-frame reader exist; raw animation frames never write shell dimensions.
+- An open-keyboard orientation frame cannot become the new closed-height baseline; the pending width baseline resolves only after composer blur and viewport-height restoration.
+- The terminal frame still comes from current `visualViewport.width/height`; no device ratio, assistant reserve, or UA-specific coordinate owner is introduced.
+- Mention tokens end at whitespace, Unicode punctuation, or symbols; Chinese/Latin letters, numbers, combining marks, `_`, and `-` remain valid filter text.
+
+### Red contract
+
+1. Focus composer; mutate `height/offsetTop`; dispatch only `visualViewport.scroll`. The old hook must fail to enter composing mode or commit the final height.
+2. Dispatch a resize frame with a near-zero intermediate height. Before the settle boundary, the committed AppShell height must remain the previous stable value.
+3. Dispatch the final scroll frame. After settling, the new height commits once, root top remains zero, and Dock/secondary chrome are projected out.
+4. Blur and restore through intermediate geometry. Keyboard state remains latched until the restored terminal frame settles.
+5. `@opus，继续` and `@opus,continue` close the picker; `@布偶猫` and `@co-creator` remain valid triggers.
+6. Rotate while the keyboard is open. The new width/height commits, composing remains latched, and the baseline resolves only after blur plus restored geometry.
+7. Unmount with a settle timer pending, then dispatch both viewport events. No delayed CSS/data write may occur. Symbols terminate mentions; numbers, combining marks, and `_` remain valid filters.
+
+[丢丢/gpt-5.6-sol🐾]

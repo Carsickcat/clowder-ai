@@ -79,6 +79,32 @@ describe('detectMenuTrigger filter', () => {
     const result = detectMenuTrigger(' @verylongcatnam', 16);
     expect(result).toBeNull();
   });
+
+  it.each([
+    '@opus，继续',
+    '@opus,x',
+    '@opus。继续',
+    '@opus!x',
+  ])('ends the mention token at punctuation in %s', (input) => {
+    expect(detectMenuTrigger(input, input.length)).toBeNull();
+  });
+
+  it('keeps Chinese and hyphenated mention filters valid', () => {
+    expect(detectMenuTrigger('@布偶猫', 4)).toEqual({ type: 'mention', start: 0, filter: '布偶猫' });
+    expect(detectMenuTrigger('@co-creator', 11)).toEqual({ type: 'mention', start: 0, filter: 'co-creator' });
+  });
+
+  it('ends the mention token at Unicode symbols', () => {
+    expect(detectMenuTrigger('@opus💥', 7)).toBeNull();
+  });
+
+  it.each([
+    ['@cat123', 'cat123'],
+    ['@e\u0301', 'e\u0301'],
+    ['@cat_team', 'cat_team'],
+  ])('keeps number, combining-mark, and underscore filters valid in %s', (input, filter) => {
+    expect(detectMenuTrigger(input, input.length)).toEqual({ type: 'mention', start: 0, filter });
+  });
 });
 
 describe('mention filter matching', () => {
