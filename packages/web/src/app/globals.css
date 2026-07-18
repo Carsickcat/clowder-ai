@@ -68,8 +68,10 @@ html[data-mobile-keyboard-open="true"] .mobile-ops-nav {
   display: none;
 }
 
-html[data-mobile-keyboard-open="true"] .mobile-keyboard-secondary-chrome {
-  display: none;
+@media (max-width: 1023px) {
+  html[data-mobile-keyboard-open="true"] .mobile-keyboard-secondary-chrome {
+    display: none;
+  }
 }
 
 /* Quest input highlight: gentle amber glow on input area */

@@ -22,6 +22,18 @@ describe('F010 mobile viewport and overflow contract', () => {
     expect(css).toContain('.mobile-keyboard-secondary-chrome');
   });
 
+  it('limits composing-only secondary chrome hiding to widths below the shared wide breakpoint', () => {
+    const css = readWeb('src/app/globals.css');
+    const breakpoints = JSON.parse(readWeb('src/styles/responsive-breakpoints.json')) as { wide: number };
+    const compactRule = `@media (max-width: ${breakpoints.wide - 1}px) {
+  html[data-mobile-keyboard-open="true"] .mobile-keyboard-secondary-chrome {
+    display: none;
+  }
+}`;
+
+    expect(css).toContain(compactRule);
+  });
+
   it('keeps the chat surface narrow, scroll-contained, and keyboard-safe', () => {
     const shell = readWeb('src/components/AppShell.tsx');
     const chat = readWeb('src/components/ChatContainer.tsx');
