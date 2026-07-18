@@ -102,7 +102,7 @@ Quality gate: `review-notes/2026-07-19-f010-ios-pwa-viewport-event-commit-qualit
 - Web TypeScript, targeted Biome, feature truth, and capability tips: pass.
 - Diff-check correction: Terra found four committed trailing spaces because the author had checked only the clean worktree. `f65aa32` removes all four; `git diff --check 85e3284..f65aa32` passes.
 - Production Web build: pass; BUILD_ID `davuSC0P3wlGS5zAgfHp-`.
-- Temporary 4312: HTTP 200 with exact ID, Hub Browser Preview opened, listener removed after verification.
+- Reviewed runtime 4310: local and Tailscale HTTPS roots return HTTP 200 from PID `17084` with exact BUILD_ID `davuSC0P3wlGS5zAgfHp-`; Hub Browser Preview opened `/`. API 4311 remains PID `7580`.
 - Full Web attempt: transparently non-terminal at 303.4s amid known unrelated mock/act families; no full-suite pass/count claimed.
 - Root media status and diff scans: clean.
 

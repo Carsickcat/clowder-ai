@@ -54,8 +54,9 @@ Full Web Vitest was attempted and stopped by the command timeout after 303.4 sec
 - Temporary Web `4312` served HTTP 200 and embedded BUILD_ID `davuSC0P3wlGS5zAgfHp-`.
 - Hub Browser Preview opened that exact final candidate build.
 - The temporary Node listener was stopped after the check; port `4312` is free.
-- Existing Web `4310` still returns HTTP 200 with old BUILD_ID `2JhXmOBICvwybpU-Kig8T`.
-- API `4311` PID `7580` was not restarted or modified.
+- After both independent reviewers reported P1/P2=0, isolated Web `4310` was replaced by exact verified PID: old `45656` stopped, new `17084` serves HTTP 200 and embeds reviewed BUILD_ID `davuSC0P3wlGS5zAgfHp-`.
+- Local and Tailscale HTTPS roots both return HTTP 200 with the reviewed BUILD_ID; Hub Browser Preview opened the reviewed 4310 root.
+- API `4311` remains the original PID `7580`; it was not restarted or modified.
 
 This evidence proves the new production artifact starts. It does not substitute for installed-iPhone keyboard animation truth.
 
@@ -83,7 +84,6 @@ Fresh-context is a finding generator only; Terra/Kimi remain the formal review a
 
 ## Remaining gates
 
-1. Replace isolated 4310 with the reviewed build while leaving 4311 untouched; Terra and Kimi both report P1/P2=0.
-2. Reporting-iPhone replay of the same Chinese-IME/mention journey.
+1. Reporting-iPhone replay of the same Chinese-IME/mention journey; reviewed runtime deployment is complete and both reviewers report P1/P2=0.
 
 [丢丢/gpt-5.6-sol🐾]
