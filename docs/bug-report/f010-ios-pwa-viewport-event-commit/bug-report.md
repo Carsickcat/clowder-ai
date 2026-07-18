@@ -1,6 +1,6 @@
 # F010 iOS installed-PWA viewport event commit failure
 
-**Status:** code Green — independent review and reporting-iPhone replay pending
+**Status:** code and independent review Green — reviewed runtime deployment and reporting-iPhone replay pending
 **Reporter:** co-creator, reporting iPhone installed PWA
 **Date:** 2026-07-19
 **Feature:** F010

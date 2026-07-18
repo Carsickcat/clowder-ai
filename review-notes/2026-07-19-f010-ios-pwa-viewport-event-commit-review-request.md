@@ -80,7 +80,7 @@ Reviewer delta tracking: tag findings `[FC:covered]`, `[FC:new]`, or `[FC:N/A]` 
 ## Next Action
 
 - Terra: complete. Message `0001784401196987-000017-cd17c0f4` continuation-approves `7086e37` with **P1=0, P2=0, P3=0**.
-- Kimi: independently return `APPROVE` or `REQUEST_CHANGES` with P1/P2/P3 counts for the recorded visual/interaction journey.
+- Kimi: complete. Message `0001784401000653-000019-cd6cb063` approves `87ffdd5` with **P1=0, P2=0, P3=1**; the P3 is a non-blocking punctuation-in-display-name filter boundary outside the current roster and recording journey.
 - Do not operate 4310/4311. The author will replace 4310 only after both P1/P2 sets are zero.
 
 ## Review Sandbox

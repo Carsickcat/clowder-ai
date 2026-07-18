@@ -79,12 +79,11 @@ Fresh-context is a finding generator only; Terra/Kimi remain the formal review a
 
 - Terra reviewed exact code SHA `87ffdd5` in message `0001784400867254-000014-6e976ffa`: **REQUEST_CHANGES, P1=0, P2=1, P3=0**. He approved the viewport state machine, event ownership, cleanup, orientation baseline, mention boundaries, and the decision not to escalate to `100dvh + transform`; the sole P2 was the committed-range whitespace gate mismatch. `[FC:new]`
 - Doc-only repair `f65aa32` closes that P2 without changing runtime code. Terra continuation-approved the repaired evidence head `7086e37` in message `0001784401196987-000017-cd17c0f4` with **P1=0, P2=0, P3=0** after both range checks returned 0.
-- Kimi's independent visual/interaction verdict remains pending.
+- Kimi independently reviewed exact code SHA `87ffdd5` in message `0001784401000653-000019-cd6cb063`: **APPROVE, P1=0, P2=0, P3=1** after reproducing the focused 26/26. He confirmed the recording's blank-shell, Dock-state, and mention mechanisms are closed and that `100dvh + transform` is not currently required. The non-blocking P3 records that punctuation inside a typed display-name filter terminates the token; current roster handles/patterns and the recorded journey are unaffected.
 
 ## Remaining gates
 
-1. Kimi returns the independent visual/interaction verdict for code SHA `87ffdd5`; Terra's correctness and continuation gates are approved.
-2. After P1/P2 are zero, replace isolated 4310 with the reviewed build while leaving 4311 untouched.
-3. Reporting-iPhone replay of the same Chinese-IME/mention journey.
+1. Replace isolated 4310 with the reviewed build while leaving 4311 untouched; Terra and Kimi both report P1/P2=0.
+2. Reporting-iPhone replay of the same Chinese-IME/mention journey.
 
 [丢丢/gpt-5.6-sol🐾]
