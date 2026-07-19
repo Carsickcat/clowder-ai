@@ -260,3 +260,28 @@ This clears the cross-cat code gate, not the device gate. The only valid replay 
 standalone PWA whose HUD displays `n7WolIZtBPCkffGf2i6VS`. F010 remains open until the reporting
 iPhone completes cold start, focus/Chinese IME, mention selection/send, blur, refocus, and final
 blur, and the resulting recording, copied trace, and frame report are all green.
+
+### 2026-07-19 final reporting-iPhone verdict: PASS
+
+The operator completed the required journey on the exact standalone BUILD_ID
+`n7WolIZtBPCkffGf2i6VS`. The original `录屏3.mp4` is 44.5 s with SHA-256
+`ab333489b14a95b7630632511406ea847c0a3130294609c942cb11cf11dab555`. The HUD screenshot proves
+same-origin 8443 API, successful activated Service Worker/controller, cache enumeration, and final
+`focusout/settled/after` geometry `inner=797`, `vv=797@0`, `shell=797@0`, composer top `707`.
+
+Reviewed frame-report v1.1.0 returned `shellNeverBlank=true`, zero significant post-launch blank
+runs, longest blank run 0 s, and zero composer-loss runs over 1 s at both the calibrated 4fps gate
+and an 8fps sensitivity pass. Direct key-frame review confirmed the short detector negatives were
+not app failures: the composer remained visible at 37.00–37.25, and 43.75–44.50 was iOS Control
+Center after the app journey had ended.
+
+The video visibly completes cold start, first focus, Chinese IME, mention roster and `@opus45`
+selection/send, blur, second focus, and final blur without the former shell blank or multi-second
+composer disappearance. The full copied JSON could not be pasted; by operator instruction in
+message `0001784453991227-000123-b4c9fa8e`, the provenance/final-state screenshot is the accepted
+trace substitute for this verdict. Full evidence and the requirements mapping are in
+`review-notes/2026-07-19-f010-final-iphone-acceptance.md`.
+
+**Device acceptance: PASS.** The F010 incident's keyboard blank/jump, composer disappearance, and
+empty mention-picker release gates are closed for product behavior. Repository merge and feature
+truth synchronization remain distinct lifecycle steps and are not represented as already complete.

@@ -1,0 +1,64 @@
+{
+  "toolVersion": "1.1.0",
+  "video": "C:\\Users\\myh_1\\Desktop\\录屏3.mp4",
+  "inputSha256": "ab333489b14a95b7630632511406ea847c0a3130294609c942cb11cf11dab555",
+  "launchBoundarySec": 4,
+  "composerEpisodeGapSec": 1,
+  "fps": 4,
+  "frameCount": 178,
+  "durationSec": 44.5,
+  "classes": {
+    "content": 176,
+    "blank-light": 0,
+    "blank-dark": 2
+  },
+  "blankFrames": [
+    {
+      "t": 2,
+      "kind": "blank-dark",
+      "blankRatio": 0.997,
+      "luma": 8
+    },
+    {
+      "t": 2.25,
+      "kind": "blank-dark",
+      "blankRatio": 1,
+      "luma": 8
+    }
+  ],
+  "postLaunchBlankRuns": [],
+  "composerAbsentRuns": [
+    {
+      "start": 37,
+      "end": 37.25,
+      "length": 0.25
+    },
+    {
+      "start": 43.75,
+      "end": 44.5,
+      "length": 0.75
+    }
+  ],
+  "composerAbsentEpisodes": [
+    {
+      "start": 37,
+      "end": 37.25,
+      "length": 0.25,
+      "rawCount": 1
+    },
+    {
+      "start": 43.75,
+      "end": 44.5,
+      "length": 0.75,
+      "rawCount": 1
+    }
+  ],
+  "composerAbsentTotalSec": 1,
+  "verdict": {
+    "shellNeverBlank": true,
+    "significantBlankRuns": [],
+    "longestPostLaunchBlankRunSec": 0,
+    "longestPostLaunchBlankRunUnder250ms": true,
+    "composerNeverLostOver1sPostLaunch": true
+  }
+}

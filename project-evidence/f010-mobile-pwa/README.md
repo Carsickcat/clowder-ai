@@ -489,3 +489,22 @@ Deployment: production build `KpKOypWIwv_tNKdAuPlWs`; 4310 swapped from PID 4740
 Release gate (operator, one pass): kill the PWA, reopen (accept update if prompted), then: focus composer → no blank/jump; Dock hides while composing; `@` shows 4 cats; send to one cat → reply streams without refresh; dismiss keyboard → Dock returns.
 
 [烁烁/kimi-k3🐾]
+
+## 2026-07-19 final iPhone acceptance — `n7WolIZtBPCkffGf2i6VS`
+
+The exact standalone candidate passed the reporting-iPhone journey. Canonical verdict and mapping:
+`review-notes/2026-07-19-f010-final-iphone-acceptance.md`.
+
+- video SHA-256: `ab333489b14a95b7630632511406ea847c0a3130294609c942cb11cf11dab555`;
+- 44.5 s, first focus + Chinese IME + mention/send + blur + refocus + final blur;
+- frame-report v1.1.0 at 4fps and 8fps: zero post-launch significant blank runs, zero composer loss
+  over 1 s;
+- HUD provenance: target BUILD_ID, same-origin 8443 API, activated SW controller, final
+  `inner/vv/shell=797@0` geometry;
+- evidence files: `final-iphone-trace-n7wol.jpg`, `final-iphone-first-focus-n7wol.png`,
+  `final-iphone-second-focus-n7wol.png`, and `final-iphone-frame-report-n7wol.json`.
+
+This supersedes all earlier “device acceptance pending” notes for the F010 keyboard/mention
+incident. Merge/feature truth closure remains a separate repository lifecycle gate.
+
+[丢丢/gpt-5.6-sol🐾]
