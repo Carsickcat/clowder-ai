@@ -88,3 +88,63 @@ origin before `/api/cats` and Socket.IO could use the valid same-origin proxy.
   `NLgMJFRRSV9bzl_iQLbc5` served HTTP 200 on temporary port 4312 from PID `35176` and opened in Hub
   Browser Preview. The temporary listener was terminated after verification.
 - Independent review remains the next gate; reporting-iPhone replay remains the device acceptance.
+
+## 2026-07-19 follow-up: `录屏2.mp4` invalidates threshold-based shell projection
+
+`录屏2.mp4` (SHA-256
+`E6826F1A47CC0ECA51A14981B88A9C6E6656FF7C852673FB84236A64E83BFC8E`) was recorded after the
+`KpKOypWIwv_tNKdAuPlWs` candidate was deployed. It contains two distinct failures: the composer is
+outside the visible region for multiple intervals, and the AppShell/header/transcript disappear
+together for post-launch runs of 2.0 s and 1.0 s. The reviewed frame-report harness (`8442c8b`,
+schema 1.1.0) reports both post-launch shell verdicts as false.
+
+The direct root-collapse path remained in `fbb2850`: the hook projected
+`Math.min(baseline.height, window.innerHeight)` to `--app-viewport-height`. The alleged stable shell
+therefore still consumed an unconfirmed keyboard-animation value. Existing tests fixed
+`innerHeight` at a safe value and did not exercise the reporting-iPhone path.
+
+### Superseding RED evidence
+
+Before the final implementation, the focused suite failed with the exact unsafe projections:
+
+- a settled `innerHeight=112px` / VV pulse projected a 112px root instead of retaining 844px;
+- a non-zero intermediate `innerHeight=420px` projected a 420px root instead of retaining 844px;
+- an opening `innerHeight=500px` projected a 500px root instead of retaining 844px;
+- the installed-PWA `/` start URL exposed no trace, so build/controller identity could not accompany
+  a standalone replay without a query-bearing webclip.
+
+These failures supersede the earlier 144px floor. The final contract is not another lower bound:
+from composer focus through confirmed close, no `innerHeight`, VisualViewport height/top, or
+orientation frame may replace the last confirmed unobscured shell width/height.
+
+### Final repair under review
+
+- Root width and height always project the confirmed baseline while focus/keyboard state is active.
+- Width-changing orientation frames are staged only as a candidate; two matching unobscured reads
+  are required before close adopts a new baseline and returns the Dock.
+- Keyboard overlap remains a composer-only projection; root top/left remain `0px`.
+- An acceptance-build flag can expose the already reviewed, bounded viewport trace on standalone
+  `/`; normal builds remain query-gated and no Service Worker/update policy is changed.
+- Catalog presentation now distinguishes loading, retryable fetch failure, confirmed empty, and
+  ready. A failed cold fetch shows an explicit retry instead of the false irreversible “no members”
+  first-run state.
+
+### Verification before exact-commit deployment
+
+- Focused/affected mobile selection: **9 files / 100 tests passed**.
+- Viewport state machine: **25/25 passed**; catalog presentation: **4/4 passed**; catalog retry:
+  **3/3 passed**.
+- Web TypeScript and repository lint: passed. Target Biome (four new/rewritten core files) and
+  `git diff --check`: passed.
+- Acceptance-flag production Web build: passed.
+- Full Web Vitest has one unrelated baseline failure: `MobileStatusSheet.tsx` lacks the F190 modal
+  scrim pattern; that file is unchanged by F010. The package test wrapper also cannot spawn `pnpm`
+  on this Windows host (`spawn pnpm ENOENT`).
+- Repository `pnpm test` is blocked before API assertions by POSIX inline-env syntax on Windows;
+  repository `pnpm check` is blocked by three pre-existing formatting errors
+  (`SocketManager.ts`, `mobile-shell.css`, and historical CRLF in `ChatContainer.tsx`). The bounded
+  changed-file gates above are green and no unrelated baseline file is reformatted in this fix.
+
+The remaining release gates are an exact-commit acceptance build, independent cross-cat review, and
+one reporting-iPhone standalone replay whose HUD/trace and frame report prove both shell and composer
+behavior. This section does not claim device acceptance before those artifacts exist.

@@ -45,6 +45,7 @@ import { ChatInput } from './ChatInput';
 import { ChatMessage } from './ChatMessage';
 import { ConnectionStatusBar } from './ConnectionStatusBar';
 import { getStreamingTipContexts, isStreamingTipSuppressedByStatus } from './capability-tip-placement';
+import { resolveCatCatalogPresentation } from './cat-catalog-presentation';
 import { FirstRunQuestWizard } from './FirstRunQuestWizard';
 import { BootcampGuideOverlay } from './first-run-quest/BootcampGuideOverlay';
 import { QuestBanner } from './first-run-quest/QuestBanner';
@@ -165,6 +166,11 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
   const isResearchMode = searchParams?.get('research') === 'multi';
   const { clearTasks } = useTaskStore();
   const { cats, getCatById, refresh: refreshCats, isLoading, hasFetched } = useCatData();
+  const catCatalogPresentation = resolveCatCatalogPresentation({
+    catCount: cats.length,
+    hasFetched,
+    isLoading,
+  });
   const workspaceWorktreeId = useChatStore((s) => s.workspaceWorktreeId);
   usePreviewAutoOpen(workspaceWorktreeId, threadId);
   useWorkspaceNavigate(workspaceWorktreeId, threadId);
@@ -999,8 +1005,17 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
                 <PawIcon className="w-12 h-12 text-cafe-muted mx-auto mb-4" />
                 <p className="text-lg text-cafe-secondary mb-1">欢迎来到 Clowder AI!</p>
                 <p className="text-sm text-cafe-muted" suppressHydrationWarning>
-                  {cats.length > 0 ? '输入 @布偶 召唤布偶猫开始聊天' : '还没有可用成员，先开始新手教程创建第一只猫猫'}
+                  {catCatalogPresentation.message}
                 </p>
+                {catCatalogPresentation.retryable && (
+                  <button
+                    type="button"
+                    className="mt-3 rounded-lg border border-[var(--console-border-soft)] px-3 py-2 text-sm text-cafe-secondary hover:bg-[var(--console-hover-bg)]"
+                    onClick={() => void refreshCats()}
+                  >
+                    重试成员名单
+                  </button>
+                )}
                 {showSetupCard && govStatus && (
                   <div className="mt-6 text-left">
                     <ProjectSetupCard

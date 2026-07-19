@@ -451,35 +451,47 @@ function resolveViewportBaseline(
   pendingWidthBaseline: ViewportBaseline | null,
 ): { baseline: ViewportBaseline; pendingWidthBaseline: ViewportBaseline | null } {
   const widthChanged = Math.abs(frame.width - baseline.width) >= VIEWPORT_WIDTH_RESET_THRESHOLD_PX;
-  if (widthChanged) {
-    if (keyboardOpen) {
-      return {
-        baseline: { ...baseline, width: frame.width },
-        pendingWidthBaseline: frame,
-      };
-    }
-    return { baseline: frame, pendingWidthBaseline: null };
-  }
-
-  if (pendingWidthBaseline?.width === frame.width) {
-    if (composerFocused) {
+  if (composerFocused || keyboardOpen) {
+    if (composerFocused && widthChanged) {
+      const pendingHeight =
+        pendingWidthBaseline?.width === frame.width
+          ? Math.max(pendingWidthBaseline.height, frame.height)
+          : frame.height;
       return {
         baseline,
-        pendingWidthBaseline: {
-          ...pendingWidthBaseline,
-          height: Math.min(pendingWidthBaseline.height, frame.height),
-        },
+        pendingWidthBaseline: { width: frame.width, height: pendingHeight },
       };
     }
-    if (frame.height > pendingWidthBaseline.height) {
-      return { baseline: frame, pendingWidthBaseline: null };
-    }
+    return { baseline, pendingWidthBaseline };
   }
+  return { baseline: frame, pendingWidthBaseline: null };
+}
 
-  if (!composerFocused && frame.height > baseline.height) {
-    return { baseline: { ...baseline, height: frame.height }, pendingWidthBaseline };
-  }
-  return { baseline, pendingWidthBaseline };
+function framesMatch(left: ViewportFrame, right: ViewportFrame): boolean {
+  return left.width === right.width && left.height === right.height && left.top === right.top;
+}
+
+interface KeyboardCloseCandidate {
+  frame: ViewportFrame;
+  reads: number;
+}
+
+function advanceCloseCandidate(candidate: KeyboardCloseCandidate | null, frame: ViewportFrame): KeyboardCloseCandidate {
+  return candidate && framesMatch(candidate.frame, frame) ? { frame, reads: candidate.reads + 1 } : { frame, reads: 1 };
+}
+
+function frameRestoresFocusedOrientation(
+  pendingWidthBaseline: ViewportBaseline | null,
+  frame: ViewportFrame,
+  composerFocused: boolean,
+): boolean {
+  return Boolean(
+    !composerFocused &&
+      pendingWidthBaseline?.width === frame.width &&
+      frame.height > pendingWidthBaseline.height &&
+      frame.top === 0 &&
+      Math.round(window.innerHeight) === frame.height,
+  );
 }
 
 function readViewportFrame(viewport: VisualViewport | null): ViewportFrame {
@@ -506,6 +518,46 @@ function frameIndicatesKeyboard(
   );
 }
 
+interface KeyboardTransition {
+  keyboardOpen: boolean;
+  closeCandidate: KeyboardCloseCandidate | null;
+  confirmedBaseline: ViewportBaseline | null;
+}
+
+function resolveKeyboardTransition({
+  allowClose,
+  baseline,
+  closeCandidate,
+  composerFocused,
+  frame,
+  keyboardOpen,
+  pendingWidthBaseline,
+}: {
+  allowClose: boolean;
+  baseline: ViewportBaseline;
+  closeCandidate: KeyboardCloseCandidate | null;
+  composerFocused: boolean;
+  frame: ViewportFrame;
+  keyboardOpen: boolean;
+  pendingWidthBaseline: ViewportBaseline | null;
+}): KeyboardTransition {
+  const restoredAfterFocusedOrientation = frameRestoresFocusedOrientation(pendingWidthBaseline, frame, composerFocused);
+  const indicated =
+    !restoredAfterFocusedOrientation && frameIndicatesKeyboard(baseline, frame, composerFocused, keyboardOpen);
+  if (indicated) return { keyboardOpen: true, closeCandidate: null, confirmedBaseline: null };
+  if (!keyboardOpen) return { keyboardOpen: false, closeCandidate: null, confirmedBaseline: null };
+
+  const nextCloseCandidate = advanceCloseCandidate(closeCandidate, frame);
+  if (allowClose && nextCloseCandidate.reads >= 2) {
+    return {
+      keyboardOpen: false,
+      closeCandidate: null,
+      confirmedBaseline: { width: frame.width, height: frame.height },
+    };
+  }
+  return { keyboardOpen: true, closeCandidate: nextCloseCandidate, confirmedBaseline: null };
+}
+
 function projectKeyboardState(root: HTMLElement, keyboardOpen: boolean): void {
   if (keyboardOpen) root.dataset.mobileKeyboardOpen = 'true';
   else delete root.dataset.mobileKeyboardOpen;
@@ -525,19 +577,25 @@ function restoreViewportProjection(
   else delete root.dataset.mobileKeyboardOpen;
 }
 
+function isViewportTraceEnabled(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_VIEWPORT_TRACE === '1' || new URLSearchParams(window.location.search).get('vvdebug') === '1'
+  );
+}
+
 export function useVisualViewportCssVars(): void {
   useEffect(() => {
     const root = document.documentElement;
     const previousValues = new Map(CSS_PROPERTIES.map((property) => [property, root.style.getPropertyValue(property)]));
     const previousKeyboardOpen = root.dataset.mobileKeyboardOpen;
     const viewport = window.visualViewport;
-    const trace =
-      new URLSearchParams(window.location.search).get('vvdebug') === '1' ? createViewportTrace(root, viewport) : null;
+    const trace = isViewportTraceEnabled() ? createViewportTrace(root, viewport) : null;
     let animationFrame = 0;
     let settlingTimer = 0;
     let projectionId = 0;
     let keyboardOpen = previousKeyboardOpen === 'true';
     let pendingWidthBaseline: ViewportBaseline | null = null;
+    let closeCandidate: KeyboardCloseCandidate | null = null;
     let baseline = {
       height: Math.round(viewport?.height ?? window.innerHeight),
       width: Math.round(viewport?.width ?? window.innerWidth),
@@ -581,9 +639,21 @@ export function useVisualViewportCssVars(): void {
         baseline = baselineResolution.baseline;
         pendingWidthBaseline = baselineResolution.pendingWidthBaseline;
       }
-      const indicated = frameIndicatesKeyboard(baseline, frame, composerFocused, keyboardOpen);
-      if (indicated) keyboardOpen = true;
-      else if (allowClose) keyboardOpen = false;
+      const transition = resolveKeyboardTransition({
+        allowClose,
+        baseline,
+        closeCandidate,
+        composerFocused,
+        frame,
+        keyboardOpen,
+        pendingWidthBaseline,
+      });
+      keyboardOpen = transition.keyboardOpen;
+      closeCandidate = transition.closeCandidate;
+      if (transition.confirmedBaseline) {
+        baseline = transition.confirmedBaseline;
+        pendingWidthBaseline = null;
+      }
       projectKeyboardState(root, keyboardOpen);
     };
 
@@ -593,15 +663,12 @@ export function useVisualViewportCssVars(): void {
       // the fixed root double-translates installed iOS PWAs during focus.
       root.style.setProperty('--app-viewport-top', '0px');
       root.style.setProperty('--app-viewport-left', '0px');
-      root.style.setProperty('--app-viewport-width', `${frame.width}px`);
-      // Stable-shell contract: the shell height never consumes VisualViewport
-      // keyboard frames at all. window.innerHeight is the real layout height
-      // (on installed iOS PWAs and Android resizes-content it already excludes
-      // the keyboard); the guarded baseline only bounds it from above for
-      // classic no-shrink geometry. Dirty animation pulses therefore cannot
-      // collapse or move the shell or transcript — they can at worst nudge
-      // the composer inset for one settle window.
-      const shellHeight = Math.min(baseline.height, Math.max(0, Math.round(window.innerHeight)));
+      root.style.setProperty('--app-viewport-width', `${baseline.width}px`);
+      // The shell is projected exclusively from the last confirmed
+      // unobscured baseline. Focus, keyboard animation, native pan and the
+      // blur-to-close transition may classify or move the composer, but none
+      // of their runtime geometry is allowed to resize the AppShell.
+      const shellHeight = baseline.height;
       root.style.setProperty('--app-viewport-height', `${shellHeight}px`);
       const rawInset = keyboardOpen ? shellHeight - frame.height - frame.top : 0;
       const inset = Math.min(Math.max(0, rawInset), Math.round(shellHeight * KEYBOARD_INSET_MAX_RATIO));

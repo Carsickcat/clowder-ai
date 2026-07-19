@@ -130,6 +130,22 @@ async function waitForViewportSettle(): Promise<void> {
   await waitForAnimationFrames();
 }
 
+function installMutableViewport(height = 844, width = 390) {
+  const viewport = new EventTarget() as EventTarget & {
+    height: number;
+    width: number;
+    offsetTop: number;
+    offsetLeft: number;
+  };
+  viewport.height = height;
+  viewport.width = width;
+  viewport.offsetTop = 0;
+  viewport.offsetLeft = 0;
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
+  Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+  return viewport;
+}
+
 describe('useVisualViewportCssVars', () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -140,6 +156,7 @@ describe('useVisualViewportCssVars', () => {
   let originalClipboardDescriptor: PropertyDescriptor | undefined;
   let originalServiceWorkerDescriptor: PropertyDescriptor | undefined;
   let originalCachesDescriptor: PropertyDescriptor | undefined;
+  let originalAcceptanceTraceFlag: string | undefined;
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -150,6 +167,8 @@ describe('useVisualViewportCssVars', () => {
     originalClipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     originalServiceWorkerDescriptor = Object.getOwnPropertyDescriptor(navigator, 'serviceWorker');
     originalCachesDescriptor = Object.getOwnPropertyDescriptor(window, 'caches');
+    originalAcceptanceTraceFlag = process.env.NEXT_PUBLIC_VIEWPORT_TRACE;
+    delete process.env.NEXT_PUBLIC_VIEWPORT_TRACE;
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -170,6 +189,8 @@ describe('useVisualViewportCssVars', () => {
     else Reflect.deleteProperty(navigator, 'serviceWorker');
     if (originalCachesDescriptor) Object.defineProperty(window, 'caches', originalCachesDescriptor);
     else Reflect.deleteProperty(window, 'caches');
+    if (originalAcceptanceTraceFlag === undefined) delete process.env.NEXT_PUBLIC_VIEWPORT_TRACE;
+    else process.env.NEXT_PUBLIC_VIEWPORT_TRACE = originalAcceptanceTraceFlag;
     document.querySelectorAll('[data-viewport-geometry-debug]').forEach((node) => {
       node.remove();
     });
@@ -192,6 +213,15 @@ describe('useVisualViewportCssVars', () => {
 
     expect(document.querySelector('[data-viewport-geometry-debug]')).toBeNull();
     expect(document.querySelector('[data-viewport-geometry-debug-payload]')).toBeNull();
+  });
+
+  it('enables diagnostics at the standalone start URL only for an acceptance build', () => {
+    process.env.NEXT_PUBLIC_VIEWPORT_TRACE = '1';
+    window.history.replaceState(null, '', '/');
+
+    act(() => root.render(<Harness />));
+
+    expect(document.querySelector('[data-viewport-geometry-debug]')).not.toBeNull();
   });
 
   it('constrains the debug surface to the app viewport clipping layer', () => {
@@ -498,6 +528,76 @@ describe('useVisualViewportCssVars', () => {
     probeContainer.remove();
   });
 
+  it('freezes the root shell through a settled 112px keyboard-opening pulse', async () => {
+    const viewport = installMutableViewport();
+
+    act(() => root.render(<Harness />));
+    (container.querySelector('textarea') as HTMLTextAreaElement).focus();
+    await act(async () => waitForAnimationFrames());
+
+    viewport.height = 112;
+    viewport.offsetTop = 360;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 112 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+  });
+
+  it('freezes the root shell through a non-zero intermediate keyboard frame', async () => {
+    const viewport = installMutableViewport();
+
+    act(() => root.render(<Harness />));
+    (container.querySelector('textarea') as HTMLTextAreaElement).focus();
+    await act(async () => waitForAnimationFrames());
+
+    viewport.height = 420;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 420 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+  });
+
+  it('keeps the root frozen until two matching unobscured reads confirm keyboard close', async () => {
+    const viewport = installMutableViewport();
+
+    act(() => root.render(<Harness />));
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.focus();
+    viewport.height = 500;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    textarea.blur();
+    viewport.height = 844;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForAnimationFrames(1);
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    await act(async () => waitForViewportSettle());
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+  });
+
   it('projects visual viewport dimensions without translating the fixed app shell', async () => {
     const viewport = new EventTarget() as EventTarget & {
       height: number;
@@ -635,7 +735,7 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
   });
 
   it('lifts only the composer by the keyboard inset in classic no-shrink geometry', async () => {
@@ -716,7 +816,7 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
   });
 
@@ -758,7 +858,7 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
 
     textarea.blur();
@@ -773,8 +873,8 @@ describe('useVisualViewportCssVars', () => {
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
     // Only one animation frame has passed: geometry stays at the previous
     // settled commit until the quiet window fires.
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
-    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('0px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('248px');
 
     viewport.height = 844;
     viewport.offsetTop = 0;
@@ -816,12 +916,11 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    // The dirty 112px VisualViewport pulse cannot move the shell: the root
-    // follows the real layout height (innerHeight=500). The composer inset
-    // is bounded to a 28px transient nudge (500-112-360) that self-heals on
-    // the next settled frame — no blank, no shell collapse.
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
-    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('28px');
+    // The dirty 112px VisualViewport pulse cannot move the shell: neither
+    // innerHeight nor VV geometry is allowed to replace the confirmed 844px
+    // baseline. Only the composer follows the provisional visible bottom.
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('372px');
 
     viewport.height = 500;
     viewport.offsetTop = 96;
@@ -830,8 +929,8 @@ describe('useVisualViewportCssVars', () => {
       await waitForViewportSettle();
     });
 
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
-    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('0px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('248px');
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
   });
 
@@ -861,7 +960,7 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('160px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('390px');
   });
 
   it('does not let a width-changing opening pulse poison the stable height baseline', async () => {
@@ -892,10 +991,10 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    // Width commits from the settled frame; height follows the real layout
-    // height (innerHeight=300), so the dirty 112px vv pulse moves nothing.
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('300px');
+    // Both root dimensions remain at the last unobscured portrait baseline.
+    // The width-changing frame is only an orientation candidate until close.
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
 
     viewport.height = 300;
     viewport.offsetTop = 80;
@@ -904,9 +1003,9 @@ describe('useVisualViewportCssVars', () => {
       await waitForViewportSettle();
     });
 
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('300px');
-    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('0px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('464px');
   });
 
   it('keeps the keyboard latched while an open-keyboard orientation baseline settles', async () => {
@@ -945,8 +1044,8 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('300px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
 
     textarea.blur();
     viewport.height = 390;
