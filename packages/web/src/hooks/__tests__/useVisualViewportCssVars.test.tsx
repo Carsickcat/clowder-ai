@@ -59,12 +59,48 @@ interface DOMRectSnapshot {
 }
 
 interface ViewportTracePayload {
-  schemaVersion: 1;
+  schemaVersion: 2;
   buildId: string;
   apiOrigin: string;
   pageUrl: string;
+  pwaProvenance: {
+    serviceWorker: {
+      status: 'pending' | 'success' | 'unsupported' | 'error';
+      controller: WorkerSnapshot | null;
+      registration: {
+        active: WorkerSnapshot | null;
+        waiting: WorkerSnapshot | null;
+        installing: WorkerSnapshot | null;
+      } | null;
+      error: { code: string; message: string } | null;
+    };
+    cacheStorage: {
+      status: 'pending' | 'success' | 'unsupported' | 'error';
+      names: string[] | null;
+      error: { code: string; message: string } | null;
+    };
+  };
   capacity: number;
   records: ViewportTraceRecord[];
+}
+
+interface WorkerSnapshot {
+  scriptURL: string;
+  state: string;
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function fakeWorker(scriptURL: string, state: ServiceWorkerState): ServiceWorker {
+  return { scriptURL, state } as ServiceWorker;
 }
 
 function readTracePayload(): ViewportTracePayload {
@@ -102,6 +138,8 @@ describe('useVisualViewportCssVars', () => {
   let originalUrl: string;
   let originalNextData: unknown;
   let originalClipboardDescriptor: PropertyDescriptor | undefined;
+  let originalServiceWorkerDescriptor: PropertyDescriptor | undefined;
+  let originalCachesDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -110,6 +148,8 @@ describe('useVisualViewportCssVars', () => {
     originalUrl = window.location.href;
     originalNextData = (window as unknown as Record<string, unknown>).__NEXT_DATA__;
     originalClipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    originalServiceWorkerDescriptor = Object.getOwnPropertyDescriptor(navigator, 'serviceWorker');
+    originalCachesDescriptor = Object.getOwnPropertyDescriptor(window, 'caches');
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -125,6 +165,11 @@ describe('useVisualViewportCssVars', () => {
     else Reflect.set(window, '__NEXT_DATA__', originalNextData);
     if (originalClipboardDescriptor) Object.defineProperty(navigator, 'clipboard', originalClipboardDescriptor);
     else Reflect.deleteProperty(navigator, 'clipboard');
+    if (originalServiceWorkerDescriptor)
+      Object.defineProperty(navigator, 'serviceWorker', originalServiceWorkerDescriptor);
+    else Reflect.deleteProperty(navigator, 'serviceWorker');
+    if (originalCachesDescriptor) Object.defineProperty(window, 'caches', originalCachesDescriptor);
+    else Reflect.deleteProperty(window, 'caches');
     document.querySelectorAll('[data-viewport-geometry-debug]').forEach((node) => {
       node.remove();
     });
@@ -179,7 +224,7 @@ describe('useVisualViewportCssVars', () => {
     expect(document.querySelector('[data-viewport-geometry-debug]')).not.toBeNull();
     let payload = readTracePayload();
     expect(payload).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       buildId: 'test-build-id',
       pageUrl: expect.stringContaining('vvdebug=1'),
     });
@@ -235,6 +280,149 @@ describe('useVisualViewportCssVars', () => {
     copyButton?.click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalledOnce());
     expect(JSON.parse(writeText.mock.calls[0][0] as string)).toEqual(readTracePayload());
+  });
+
+  it('records the controlling worker, registration lifecycle, and cache names after a pending probe', async () => {
+    window.history.replaceState(null, '', '/thread/default?vvdebug=1');
+    const registrationDeferred = createDeferred<ServiceWorkerRegistration | undefined>();
+    const cachesDeferred = createDeferred<string[]>();
+    const getRegistration = vi.fn(() => registrationDeferred.promise);
+    const cacheKeys = vi.fn(() => cachesDeferred.promise);
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        controller: fakeWorker('https://phone.example/sw-controller.js', 'activated'),
+        getRegistration,
+      } as unknown as ServiceWorkerContainer,
+    });
+    Object.defineProperty(window, 'caches', {
+      configurable: true,
+      value: { keys: cacheKeys } as Pick<CacheStorage, 'keys'>,
+    });
+
+    act(() => root.render(<Harness />));
+
+    expect(readTracePayload().pwaProvenance).toEqual({
+      serviceWorker: {
+        status: 'pending',
+        controller: { scriptURL: 'https://phone.example/sw-controller.js', state: 'activated' },
+        registration: null,
+        error: null,
+      },
+      cacheStorage: { status: 'pending', names: null, error: null },
+    });
+
+    registrationDeferred.resolve({
+      active: fakeWorker('https://phone.example/sw-active.js', 'activated'),
+      waiting: fakeWorker('https://phone.example/sw-waiting.js', 'installed'),
+      installing: fakeWorker('https://phone.example/sw-installing.js', 'installing'),
+    } as ServiceWorkerRegistration);
+    cachesDeferred.resolve(['next-cache-z', 'next-cache-a']);
+
+    await vi.waitFor(() => {
+      expect(readTracePayload().pwaProvenance).toEqual({
+        serviceWorker: {
+          status: 'success',
+          controller: { scriptURL: 'https://phone.example/sw-controller.js', state: 'activated' },
+          registration: {
+            active: { scriptURL: 'https://phone.example/sw-active.js', state: 'activated' },
+            waiting: { scriptURL: 'https://phone.example/sw-waiting.js', state: 'installed' },
+            installing: { scriptURL: 'https://phone.example/sw-installing.js', state: 'installing' },
+          },
+          error: null,
+        },
+        cacheStorage: { status: 'success', names: ['next-cache-a', 'next-cache-z'], error: null },
+      });
+    });
+    expect(getRegistration).toHaveBeenCalledOnce();
+    expect(cacheKeys).toHaveBeenCalledOnce();
+    expect(document.querySelector('[data-viewport-geometry-debug]')?.textContent).toContain('SW success');
+    expect(document.querySelector('[data-viewport-geometry-debug]')?.textContent).toContain('cache 2');
+  });
+
+  it('reports unsupported provenance sources explicitly', () => {
+    window.history.replaceState(null, '', '/thread/default?vvdebug=1');
+    Reflect.deleteProperty(navigator, 'serviceWorker');
+    Reflect.deleteProperty(window, 'caches');
+
+    act(() => root.render(<Harness />));
+
+    expect(readTracePayload().pwaProvenance).toEqual({
+      serviceWorker: { status: 'unsupported', controller: null, registration: null, error: null },
+      cacheStorage: { status: 'unsupported', names: null, error: null },
+    });
+  });
+
+  it('serializes service worker and cache probe rejections without dropping their fields', async () => {
+    window.history.replaceState(null, '', '/thread/default?vvdebug=1');
+    const getRegistration = vi.fn().mockRejectedValue(new Error('registration denied'));
+    const cacheKeys = vi.fn().mockRejectedValue(new DOMException('cache denied', 'SecurityError'));
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: { controller: null, getRegistration } as unknown as ServiceWorkerContainer,
+    });
+    Object.defineProperty(window, 'caches', {
+      configurable: true,
+      value: { keys: cacheKeys } as Pick<CacheStorage, 'keys'>,
+    });
+
+    act(() => root.render(<Harness />));
+
+    await vi.waitFor(() => {
+      expect(readTracePayload().pwaProvenance).toEqual({
+        serviceWorker: {
+          status: 'error',
+          controller: null,
+          registration: null,
+          error: { code: 'Error', message: 'registration denied' },
+        },
+        cacheStorage: {
+          status: 'error',
+          names: null,
+          error: { code: 'SecurityError', message: 'cache denied' },
+        },
+      });
+    });
+  });
+
+  it('does not write provenance results after the trace is unmounted', async () => {
+    window.history.replaceState(null, '', '/thread/default?vvdebug=1');
+    const registrationDeferred = createDeferred<ServiceWorkerRegistration | undefined>();
+    const cachesDeferred = createDeferred<string[]>();
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        controller: null,
+        getRegistration: vi.fn(() => registrationDeferred.promise),
+      } as unknown as ServiceWorkerContainer,
+    });
+    Object.defineProperty(window, 'caches', {
+      configurable: true,
+      value: { keys: vi.fn(() => cachesDeferred.promise) } as Pick<CacheStorage, 'keys'>,
+    });
+    const probeContainer = document.createElement('div');
+    document.body.appendChild(probeContainer);
+    const probeRoot = createRoot(probeContainer);
+
+    act(() => probeRoot.render(<Harness />));
+    const payloadNode = document.querySelector<HTMLElement>('[data-viewport-geometry-debug-payload]');
+    expect(readTracePayload().pwaProvenance.serviceWorker.status).toBe('pending');
+    const details = payloadNode?.closest('details');
+    if (details) {
+      details.open = true;
+      details.dispatchEvent(new Event('toggle'));
+    }
+    const payloadBeforeUnmount = payloadNode?.textContent;
+
+    act(() => probeRoot.unmount());
+    registrationDeferred.resolve(undefined);
+    cachesDeferred.resolve(['late-cache']);
+    await Promise.all([registrationDeferred.promise, cachesDeferred.promise]);
+    await Promise.resolve();
+
+    expect(document.querySelector('[data-viewport-geometry-debug]')).toBeNull();
+    expect(payloadNode?.textContent).toBe(payloadBeforeUnmount);
+    probeContainer.remove();
   });
 
   it('caps the trace ring and removes pending delivery plus debug DOM on unmount', async () => {

@@ -73,6 +73,40 @@ interface ViewportTraceRecord extends ViewportTraceContext {
   css: Record<string, string | null> & { mobileKeyboardOpen: string | null };
 }
 
+type ProvenanceStatus = 'pending' | 'success' | 'unsupported' | 'error';
+
+interface WorkerSnapshot {
+  scriptURL: string;
+  state: string;
+}
+
+interface ProvenanceError {
+  code: string;
+  message: string;
+}
+
+interface ServiceWorkerProvenance {
+  status: ProvenanceStatus;
+  controller: WorkerSnapshot | null;
+  registration: {
+    active: WorkerSnapshot | null;
+    waiting: WorkerSnapshot | null;
+    installing: WorkerSnapshot | null;
+  } | null;
+  error: ProvenanceError | null;
+}
+
+interface CacheStorageProvenance {
+  status: ProvenanceStatus;
+  names: string[] | null;
+  error: ProvenanceError | null;
+}
+
+interface PwaProvenance {
+  serviceWorker: ServiceWorkerProvenance;
+  cacheStorage: CacheStorageProvenance;
+}
+
 interface ViewportTraceController {
   capture(context: ViewportTraceContext): void;
   dispose(): void;
@@ -129,6 +163,75 @@ function resolveApiOrigin(): string {
     return new URL(API_URL || window.location.origin, window.location.origin).origin;
   } catch {
     return API_URL || window.location.origin;
+  }
+}
+
+function readWorkerSnapshot(worker: ServiceWorker | null | undefined): WorkerSnapshot | null {
+  if (!worker) return null;
+  return { scriptURL: worker.scriptURL, state: worker.state };
+}
+
+function readProvenanceError(error: unknown): ProvenanceError {
+  if (error instanceof Error || error instanceof DOMException) {
+    return { code: error.name || 'Error', message: error.message };
+  }
+  return { code: 'UnknownError', message: String(error) };
+}
+
+function createInitialPwaProvenance(
+  serviceWorker: ServiceWorkerContainer | undefined,
+  cacheStorage: CacheStorage | undefined,
+): PwaProvenance {
+  return {
+    serviceWorker: {
+      status: serviceWorker && typeof serviceWorker.getRegistration === 'function' ? 'pending' : 'unsupported',
+      controller: readWorkerSnapshot(serviceWorker?.controller),
+      registration: null,
+      error: null,
+    },
+    cacheStorage: {
+      status: cacheStorage && typeof cacheStorage.keys === 'function' ? 'pending' : 'unsupported',
+      names: null,
+      error: null,
+    },
+  };
+}
+
+async function resolveServiceWorkerProvenance(
+  serviceWorker: ServiceWorkerContainer | undefined,
+  controller: WorkerSnapshot | null,
+): Promise<ServiceWorkerProvenance> {
+  if (!serviceWorker || typeof serviceWorker.getRegistration !== 'function') {
+    return { status: 'unsupported', controller, registration: null, error: null };
+  }
+  try {
+    const registration = await serviceWorker.getRegistration();
+    return {
+      status: 'success',
+      controller,
+      registration: registration
+        ? {
+            active: readWorkerSnapshot(registration.active),
+            waiting: readWorkerSnapshot(registration.waiting),
+            installing: readWorkerSnapshot(registration.installing),
+          }
+        : null,
+      error: null,
+    };
+  } catch (error) {
+    return { status: 'error', controller, registration: null, error: readProvenanceError(error) };
+  }
+}
+
+async function resolveCacheStorageProvenance(cacheStorage: CacheStorage | undefined): Promise<CacheStorageProvenance> {
+  if (!cacheStorage || typeof cacheStorage.keys !== 'function') {
+    return { status: 'unsupported', names: null, error: null };
+  }
+  try {
+    const names = await cacheStorage.keys();
+    return { status: 'success', names: [...names].sort(), error: null };
+  } catch (error) {
+    return { status: 'error', names: null, error: readProvenanceError(error) };
   }
 }
 
@@ -236,6 +339,9 @@ function createViewportTrace(root: HTMLElement, viewport: VisualViewport | null)
   const buildId = resolveBuildId();
   const apiOrigin = resolveApiOrigin();
   const pageUrl = window.location.href;
+  const serviceWorker = 'serviceWorker' in navigator ? navigator.serviceWorker : undefined;
+  const cacheStorage = 'caches' in window ? window.caches : undefined;
+  let pwaProvenance = createInitialPwaProvenance(serviceWorker, cacheStorage);
   const records: ViewportTraceRecord[] = [];
   let active = true;
   let sequence = 0;
@@ -243,10 +349,11 @@ function createViewportTrace(root: HTMLElement, viewport: VisualViewport | null)
   const serialize = () =>
     JSON.stringify(
       {
-        schemaVersion: 1,
+        schemaVersion: 2,
         buildId,
         apiOrigin,
         pageUrl,
+        pwaProvenance,
         capacity: VIEWPORT_TRACE_CAPACITY,
         records,
       },
@@ -263,7 +370,11 @@ function createViewportTrace(root: HTMLElement, viewport: VisualViewport | null)
     if (!active) return;
     const latest = records.at(-1);
     heading.textContent = `VV trace · ${buildId}`;
-    metadata.textContent = `API ${apiOrigin} · ${records.length}/${VIEWPORT_TRACE_CAPACITY}`;
+    const cacheSummary =
+      pwaProvenance.cacheStorage.status === 'success'
+        ? String(pwaProvenance.cacheStorage.names?.length ?? 0)
+        : pwaProvenance.cacheStorage.status;
+    metadata.textContent = `API ${apiOrigin} · SW ${pwaProvenance.serviceWorker.status} · cache ${cacheSummary} · ${records.length}/${VIEWPORT_TRACE_CAPACITY}`;
     summary.textContent = latest
       ? `#${latest.sequence} ${latest.source}/${latest.stage}/${latest.phase} · inner ${latest.innerHeight} · vv ${latest.visualViewport?.height ?? 'none'}@${latest.visualViewport?.top ?? 'none'} · shell ${latest.appShell?.height ?? 'none'}@${latest.appShell?.top ?? 'none'} · composer ${latest.composer?.bottom ?? 'none'}`
       : 'Waiting for viewport events';
@@ -282,6 +393,14 @@ function createViewportTrace(root: HTMLElement, viewport: VisualViewport | null)
   copyButton.addEventListener('click', copyTrace);
   details.addEventListener('toggle', renderPayload);
   render();
+  void Promise.all([
+    resolveServiceWorkerProvenance(serviceWorker, pwaProvenance.serviceWorker.controller),
+    resolveCacheStorageProvenance(cacheStorage),
+  ]).then(([resolvedServiceWorker, resolvedCacheStorage]) => {
+    if (!active) return;
+    pwaProvenance = { serviceWorker: resolvedServiceWorker, cacheStorage: resolvedCacheStorage };
+    render();
+  });
 
   return {
     capture(context) {
