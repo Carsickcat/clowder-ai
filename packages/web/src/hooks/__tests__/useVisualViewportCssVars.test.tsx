@@ -1,15 +1,86 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useVisualViewportCssVars } from '../useVisualViewportCssVars';
 
 function Harness() {
   useVisualViewportCssVars();
   return (
-    <div data-chat-input-composer>
-      <textarea aria-label="composer" />
+    <div className="app-viewport">
+      <header>Trace header</header>
+      <div className="mobile-transcript-scroller">
+        <div data-chat-input-composer>
+          <textarea aria-label="composer" />
+        </div>
+      </div>
     </div>
   );
+}
+
+interface ViewportTraceRecord {
+  sequence: number;
+  projectionId: number;
+  source: string;
+  stage: 'event' | 'initial' | 'immediate' | 'settled';
+  phase: 'before' | 'after';
+  eventTime: number;
+  capturedAt: number;
+  innerHeight: number;
+  visualViewport: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+    scale: number;
+  } | null;
+  documentScroll: {
+    windowX: number;
+    windowY: number;
+    documentElementTop: number;
+    documentElementLeft: number;
+    bodyTop: number;
+    bodyLeft: number;
+  };
+  appShell: DOMRectSnapshot | null;
+  header: DOMRectSnapshot | null;
+  composer: DOMRectSnapshot | null;
+  transcript: (DOMRectSnapshot & { scrollTop: number; scrollHeight: number; clientHeight: number }) | null;
+  activeElement: string | null;
+  css: Record<string, string | null> & { mobileKeyboardOpen: string | null };
+}
+
+interface DOMRectSnapshot {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+interface ViewportTracePayload {
+  schemaVersion: 1;
+  buildId: string;
+  apiOrigin: string;
+  pageUrl: string;
+  capacity: number;
+  records: ViewportTraceRecord[];
+}
+
+function readTracePayload(): ViewportTracePayload {
+  const payloadNode = document.querySelector<HTMLElement>('[data-viewport-geometry-debug-payload]');
+  const details = payloadNode?.closest('details');
+  if (details) {
+    details.open = true;
+    details.dispatchEvent(new Event('toggle'));
+  }
+  if (!payloadNode?.textContent) throw new Error('Viewport trace payload is missing');
+  const payload = JSON.parse(payloadNode.textContent) as ViewportTracePayload;
+  if (details) {
+    details.open = false;
+    details.dispatchEvent(new Event('toggle'));
+  }
+  return payload;
 }
 
 async function waitForAnimationFrames(count = 2): Promise<void> {
@@ -28,11 +99,17 @@ describe('useVisualViewportCssVars', () => {
   let root: Root;
   let originalVisualViewport: VisualViewport | null;
   let originalInnerHeight: number;
+  let originalUrl: string;
+  let originalNextData: unknown;
+  let originalClipboardDescriptor: PropertyDescriptor | undefined;
 
   beforeEach(() => {
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
     originalVisualViewport = window.visualViewport;
     originalInnerHeight = window.innerHeight;
+    originalUrl = window.location.href;
+    originalNextData = (window as unknown as Record<string, unknown>).__NEXT_DATA__;
+    originalClipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -43,6 +120,17 @@ describe('useVisualViewportCssVars', () => {
     container.remove();
     Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalVisualViewport });
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight });
+    window.history.replaceState(null, '', originalUrl);
+    if (originalNextData === undefined) Reflect.deleteProperty(window, '__NEXT_DATA__');
+    else Reflect.set(window, '__NEXT_DATA__', originalNextData);
+    if (originalClipboardDescriptor) Object.defineProperty(navigator, 'clipboard', originalClipboardDescriptor);
+    else Reflect.deleteProperty(navigator, 'clipboard');
+    document.querySelectorAll('[data-viewport-geometry-debug]').forEach((node) => {
+      node.remove();
+    });
+    document.querySelectorAll('[data-viewport-trace-test-flight]').forEach((node) => {
+      node.remove();
+    });
     document.documentElement.style.removeProperty('--app-viewport-height');
     document.documentElement.style.removeProperty('--app-viewport-top');
     document.documentElement.style.removeProperty('--app-viewport-left');
@@ -50,6 +138,156 @@ describe('useVisualViewportCssVars', () => {
     document.documentElement.style.removeProperty('--app-keyboard-inset');
     delete document.documentElement.dataset.mobileKeyboardOpen;
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
+  });
+
+  it('keeps viewport diagnostics completely absent unless vvdebug=1', () => {
+    window.history.replaceState(null, '', '/thread/default');
+
+    act(() => root.render(<Harness />));
+
+    expect(document.querySelector('[data-viewport-geometry-debug]')).toBeNull();
+    expect(document.querySelector('[data-viewport-geometry-debug-payload]')).toBeNull();
+  });
+
+  it('records ordered before/after geometry projections and exposes a copyable payload', async () => {
+    window.history.replaceState(null, '', '/thread/default?vvdebug=1');
+    Reflect.deleteProperty(window, '__NEXT_DATA__');
+    const flightScript = document.createElement('script');
+    flightScript.type = 'application/json';
+    flightScript.dataset.viewportTraceTestFlight = 'true';
+    flightScript.textContent = 'self.__next_f.push([1,"0:[{\\"buildId\\":\\"test-build-id\\"}]"])';
+    document.head.appendChild(flightScript);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+      scale: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    viewport.scale = 1;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+
+    expect(document.querySelector('[data-viewport-geometry-debug]')).not.toBeNull();
+    let payload = readTracePayload();
+    expect(payload).toMatchObject({
+      schemaVersion: 1,
+      buildId: 'test-build-id',
+      pageUrl: expect.stringContaining('vvdebug=1'),
+    });
+    expect(payload.apiOrigin).toMatch(/^https?:\/\//);
+    expect(payload.records.slice(0, 2).map(({ source, stage, phase }) => ({ source, stage, phase }))).toEqual([
+      { source: 'mount', stage: 'initial', phase: 'before' },
+      { source: 'mount', stage: 'initial', phase: 'after' },
+    ]);
+
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.focus();
+    viewport.height = 500;
+    viewport.offsetTop = 96;
+    const resizeEvent = new Event('resize');
+    await act(async () => {
+      viewport.dispatchEvent(resizeEvent);
+      await waitForViewportSettle();
+    });
+
+    payload = readTracePayload();
+    const eventPair = payload.records.filter(
+      (record) => record.source === 'visualViewport.resize' && record.stage === 'event',
+    );
+    const immediatePair = payload.records.filter(
+      (record) => record.source === 'visualViewport.resize' && record.stage === 'immediate',
+    );
+    const settledPair = payload.records.filter(
+      (record) => record.source === 'visualViewport.resize' && record.stage === 'settled',
+    );
+    expect(eventPair.map((record) => record.phase)).toEqual(['before', 'after']);
+    expect(new Set(eventPair.map((record) => record.projectionId)).size).toBe(1);
+    expect(immediatePair.map((record) => record.phase)).toEqual(['before', 'after']);
+    expect(new Set(immediatePair.map((record) => record.projectionId)).size).toBe(1);
+    expect(new Set(immediatePair.map((record) => record.eventTime)).size).toBe(1);
+    expect(settledPair.map((record) => record.phase)).toEqual(['before', 'after']);
+    expect(settledPair[1]).toMatchObject({
+      innerHeight: 844,
+      visualViewport: { height: 500, top: 96, width: 390, scale: 1 },
+      activeElement: expect.stringContaining('textarea'),
+      appShell: expect.any(Object),
+      header: expect.any(Object),
+      composer: expect.any(Object),
+      transcript: expect.objectContaining({ scrollTop: 0 }),
+      css: expect.objectContaining({
+        '--app-viewport-height': expect.any(String),
+        '--app-keyboard-inset': expect.any(String),
+        mobileKeyboardOpen: 'true',
+      }),
+    });
+
+    const copyButton = document.querySelector<HTMLButtonElement>('[data-viewport-geometry-debug-copy]');
+    expect(copyButton).not.toBeNull();
+    copyButton?.click();
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(JSON.parse(writeText.mock.calls[0][0] as string)).toEqual(readTracePayload());
+  });
+
+  it('caps the trace ring and removes pending delivery plus debug DOM on unmount', async () => {
+    window.history.replaceState(null, '', '/thread/default?vvdebug=1');
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+    const probeContainer = document.createElement('div');
+    document.body.appendChild(probeContainer);
+    const probeRoot = createRoot(probeContainer);
+
+    act(() => probeRoot.render(<Harness />));
+    const capacity = readTracePayload().capacity;
+    expect(capacity).toBeGreaterThan(0);
+
+    await act(async () => {
+      for (let index = 0; index < Math.ceil(capacity / 2) + 4; index += 1) {
+        viewport.offsetTop = index;
+        viewport.dispatchEvent(new Event('scroll'));
+        await waitForAnimationFrames(1);
+      }
+    });
+
+    const boundedPayload = readTracePayload();
+    expect(boundedPayload.records).toHaveLength(capacity);
+    expect(boundedPayload.records[0].sequence).toBeGreaterThan(1);
+    const payloadNode = document.querySelector<HTMLElement>('[data-viewport-geometry-debug-payload]');
+    expect(payloadNode).not.toBeNull();
+    const details = payloadNode?.closest('details');
+    if (details) {
+      details.open = true;
+      details.dispatchEvent(new Event('toggle'));
+    }
+
+    viewport.dispatchEvent(new Event('resize'));
+    const payloadBeforeUnmount = payloadNode?.textContent;
+    act(() => probeRoot.unmount());
+    viewport.dispatchEvent(new Event('resize'));
+    viewport.dispatchEvent(new Event('scroll'));
+    await waitForViewportSettle();
+
+    expect(document.querySelector('[data-viewport-geometry-debug]')).toBeNull();
+    expect(payloadNode?.textContent).toBe(payloadBeforeUnmount);
+    probeContainer.remove();
   });
 
   it('projects visual viewport dimensions without translating the fixed app shell', async () => {
