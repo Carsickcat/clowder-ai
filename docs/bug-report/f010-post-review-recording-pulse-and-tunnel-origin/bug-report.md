@@ -148,3 +148,26 @@ orientation frame may replace the last confirmed unobscured shell width/height.
 The remaining release gates are an exact-commit acceptance build, independent cross-cat review, and
 one reporting-iPhone standalone replay whose HUD/trace and frame report prove both shell and composer
 behavior. This section does not claim device acceptance before those artifacts exist.
+
+### Exact acceptance artifact
+
+The reviewed implementation commit is `f3565b240fe203a4f04ea504061c5b9aef8c62a6`. A production
+acceptance build was created from that exact commit with the process-only
+`NEXT_PUBLIC_VIEWPORT_TRACE=1` flag and has BUILD_ID `ZoOUsD6wW6PKZzAKeGvZY`.
+
+```text
+PORT=4310
+PID=4456
+START_TIME=2026-07-19T15:20:02.0998763+08:00
+TARGET_COMMIT=f3565b240fe203a4f04ea504061c5b9aef8c62a6
+BUILD_ID=ZoOUsD6wW6PKZzAKeGvZY
+
+PORT=4311
+PID=7580 (unchanged)
+```
+
+Both `http://localhost:4310` and
+`https://desktop-9o1va3o.tail58c13e.ts.net:8443` returned HTTP 200 for the page, exact build
+manifest, and `/api/health`; `/api/cats` returned four cats through both origins. Hub Browser
+Preview opened the exact local root. The final reporting-iPhone replay must show the same BUILD_ID
+in its HUD before the keyboard journey begins; any other ID is not evidence about this candidate.
