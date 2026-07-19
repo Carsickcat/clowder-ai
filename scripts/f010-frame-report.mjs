@@ -12,12 +12,13 @@
  * Usage:
  *   node scripts/f010-frame-report.mjs <video.mp4> [--fps=4] [--out=report.json]
  *
- * ffmpeg resolution order: FFMPEG_BIN env → repo-local temp tools → PATH.
+ * ffmpeg resolution order: FFMPEG_BIN env → acceptance-box fallback path
+ * (this operator machine's temp tools install) → PATH.
  * Requires `sharp` (already a repo dependency, used via next/image).
  */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -61,7 +62,11 @@ async function analyzeFrame(file) {
     width: Math.round(meta.width * BAND.width),
     height: Math.round(meta.height * BAND.height),
   };
-  const { data, info } = await image.extract(region).resize(48, 96, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+  const { data, info } = await image
+    .extract(region)
+    .resize(48, 96, { fit: 'fill' })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
   // Mode color via 4-bit-per-channel quantization. A mean would sit between
   // beige background, white bubbles and dark keyboard and match nothing; the
   // mode separates "one region covers nearly everything" (blank) from
@@ -193,8 +198,19 @@ async function run(videoPath, fps, outPath) {
 
   const workDir = join(tmpdir(), `f010-frame-report-${Date.now()}`);
   mkdirSync(workDir, { recursive: true });
-  execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-i', resolve(videoPath), '-vf', `fps=${fps},scale=296:-2`, join(workDir, 'frame-%05d.png')]);
-  const files = readdirSync(workDir).filter((f) => f.endsWith('.png')).sort();
+  execFileSync(ffmpeg, [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-i',
+    resolve(videoPath),
+    '-vf',
+    `fps=${fps},scale=296:-2`,
+    join(workDir, 'frame-%05d.png'),
+  ]);
+  const files = readdirSync(workDir)
+    .filter((f) => f.endsWith('.png'))
+    .sort();
 
   const frames = [];
   for (const [index, file] of files.entries()) {
