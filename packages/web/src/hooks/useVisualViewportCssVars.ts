@@ -3,14 +3,16 @@ import { useEffect } from 'react';
 const KEYBOARD_INSET_THRESHOLD_PX = 80;
 const VIEWPORT_WIDTH_RESET_THRESHOLD_PX = 40;
 const VIEWPORT_SETTLE_DELAY_MS = 120;
-// Keep enough room for the 56px mobile header, 48px composer, and a minimal
-// transcript strip without rejecting legitimate compact landscape keyboards.
-const MIN_USABLE_COMPOSING_VIEWPORT_HEIGHT_PX = 144;
+// The composer inset is a transient transform, never shell geometry. Clamp it
+// to a plausible keyboard band so a stuck dirty frame can at worst misplace
+// the composer for one settle window; the next settled frame self-heals.
+const KEYBOARD_INSET_MAX_RATIO = 0.6;
 const CSS_PROPERTIES = [
   '--app-viewport-top',
   '--app-viewport-left',
   '--app-viewport-width',
   '--app-viewport-height',
+  '--app-keyboard-inset',
 ] as const;
 
 interface ViewportBaseline {
@@ -95,17 +97,6 @@ function projectKeyboardState(root: HTMLElement, keyboardOpen: boolean): void {
   else delete root.dataset.mobileKeyboardOpen;
 }
 
-function isUsableComposingFrame(
-  baseline: ViewportBaseline,
-  frame: ViewportFrame,
-  composerFocused: boolean,
-  keyboardOpen: boolean,
-): boolean {
-  if (!composerFocused && !keyboardOpen) return true;
-  const minimumHeight = Math.min(MIN_USABLE_COMPOSING_VIEWPORT_HEIGHT_PX, Math.round(baseline.height / 2));
-  return frame.height >= minimumHeight;
-}
-
 function restoreViewportProjection(
   root: HTMLElement,
   previousValues: ReadonlyMap<string, string>,
@@ -161,7 +152,18 @@ export function useVisualViewportCssVars(): void {
       root.style.setProperty('--app-viewport-top', '0px');
       root.style.setProperty('--app-viewport-left', '0px');
       root.style.setProperty('--app-viewport-width', `${frame.width}px`);
-      root.style.setProperty('--app-viewport-height', `${frame.height}px`);
+      // Stable-shell contract: the shell height never consumes VisualViewport
+      // keyboard frames at all. window.innerHeight is the real layout height
+      // (on installed iOS PWAs and Android resizes-content it already excludes
+      // the keyboard); the guarded baseline only bounds it from above for
+      // classic no-shrink geometry. Dirty animation pulses therefore cannot
+      // collapse or move the shell or transcript — they can at worst nudge
+      // the composer inset for one settle window.
+      const shellHeight = Math.min(baseline.height, Math.max(0, Math.round(window.innerHeight)));
+      root.style.setProperty('--app-viewport-height', `${shellHeight}px`);
+      const rawInset = keyboardOpen ? shellHeight - frame.height - frame.top : 0;
+      const inset = Math.min(Math.max(0, rawInset), Math.round(shellHeight * KEYBOARD_INSET_MAX_RATIO));
+      root.style.setProperty('--app-keyboard-inset', `${inset}px`);
     };
 
     const commitSettledFrame = () => {
@@ -169,22 +171,7 @@ export function useVisualViewportCssVars(): void {
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = 0;
         const frame = readViewportFrame(viewport);
-        const stableBaseline = baseline;
-        const stablePendingWidthBaseline = pendingWidthBaseline;
         updateKeyboardState(frame, true);
-        // Installed iOS PWAs can pause their keyboard-opening event stream on
-        // a near-zero intermediate VisualViewport height for longer than the
-        // quiet window. Publishing that pulse collapses the complete fixed
-        // AppShell. Keep the last usable shell geometry until a later
-        // resize/scroll event supplies a frame that can contain the composer.
-        if (!isUsableComposingFrame(stableBaseline, frame, hasFocusedComposer(), keyboardOpen)) {
-          // A rejected frame is not allowed to become the reference geometry
-          // for the next event. Keep the immediate keyboard latch, but roll
-          // back baseline staging until a usable terminal frame arrives.
-          baseline = stableBaseline;
-          pendingWidthBaseline = stablePendingWidthBaseline;
-          return;
-        }
         commitFrame(frame);
       });
     };
@@ -198,9 +185,9 @@ export function useVisualViewportCssVars(): void {
       animationFrame = window.requestAnimationFrame(() => {
         animationFrame = 0;
         // State may enter composing mode as soon as a focused shrink or pan
-        // appears, so Dock/secondary chrome leave immediately. Whole-shell
-        // dimensions remain at the last stable frame until resize/scroll has
-        // been quiet long enough to avoid publishing WebKit animation frames.
+        // appears, so Dock/secondary chrome leave immediately. Geometry and
+        // the composer inset remain at the last settled frame until
+        // resize/scroll has been quiet long enough to trust the values.
         // Animation-time frames may latch composing state, but only the
         // settled commit path may stage a new geometry baseline.
         updateKeyboardState(readViewportFrame(viewport), false, false);
@@ -221,8 +208,8 @@ export function useVisualViewportCssVars(): void {
     return () => {
       viewport?.removeEventListener('resize', scheduleFrame);
       viewport?.removeEventListener('scroll', scheduleFrame);
-      window.removeEventListener('resize', scheduleFrame);
       window.removeEventListener('orientationchange', scheduleFrame);
+      window.removeEventListener('resize', scheduleFrame);
       document.removeEventListener('focusin', scheduleFrame);
       document.removeEventListener('focusout', scheduleFrame);
       if (animationFrame) window.cancelAnimationFrame(animationFrame);

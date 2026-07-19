@@ -47,6 +47,7 @@ describe('useVisualViewportCssVars', () => {
     document.documentElement.style.removeProperty('--app-viewport-top');
     document.documentElement.style.removeProperty('--app-viewport-left');
     document.documentElement.style.removeProperty('--app-viewport-width');
+    document.documentElement.style.removeProperty('--app-keyboard-inset');
     delete document.documentElement.dataset.mobileKeyboardOpen;
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = false;
   });
@@ -191,6 +192,37 @@ describe('useVisualViewportCssVars', () => {
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
   });
 
+  it('lifts only the composer by the keyboard inset in classic no-shrink geometry', async () => {
+    const viewport = new EventTarget() as EventTarget & {
+      height: number;
+      width: number;
+      offsetTop: number;
+      offsetLeft: number;
+    };
+    viewport.height = 844;
+    viewport.width = 390;
+    viewport.offsetTop = 0;
+    viewport.offsetLeft = 0;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport });
+
+    act(() => root.render(<Harness />));
+    (container.querySelector('textarea') as HTMLTextAreaElement).focus();
+    await act(async () => waitForAnimationFrames());
+
+    // Classic iOS Safari: layout viewport does NOT shrink; only the visual
+    // viewport does. The shell must stay frozen while the composer rides.
+    viewport.height = 500;
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('344px');
+  });
+
   it('does not project a stale visual offset after the keyboard is closed', () => {
     const viewport = new EventTarget() as EventTarget & {
       height: number;
@@ -293,7 +325,10 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    // Only one animation frame has passed: geometry stays at the previous
+    // settled commit until the quiet window fires.
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('0px');
 
     viewport.height = 844;
     viewport.offsetTop = 0;
@@ -305,6 +340,7 @@ describe('useVisualViewportCssVars', () => {
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('0px');
   });
 
   it('rejects an unusable keyboard-opening pulse even when it outlives the settle timer', async () => {
@@ -334,7 +370,12 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    // The dirty 112px VisualViewport pulse cannot move the shell: the root
+    // follows the real layout height (innerHeight=500). The composer inset
+    // is bounded to a 28px transient nudge (500-112-360) that self-heals on
+    // the next settled frame — no blank, no shell collapse.
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('28px');
 
     viewport.height = 500;
     viewport.offsetTop = 96;
@@ -344,6 +385,7 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('500px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('0px');
     expect(document.documentElement.style.getPropertyValue('--app-viewport-top')).toBe('0px');
   });
 
@@ -404,8 +446,10 @@ describe('useVisualViewportCssVars', () => {
     });
 
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
-    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+    // Width commits from the settled frame; height follows the real layout
+    // height (innerHeight=300), so the dirty 112px vv pulse moves nothing.
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('300px');
 
     viewport.height = 300;
     viewport.offsetTop = 80;
@@ -416,6 +460,7 @@ describe('useVisualViewportCssVars', () => {
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('300px');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('0px');
   });
 
   it('keeps the keyboard latched while an open-keyboard orientation baseline settles', async () => {
@@ -500,6 +545,7 @@ describe('useVisualViewportCssVars', () => {
     await waitForViewportSettle();
 
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('');
+    expect(document.documentElement.style.getPropertyValue('--app-keyboard-inset')).toBe('');
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
     probeContainer.remove();
   });

@@ -24,4 +24,15 @@ html[data-mobile-keyboard-open="true"] .mobile-ops-nav {
   html[data-mobile-keyboard-open="true"] .mobile-keyboard-secondary-chrome {
     display: none;
   }
+
+  /* Stable-shell contract: the shell never resizes for the keyboard; only the
+     bottom chrome rides it via transform (no transcript relayout). */
+  html[data-mobile-keyboard-open="true"] .mobile-bottom-chrome {
+    transform: translateY(calc(-1 * var(--app-keyboard-inset, 0px)));
+  }
+
+  /* Keep the last message scrollable above the riding composer. */
+  html[data-mobile-keyboard-open="true"] .mobile-transcript-scroller {
+    padding-bottom: calc(1rem + var(--app-keyboard-inset, 0px));
+  }
 }

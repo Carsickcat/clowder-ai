@@ -947,7 +947,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           <main
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="h-full overflow-x-hidden overflow-y-auto overscroll-contain p-4"
+            className="mobile-transcript-scroller h-full overflow-x-hidden overflow-y-auto overscroll-contain p-4"
             data-guide-id="bootcamp.preview-result"
             data-bootcamp-host="chat-messages"
             data-chat-container
@@ -1100,7 +1100,7 @@ export function ChatContainer({ threadId }: ChatContainerProps) {
           {messages.length > 5 && <MessageNavigator messages={messages} scrollContainerRef={scrollContainerRef} />}
         </div>
 
-        <div ref={attachBottomChromeRef} className="pb-[var(--mobile-chat-bottom-reserve)] lg:pb-0">
+        <div ref={attachBottomChromeRef} className="mobile-bottom-chrome pb-[var(--mobile-chat-bottom-reserve)] lg:pb-0">
           {isDesktop && authPending.length > 0 && (
             <div className="border-t border-conn-amber-ring bg-conn-amber-bg/40 py-2">
               {authPending.map((req) => (
