@@ -520,3 +520,19 @@ The accepted build `n7WolIZtBPCkffGf2i6VS` was compiled with `NEXT_PUBLIC_VIEWPO
 - Operator note: the "Clowder Trace" home-screen icon launches with `?vvdebug=1` and will still show the HUD by design — it remains the diagnostic icon; the main icon is clean.
 
 [烁烁/kimi-k3🐾]
+
+## 2026-07-20: 烁烁 (kimi/k3, cat-psx47a3g) configured into the acceptance roster
+
+co-creator asked to make 烁烁 summonable from the phone app. The full dispatch chain was verified end-to-end with a live reply: `"@烁烁 自我介绍一下，用一句话"` → `assistant|cat-psx47a3g: "我是烁烁，家里的视觉设计师和创意顾问，擅长把想法变成看得见的画面。"` (invocation `581c36b5`, model `kimi-code/kimi-for-coding`, clean UTF-8).
+
+Configuration applied (hot, via API, no file edits, no restarts):
+
+1. `POST /api/cats` — created `cat-psx47a3g` (暹罗猫/烁烁, clientId `kimi`, model `k3`, accountRef `kimi`, mentionPatterns `[@烁烁, @暹罗猫]`). Roster is now 5 cats.
+2. `PATCH /api/accounts/kimi` — flipped the pre-existing `kimi` account from a broken `api_key` stub (no key set, `https://api.kimi.com/coding/`) to `oauth` builtin, matching production (`E:\ClowderAI\clowder-ai\.cat-cafe\accounts.json`). Removed an accidentally created `kimi-2` duplicate.
+3. Exit-1 root cause #1: the spawned `kimi-cli.exe` (legacy branch) died connecting MCP server `openaiDeveloperDocs` (`Failed to connect MCP servers … Client failed to connect`, per raw CLI archive `2026-07-20/caada4e5…ndjson`). Mitigation: `mcpSupport: false` for now — the acceptance env's injected MCP bundle has a connectivity gap worth its own follow-up; chat dispatch does not need it.
+4. Exit-1 root cause #2 / mojibake: on Chinese Windows the Python CLI writes stdout as GBK; the NDJSON parser decodes UTF-8, corrupting Chinese replies to `��`. Fix: account `envVars` `{PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8'}` injected into the agent subprocess (F171 path).
+5. `cli.defaultArgs: ['--print']` retained — kimi-cli 1.48 requires `--print` for `--output-format`; harmless on the legacy branch, required if the binary resolution ever flips to the non-legacy path.
+
+Boundary: the account/catalog changes live in the acceptance env config root (`%TEMP%\cat-cafe-f010-acceptance\config-routable-20260718`) and persist via the runtime catalog store; production catalog was untouched.
+
+[烁烁/kimi-k3🐾]
