@@ -1055,6 +1055,14 @@ describe('useVisualViewportCssVars', () => {
       await waitForViewportSettle();
     });
 
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('390px');
   });
@@ -1095,6 +1103,69 @@ describe('useVisualViewportCssVars', () => {
       await waitForViewportSettle();
     });
 
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('390px');
+  });
+
+  it('rejects rotated keyboard pulses before two settled close reads adopt the new orientation', async () => {
+    const viewport = installMutableViewport();
+
+    act(() => root.render(<Harness />));
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.focus();
+
+    viewport.height = 500;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+
+    textarea.blur();
+    viewport.width = 844;
+    viewport.height = 112;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 112 });
+    await act(async () => {
+      window.dispatchEvent(new Event('orientationchange'));
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    viewport.height = 300;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 300 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    viewport.height = 390;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
     expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
     expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('390px');

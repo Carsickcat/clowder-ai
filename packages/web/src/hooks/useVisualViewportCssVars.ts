@@ -452,7 +452,7 @@ function resolveViewportBaseline(
 ): { baseline: ViewportBaseline; pendingWidthBaseline: ViewportBaseline | null } {
   const widthChanged = Math.abs(frame.width - baseline.width) >= VIEWPORT_WIDTH_RESET_THRESHOLD_PX;
   if (composerFocused || keyboardOpen) {
-    if (composerFocused && widthChanged) {
+    if (widthChanged) {
       const pendingHeight =
         pendingWidthBaseline?.width === frame.width
           ? Math.max(pendingWidthBaseline.height, frame.height)
@@ -461,9 +461,6 @@ function resolveViewportBaseline(
         baseline,
         pendingWidthBaseline: { width: frame.width, height: pendingHeight },
       };
-    }
-    if (keyboardOpen && widthChanged && pendingWidthBaseline?.width !== frame.width) {
-      return { baseline, pendingWidthBaseline: frame };
     }
     return { baseline, pendingWidthBaseline };
   }
@@ -484,14 +481,19 @@ function advanceCloseCandidate(candidate: KeyboardCloseCandidate | null, frame: 
 }
 
 function frameRestoresFocusedOrientation(
+  baseline: ViewportBaseline,
   pendingWidthBaseline: ViewportBaseline | null,
   frame: ViewportFrame,
   composerFocused: boolean,
 ): boolean {
+  // A real orientation close restores the prior shell dimensions with their
+  // axes swapped. Growth alone is insufficient: 844x300 can be a stable,
+  // still-obscured frame after an 844x112 opening pulse.
   return Boolean(
     !composerFocused &&
       pendingWidthBaseline?.width === frame.width &&
-      frame.height > pendingWidthBaseline.height &&
+      Math.abs(frame.width - baseline.height) < VIEWPORT_WIDTH_RESET_THRESHOLD_PX &&
+      Math.abs(frame.height - baseline.width) < VIEWPORT_WIDTH_RESET_THRESHOLD_PX &&
       frame.top === 0 &&
       Math.round(window.innerHeight) === frame.height,
   );
@@ -544,11 +546,19 @@ function resolveKeyboardTransition({
   keyboardOpen: boolean;
   pendingWidthBaseline: ViewportBaseline | null;
 }): KeyboardTransition {
-  const restoredAfterFocusedOrientation = frameRestoresFocusedOrientation(pendingWidthBaseline, frame, composerFocused);
+  const restoredAfterFocusedOrientation = frameRestoresFocusedOrientation(
+    baseline,
+    pendingWidthBaseline,
+    frame,
+    composerFocused,
+  );
   const indicated =
     !restoredAfterFocusedOrientation && frameIndicatesKeyboard(baseline, frame, composerFocused, keyboardOpen);
   if (indicated) return { keyboardOpen: true, closeCandidate: null, confirmedBaseline: null };
   if (!keyboardOpen) return { keyboardOpen: false, closeCandidate: null, confirmedBaseline: null };
+  if (restoredAfterFocusedOrientation && !allowClose) {
+    return { keyboardOpen: true, closeCandidate, confirmedBaseline: null };
+  }
 
   const nextCloseCandidate = advanceCloseCandidate(closeCandidate, frame);
   if (allowClose && nextCloseCandidate.reads >= 2) {
