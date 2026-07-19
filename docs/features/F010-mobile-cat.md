@@ -20,11 +20,10 @@ operator 首次从手机经 Tailscale 使用 Clowder AI 时，桌面布局在窄
 
 ## Current State
 
-- 已有 manifest、Service Worker、safe-area、移动底栏和部分移动工作表面；
-- `useIsDesktop()` 的 768px 与 Tailwind `lg` 的 1024px 存在断点分叉；
-- 候选 `PwaInstallPrompt` 已有基础测试，但尚未满足 30 天 dismiss、installability 诊断、常驻入口和全路由遮挡验收；
-- 缺少统一全局抽屉、真机摩擦基线、更新保护和完整设备矩阵证据。
-- 2026-07-18 恢复实现已在 feature worktree 完成单 VisualViewport 矩形、单消息滚动区、单 Dock reserve、键盘态隐藏导航、16px composer、bounded mention、PWA 错误降噪与幂等发送对账；自动化与隔离验收仍在闭环中，尚不宣称 F010 完成。
+- Phase A 的响应式壳、统一 1024px breakpoint、全局抽屉、四个移动工作表面、PWA 安装诊断、更新保护与消息恢复已在 feature branch 完成。
+- 2026-07-19，Terra 对最终产品 SHA `7db93bf` 明确 APPROVE（P1/P2/P3=0）；同一 BUILD_ID `n7WolIZtBPCkffGf2i6VS` 的 reporting iPhone installed-PWA 旅程通过 4fps/8fps 机器检测与两位非作者愿景守护者独立复核。
+- iPhone 验收覆盖冷启动、两次中文 IME 聚焦、`@opus45` 选择与发送、实时回复、收键盘及 Dock 恢复；启动后整壳空白为 0，超过 1 秒的 composer 丢失为 0。
+- F010 仍保持 `in-progress`：AC-A4 的 Android 真机关键旅程尚无证据，也没有 operator 降级签字；iPhone PASS 不得改写为整个 Feature done。
 - 验收 API 新增仅在显式 acceptance 环境启用的 AgentRegistry fail-closed roster gate；正常产品启动与通用 `dispatchReady` 契约不变。
 
 ## What
@@ -45,13 +44,13 @@ operator 首次从手机经 Tailscale 使用 Clowder AI 时，桌面布局在窄
 
 ## Acceptance Criteria
 
-- [ ] **AC-A0**：形成 390×844、430×932、768×1024、1024×768 的现状证据与路由 × 功能 × 设备矩阵；记录 operator 真机型号和主要摩擦。
-- [ ] **AC-A1**：`<1024px` 统一使用移动工作表面；JS 与 Tailwind 消费同一 breakpoint 真相源；左侧抽屉提供 Threads / Memory / Mission / Signals / Settings，底栏保留对话 / 工作 / 产物 / 全局审批。
-- [ ] **AC-A2**：安装体验覆盖 secure context、Service Worker、standalone、iOS 手动步骤、支持/不支持/WebView 诊断和本机 30 天 dismiss；API、Socket、上传下载保持 Tailscale HTTPS 同源。
-- [ ] **AC-A3**：后台恢复、online/offline、Socket 重连和 Service Worker 更新均有明确状态；更新不会丢失草稿、当前 thread 或已提交业务动作。
+- [x] **AC-A0**：形成 390×844、430×932、768×1024、1024×768 的现状证据与路由 × 功能 × 设备矩阵；记录 operator 真机型号和主要摩擦。
+- [x] **AC-A1**：`<1024px` 统一使用移动工作表面；JS 与 Tailwind 消费同一 breakpoint 真相源；左侧抽屉提供 Threads / Memory / Mission / Signals / Settings，底栏保留对话 / 工作 / 产物 / 全局审批。
+- [x] **AC-A2**：安装体验覆盖 secure context、Service Worker、standalone、iOS 手动步骤、支持/不支持/WebView 诊断和本机 30 天 dismiss；API、Socket、上传下载保持 Tailscale HTTPS 同源。
+- [x] **AC-A3**：后台恢复、online/offline、Socket 重连和 Service Worker 更新均有明确状态；更新不会丢失草稿、当前 thread 或已提交业务动作。
 - [ ] **AC-A4**：手机核心功能 parity checklist 无缺项；light/dark 与主要主题完成浏览器截图，iPhone/Android 完成关键旅程真机记录，桌面 AppShell 无回归。
-- [ ] **AC-A5**：代码通过本轮测试、lint、check、build、浏览器 dogfood，并由 terra、Opus 4.5、Fable 5 给出明确代码 review verdict，P1/P2 清零。
-- [ ] **AC-A6**：iPhone 13 Pro Safari/PWA 键盘开关、中文组合输入、`@` 候选、回复中、发送确认丢失、Socket 降级与更新检查失败均无横向滚动、输入缩放、按钮裁切、重复 Dock reserve 或永久遮挡；证据绑定当前 build ID。
+- [x] **AC-A5**：代码通过本轮测试、lint、check、build、浏览器 dogfood，并由 terra、Opus 4.5、Fable 5 给出明确代码 review verdict，P1/P2 清零。
+- [x] **AC-A6**：iPhone 13 Pro Safari/PWA 键盘开关、中文组合输入、`@` 候选、回复中、发送确认丢失、Socket 降级与更新检查失败均无横向滚动、输入缩放、按钮裁切、重复 Dock reserve 或永久遮挡；证据绑定当前 build ID。
 
 ## Key Decisions
 - Phase A PWA 手机化 → B TTS/Voice Block → C 推送 → D 原生壳（如需要）
@@ -80,6 +79,7 @@ operator 首次从手机经 Tailscale 使用 Clowder AI 时，桌面布局在窄
 | 2026-07-17 | 三位原作者完成两轮标准方案审核，全部 APPROVE |
 | 2026-07-17 | operator 批准 PWA 先行终稿并授权开始实现，要求代码拉全体参与审核 |
 | 2026-07-18 | 根据 iPhone 13 Pro 真机截图收敛移动体验恢复方案；两位独立 reviewer 复审 v2 后 P1/P2 清零，进入 TDD、隔离验收与代码 review |
+| 2026-07-19 | 产品 SHA `7db93bf` 获 Terra 最终批准；BUILD_ID `n7WolIZtBPCkffGf2i6VS` 的 reporting iPhone 旅程通过设备验收与两位独立愿景守护。Android AC-A4 仍开放，Feature 保持 in-progress |
 
 ## Tips Contribution（F244）
 

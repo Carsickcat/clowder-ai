@@ -6,22 +6,23 @@ Source of truth: `docs/design/F010-mobile-pwa-standard.md`
 
 Implementation plan: `feature-specs/2026-07-17-f010-mobile-pwa.md`
 
-Temporary local branch: `feat/f010-mobile-pwa` (`461c5e3..HEAD`; latest dispatch-owner repair `06c84e2`)
+Feature branch: `feat/f010-mobile-pwa` (`461c5e3..7f261e8`; final product SHA `7db93bf`)
 
 ## Verdict
 
-The A0–A3 code slice has passed independent code review for the current implementation range. `7d2bca8` moved the atomic invocation claim ahead of tracker/queue/force side effects and Terra approved that implementation. `85d0cb1` repaired durable-message reconciliation and deterministic composer recovery. `b62e66f` then removed the claim TTL, added a durable message-owner fallback, and linked one stable `queueEntryId` through claim, queue, message, Redis, and replay. Opus 4.5 found one remaining capacity race: the in-memory store could evict the only claim before the first durable append completed. `06c84e2` makes that capacity bound fail-closed and soft only until a durable owner exists; Opus 4.5 approved `fe7fbc4..06c84e2` with P1/P2 at zero after an independent API build, 73/73 targeted regressions, and `git diff --check`. F010 is **not feature-complete**: the reporting iPhone's Chinese-IME keyboard frame and installed standalone-PWA/Tailscale HTTPS recovery journey remain operator-owned release acceptance.
+The A0–A3 code slice and the reporting-iPhone recovery slice have passed independent review. The final product SHA `7db93bf` is Terra-approved with P1/P2/P3 at zero. Its exact acceptance build, `n7WolIZtBPCkffGf2i6VS`, completed the installed-PWA/Tailscale HTTPS journey: cold start, two Chinese-IME focus cycles, `@opus45` selection and send, live reply, blur, and Dock recovery. Independent 4fps/8fps frame analysis found zero post-launch shell blanks and no composer loss over one second; Kimi and Opus 4.5 independently approved the device evidence. F010 is **not feature-complete** because Android real-device evidence required by AC-A4 remains open; there is no operator sign-off to delete or downgrade that requirement.
 
 ## Acceptance status
 
 | Acceptance criterion | Status | Evidence / remaining work |
 | --- | --- | --- |
-| AC-A0 | Partial | Browser viewport matrix is recorded below. Operator device models, real-device friction, and recordings remain open. |
-| AC-A1 | Code-complete | One breakpoint source feeds Tailwind and JS; the canonical drawer and four mobile work surfaces are covered by contract/component tests. |
-| AC-A2 | Code-complete, real-device pending | Installability diagnostics, runtime manifest status/content-type validation, iOS/manual and native prompt paths, WebView/secure/SW blockers, 30-day dismissal, and permanent entry are tested. Real Tailscale HTTPS install evidence remains open. |
-| AC-A3 | Code-complete | Foreground/online recovery works even without SW; new workers wait for consent; all-thread drafts/attachments and Approval Hub transient work veto activation; controllerchange reloads once; NetworkOnly business artifacts are production-built. |
-| AC-A4 | Partial | Light compact, dark medium, and light desktop browser evidence exists. iPhone/Android journeys and complete real-device parity remain open. |
-| AC-A5 | Code review approved | The dispatch-owner repair and capacity-race repair pass affected API/Web, Redis contracts, typecheck/build, static checks, and real Fastify route dogfood. Opus 4.5 approved `fe7fbc4..06c84e2` with P1/P2 at zero. Repository-wide Windows baseline limitations are listed below; real-device release acceptance remains open under AC-A0/AC-A2/AC-A4. |
+| AC-A0 | Met | The four-viewport browser matrix, iPhone 13 Pro friction history, exact-build screenshots, and recordings are archived below. |
+| AC-A1 | Met | One breakpoint source feeds Tailwind and JS; the canonical drawer and four mobile work surfaces are covered by contract/component tests. |
+| AC-A2 | Met | Installability diagnostics, manual/native prompt paths, WebView/secure/SW blockers, dismissal, permanent entry, and exact-build Tailscale HTTPS/SW/API provenance are recorded. |
+| AC-A3 | Met | Foreground/online recovery, waiting-worker consent, transient-work vetoes, durable send ownership, and reconnect/update failure paths are covered by code and runtime evidence. |
+| AC-A4 | Partial | Browser/theme evidence and the full reporting-iPhone journey pass. Android real-device journey evidence remains open, so F010 stays in progress. |
+| AC-A5 | Met | The cumulative implementation received explicit Terra, Opus 4.5, and Fable 5 verdicts with P1/P2 cleared; Terra approved final product SHA `7db93bf` with P1/P2/P3 at zero. |
+| AC-A6 | Met | BUILD_ID `n7WolIZtBPCkffGf2i6VS` passed the iPhone keyboard/IME/mention/send/reply/blur/refocus journey; 4fps and 8fps analysis found no post-launch shell blank or >1s composer loss. |
 
 ## Browser viewport matrix
 
