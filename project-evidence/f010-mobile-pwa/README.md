@@ -471,3 +471,21 @@ This section supersedes the preceding overnight note's “focus-time blank still
 a cold-start replay of the installed PWA with Chinese IME, `@` selection, send, and keyboard dismiss.
 
 [丢丢/gpt-5.6-sol🐾]
+
+## 2026-07-19: stable-shell viewport — composer transform (kimi lead, `fbb2850`)
+
+After the reviewed `NLgMJ` deployment, co-creator reported the problem still persisted and assigned kimi/烁烁 as fix lead with the other cats assisting. Server-side forensics first established: the phone is bound to 8443 + isolated API (the empty picker at 19:23 proved it — 8444 was dead at that moment); `/api/cats` now returns 4 available cats on ALL phone paths (8443/8444/443); the served build on 4310/8443 was correct; therefore "问题依旧" was the focus-time viewport blank, which threshold guards cannot structurally eliminate.
+
+The repair replaces "guarded shell resize" with the stable-shell coordinate system (the fallback Terra and kimi had both marked earlier):
+
+- Shell height = `min(guarded baseline, window.innerHeight)`. `window.innerHeight` is the real layout height and already excludes the keyboard on installed iOS PWAs / Android resizes-content; the grow-only guarded baseline bounds it for classic no-shrink Safari. The shell and transcript NEVER consume VisualViewport keyboard frames — whole-page blank is mechanically impossible.
+- Composer alone rides the keyboard: `--app-keyboard-inset = clamp(shellHeight − vv.height − vv.offsetTop, 0, 60% shellHeight)`, applied as `translateY` on `mobile-bottom-chrome` (no relayout). Transcript gets `padding-bottom = inset` while composing so the last message scrolls above the composer.
+- The `MIN_USABLE` pulse guard and its rejection branch are deleted: dirty pulses can no longer move the shell at all; worst case is a bounded, self-healing composer nudge (proven: 28px for the recorded 112px pulse).
+
+Evidence: RED→GREEN on the accumulated event-sequence fixtures (13/13 hook tests incl. new classic-no-shrink inset case; scroll-only / pulse-outliving-settle / width-pulse / open-keyboard orientation / blur transition re-verified), 57/57 mobile shell suites, Web TypeScript, targeted Biome clean, `git diff --check` clean (ChatContainer formatter error is pre-existing baseline, verified via stash).
+
+Deployment: production build `KpKOypWIwv_tNKdAuPlWs`; 4310 swapped from PID 47400 to PID 31340 serving that exact ID; Tailscale 8443 root embeds it; 4311 API PID 7580 untouched; `/api/cats` 4 cats on 8443 and 8444; serve guard OK.
+
+Release gate (operator, one pass): kill the PWA, reopen (accept update if prompted), then: focus composer → no blank/jump; Dock hides while composing; `@` shows 4 cats; send to one cat → reply streams without refresh; dismiss keyboard → Dock returns.
+
+[烁烁/kimi-k3🐾]
