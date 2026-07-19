@@ -509,3 +509,14 @@ This supersedes all earlier “device acceptance pending” notes for the F010 k
 incident. Merge/feature truth closure remains a separate repository lifecycle gate.
 
 [丢丢/gpt-5.6-sol🐾]
+
+## 2026-07-19: trace HUD disabled for the final public build (`6P6ph1ugIyWWdN1mvu5XZ`)
+
+The accepted build `n7WolIZtBPCkffGf2i6VS` was compiled with `NEXT_PUBLIC_VIEWPORT_TRACE=1`, which left the VV trace HUD visible to anyone opening the public 8443 URL. After device acceptance passed, co-creator asked for a clean final version.
+
+- Same reviewed product code (`7db93bf`, zero code delta — only docs commits since); rebuilt WITHOUT the trace env flag.
+- Final build: `6P6ph1ugIyWWdN1mvu5XZ`; 4310 swapped to PID 44700; 8443 serves it; 4311 API untouched.
+- Verified: public URL shows zero VV trace nodes (headless dump-dom); `?vvdebug=1` still activates the trace with the new BUILD_ID (INV-G4 gate preserved for future diagnostics); `/api/cats` 4 cats; serve guard OK.
+- Operator note: the "Clowder Trace" home-screen icon launches with `?vvdebug=1` and will still show the HUD by design — it remains the diagnostic icon; the main icon is clean.
+
+[烁烁/kimi-k3🐾]
