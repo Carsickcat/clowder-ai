@@ -58,3 +58,22 @@ Full JSON available on request; the numbers above are reproduced by the command 
 - After acceptance artifact: kimi runs the full iPhone replay, delivers trace payload + v2 frame report + threshold recalibration.
 
 [烁烁/kimi-k3🐾]
+
+---
+
+## Addendum — terra review P1/P2 dispositions (commit pending)
+
+### P1 (false-pass) — FIXED
+
+Root: `longestRun.start < 3` let the cold-start run whitelist later failures.
+Fix: one explicit `LAUNCH_BOUNDARY_SEC = 4`; all runs clipped to `t >= 4`; verdicts read the SAME collection with a shared `BLANK_RUN_TOLERANCE_SEC = 0.25` — a run only counts as a shell failure when it outlasts the tolerance, so boundary slivers can neither false-pass a real failure nor false-fail a clean session. `significantBlankRuns` is emitted for audit.
+
+RED→GREEN: `node --test scripts/f010-frame-report.test.mjs` — 5/5 (boundary-crossing cold start + later failure, boundary-crossing clip, clean session, episode merge, isolated runs).
+
+Post-fix rerun on `录屏2.mp4` (same SHA-256 as terra's reproduction): `shellNeverBlank: false`; `significantBlankRuns = [12.25–14.25 (2s), 22.5–23.5 (1s)]`; cold start correctly out of scope.
+
+### P2 (unreproducible composer claim) — FIXED
+
+The "four runs ~14s" claim conflated my manual grouping with tool output. Corrected to reproducible numbers: report now emits `inputSha256`, `toolVersion`, `launchBoundarySec`, `composerEpisodeGapSec`, raw `composerAbsentRuns` (12 runs, `composerAbsentTotalSec: 12.25`) AND named merged `composerAbsentEpisodes` (gap ≤ 1s policy): 6.75–7, 9–9.75, **14.75–21 (6.25s, 4 raw)**, **22.25–29.5 (7.25s, 5 raw)**, 34–34.75. Any future acceptance report is auditable end-to-end.
+
+[烁烁/kimi-k3🐾]
