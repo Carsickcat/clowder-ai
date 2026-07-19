@@ -48,6 +48,22 @@ mkdirSync(workDir, { recursive: true });
 const BAND = { left: 0.0, top: 0.05, width: 1.0, height: 0.5 };
 const BLANK_SHARE_THRESHOLD = 0.75; // mode-bucket share: content ≤0.61, blank ≥0.82 on reference footage
 const DARK_LUMA_THRESHOLD = 60;
+/** Composer detection: the cafe-amber border/send affordance (~rgb 160,72,8).
+ *  Reference footage: ~211 amber pixels when the composer is visible, ~38
+ *  scattered (ME badges etc.) when it is hidden under the keyboard. */
+const COMPOSER_BAND = { left: 0.0, top: 0.4, width: 1.0, height: 0.56 };
+const COMPOSER_AMBER_MIN_PIXELS = 100;
+
+function countAmberPixels(data, channels) {
+  let count = 0;
+  for (let i = 0; i < data.length; i += channels) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    if (r >= 140 && r <= 230 && g >= 60 && g <= 180 && b <= 130 && r - b > 50 && r - g > 30) count += 1;
+  }
+  return count;
+}
 
 async function analyzeFrame(file) {
   const image = sharp(file);
@@ -83,7 +99,18 @@ async function analyzeFrame(file) {
       0.7152 * (((bestKey >> 4) & 15) * 16 + 8) +
       0.0722 * ((bestKey & 15) * 16 + 8),
   );
-  return { blankRatio, luma, dominant: bestKey };
+  const composerRegion = {
+    left: Math.round(meta.width * COMPOSER_BAND.left),
+    top: Math.round(meta.height * COMPOSER_BAND.top),
+    width: Math.round(meta.width * COMPOSER_BAND.width),
+    height: Math.round(meta.height * COMPOSER_BAND.height),
+  };
+  // Raw resolution for the composer band: a 1-2px amber border is washed out
+  // by downscaling, and the signal band spans the composer's possible travel
+  // range (bottom when browsing, ridden up when composing).
+  const composerPixels = await sharp(file).extract(composerRegion).raw().toBuffer({ resolveWithObject: true });
+  const amberPixels = countAmberPixels(composerPixels.data, composerPixels.info.channels);
+  return { blankRatio, luma, dominant: bestKey, amberPixels };
 }
 
 function classify({ blankRatio, luma }) {
@@ -101,7 +128,7 @@ const files = main();
 const frames = [];
 for (const [index, file] of files.entries()) {
   const metrics = await analyzeFrame(join(workDir, file));
-  frames.push({ t: +(index / fps).toFixed(2), class: classify(metrics), blankRatio: +metrics.blankRatio.toFixed(3), luma: metrics.luma });
+  frames.push({ t: +(index / fps).toFixed(2), class: classify(metrics), blankRatio: +metrics.blankRatio.toFixed(3), luma: metrics.luma, composerPresent: metrics.amberPixels >= COMPOSER_AMBER_MIN_PIXELS });
 }
 rmSync(workDir, { recursive: true, force: true });
 
@@ -120,6 +147,24 @@ if (runStart !== null && frames.length > 0) {
   if (end - runStart > longestRun.length) longestRun = { start: runStart, end: +end.toFixed(2), length: +(end - runStart).toFixed(2) };
 }
 
+// Composer-only failure: shell renders content but the composer is not in the
+// visible band (e.g. stranded under the keyboard). Measured post-launch (t>4s).
+const composerAbsentRuns = [];
+let absentStart = null;
+for (const frame of frames) {
+  if (frame.t <= 4) continue;
+  const absent = frame.class === 'content' && !frame.composerPresent;
+  if (absent && absentStart === null) absentStart = frame.t;
+  if (!absent && absentStart !== null) {
+    composerAbsentRuns.push({ start: absentStart, end: frame.t, length: +(frame.t - absentStart).toFixed(2) });
+    absentStart = null;
+  }
+}
+if (absentStart !== null && frames.length > 0) {
+  const end = +(frames[frames.length - 1].t + 1 / fps).toFixed(2);
+  composerAbsentRuns.push({ start: absentStart, end, length: +(end - absentStart).toFixed(2) });
+}
+
 const report = {
   video: resolve(video),
   fps,
@@ -132,9 +177,11 @@ const report = {
   },
   blankFrames: blankFrames.map((f) => ({ t: f.t, kind: f.class, blankRatio: f.blankRatio, luma: f.luma })),
   longestBlankRunSec: longestRun,
+  composerAbsentRuns,
   verdict: {
     shellNeverBlank: blankFrames.filter((f) => f.t > 3).length === 0, // ignore cold-start band
     longestBlankRunUnder250msPostLaunch: longestRun.length <= 0.25 || longestRun.start < 3,
+    composerNeverLostOver1sPostLaunch: composerAbsentRuns.every((run) => run.length <= 1),
   },
 };
 
