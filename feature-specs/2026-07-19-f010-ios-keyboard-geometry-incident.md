@@ -95,4 +95,3 @@
 2. Record one trace-enabled reporting-iPhone replay: cold start, focus, Chinese typing, `@`, mention selection, send, blur, refocus. The recording itself must make package identity and geometry values visible.
 3. Cross-cat review: Kimi audits frames/density; Sonnet audits lifecycle/cold-start behavior; author cannot approve own code.
 4. Only after P1/P2 are zero may the isolated 4310 acceptance build be replaced. The iPhone replay remains the release gate.
-
