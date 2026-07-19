@@ -3,9 +3,27 @@
 Reviewer: Terra / `@opus`
 Author: Sonnet / `@sonnet`
 Branch: `feat/f010-mobile-pwa`
-Range: `8442c8b..e224624`
-Product commit: `f3565b240fe203a4f04ea504061c5b9aef8c62a6`
-Acceptance BUILD_ID: `ZoOUsD6wW6PKZzAKeGvZY`
+Review-Target-ID: `f010`
+Range: `8442c8b..7d235e3`
+Product commits: `f3565b240fe203a4f04ea504061c5b9aef8c62a6`, `7d235e3f89c275b5a47d755d38cbf7fbdb9f25b4`
+Acceptance BUILD_ID: `fI2pHXO01zency2O6yYcz`
+
+## Original requirements
+
+Source: `feature-specs/2026-07-19-f010-ios-keyboard-geometry-incident.md`, Goal, Finish line,
+Geometry state x event table, and INV-G1 through INV-G5. Device evidence is preserved in
+`docs/bug-report/f010-post-review-recording-pulse-and-tunnel-origin/bug-report.md`.
+
+The reporting iPhone must keep AppShell, header, transcript, and composer visible and stable through
+two consecutive focus/Chinese-IME/mention/blur journeys. From focus through confirmed close, no
+keyboard-time `innerHeight` or VisualViewport frame may replace root width/height. A changed
+orientation can become the baseline only after close evidence confirms an unobscured stable frame;
+the device replay itself must expose build/API/geometry provenance.
+
+Architecture cell: `hub-action-surface`
+Map delta: `none`
+Why: this change only corrects the existing transient geometry owner's transition handling; it
+does not add a Store, Queue, Router, Adapter, Dispatcher, Binding, API, or persistence boundary.
 
 ## What
 
@@ -60,6 +78,33 @@ rather than adding another threshold or debounce.
   package wrapper separately has a Windows `spawn pnpm ENOENT` defect.
 - Repository `test/check` baseline blockers are documented in the bug report and are outside the
   changed files.
+
+## Review round 2 correction and superseding verification
+
+Terra's P1 showed that a width change beginning after `blur` was absent from the orientation
+candidate state. The exact RED journey was
+`390x844 -> focus -> 390x500 -> blur -> 844x300 -> 844x390`. The old portrait baseline classified
+the final landscape height as a keyboard shrink forever.
+
+The correction does not adopt the runtime frame or add a threshold: while the keyboard is latched,
+a new width is staged only as `pendingWidthBaseline`; the existing unobscured close evidence then
+adopts the settled landscape baseline. The former `ZoOUsD6wW6PKZzAKeGvZY` acceptance artifact is
+superseded and must not be used for replay.
+
+- P1 RED: the new regression failed with `data-mobile-keyboard-open="true"` after the settled
+  `844x390` frame.
+- P1 GREEN: viewport 26/26; affected mobile suite 9 files / 101 tests passed.
+- TypeScript, target Biome, `git diff --check`, and exact production build passed.
+- Exact commit: `7d235e3f89c275b5a47d755d38cbf7fbdb9f25b4`.
+- BUILD_ID: `fI2pHXO01zency2O6yYcz`.
+- Web PID 11112, started `2026-07-19T16:07:30.8416346+08:00`; API PID 7580 unchanged.
+- Local 4310 and HTTPS 8443 page/build manifest/health returned 200; both cats routes returned four
+  cats.
+- Current worktree `/?vvdebug=1` was opened in Hub Browser Preview. This is Web/HUD dogfood, not a
+  substitute for reporting-iPhone keyboard/orientation acceptance.
+- Capability-tips passed; no matching F010 `.pen` file or root media/design artifact exists.
+- This branch does not contain the quality-gate skill's newer hotfix/fallback scripts or architecture
+  command, so those three entry points are recorded as unavailable rather than reported green.
 
 ## Next
 

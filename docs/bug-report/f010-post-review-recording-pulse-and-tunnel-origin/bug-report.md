@@ -171,3 +171,35 @@ Both `http://localhost:4310` and
 manifest, and `/api/health`; `/api/cats` returned four cats through both origins. Hub Browser
 Preview opened the exact local root. The final reporting-iPhone replay must show the same BUILD_ID
 in its HUD before the keyboard journey begins; any other ID is not evidence about this candidate.
+
+### 2026-07-19 review P1: blur-before-rotation close latch
+
+Independent review invalidated the `ZoOUsD6wW6PKZzAKeGvZY` artifact before device replay. The
+frozen-shell state machine staged a width-changing orientation only while the composer remained
+focused. In the event order
+`390x844 -> focus -> 390x500 -> blur -> 844x300 -> 844x390`, the width change began during
+blur-to-close. No orientation candidate existed, so the final unobscured landscape frame was
+compared with the old portrait baseline, remained classified as keyboard shrink, and could leave
+the Dock hidden and root geometry latched indefinitely.
+
+The new focused test failed before implementation because `data-mobile-keyboard-open` remained
+`true` instead of clearing after the settled `844x390` frame. Commit
+`7d235e3f89c275b5a47d755d38cbf7fbdb9f25b4` closes the missing transition by staging a new-width
+frame as `pendingWidthBaseline` whenever the keyboard is latched, including after blur. It does not
+publish the candidate to root geometry; adoption still uses the existing confirmed-close evidence.
+
+Fresh verification for this correction:
+
+- viewport suite: **26/26 passed**;
+- bounded affected Web selection: **9 files / 101 tests passed**;
+- Web TypeScript, target Biome, and `git diff --check`: passed;
+- acceptance-flag production build: passed from exact commit `7d235e3`;
+- new BUILD_ID: `fI2pHXO01zency2O6yYcz`;
+- Web `4310`: PID `11112`, started `2026-07-19T16:07:30.8416346+08:00`;
+- API `4311`: PID `7580`, unchanged;
+- local 4310 and HTTPS 8443 page/build manifest/health returned 200; both cats routes returned four
+  cats;
+- Hub Browser Preview opened the exact worktree at `/?vvdebug=1`.
+
+This is a corrected acceptance candidate, not a device-acceptance claim. Cross-cat re-review and a
+reporting-iPhone journey with BUILD_ID `fI2pHXO01zency2O6yYcz` remain mandatory.
