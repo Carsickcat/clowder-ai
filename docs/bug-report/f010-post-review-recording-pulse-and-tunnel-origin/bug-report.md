@@ -248,3 +248,15 @@ Fresh verification for this correction:
 The former `fI2pHXO01zency2O6yYcz` artifact is superseded and must not enter device replay. The new
 `n7WolIZtBPCkffGf2i6VS` artifact is still only a review candidate: an explicit cross-cat APPROVE and
 the reporting-iPhone trace/frame-report journey remain mandatory before F010 can be closed.
+
+### 2026-07-19 independent review approval
+
+Terra approved product range `8442c8b..7db93bf` (HEAD
+`7db93bf0e6c8e55f939c18c52c1c0baad3b11f1d`) with **P1=0, P2=0, P3=0**. The reviewer independently
+reran viewport 27/27, catalog/retry 7/7, TypeScript, target Biome, and `git diff --check`; 4310 and
+4311 were not changed during review.
+
+This clears the cross-cat code gate, not the device gate. The only valid replay candidate is the
+standalone PWA whose HUD displays `n7WolIZtBPCkffGf2i6VS`. F010 remains open until the reporting
+iPhone completes cold start, focus/Chinese IME, mention selection/send, blur, refocus, and final
+blur, and the resulting recording, copied trace, and frame report are all green.

@@ -145,3 +145,15 @@ The former `fI2pHXO01zency2O6yYcz` artifact is superseded and must not enter dev
 Please return an explicit APPROVE or REQUEST CHANGES with P1/P2/P3 findings. If approved, the same
 BUILD_ID goes through the reporting-iPhone standalone journey and the reviewed frame-report tool.
 No merge or F010 closure should occur before both review and device evidence are green.
+
+## Independent review verdict
+
+Terra approved the product range `8442c8b..7db93bf` at message
+`0001784453417251-000118-7f4f5176`: **P1=0, P2=0, P3=0**. The reviewer independently reran the
+viewport suite (27/27), catalog/retry selection (7/7), TypeScript, target Biome, and
+`git diff --check` without operating 4310 or 4311.
+
+The approval covers code and local evidence only. Release acceptance still requires one
+reporting-iPhone standalone journey whose HUD shows exactly `n7WolIZtBPCkffGf2i6VS`, followed by
+the reviewed trace/frame-report analysis. The superseded `ZoO...` and `fI2p...` artifacts remain
+invalid for replay.
