@@ -1059,6 +1059,47 @@ describe('useVisualViewportCssVars', () => {
     expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('390px');
   });
 
+  it('adopts a stable orientation that starts after blur while the keyboard is closing', async () => {
+    const viewport = installMutableViewport();
+
+    act(() => root.render(<Harness />));
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    textarea.focus();
+
+    viewport.height = 500;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 500 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+
+    textarea.blur();
+    viewport.width = 844;
+    viewport.height = 300;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 300 });
+    await act(async () => {
+      window.dispatchEvent(new Event('orientationchange'));
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('390px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('844px');
+
+    viewport.height = 390;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 390 });
+    await act(async () => {
+      viewport.dispatchEvent(new Event('resize'));
+      await waitForViewportSettle();
+    });
+
+    expect(document.documentElement.dataset.mobileKeyboardOpen).toBeUndefined();
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-width')).toBe('844px');
+    expect(document.documentElement.style.getPropertyValue('--app-viewport-height')).toBe('390px');
+  });
+
   it('cancels pending geometry and removes viewport event delivery on unmount', async () => {
     const viewport = new EventTarget() as EventTarget & {
       height: number;

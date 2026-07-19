@@ -462,6 +462,9 @@ function resolveViewportBaseline(
         pendingWidthBaseline: { width: frame.width, height: pendingHeight },
       };
     }
+    if (keyboardOpen && widthChanged && pendingWidthBaseline?.width !== frame.width) {
+      return { baseline, pendingWidthBaseline: frame };
+    }
     return { baseline, pendingWidthBaseline };
   }
   return { baseline: frame, pendingWidthBaseline: null };
