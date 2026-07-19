@@ -203,3 +203,48 @@ Fresh verification for this correction:
 
 This is a corrected acceptance candidate, not a device-acceptance claim. Cross-cat re-review and a
 reporting-iPhone journey with BUILD_ID `fI2pHXO01zency2O6yYcz` remain mandatory.
+
+### 2026-07-19 review P1: rotated pulse must not prove keyboard close
+
+Independent re-review invalidated the `fI2pHXO01zency2O6yYcz` artifact before device replay. The
+post-blur orientation candidate was initially seeded by the first new-width frame but was not
+raised by later frames of that same width. In the exact sequence
+`390x844 -> focus -> 390x500 -> blur -> 844x112 -> 844x300 -> 844x390 x2`, growth from the 112px
+pulse to the still-obscured 300px frame could therefore be mistaken for close evidence. The
+immediate and settled projections of that single 300px event then counted as two reads, cleared the
+keyboard flag, and could adopt an obscured landscape baseline before the physical keyboard closed.
+
+The new regression test failed before implementation because `data-mobile-keyboard-open` was
+already absent after the `844x300` frame. Commit
+`7db93bf0e6c8e55f939c18c52c1c0baad3b11f1d` closes this evidence gap without adding a timer or a
+new height threshold:
+
+- every same-width orientation frame continues to raise the staged candidate height;
+- growth alone is not close evidence: a rotated restore must match the confirmed baseline with its
+  axes swapped, using the existing 40px orientation tolerance;
+- the immediate projection of a rotated restore preserves the close candidate but does not advance
+  its read count, so two independent settled `844x390` events are required;
+- no candidate is published to root width or height before confirmation, and ordinary
+  same-orientation close behavior remains unchanged.
+
+A failure-mode sweep covered all sibling paths through `pendingWidthBaseline`,
+`frameRestoresFocusedOrientation`, and the close candidate: rotation while focused, rotation that
+begins after blur, and a new-width 112-to-300 pulse before close. They now share the same evidence
+boundary rather than separate parameter guards.
+
+Fresh verification for this correction:
+
+- viewport suite: **27/27 passed**;
+- bounded affected Web selection: **9 files / 102 tests passed**;
+- Web TypeScript, target Biome, `git diff --check`, and capability-tips: passed;
+- acceptance-flag production build: passed from exact commit `7db93bf`;
+- new BUILD_ID: `n7WolIZtBPCkffGf2i6VS`;
+- Web `4310`: PID `47900`, started `2026-07-19T16:52:04.8194657+08:00`;
+- API `4311`: PID `7580`, unchanged;
+- local 4310 and HTTPS 8443 page/build manifest/health returned 200; both cats routes returned four
+  cats;
+- Hub Browser Preview opened the exact worktree at `/?vvdebug=1`.
+
+The former `fI2pHXO01zency2O6yYcz` artifact is superseded and must not enter device replay. The new
+`n7WolIZtBPCkffGf2i6VS` artifact is still only a review candidate: an explicit cross-cat APPROVE and
+the reporting-iPhone trace/frame-report journey remain mandatory before F010 can be closed.

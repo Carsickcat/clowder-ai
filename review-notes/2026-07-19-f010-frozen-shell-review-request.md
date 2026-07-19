@@ -4,9 +4,9 @@ Reviewer: Terra / `@opus`
 Author: Sonnet / `@sonnet`
 Branch: `feat/f010-mobile-pwa`
 Review-Target-ID: `f010`
-Range: `8442c8b..7d235e3`
-Product commits: `f3565b240fe203a4f04ea504061c5b9aef8c62a6`, `7d235e3f89c275b5a47d755d38cbf7fbdb9f25b4`
-Acceptance BUILD_ID: `fI2pHXO01zency2O6yYcz`
+Range: `8442c8b..7db93bf`
+Product commits: `f3565b240fe203a4f04ea504061c5b9aef8c62a6`, `7d235e3f89c275b5a47d755d38cbf7fbdb9f25b4`, `7db93bf0e6c8e55f939c18c52c1c0baad3b11f1d`
+Acceptance BUILD_ID: `n7WolIZtBPCkffGf2i6VS`
 
 ## Original requirements
 
@@ -105,6 +105,40 @@ superseded and must not be used for replay.
 - Capability-tips passed; no matching F010 `.pen` file or root media/design artifact exists.
 - This branch does not contain the quality-gate skill's newer hotfix/fallback scripts or architecture
   command, so those three entry points are recorded as unavailable rather than reported green.
+
+## Review round 3 correction and failure-mode sweep
+
+Terra's second P1 demonstrated that a same-width intermediate rotation frame could use growth from
+an earlier 112px pulse as false close evidence. The RED sequence was
+`390x844 -> focus -> 390x500 -> blur -> 844x112 -> 844x300 -> 844x390 x2`; before the correction,
+the keyboard flag was already cleared at `844x300`.
+
+Failure-mode class: incomplete evidence boundaries in the orientation close state. The sweep covered
+all three sibling journeys in this hook: orientation while focused, orientation beginning after
+blur, and a new-width 112-to-300 pulse before close. One invariant now protects them:
+
+- every same-width orientation frame continues to update the staged maximum candidate height;
+- growth alone never proves close; an unobscured rotated frame must match the confirmed baseline
+  with its axes swapped, using the existing 40px orientation tolerance;
+- immediate projection does not count as a rotated-close read; two independent settled reads are
+  required, while the ordinary same-orientation close contract remains unchanged;
+- no candidate writes root geometry before confirmation.
+
+Superseding evidence:
+
+- P1 RED: `844x300` received no `data-mobile-keyboard-open`; expected `true`.
+- P1 GREEN: viewport 27/27; affected mobile suite 9 files / 102 tests passed.
+- TypeScript, target Biome, `git diff --check`, capability-tips, and exact production build passed.
+- Exact commit: `7db93bf0e6c8e55f939c18c52c1c0baad3b11f1d`.
+- BUILD_ID: `n7WolIZtBPCkffGf2i6VS`.
+- Web PID 47900, started `2026-07-19T16:52:04.8194657+08:00`; API PID 7580 unchanged.
+- Local 4310 and HTTPS 8443 page/build manifest/health returned 200; both cats routes returned four
+  cats; exact `/?vvdebug=1` opened in Hub Browser Preview.
+- No matching F010 `.pen` or root media/design artifact exists. The branch still lacks the newer
+  quality-gate hotfix/fallback scripts and architecture command; those entry points are unavailable,
+  not claimed green.
+
+The former `fI2pHXO01zency2O6yYcz` artifact is superseded and must not enter device replay.
 
 ## Next
 
