@@ -289,12 +289,22 @@ function readTraceRecord(
 }
 
 function createViewportTrace(root: HTMLElement, viewport: VisualViewport | null): ViewportTraceController {
+  const appShell = document.querySelector<HTMLElement>('.app-viewport');
   const host = document.createElement('aside');
   host.dataset.viewportGeometryDebug = 'true';
   host.setAttribute('aria-label', 'Viewport geometry trace');
   host.style.cssText = [
-    'position:fixed',
+    `position:${appShell ? 'absolute' : 'fixed'}`,
+    'inset:0',
     'z-index:2147483647',
+    'overflow:hidden',
+    'pointer-events:none',
+    'contain:paint',
+  ].join(';');
+
+  const panel = document.createElement('div');
+  panel.dataset.viewportGeometryDebugPanel = 'true';
+  panel.style.cssText = [
     'top:max(env(safe-area-inset-top),0.25rem)',
     'right:max(env(safe-area-inset-right),0.25rem)',
     'max-width:min(96vw,32rem)',
@@ -308,6 +318,9 @@ function createViewportTrace(root: HTMLElement, viewport: VisualViewport | null)
     'box-shadow:var(--shadow-lg,0 0.25rem 1rem color-mix(in srgb,currentColor 20%,transparent))',
     'font:11px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace',
   ].join(';');
+  // Keep the containment-critical declaration independent from optional
+  // presentation syntax so it cannot be dropped with an unsupported value.
+  panel.style.position = 'absolute';
 
   const heading = document.createElement('strong');
   const summary = document.createElement('div');
@@ -326,15 +339,18 @@ function createViewportTrace(root: HTMLElement, viewport: VisualViewport | null)
     'background:transparent',
     'color:inherit',
   ].join(';');
+  copyButton.style.pointerEvents = 'auto';
   const details = document.createElement('details');
+  details.style.pointerEvents = 'auto';
   const detailsSummary = document.createElement('summary');
   detailsSummary.textContent = 'JSON payload';
   const payloadNode = document.createElement('pre');
   payloadNode.dataset.viewportGeometryDebugPayload = 'true';
   payloadNode.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;margin:0.25rem 0 0';
   details.append(detailsSummary, payloadNode);
-  host.append(heading, metadata, summary, copyButton, details);
-  document.body.appendChild(host);
+  panel.append(heading, metadata, summary, copyButton, details);
+  host.append(panel);
+  (appShell ?? document.body).appendChild(host);
 
   const buildId = resolveBuildId();
   const apiOrigin = resolveApiOrigin();

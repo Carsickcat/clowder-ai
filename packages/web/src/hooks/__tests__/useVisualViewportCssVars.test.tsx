@@ -194,6 +194,26 @@ describe('useVisualViewportCssVars', () => {
     expect(document.querySelector('[data-viewport-geometry-debug-payload]')).toBeNull();
   });
 
+  it('constrains the debug surface to the app viewport clipping layer', () => {
+    window.history.replaceState(null, '', '/thread/default?vvdebug=1');
+
+    act(() => root.render(<Harness />));
+
+    const shell = container.querySelector<HTMLElement>('.app-viewport');
+    const host = document.querySelector<HTMLElement>('[data-viewport-geometry-debug]');
+    const panel = host?.querySelector<HTMLElement>('[data-viewport-geometry-debug-panel]');
+    const copyButton = host?.querySelector<HTMLElement>('[data-viewport-geometry-debug-copy]');
+    const details = host?.querySelector<HTMLElement>('details');
+    expect(host?.parentElement).toBe(shell);
+    expect(host?.style.position).toBe('absolute');
+    expect(host?.style.inset).toBe('0');
+    expect(host?.style.overflow).toBe('hidden');
+    expect(host?.style.pointerEvents).toBe('none');
+    expect(panel?.style.position).toBe('absolute');
+    expect(copyButton?.style.pointerEvents).toBe('auto');
+    expect(details?.style.pointerEvents).toBe('auto');
+  });
+
   it('records ordered before/after geometry projections and exposes a copyable payload', async () => {
     window.history.replaceState(null, '', '/thread/default?vvdebug=1');
     Reflect.deleteProperty(window, '__NEXT_DATA__');
