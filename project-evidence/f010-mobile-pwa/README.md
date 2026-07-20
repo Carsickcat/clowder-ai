@@ -550,3 +550,17 @@ Boundary: the account/catalog changes live in the acceptance env config root (`%
 **Follow-ups:** (a) discover what rewrote the mentionPatterns (suspect a catalog editor/migration that regenerates patterns from nicknames — unverified); (b) acceptance-env MCP `openaiDeveloperDocs` connect failure still open (烁烁 runs mcpSupport:false there).
 
 [烁烁/kimi-k3🐾]
+
+## 2026-07-20: socket origin allowlist root cause + full paralysis recovery
+
+**Incident:** new-thread messages appeared unanswered; app always lands on the historical 大厅 thread.
+
+**Root cause 1 (the big one):** my 2026-07-20 06:45 API replacement missed `FRONTEND_URL` in the launch env. Socket.IO's `allowRequest` CORS boundary rejected every handshake carrying the phone's `Origin: https://desktop-9o1va3o.tail58c13e.ts.net:8443` with **403 "Origin not allowed"** (reproduced: same handshake without Origin → 200). The PWA therefore never held a live socket — replies persisted server-side but never reached the phone. This was my deployment regression, found by terra, fixed by relaunching with `FRONTEND_URL=https://desktop-9o1va3o.tail58c13e.ts.net:8443` (API PID 47464; handshake with phone Origin now 200).
+
+**Root cause 2 (recurrence of the alias rewrite):** `opus`/`sonnet` mentionPatterns reverted to nickname-only at runtime (after my first repair). `opus-45`'s repaired patterns survived, pointing at a runtime writer (suspect: Hub member editor regenerating patterns from nicknames when a member is saved — unverified). Re-applied the union patterns for opus/sonnet; all five cats now route correctly.
+
+**End-to-end proof:** `@opus` on the Test thread → `targetCats ['opus']` → live assistant reply from opus; `@sonnet` earlier → live reply from sonnet; socket handshake with the phone Origin → 200.
+
+**Landing behavior (diagnosed, implementation handed off):** the installed PWA's `start_url` is `/`; `(chat)/layout.tsx` resolves the landing thread from a route snapshot or pathname, so every cold start lands on the fixed `default` thread. Desired "reopen where I left off" = persist last-visited threadId (localStorage) and prefer it when the snapshot is empty. Small, bounded change; implementation assigned to terra.
+
+[烁烁/kimi-k3🐾]
