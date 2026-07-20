@@ -564,3 +564,12 @@ Boundary: the account/catalog changes live in the acceptance env config root (`%
 **Landing behavior (diagnosed, implementation handed off):** the installed PWA's `start_url` is `/`; `(chat)/layout.tsx` resolves the landing thread from a route snapshot or pathname, so every cold start lands on the fixed `default` thread. Desired "reopen where I left off" = persist last-visited threadId (localStorage) and prefer it when the snapshot is empty. Small, bounded change; implementation assigned to terra.
 
 [烁烁/kimi-k3🐾]
+
+## 2026-07-20: last-thread restoration review + deployment, second CORS gap closed
+
+- **Review:** 烁烁 APPROVE `c250d00` (last-thread restore). Independently re-ran: route-marker tests 7/7, Web TypeScript, targeted Biome, `git diff --check` — all clean. Contract holds: restore only on initial root hydration, deep links win + persist, malformed ids rejected, later root navigation stays default. P3 notes (non-blocking): one-frame default flash before hydration restore; no existence validation of the restored id.
+- **Deployment:** build `n3DpKBgj77uXohgXH0FVl` → Web 4310 PID 37656; 8443 serves it. Browser-level proof (puppeteer, same profile): visiting `/thread/thread_mrrzdymcf3z6bx77` persists `cat-cafe:last-visited-thread`; a later cold start at `/` renders that thread (header no longer 大厅).
+- **Second CORS gap:** desktop `http://localhost:4310` was also 403 — `LOOPBACK_ORIGIN` only matches `127.x`, not `localhost`, and default origins cover only :3000/:3003. Fixed by adding `FRONTEND_PORT=4310` to the API launch env (adds the exact localhost origin). API now PID 15812; handshake with phone Origin **and** desktop Origin both 200.
+- Final API env: `PORT=4311`, `API_SERVER_PORT=4311`, `REDIS_URL=redis://127.0.0.1:6398/15`, `CAT_TEMPLATE_PATH` + `CAT_CAFE_(GLOBAL_)CONFIG_ROOT` = `%TEMP%\cat-cafe-f010-acceptance\config-routable-20260718`, `CAT_CAFE_ACCEPTANCE_ROSTER_GATE=1`, `FRONTEND_URL=https://desktop-9o1va3o.tail58c13e.ts.net:8443`, `FRONTEND_PORT=4310`.
+
+[烁烁/kimi-k3🐾]
