@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useLayoutEffect, useState } from 'react';
 import { ChatContainer } from '@/components/ChatContainer';
 import { CHAT_THREAD_ROUTE_EVENT, getThreadIdFromPathname } from '@/components/ThreadSidebar/thread-navigation';
+import { resolveThreadRouteWithLastVisitedMemory, writeLastVisitedThreadId } from './last-visited-thread';
 import { resolveLayoutThreadId } from './layout-thread-id';
 
 function getThreadRouteSnapshot(): string {
@@ -26,13 +27,23 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
   const immediateBrowserThreadId = typeof window !== 'undefined' ? getThreadRouteSnapshot() : null;
   const [browserThreadId, setBrowserThreadId] = useState<string | null>(null);
   useLayoutEffect(() => {
-    const syncBrowserRoute = () => setBrowserThreadId(getThreadRouteSnapshot());
-    syncBrowserRoute();
-    window.addEventListener('popstate', syncBrowserRoute);
-    window.addEventListener(CHAT_THREAD_ROUTE_EVENT, syncBrowserRoute);
+    const syncBrowserRoute = (shouldRestoreLastVisitedThread: boolean) => {
+      const routeThreadId = getThreadRouteSnapshot();
+      if (routeThreadId !== 'default') {
+        writeLastVisitedThreadId(routeThreadId, window.localStorage);
+      }
+      setBrowserThreadId(
+        resolveThreadRouteWithLastVisitedMemory(routeThreadId, window.localStorage, shouldRestoreLastVisitedThread),
+      );
+    };
+    const syncNavigatedBrowserRoute = () => syncBrowserRoute(false);
+
+    syncBrowserRoute(true);
+    window.addEventListener('popstate', syncNavigatedBrowserRoute);
+    window.addEventListener(CHAT_THREAD_ROUTE_EVENT, syncNavigatedBrowserRoute);
     return () => {
-      window.removeEventListener('popstate', syncBrowserRoute);
-      window.removeEventListener(CHAT_THREAD_ROUTE_EVENT, syncBrowserRoute);
+      window.removeEventListener('popstate', syncNavigatedBrowserRoute);
+      window.removeEventListener(CHAT_THREAD_ROUTE_EVENT, syncNavigatedBrowserRoute);
     };
   }, []);
   const threadId = resolveLayoutThreadId(pathnameThreadId, browserThreadId, immediateBrowserThreadId);
