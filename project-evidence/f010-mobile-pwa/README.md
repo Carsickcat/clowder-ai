@@ -536,3 +536,17 @@ Configuration applied (hot, via API, no file edits, no restarts):
 Boundary: the account/catalog changes live in the acceptance env config root (`%TEMP%\cat-cafe-f010-acceptance\config-routable-20260718`) and persist via the runtime catalog store; production catalog was untouched.
 
 [烁烁/kimi-k3🐾]
+
+## 2026-07-20: dispatch deadlock fix deployment + mentionPatterns routing repair
+
+**Incident:** messages from the app got no replies. terra diagnosed: route cancellation abandoned the merged stream without returning sources, so invocation finalizers never ran and per-session mutexes leaked (`stream-merge.ts`); every later invocation for the same cat waited on the stale lock until the 1h hard timeout. Fix `75eddda` closes all started sources when the consumer returns early (45/45 cancel/timeout tests green; independent review: 烁烁 APPROVE).
+
+**Deployment (bounded):** only the acceptance API was replaced — old PID 7580 → new PID 47344, same isolation env (`API_SERVER_PORT=4311`, `REDIS_URL=redis://127.0.0.1:6398/15`, `CAT_TEMPLATE_PATH` + `CAT_CAFE_(GLOBAL_)CONFIG_ROOT` = `%TEMP%\cat-cafe-f010-acceptance\config-routable-20260718`, `CAT_CAFE_ACCEPTANCE_ROSTER_GATE=1`). Production API 3014/443 verified untouched and healthy. The restart was mandatory: the leaked lock is in-memory. No Redis data touched; boot confirmed `CatRegistry: opus, sonnet, opus-45, fable-5, cat-psx47a3g`, gate passed.
+
+**Second root cause found during verification:** the 4 original cats' `mentionPatterns` had been silently rewritten to nickname-only forms (`@terra/@山本`, `@Sol/@丢丢`, `@Luna`), so `@opus`/`@sonnet`/`@opus-45` matched nothing and silently fell back to the last-replier cat. Restored via PATCH: opus `[@opus, @terra, @山本, @布偶猫, @布偶, @ragdoll, @宪宪]`, sonnet `[@sonnet, @Sol, @丢丢, @布偶sonnet]`, opus-45 `[@opus-45, @opus45, @Luna]` (union of legacy handles and new nicknames).
+
+**End-to-end proofs (this runtime):** `@烁烁 自我介绍一下` → 烁烁中文回复; `@sonnet 在吗` → targetCats `['sonnet']`, invocation succeeded, `assistant|sonnet: "在呢～丢丢来了 🐾"`; `@opus` queues correctly behind the active cat (queue semantics intact).
+
+**Follow-ups:** (a) discover what rewrote the mentionPatterns (suspect a catalog editor/migration that regenerates patterns from nicknames — unverified); (b) acceptance-env MCP `openaiDeveloperDocs` connect failure still open (烁烁 runs mcpSupport:false there).
+
+[烁烁/kimi-k3🐾]
