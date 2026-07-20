@@ -1881,6 +1881,72 @@ describe('POST /api/messages deliveryMode', () => {
     assert.ok(canceledCall, 'should mark as canceled when signal aborted');
   });
 
+  it('F010: immediate error-only execution is failed instead of succeeded', async () => {
+    deps.invocationTracker.has.mock.mockImplementation(() => false);
+    deps.router.routeExecution.mock.mockImplementation(async function* () {
+      yield { type: 'error', catId: 'opus', error: 'provider quota exhausted', timestamp: Date.now() };
+      yield { type: 'done', catId: 'opus', timestamp: Date.now() };
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: { content: '@opus provider failure', threadId: 'thread-1', deliveryMode: 'immediate' },
+    });
+    assert.equal(res.statusCode, 200);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const updates = deps.invocationRecordStore.update.mock.calls;
+    assert.ok(
+      updates.some(
+        (call) =>
+          call.arguments[1]?.status === 'failed' && call.arguments[1]?.error === 'PROVIDER_EXECUTION_FAILED:opus',
+      ),
+      'error-only provider completion must stay retryable',
+    );
+    assert.equal(
+      updates.some((call) => call.arguments[1]?.status === 'succeeded'),
+      false,
+      'synthetic done after an error must not erase failure truth',
+    );
+  });
+
+  it('F010: mixed multi-cat execution remains succeeded when a sibling produced output', async () => {
+    deps.invocationTracker.has.mock.mockImplementation(() => false);
+    deps.router.resolveTargetsAndIntent.mock.mockImplementation(async () => ({
+      targetCats: ['opus', 'codex'],
+      intent: { intent: 'execute' },
+    }));
+    deps.router.routeExecution.mock.mockImplementation(async function* () {
+      yield { type: 'error', catId: 'opus', error: 'provider unavailable', timestamp: Date.now() };
+      yield { type: 'done', catId: 'opus', timestamp: Date.now() };
+      yield { type: 'text', catId: 'codex', content: 'usable sibling reply', timestamp: Date.now() };
+      yield { type: 'done', catId: 'codex', timestamp: Date.now() };
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/messages',
+      headers: { 'x-cat-cafe-user': 'user-1', 'content-type': 'application/json' },
+      payload: { content: '@opus @codex mixed result', threadId: 'thread-1', deliveryMode: 'immediate' },
+    });
+    assert.equal(res.statusCode, 200);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const updates = deps.invocationRecordStore.update.mock.calls;
+    assert.ok(updates.some((call) => call.arguments[1]?.status === 'succeeded'));
+    assert.equal(
+      updates.some(
+        (call) =>
+          call.arguments[1]?.status === 'failed' &&
+          String(call.arguments[1]?.error).startsWith('PROVIDER_EXECUTION_FAILED'),
+      ),
+      false,
+      'a usable sibling reply must not trigger whole-batch retry duplication',
+    );
+  });
+
   it('F148 fix: abort after partial completion still acks collected cursors', async () => {
     const controller = new AbortController();
 

@@ -10,6 +10,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { InvocationQueue } from '../domains/cats/services/agents/invocation/InvocationQueue.js';
 import type { InvocationTracker } from '../domains/cats/services/agents/invocation/InvocationTracker.js';
+import { RouteExecutionOutcomeTracker } from '../domains/cats/services/agents/invocation/route-execution-outcome.js';
 import { stampVisibleTurn } from '../domains/cats/services/agents/invocation/visible-turn.js';
 import { resolveCatTarget } from '../domains/cats/services/agents/routing/cat-target-resolver.js';
 import {
@@ -172,7 +173,10 @@ function dispatchViaQueue(
           return;
         }
         const finalResponse = responseText || (status === 'failed' ? '[dispatch error]' : '');
-        const newStatus = orch.recordResponse(requestId, catId, finalResponse);
+        const newStatus =
+          status === 'failed'
+            ? orch.recordFailure(requestId, catId, finalResponse)
+            : orch.recordResponse(requestId, catId, finalResponse);
         log.info(
           { requestId, catId, newStatus, responseLength: finalResponse.length },
           '[F122B B6] multi-mention queue response recorded',
@@ -250,6 +254,7 @@ async function dispatchToTarget(
     orch.registerDispatch(requestId, targetCatId, controller);
 
     let governanceErrorCode: string | undefined;
+    const executionOutcome = new RouteExecutionOutcomeTracker();
 
     try {
       // #768: Defer intent_mode broadcast until CLI produces first event.
@@ -270,6 +275,7 @@ async function dispatchToTarget(
           frustrationAutoIssueEligible: false,
         },
       )) {
+        executionOutcome.observe(msg);
         // #768: Broadcast intent_mode on first CLI event — proves CLI is alive.
         if (!intentModeBroadcast) {
           socketManager.broadcastToRoom(`thread:${threadId}`, 'intent_mode', {
@@ -302,22 +308,36 @@ async function dispatchToTarget(
         ? 'canceled'
         : governanceErrorCode
           ? 'failed'
-          : 'succeeded';
+          : executionOutcome.failed
+            ? 'failed'
+            : 'succeeded';
       await invocationRecordStore.update(invocationId, {
         status: finalInvocationStatus,
-        ...(governanceErrorCode ? { error: governanceErrorCode } : {}),
+        ...(governanceErrorCode
+          ? { error: governanceErrorCode }
+          : executionOutcome.failed
+            ? { error: executionOutcome.errorCode }
+            : {}),
       });
     } finally {
       orch.unregisterDispatch(requestId, targetCatId);
     }
 
-    // If aborted or governance-blocked, do NOT record response
-    // or flush result — the partial/empty text would produce a misleading summary.
-    if (controller.signal.aborted || governanceErrorCode) {
-      log.info(
-        { requestId, targetCatId, governanceErrorCode },
-        '[F086] Multi-mention dispatch aborted/blocked, skipping recordResponse',
-      );
+    // Cancellation may still be resumed before the request timeout, so it remains absent from the
+    // aggregate. Known governance/provider failures are terminal and must be recorded immediately.
+    if (controller.signal.aborted) {
+      log.info({ requestId, targetCatId }, '[F086] Multi-mention dispatch aborted, skipping terminal response');
+      return;
+    }
+
+    const terminalErrorCode = governanceErrorCode ?? executionOutcome.errorCode;
+    if (terminalErrorCode) {
+      const newStatus = orch.recordFailure(requestId, targetCatId, terminalErrorCode);
+      log.info({ requestId, targetCatId, newStatus, terminalErrorCode }, '[F086] Multi-mention failure recorded');
+      if (newStatus === 'done') {
+        cancelTimeout(requestId);
+        await flushResult(deps, requestId, threadId, userId, log);
+      }
       return;
     }
 
@@ -361,12 +381,16 @@ async function dispatchToTarget(
         );
       }
     }
-    // Record failure response in orchestrator
-    orch.recordResponse(
+    // Record failure response in orchestrator and flush once every target is accounted for.
+    const newStatus = orch.recordFailure(
       requestId,
       targetCatId,
       `[dispatch error: ${err instanceof Error ? err.message : String(err)}]`,
     );
+    if (newStatus === 'done') {
+      cancelTimeout(requestId);
+      await flushResult(deps, requestId, threadId, userId, log);
+    }
   } finally {
     // F122 AC-A7: unconditional slot release — covers early return, registerDispatch
     // throw, routeExecution crash, and normal completion. InvocationTracker.complete()

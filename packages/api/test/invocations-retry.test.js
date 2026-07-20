@@ -117,6 +117,42 @@ describe('POST /api/invocations/:id/retry (ADR-008 S2)', () => {
     assert.equal(record.status, 'succeeded');
   });
 
+  it('F010: retry that only emits provider error remains failed', async () => {
+    const router = createMockRouter();
+    router.routeExecution = async function* () {
+      yield { type: 'error', catId: 'opus', error: 'provider quota exhausted', timestamp: Date.now() };
+      yield { type: 'done', catId: 'opus', timestamp: Date.now() };
+    };
+    const { app, invocationRecordStore, invocationId } = await setupRetryScenario(router);
+
+    const res = await app.inject({ method: 'POST', url: `/api/invocations/${invocationId}/retry` });
+    assert.equal(res.statusCode, 202);
+    await new Promise((r) => setTimeout(r, 100));
+
+    const record = invocationRecordStore.get(invocationId);
+    assert.equal(record.status, 'failed');
+    assert.equal(record.error, 'PROVIDER_EXECUTION_FAILED:opus');
+    await app.close();
+  });
+
+  it('F010: cancellation takes precedence over a buffered provider error during retry shutdown', async () => {
+    const tracker = new InvocationTracker();
+    const router = createMockRouter();
+    router.routeExecution = async function* (_userId, _msg, threadId) {
+      tracker.cancelAll(threadId, undefined, 'cancel_all');
+      yield { type: 'error', catId: 'opus', error: 'provider disconnected', timestamp: Date.now() };
+      yield { type: 'done', catId: 'opus', timestamp: Date.now() };
+    };
+    const { app, invocationRecordStore, invocationId } = await setupRetryScenario(router, tracker);
+
+    const res = await app.inject({ method: 'POST', url: `/api/invocations/${invocationId}/retry` });
+    assert.equal(res.statusCode, 202);
+    await new Promise((r) => setTimeout(r, 100));
+
+    assert.equal(invocationRecordStore.get(invocationId).status, 'canceled');
+    await app.close();
+  });
+
   it('cloud-#7: retry passes signalForCat (startAll caller parity — per-cat cancel observable)', async () => {
     // After the batchController split, controller.signal is the batch gate; a single-cat cancel
     // aborts only that cat's slot controller. The retry path must pass signalForCat so the route

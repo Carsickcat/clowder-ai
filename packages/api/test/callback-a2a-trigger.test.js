@@ -486,6 +486,7 @@ describe('triggerA2AInvocation (fallback path)', () => {
     const { triggerA2AInvocation } = await import('../dist/routes/callback-a2a-trigger.js');
 
     const completions = [];
+    const updates = [];
     const mockQueueProcessor = {
       async onInvocationComplete(threadId, catId, status) {
         completions.push({ threadId, catId, status });
@@ -496,7 +497,9 @@ describe('triggerA2AInvocation (fallback path)', () => {
       create() {
         return { outcome: 'created', invocationId: 'inv-q2' };
       },
-      update() {},
+      update(id, data) {
+        updates.push({ id, data });
+      },
     };
 
     const mockInvocationTracker = {
@@ -518,7 +521,8 @@ describe('triggerA2AInvocation (fallback path)', () => {
 
     const mockRouter = {
       async *routeExecution() {
-        throw new Error('simulated failure');
+        yield { type: 'error', catId: 'codex', error: 'provider quota exhausted', timestamp: Date.now() };
+        yield { type: 'done', catId: 'codex', timestamp: Date.now() };
       },
     };
 
@@ -560,6 +564,11 @@ describe('triggerA2AInvocation (fallback path)', () => {
     assert.equal(completions.length, 1, 'onInvocationComplete must be called on error');
     assert.equal(completions[0].threadId, 't-queue-err');
     assert.equal(completions[0].status, 'failed');
+    assert.ok(
+      updates.some(
+        (update) => update.data.status === 'failed' && update.data.error === 'PROVIDER_EXECUTION_FAILED:codex',
+      ),
+    );
   });
 
   test('calls queueProcessor.onInvocationComplete with canceled on abort', async () => {

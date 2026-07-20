@@ -46,6 +46,14 @@ const IS_WINDOWS = process.platform === 'win32';
 const STREAM_ERROR_MAX_ENTRIES = 50;
 const STREAM_ERROR_MAX_CHARS = 16384;
 
+function collectBoundedDiagnosticText(text: string, sink: string[]): void {
+  if (!text || sink.length >= STREAM_ERROR_MAX_ENTRIES) return;
+  let currentChars = 0;
+  for (const value of sink) currentChars += value.length;
+  if (currentChars >= STREAM_ERROR_MAX_CHARS) return;
+  sink.push(text.slice(0, STREAM_ERROR_MAX_CHARS - currentChars));
+}
+
 export function maybeCollectStreamError(value: unknown, sink: string[], structuredSink?: string[]): void {
   if (typeof value !== 'object' || value === null) return;
   const evt = value as Record<string, unknown>;
@@ -284,6 +292,9 @@ export async function* spawnCli(
 
   // F212 AC-A8: collect NDJSON stream error event payloads alongside stderr
   const streamErrorTexts: string[] = [];
+  // Malformed provider stdout can still carry the only useful error semantic (Kimi emits its
+  // quota 403 this way). It is classification-only and never an automatically trusted excerpt.
+  const nonJsonDiagnosticTexts: string[] = [];
   // F212 Phase D (AC-D3): CC structured result error friendly messages (errors[]/result),
   // surfaced when reasonCode is unknown so the panel shows "Claude Code 报告：<cause>" not "未识别".
   const structuredErrorTexts: string[] = [];
@@ -564,6 +575,7 @@ export async function* spawnCli(
         if (isParseError(value)) {
           const parseErr = value as { line: string };
           log.warn({ command: options.command, line: parseErr.line }, 'CLI non-JSON output');
+          collectBoundedDiagnosticText(parseErr.line, nonJsonDiagnosticTexts);
           yield value;
           pendingNext = ndjson.next();
           continue;
@@ -657,12 +669,14 @@ export async function* spawnCli(
     if (!semanticDone && !killed && !isWindowsLibuvCrash && (exitCode !== 0 || exitSignal !== null)) {
       // F212 AC-A1 + AC-A8: build structured diagnostics from BOTH stderr and stream error events.
       // Stream errors (NDJSON `{type:"error"}`) often carry the real semantic (Codex code 1 case).
-      const rawText = [...streamErrorTexts, stderrBuffer].filter(Boolean).join('\n');
+      const rawText = [...streamErrorTexts, ...nonJsonDiagnosticTexts, stderrBuffer].filter(Boolean).join('\n');
+      const publicExcerptText = [...streamErrorTexts, stderrBuffer].filter(Boolean).join('\n');
       // F212 Phase F (AC-F4/F5): pass stderrEmpty so buildCliDiagnostics can pick the
       // honest unknown-fallback hint (empty → "no stderr produced" vs non-empty → env-summary).
       const stderrTrimLen = stderrBuffer.trim().length;
       const cliDiagnostics: CliDiagnostics = buildCliDiagnostics({
         rawText,
+        ...(nonJsonDiagnosticTexts.length > 0 ? { safeExcerptRawText: publicExcerptText } : {}),
         structuredErrorText: structuredErrorTexts.filter(Boolean).join('\n'),
         stderrEmpty: stderrTrimLen === 0,
         debugRef: {
@@ -748,10 +762,12 @@ export async function* spawnCli(
       // unknown classifier falls back to the legacy UNKNOWN_TEXT hint that points at
       // LOG_CLI_STDERR=1, exactly the dead-end UX Phase F was meant to kill. Same fix as the
       // abnormal-exit branch (same template, same gap).
-      const rawText = [...streamErrorTexts, stderrBuffer].filter(Boolean).join('\n');
+      const rawText = [...streamErrorTexts, ...nonJsonDiagnosticTexts, stderrBuffer].filter(Boolean).join('\n');
+      const publicExcerptText = [...streamErrorTexts, stderrBuffer].filter(Boolean).join('\n');
       const timeoutStderrTrimLen = stderrBuffer.trim().length;
       const cliDiagnostics: CliDiagnostics = buildCliDiagnostics({
         rawText,
+        ...(nonJsonDiagnosticTexts.length > 0 ? { safeExcerptRawText: publicExcerptText } : {}),
         structuredErrorText: structuredErrorTexts.filter(Boolean).join('\n'),
         stderrEmpty: timeoutStderrTrimLen === 0,
         debugRef: {

@@ -39,6 +39,7 @@ import type {
   SessionContinuationCoordinatorLike,
 } from '../domains/cats/services/agents/invocation/QueueProcessor.js';
 import { reconcileZombies } from '../domains/cats/services/agents/invocation/reconcileZombies.js';
+import { RouteExecutionOutcomeTracker } from '../domains/cats/services/agents/invocation/route-execution-outcome.js';
 import type { ConsumedContinuationToken } from '../domains/cats/services/agents/invocation/SessionContinuationCoordinator.js';
 import type { TaskProgressStore } from '../domains/cats/services/agents/invocation/TaskProgressStore.js';
 import { stampVisibleTurn } from '../domains/cats/services/agents/invocation/visible-turn.js';
@@ -1319,6 +1320,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
           let intentModeBroadcast = false;
           // P1-2: track persistence failures across generator boundary
           const persistenceContext: PersistenceContext = { failed: false, errors: [] };
+          const executionOutcome = new RouteExecutionOutcomeTracker();
           // F8: collect per-cat token usage from done events
           const collectedUsage = new Map<string, TokenUsage>();
           // F070: track governance block errorCode for recoverable failure marking
@@ -1444,6 +1446,7 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
               frustrationAutoIssueEligible: true,
             },
           )) {
+            executionOutcome.observe(msg);
             if (!firstRouteEventSeen) {
               firstRouteEventSeen = true;
               clearStartupWatchdog();
@@ -1634,6 +1637,12 @@ export const messagesRoutes: FastifyPluginAsync<MessagesRoutesOptions> = async (
             await opts.invocationRecordStore?.update(createResult.invocationId, {
               status: 'failed',
               error: governanceErrorCode,
+            });
+            await cleanupStreamingOnFailure(resolvedThreadId, createResult.invocationId, streamStartPromise, opts, log);
+          } else if (executionOutcome.failed) {
+            await opts.invocationRecordStore?.update(createResult.invocationId, {
+              status: 'failed',
+              error: executionOutcome.errorCode,
             });
             await cleanupStreamingOnFailure(resolvedThreadId, createResult.invocationId, streamStartPromise, opts, log);
           } else {

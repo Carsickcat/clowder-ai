@@ -1923,6 +1923,28 @@ test('F212 AC-A8: NDJSON stream error event triggers cliDiagnostics.reasonCode',
   assert.equal(err.cliDiagnostics.reasonCode, 'model_not_found');
 });
 
+test('F010: fragmented non-JSON Kimi quota output is classified without exposing malformed stdout', async () => {
+  const proc = createMockProcess({ exitOnKill: false });
+  const spawnFn = createMockSpawnFn(proc);
+
+  const promise = collect(spawnCli({ command: 'kimi-cli', args: [], invocationId: 'inv-kimi-quota' }, { spawnFn }));
+  proc.stdout.write("Error code: 403 - {'error': {'message': \"You've reached your usage limit for th\n");
+  proc.stdout.write('is billing cycle. Your quota will be refreshed in the next cycle.\n');
+  proc.stdout.write('To continue now, purchase extra usage or upgrade your plan"}}\n');
+  proc.stdout.end();
+  proc._emitter.emit('exit', 1, null);
+
+  const results = await promise;
+  const err = results.find((r) => r?.__cliError);
+  assert.ok(err, 'non-zero exit should yield a CLI error');
+  assert.equal(err.cliDiagnostics.reasonCode, 'quota_exceeded');
+  assert.equal(
+    err.cliDiagnostics.safeExcerpt,
+    undefined,
+    'malformed stdout may drive classification but must not become a public excerpt',
+  );
+});
+
 // =============================================================================
 // F212 Phase F — Empty-stderr observability follow-up (砚砚 catch + operator 2026-05-30)
 // =============================================================================

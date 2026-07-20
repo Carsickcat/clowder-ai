@@ -308,6 +308,41 @@ describe('ConnectorInvokeTrigger', () => {
     assert.strictEqual(lastUpdate.data.status, 'succeeded');
   });
 
+  it('F010: error-only connector execution is failed instead of succeeded', async () => {
+    routerMock.router.routeExecution = async function* (_userId, _message, _threadId, _messageId, targetCats) {
+      yield { type: 'error', catId: targetCats[0], error: 'provider quota exhausted', timestamp: Date.now() };
+      yield { type: 'done', catId: targetCats[0], timestamp: Date.now() };
+    };
+    const trigger = createTrigger();
+    trigger.trigger('thread-1', /** @type {any} */ ('opus'), 'user-1', 'msg', 'msg-provider-failure');
+    await waitForTrigger();
+
+    assert.ok(
+      recordMock.updates.some(
+        (update) => update.data.status === 'failed' && update.data.error === 'PROVIDER_EXECUTION_FAILED:opus',
+      ),
+    );
+    assert.equal(
+      recordMock.updates.some((update) => update.data.status === 'succeeded'),
+      false,
+    );
+    assert.equal(routerMock.ackCalls.length, 0, 'failed provider input cursor must remain retryable');
+  });
+
+  it('F010: provider failure keeps target attribution without a duplicate generic broadcast', async () => {
+    routerMock.router.routeExecution = async function* (_userId, _message, _threadId, _messageId, targetCats) {
+      yield { type: 'error', catId: targetCats[0], error: 'provider quota exhausted', timestamp: Date.now() };
+      yield { type: 'done', catId: targetCats[0], timestamp: Date.now() };
+    };
+    const trigger = createTrigger();
+    trigger.trigger('thread-1', /** @type {any} */ ('sonnet'), 'user-1', 'msg', 'msg-provider-attribution');
+    await waitForTrigger();
+
+    const errorBroadcasts = socketMock.broadcasts.filter((entry) => entry.msg.type === 'error');
+    assert.strictEqual(errorBroadcasts.length, 1);
+    assert.strictEqual(errorBroadcasts[0].msg.catId, 'sonnet');
+  });
+
   it('acks cursor boundaries on success', async () => {
     const trigger = createTrigger();
     trigger.trigger('thread-1', /** @type {any} */ ('opus'), 'user-1', 'msg', 'msg-1');

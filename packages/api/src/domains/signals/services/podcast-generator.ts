@@ -2,6 +2,7 @@ import { unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CatId, StudyArtifact } from '@cat-cafe/shared';
 import { createModuleLogger } from '../../../infrastructure/logger.js';
+import { RouteExecutionOutcomeTracker } from '../../cats/services/agents/invocation/route-execution-outcome.js';
 import { ClaudeAgentService } from '../../cats/services/agents/providers/ClaudeAgentService.js';
 import type { AgentRouter } from '../../cats/services/agents/routing/AgentRouter.js';
 import type { InvocationTracker } from '../../cats/services/index.js';
@@ -173,6 +174,7 @@ export async function generateScriptViaThread(
   // ④ Route execution and collect text response
   const intent = { intent: 'execute' as const, explicit: false, promptTags: [] as string[] };
   let fullText = '';
+  const executionOutcome = new RouteExecutionOutcomeTracker();
 
   try {
     await deps.invocationRecordStore.update(createResult.invocationId, { status: 'running' });
@@ -193,10 +195,13 @@ export async function generateScriptViaThread(
         verdictPassWarningEnabled: false,
       },
     )) {
+      executionOutcome.observe(msg);
       if (msg.type === 'text' && msg.content) {
         fullText += msg.content;
       }
     }
+
+    if (executionOutcome.failed) throw new Error(executionOutcome.errorCode);
 
     await deps.invocationRecordStore.update(createResult.invocationId, { status: 'succeeded' });
   } catch (err) {

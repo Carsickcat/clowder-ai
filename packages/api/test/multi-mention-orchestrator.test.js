@@ -336,6 +336,26 @@ describe('MultiMentionOrchestrator', () => {
     assert.equal(orch.getStatus(req.id), 'failed');
   });
 
+  test('recordFailure accounts for a failed target without waiting for timeout', () => {
+    const req = orch.create({
+      threadId: 'thread1',
+      initiator,
+      callbackTo: initiator,
+      targets: [catA],
+      question: 'test',
+      timeoutMinutes: 8,
+    });
+    orch.start(req.id);
+
+    const status = orch.recordFailure(req.id, catA, 'PROVIDER_EXECUTION_FAILED:codex');
+    const [response] = orch.getResult(req.id).responses;
+
+    assert.equal(status, 'done');
+    assert.equal(response.catId, catA);
+    assert.equal(response.content, 'PROVIDER_EXECUTION_FAILED:codex');
+    assert.equal(response.status, 'failed');
+  });
+
   // ── findByThread ────────────────────────────────────────────────
 
   // ── dispatch controller tracking (P1-1 / P1-2 fix) ────────────

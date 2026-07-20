@@ -24,6 +24,7 @@ import {
   isCollaborationContinuityCapsuleV1,
 } from './CollaborationContinuityCapsule.js';
 import type { InvocationQueue, QueueEntry } from './InvocationQueue.js';
+import { RouteExecutionOutcomeTracker } from './route-execution-outcome.js';
 import {
   type CommitInvocationInput,
   type ConsumedContinuationToken,
@@ -1177,7 +1178,12 @@ export class QueueProcessor {
       }
 
       // 7. Route execution
-      const persistenceContext: { richBlocks?: Array<{ kind: string; [key: string]: unknown }> } = {};
+      const persistenceContext: {
+        failed: boolean;
+        errors: Array<{ catId: string; error: string }>;
+        richBlocks?: Array<{ kind: string; [key: string]: unknown }>;
+      } = { failed: false, errors: [] };
+      const executionOutcome = new RouteExecutionOutcomeTracker();
       const collectedTextParts: string[] = [];
       // #845 fix: per-cat token usage from done events (same pattern as messages.ts / ConnectorInvokeTrigger).
       // Without this, queued/connector invocations succeed without writing usageByCat, leaving 159+ orphans
@@ -1296,6 +1302,7 @@ export class QueueProcessor {
           verdictPassWarningEnabled: entry.source !== 'connector',
         },
       )) {
+        executionOutcome.observe(msg);
         if (controller.signal.aborted) {
           break;
         }
@@ -1466,6 +1473,23 @@ export class QueueProcessor {
         return finalStatus;
       }
 
+      if (persistenceContext.failed) {
+        const errorDetail = persistenceContext.errors.map((error) => `${error.catId}: ${error.error}`).join('; ');
+        await invocationRecordStore.update(invocationId, {
+          status: 'failed',
+          error: `Message delivered but persistence failed: ${errorDetail}`,
+        });
+        for (const batchedInvocationId of batchedInvocationIds) {
+          await invocationRecordStore.update(batchedInvocationId, {
+            status: 'failed',
+            error: `Message delivered but persistence failed: ${errorDetail}`,
+          });
+        }
+        finalStatus = 'failed';
+        await this.cleanupStreamingOnFailure(threadId, invocationId, streamStartPromise, log);
+        return 'failed';
+      }
+
       if (governanceErrorCode) {
         await invocationRecordStore.update(invocationId, {
           status: 'failed',
@@ -1475,6 +1499,22 @@ export class QueueProcessor {
           await invocationRecordStore.update(batchedInvocationId, {
             status: 'failed',
             error: governanceErrorCode,
+          });
+        }
+        finalStatus = 'failed';
+        await this.cleanupStreamingOnFailure(threadId, invocationId, streamStartPromise, log);
+        return 'failed';
+      }
+
+      if (executionOutcome.failed) {
+        await invocationRecordStore.update(invocationId, {
+          status: 'failed',
+          error: executionOutcome.errorCode,
+        });
+        for (const batchedInvocationId of batchedInvocationIds) {
+          await invocationRecordStore.update(batchedInvocationId, {
+            status: 'failed',
+            error: executionOutcome.errorCode,
           });
         }
         finalStatus = 'failed';

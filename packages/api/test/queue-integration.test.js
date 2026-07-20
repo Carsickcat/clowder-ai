@@ -226,6 +226,37 @@ describe('Queue Integration (E2E scenarios)', () => {
     assert.strictEqual(queue.list('thread-1', 'user-1').length, 0);
   });
 
+  it('F010: queued error-only execution records failure instead of success', async () => {
+    routerMock.router.routeExecution = async function* (_userId, _message, _threadId, _messageId, targetCats) {
+      yield { type: 'error', catId: targetCats[0], error: 'provider quota exhausted', timestamp: Date.now() };
+      yield { type: 'done', catId: targetCats[0], timestamp: Date.now() };
+    };
+    const queued = queue.enqueue({
+      threadId: 'thread-provider-failure',
+      userId: 'user-1',
+      content: 'run provider failure',
+      source: 'user',
+      targetCats: ['opus'],
+      intent: 'execute',
+    });
+    assert.strictEqual(queued.outcome, 'enqueued');
+
+    await processor.processNext('thread-provider-failure', 'user-1');
+    await settle();
+
+    assert.ok(
+      recordMock.updates.some(
+        (update) => update.data.status === 'failed' && update.data.error === 'PROVIDER_EXECUTION_FAILED:opus',
+      ),
+      'queue parent record should expose the terminal provider failure',
+    );
+    assert.equal(
+      recordMock.updates.some((update) => update.data.status === 'succeeded'),
+      false,
+      'queue must not erase provider failure with a succeeded update',
+    );
+  });
+
   it('E2E: cancel → queue paused → processNext → resumes', async () => {
     // 1. Enqueue a message
     trackerMock.setActive('thread-1');

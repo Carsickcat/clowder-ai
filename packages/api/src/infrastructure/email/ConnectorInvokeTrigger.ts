@@ -15,6 +15,7 @@ import { getDefaultCatId } from '../../config/cat-config-loader.js';
 import type { InvocationQueue } from '../../domains/cats/services/agents/invocation/InvocationQueue.js';
 import type { InvocationTracker } from '../../domains/cats/services/agents/invocation/InvocationTracker.js';
 import type { QueueProcessor } from '../../domains/cats/services/agents/invocation/QueueProcessor.js';
+import { RouteExecutionOutcomeTracker } from '../../domains/cats/services/agents/invocation/route-execution-outcome.js';
 import { stampVisibleTurn } from '../../domains/cats/services/agents/invocation/visible-turn.js';
 import type { AgentRouter } from '../../domains/cats/services/agents/routing/AgentRouter.js';
 import type { PersistenceContext } from '../../domains/cats/services/agents/routing/route-helpers.js';
@@ -277,6 +278,7 @@ export class ConnectorInvokeTrigger {
     // R4 fix: hoist above try so catch can await it for correct failure cleanup
     // (onStreamEnd → cleanupPlaceholders, per messages.ts cleanupStreamingOnFailure).
     let streamStartPromise: Promise<void> | undefined;
+    let providerFailureCode: string | undefined;
 
     try {
       // ① Atomic create InvocationRecord (inside try so finally releases controller on throw)
@@ -323,6 +325,7 @@ export class ConnectorInvokeTrigger {
       // ④ Run routeExecution and broadcast each agent message
       const cursorBoundaries = new Map<string, string>();
       const persistenceContext: PersistenceContext = { failed: false, errors: [] };
+      const executionOutcome = new RouteExecutionOutcomeTracker();
       const collectedUsage = new Map<string, TokenUsage>();
       const collectedTextParts: string[] = [];
 
@@ -387,6 +390,7 @@ export class ConnectorInvokeTrigger {
         // #949 P2: Connector-sourced flows have no ball-pass expectation — suppress verdict warning
         verdictPassWarningEnabled: false,
       })) {
+        executionOutcome.observe(msg);
         // #768: Broadcast intent_mode on first CLI event — proves CLI is alive.
         if (!intentModeBroadcast) {
           socketManager.broadcastToRoom(`thread:${threadId}`, 'intent_mode', {
@@ -497,6 +501,9 @@ export class ConnectorInvokeTrigger {
           status: 'failed',
           error: `Connector invoke: message delivered but persistence failed: ${errorDetail}`,
         });
+      } else if (executionOutcome.failed) {
+        providerFailureCode = executionOutcome.errorCode ?? 'PROVIDER_EXECUTION_FAILED:unknown';
+        throw new Error(providerFailureCode);
       } else {
         await router.ackCollectedCursors(userId, threadId, cursorBoundaries);
         await invocationRecordStore.update(createResult.invocationId, {
@@ -729,16 +736,20 @@ export class ConnectorInvokeTrigger {
         }
       }
 
-      socketManager.broadcastAgentMessage(
-        {
-          type: 'error',
-          catId: getDefaultCatId(),
-          error: `Connector invoke failed: ${errorMsg}`,
-          isFinal: true,
-          timestamp: Date.now(),
-        },
-        threadId,
-      );
+      // Provider error events were already broadcast with the real target cat while consuming the
+      // route stream. Only unexpected exceptions need a synthesized terminal error.
+      if (!providerFailureCode) {
+        socketManager.broadcastAgentMessage(
+          {
+            type: 'error',
+            catId,
+            error: `Connector invoke failed: ${errorMsg}`,
+            isFinal: true,
+            timestamp: Date.now(),
+          },
+          threadId,
+        );
+      }
 
       // R4 fix (#873): correct failure cleanup — onStreamEnd transitions sessions
       // from active → pendingCleanup; cleanupPlaceholders alone is a no-op on active

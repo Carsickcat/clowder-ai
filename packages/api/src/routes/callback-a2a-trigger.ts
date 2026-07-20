@@ -17,6 +17,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import { getDefaultCatId } from '../config/cat-config-loader.js';
 import type { InvocationQueue } from '../domains/cats/services/agents/invocation/InvocationQueue.js';
 import type { InvocationTracker } from '../domains/cats/services/agents/invocation/InvocationTracker.js';
+import { RouteExecutionOutcomeTracker } from '../domains/cats/services/agents/invocation/route-execution-outcome.js';
 import { stampVisibleTurn } from '../domains/cats/services/agents/invocation/visible-turn.js';
 import {
   getWorklist,
@@ -580,6 +581,7 @@ export async function triggerA2AInvocation(
 
       // F070: track governance block errorCode for recoverable failure marking
       let governanceErrorCode: string | undefined;
+      const executionOutcome = new RouteExecutionOutcomeTracker();
 
       for await (const msg of router.routeExecution(userId, content, threadId, triggerMessage.id, targetCats, intent, {
         ...(controller?.signal ? { signal: controller.signal } : {}),
@@ -589,6 +591,7 @@ export async function triggerA2AInvocation(
         // F222 P1: A2A direct execution is not user-origin — suppress frustration detection
         frustrationAutoIssueEligible: false,
       })) {
+        executionOutcome.observe(msg);
         // #768: Broadcast intent_mode on first CLI event — proves CLI is alive.
         if (!intentModeBroadcast) {
           socketManager.broadcastToRoom(`thread:${threadId}`, 'intent_mode', {
@@ -621,6 +624,12 @@ export async function triggerA2AInvocation(
         await invocationRecordStore.update(createResult.invocationId, {
           status: 'failed',
           error: governanceErrorCode,
+        });
+      } else if (executionOutcome.failed) {
+        finalStatus = 'failed';
+        await invocationRecordStore.update(createResult.invocationId, {
+          status: 'failed',
+          error: executionOutcome.errorCode,
         });
       } else {
         await invocationRecordStore.update(createResult.invocationId, {

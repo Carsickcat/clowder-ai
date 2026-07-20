@@ -281,6 +281,38 @@ describe('Multi-Mention Routes', () => {
     assert.ok(executions.some((e) => e.targetCats[0] === 'gemini'));
   });
 
+  test('F010: error-only target records provider failure instead of an empty response', async () => {
+    mockRouter.routeExecution = async function* (_userId, _message, _threadId, _invId, targetCats) {
+      const catId = targetCats[0];
+      yield { type: 'error', catId, error: 'provider quota exhausted', timestamp: Date.now() };
+      yield { type: 'done', catId, timestamp: Date.now() };
+    };
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/callbacks/multi-mention',
+      headers: { 'x-invocation-id': creds.invocationId, 'x-callback-token': creds.callbackToken },
+      payload: { targets: ['codex'], question: 'provider failure', callbackTo: 'opus' },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    assert.ok(
+      mockInvocationRecordStore
+        .getUpdates()
+        .some((entry) => entry.data.status === 'failed' && entry.data.error === 'PROVIDER_EXECUTION_FAILED:codex'),
+    );
+    assert.equal(
+      mockInvocationRecordStore.getUpdates().some((entry) => entry.data.status === 'succeeded'),
+      false,
+    );
+    const { getMultiMentionOrchestrator } = await import('../dist/routes/callback-multi-mention-routes.js');
+    const result = getMultiMentionOrchestrator().getResult(response.json().requestId);
+    assert.equal(result.request.status, 'done');
+    assert.equal(result.responses.length, 1);
+    assert.equal(result.responses[0].status, 'failed');
+    assert.ok(mockMessageStore.getMessages().some((message) => message.content?.includes('Multi-Mention')));
+  });
+
   test('broadcasts intent_mode and tracks active slots for dispatched targets', async () => {
     await app.inject({
       method: 'POST',

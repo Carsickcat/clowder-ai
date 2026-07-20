@@ -297,6 +297,7 @@ describe('B6: multi_mention queue dispatch', () => {
 
     assert.equal(orch.getStatus(requestId), 'done');
     const result = orch.getResult(requestId);
+    assert.equal(result.responses[0].status, 'failed');
     assert.ok(result.responses[0].content.includes('[dispatch error]'));
   });
 

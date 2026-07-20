@@ -205,6 +205,34 @@ describe('F091 Phase 6: generateScriptViaThread — real production function', (
     assert.equal(succeedUpdate, undefined, 'must NOT mark as succeeded on failure');
   });
 
+  it('F010: error-only thread generation rejects and records provider failure', async () => {
+    const { generateScriptViaThread } = await import('../dist/domains/signals/services/podcast-generator.js');
+    const callLog = [];
+    const failDeps = buildFakeDeps(callLog);
+    failDeps.router = {
+      async *routeExecution() {
+        callLog.push({ op: 'routeExecution' });
+        yield { type: 'error', catId: 'opus', error: 'provider quota exhausted' };
+        yield { type: 'done', catId: 'opus' };
+      },
+    };
+
+    await assert.rejects(() => generateScriptViaThread(makeRequest(), 'thread-provider-fail', failDeps), {
+      message: 'PROVIDER_EXECUTION_FAILED:opus',
+    });
+    assert.ok(
+      callLog.some(
+        (entry) =>
+          entry.op === 'update' && entry.status === 'failed' && entry.error === 'PROVIDER_EXECUTION_FAILED:opus',
+      ),
+    );
+    assert.equal(
+      callLog.some((entry) => entry.op === 'update' && entry.status === 'succeeded'),
+      false,
+    );
+    assert.ok(callLog.some((entry) => entry.op === 'tracker.complete'));
+  });
+
   it('returns parsed PodcastScript on success', async () => {
     const { generateScriptViaThread } = await import('../dist/domains/signals/services/podcast-generator.js');
     const callLog = [];
