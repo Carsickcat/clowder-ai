@@ -61,21 +61,29 @@ export async function* mergeStreams<T>(
     arm(i);
   }
 
-  while (pending.size > 0) {
-    const outcome = await Promise.race(pending.values());
+  try {
+    while (pending.size > 0) {
+      const outcome = await Promise.race(pending.values());
 
-    if (outcome.ok) {
-      const { index, result } = outcome.value;
-      if (result.done) {
-        pending.delete(index);
+      if (outcome.ok) {
+        const { index, result } = outcome.value;
+        if (result.done) {
+          pending.delete(index);
+        } else {
+          yield result.value;
+          arm(index); // Re-arm for next value
+        }
       } else {
-        yield result.value;
-        arm(index); // Re-arm for next value
+        const { index, error } = outcome.value;
+        pending.delete(index);
+        onError?.(index, error);
       }
-    } else {
-      const { index, error } = outcome.value;
-      pending.delete(index);
-      onError?.(index, error);
     }
+  } finally {
+    // A route can stop consuming as soon as its batch AbortSignal fires.  Propagate
+    // that return into every source so nested invocation generators reach their
+    // finally blocks and release their per-session mutexes before a later message
+    // attempts to resume the same CLI session.
+    await Promise.allSettled([...pending.keys()].map((index) => iterators[index]?.return?.()));
   }
 }

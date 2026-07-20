@@ -92,4 +92,23 @@ describe('mergeStreams', () => {
     assert.equal(result.length, 6);
     assert.deepEqual(result.sort(), [1, 2, 3, 4, 5, 6]);
   });
+
+  it('closes every started source when the consumer returns early', async () => {
+    const closed = [];
+    async function* held(value) {
+      try {
+        yield value;
+        await new Promise(() => {});
+      } finally {
+        closed.push(value);
+      }
+    }
+
+    const iterator = mergeStreams([held('first'), held('second')])[Symbol.asyncIterator]();
+    const first = await iterator.next();
+    assert.equal(first.done, false);
+
+    await iterator.return();
+    assert.deepEqual(closed.sort(), ['first', 'second']);
+  });
 });
