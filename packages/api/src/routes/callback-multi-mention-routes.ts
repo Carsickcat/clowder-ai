@@ -381,6 +381,12 @@ async function dispatchToTarget(
         );
       }
     }
+    // Cancellation owns terminal truth even when the provider/router throws while shutting down.
+    // Keep the target absent so the existing timeout/resume path can decide the aggregate outcome.
+    if (controller.signal.aborted) {
+      log.info({ requestId, targetCatId }, '[F086] Canceled multi-mention target omitted from aggregate');
+      return;
+    }
     // Record failure response in orchestrator and flush once every target is accounted for.
     const newStatus = orch.recordFailure(
       requestId,

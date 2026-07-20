@@ -19,7 +19,7 @@ This change repairs the third state across every parent `routeExecution` consume
 
 - RED: fragmented Kimi quota output classified as unknown; direct, queued, and retry error-only executions ended `succeeded`.
 - GREEN: shared parent outcome tracker applied to direct messages, retries, queue processing, connector dispatch, A2A callback, multi-mention callback, and podcast generation.
-- Affected route/orchestrator suites: **227/227 pass** across 21 suites.
+- Affected route/orchestrator suites: **228/228 pass** across 21 suites.
 - Complete `cli-spawn.test.js`: **75/75 runnable pass**, 4 expected Windows skips; the new fragmented-quota/privacy regression passes.
 
 ## Fresh-context findings resolved
@@ -30,6 +30,22 @@ The pre-review scan produced four P2 findings and no P1/P3. All four were reprod
 2. connector provider failures emitted a duplicate generic error attributed to the default cat; the original target-attributed provider event is now the single Socket error;
 3. retry cancellation lost precedence when a buffered provider error arrived during shutdown; aggregate cancellation is now resolved first;
 4. a synthetic-only sibling `done` hid another cat's provider failure; only substantive text/tool output counts as successful sibling output.
+
+## Formal review round 1
+
+Terra returned one P1 (`[FC:new]`): the direct multi-mention catch path wrote the
+InvocationRecord as `canceled` but then unconditionally recorded and flushed an aggregate
+failure when the provider/router threw during cancellation.
+
+- RED: the new route-level regression observed `status: done` and a flushed aggregate after
+  the target controller was aborted.
+- GREEN: an aborted catch now returns after the best-effort canceled record update; `finally`
+  still releases the tracker slot, while the target remains absent for the existing
+  timeout/resume policy.
+- Focused route suite: **21/21 pass**.
+- Failure-mode sweep: all new/modified cancellation-versus-failure convergence points were
+  scanned. Retry, messages, A2A, queue post-loop, and the normal multi-mention path already
+  resolve cancellation first; this catch was the only missing branch in the current delta.
 
 ## Fresh verification ledger
 
@@ -44,6 +60,11 @@ The pre-review scan produced four P2 findings and no P1/P3. All four were reprod
 | `pnpm check` | BASELINE/PLATFORM RED before semantic checks: 3,781 repository-wide CRLF formatter differences, including untouched root files |
 | `pnpm test` | PLATFORM RED in the API package wrapper: Windows `cmd` cannot execute the Unix-style inline `CAT_CAFE_DISABLE_SHARED_STATE_PREFLIGHT=1` assignment |
 | Direct full API test command | INCONCLUSIVE at the 10-minute harness limit: no assertion summary; hook/preview/start-dev child tests remained active. The exact test tree was stopped, its untracked `.claude/` artifact removed, and isolated Redis `4879` stopped with `SAVE`. Product Redis and live services were untouched. |
+
+The review-delta recheck also confirmed that `check:architecture-ownership`,
+`scripts/check-hotfix-pattern.mjs`, and `scripts/check-fallback-layers.mjs` do not exist in this
+snapshot. Manual diff inspection found one new cancellation guard and no fallback-layer growth;
+architecture ownership remains the existing `dispatch` cell with `Map delta: none`.
 
 The repository-wide reds are not hidden or relabeled green. The affected functional surface, full CLI-spawn suite, TypeScript lint, and builds are green.
 

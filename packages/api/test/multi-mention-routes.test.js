@@ -675,6 +675,84 @@ describe('Multi-Mention Routes', () => {
     await crashApp.close();
   });
 
+  test('cancellation wins when target execution throws after its controller is aborted', async () => {
+    resetMultiMentionOrchestrator();
+
+    const controller = new AbortController();
+    const cancelTracker = {
+      start() {
+        return controller;
+      },
+      complete() {},
+    };
+    const cancelThrowRouter = {
+      routeExecution() {
+        return {
+          [Symbol.asyncIterator]() {
+            return this;
+          },
+          async next() {
+            controller.abort('user_canceled');
+            throw new Error('provider stream closed during cancellation');
+          },
+        };
+      },
+    };
+
+    const cancelApp = Fastify({ logger: false });
+    registerCallbackAuthHook(cancelApp, mockRegistry);
+    const { registerMultiMentionRoutes } = await import('../dist/routes/callback-multi-mention-routes.js');
+    registerMultiMentionRoutes(cancelApp, {
+      registry: mockRegistry,
+      messageStore: mockMessageStore,
+      socketManager: mockSocket,
+      router: cancelThrowRouter,
+      invocationRecordStore: mockInvocationRecordStore,
+      invocationTracker: cancelTracker,
+    });
+    await cancelApp.ready();
+
+    const cancelCreds = mockRegistry.register('opus', 'thread-cancel-throw', 'user-1');
+    const createRes = await cancelApp.inject({
+      method: 'POST',
+      url: '/api/callbacks/multi-mention',
+      headers: { 'x-invocation-id': cancelCreds.invocationId, 'x-callback-token': cancelCreds.callbackToken },
+      payload: {
+        targets: ['codex'],
+        question: 'Cancel while provider is throwing',
+        callbackTo: 'opus',
+      },
+    });
+
+    assert.equal(createRes.statusCode, 200);
+    const { requestId } = JSON.parse(createRes.body);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    const canceledUpdate = mockInvocationRecordStore.getUpdates().find((entry) => entry.data.status === 'canceled');
+    assert.ok(canceledUpdate, 'aborted dispatch must converge InvocationRecord to canceled');
+    assert.equal(
+      mockInvocationRecordStore.getUpdates().some((entry) => entry.data.status === 'failed'),
+      false,
+      'aborted dispatch must not converge InvocationRecord to failed',
+    );
+
+    const statusRes = await cancelApp.inject({
+      method: 'GET',
+      url: '/api/callbacks/multi-mention-status',
+      headers: { 'x-invocation-id': cancelCreds.invocationId, 'x-callback-token': cancelCreds.callbackToken },
+      query: { requestId },
+    });
+    assert.equal(statusRes.statusCode, 200);
+    assert.equal(JSON.parse(statusRes.body).status, 'running', 'canceled target must remain absent from aggregate');
+    assert.equal(
+      mockMessageStore.getMessages().some((message) => message.content.includes('Multi-Mention 结果汇总')),
+      false,
+      'canceled target must not flush a failed aggregate',
+    );
+
+    await cancelApp.close();
+  });
+
   test('F122 AC-A7: pre-aborted controller still releases target tracker slot', async () => {
     resetMultiMentionOrchestrator();
 
