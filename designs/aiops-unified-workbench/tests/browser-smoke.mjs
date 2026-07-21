@@ -33,9 +33,20 @@ async function main() {
     assert.match(await text(page, '#context-chips'), /HE-1042/);
     assert.match(await text(page, '#context-chips'), /checkout-service/);
 
+    await page.click('#hypothesis-toggle');
+    assert.equal(await page.$eval('#hypothesis-toggle', (node) => node.getAttribute('aria-expanded')), 'true');
+    assert.match(await text(page, '.hypothesis-tree'), /发布配置变化/);
+
+    await page.click('#context-lock-button');
+    assert.equal(await page.$eval('#context-lock-button', (node) => node.getAttribute('aria-pressed')), 'false');
+    await page.click("[data-time-range='最近 2 小时']");
+    await page.click('#context-lock-button');
+    assert.match(await text(page, '#context-chips'), /最近 2 小时/);
+
     await page.click("[data-module='logs']");
     assert.match(await text(page, '.lens-tab.is-active'), /日志模式/);
     assert.match(await text(page, '#context-chips'), /HE-1042/);
+    assert.match(await text(page, '#context-chips'), /最近 2 小时/);
     assert.match(await text(page, '#context-chips'), /release-2026\.07\.22-rc3/);
 
     await page.click("[data-evidence-id='log-timeout-01']");
@@ -62,7 +73,10 @@ async function main() {
     await page.screenshot({ path: path.join(evidenceDir, '01-golden-path-desktop.png'), fullPage: true });
 
     await page.reload({ waitUntil: 'networkidle0' });
-    await page.click("[data-event-id='HE-1047']");
+    await page.click('.service-map-button');
+    assert.equal(await page.$eval('.service-map-button', (node) => node.getAttribute('aria-expanded')), 'true');
+    assert.match(await text(page, '#service-map'), /member-service/);
+    await page.click("[data-service='member-service']");
     assert.match(await text(page, '#incident-header'), /未知/);
     assert.match(await text(page, '#guardrail'), /证据链中断/);
     assert.match(await text(page, '#guardrail'), /不能解释为健康/);
@@ -71,6 +85,16 @@ async function main() {
     assert.match(await text(page, '#context-chips'), /member-service/);
     assert.match(await text(page, '.lens-tab.is-active'), /日志模式/);
     assert.match(await text(page, '#lens-content'), /最后一条可用日志距今 23 分钟/);
+
+    await page.click("[data-evidence-id='gap-log-01']");
+    for (const action of ['人工确认 Finding', '分派给 陈曦', '开始受控整改', '发起复验', '完成复验']) {
+      assert.equal(await text(page, '[data-workflow-action]'), action);
+      await page.click('[data-workflow-action]');
+    }
+    assert.match(await text(page, '[data-workflow-action]'), /复验受阻/);
+    assert.match(await text(page, '#guardrail'), /复验已阻断/);
+    assert.match(await text(page, '#timeline'), /复验受阻 · 仍不可判定/);
+    assert.doesNotMatch(await text(page, '#timeline'), /所有检查重新通过/);
     await page.screenshot({ path: path.join(evidenceDir, '02-unknown-guardrail.png'), fullPage: true });
 
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });

@@ -33,7 +33,7 @@ HealthUnit
        ├─ Hypothesis: supported / contradicted / inconclusive
        ├─ Finding: candidate / confirmed
        ├─ Action: owner / status / permission boundary
-       └─ Verification: running / passed / failed
+       └─ Verification: running / passed / blocked / failed
 ```
 
 - `HealthUnit`：需要被长期治理的业务、服务或关键用户旅程。
@@ -112,6 +112,7 @@ AI 的每次输出必须落入四个明确区域：
 ## 硬门禁
 
 - `unknown` 不得折算为 healthy，也不得默认过滤。
+- 覆盖率、新鲜度或基线可比性未恢复时，Verification 必须进入 `blocked`，不能写入“检查通过”或恢复结论。
 - 数据过期、缺失、未覆盖必须显示新鲜度和断点位置。
 - 检查定义、基线、拓扑或模型版本变化时，趋势标记为不可比。
 - Lens 切换不得重置 service / env / time / change / HealthEvent。
@@ -127,7 +128,7 @@ AI 的每次输出必须落入四个明确区域：
 - `HE-1045`：检查定义与拓扑变化导致基线不可比。
 - `HE-1047`：数据采集器中断，展示静默绿色失败模式。
 
-可点击行为包括模块深链、事件筛选、五种 Lens、证据钉入、AI 推荐证据、Finding 确认、Owner 分派、整改、复验、AI 抽屉和移动端布局。
+可点击行为包括模块深链、事件筛选、业务健康地图、上下文时间窗调整、假设树、五种 Lens、证据钉入、AI 推荐证据、Finding 确认、Owner 分派、整改、复验门禁、AI 抽屉和移动端布局。
 
 ## 一期边界
 

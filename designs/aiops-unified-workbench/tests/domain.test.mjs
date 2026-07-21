@@ -70,3 +70,39 @@ test('unknown coverage or a drifted baseline never derives healthy', () => {
   assert.equal(deriveHealthState(driftedEvent), 'unknown');
   assert.notEqual(deriveHealthState(driftedEvent), 'healthy');
 });
+
+test('verification is blocked while coverage, freshness, or baseline gates are unresolved', () => {
+  let state = createInitialState();
+  state = reduceWorkbench(state, { type: 'select_event', eventId: 'HE-1047' });
+  state = reduceWorkbench(state, { type: 'pin_evidence', evidenceId: 'gap-alert-01' });
+  state = reduceWorkbench(state, { type: 'confirm_finding' });
+  state = reduceWorkbench(state, { type: 'assign_action', owner: '陈曦' });
+  state = reduceWorkbench(state, { type: 'start_action' });
+  state = reduceWorkbench(state, { type: 'start_verification' });
+  state = reduceWorkbench(state, { type: 'complete_verification' });
+
+  const event = state.events[state.activeEventId];
+  assert.equal(event.verification.status, 'blocked');
+  assert.equal(deriveHealthState(event), 'unknown');
+  assert.equal(event.timeline.at(-1).kind, 'gap');
+  assert.doesNotMatch(event.timeline.at(-1).detail, /所有检查重新通过/);
+});
+
+test('hypothesis tree, service map, and context controls change domain state', () => {
+  let state = createInitialState();
+
+  state = reduceWorkbench(state, { type: 'toggle_hypothesis_tree' });
+  assert.equal(state.hypothesisTreeExpanded, true);
+
+  state = reduceWorkbench(state, { type: 'toggle_service_map' });
+  assert.equal(state.serviceMapOpen, true);
+  state = reduceWorkbench(state, { type: 'select_service', service: 'member-service' });
+  assert.equal(state.serviceFilter, 'member-service');
+  assert.equal(state.serviceMapOpen, false);
+
+  state = reduceWorkbench(state, { type: 'toggle_context_lock' });
+  assert.equal(state.contextLocked, false);
+  state = reduceWorkbench(state, { type: 'set_time_range', timeRange: '最近 2 小时' });
+  state = reduceWorkbench(state, { type: 'switch_lens', lens: 'logs' });
+  assert.equal(state.events[state.activeEventId].context.timeRange, '最近 2 小时');
+});

@@ -191,6 +191,34 @@
   color: var(--text-muted);
   font-size: 10px;
 }
+.hypothesis-tree {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) 16px minmax(0, 1fr);
+  gap: 7px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(180, 154, 255, 0.22);
+  border-radius: 10px;
+  background: var(--purple-soft);
+}
+.hypothesis-tree > div {
+  position: relative;
+  display: grid;
+  gap: 4px;
+}
+.hypothesis-tree span {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+.hypothesis-tree strong {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.hypothesis-link {
+  align-self: center;
+  height: 1px;
+  background: rgba(180, 154, 255, 0.38);
+}
 
 .finding-card {
   border-color: rgba(180, 154, 255, 0.24);

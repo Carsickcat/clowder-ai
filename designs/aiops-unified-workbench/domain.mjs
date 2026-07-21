@@ -8,17 +8,28 @@ export function createInitialState() {
     activeLens: 'metrics',
     activeModule: 'investigations',
     aiPanelOpen: true,
+    contextLocked: true,
     eventQueueFilter: 'all',
+    hypothesisTreeExpanded: false,
+    serviceFilter: 'all',
+    serviceMapOpen: false,
     events: createMockEvents(),
   };
 }
 
 export function deriveHealthState(event) {
-  if (event.coverageState === 'unknown' || event.baselineState === 'drifted') {
+  if (event.coverageState === 'unknown' || event.freshnessState === 'stale' || event.baselineState === 'drifted') {
     return 'unknown';
   }
   if (event.verification.status === 'passed') return 'recovering';
   return event.healthState;
+}
+
+export function verificationBlockReason(event) {
+  if (event.coverageState === 'unknown') return '检查覆盖仍不完整';
+  if (event.freshnessState === 'stale') return '证据新鲜度仍未恢复';
+  if (event.baselineState === 'drifted') return '可比基线仍未重建';
+  return null;
 }
 
 export function getEvidence(event, evidenceId) {
@@ -47,7 +58,12 @@ export function reduceWorkbench(state, action) {
   switch (action.type) {
     case 'select_event':
       if (!state.events[action.eventId]) return state;
-      return { ...state, activeEventId: action.eventId, activeLens: 'metrics' };
+      return {
+        ...state,
+        activeEventId: action.eventId,
+        activeLens: 'metrics',
+        hypothesisTreeExpanded: false,
+      };
     case 'switch_lens':
       if (!LENSES.includes(action.lens)) return state;
       return { ...state, activeLens: action.lens, activeModule: 'investigations' };
@@ -61,6 +77,28 @@ export function reduceWorkbench(state, action) {
       return { ...state, aiPanelOpen: !state.aiPanelOpen };
     case 'set_queue_filter':
       return { ...state, eventQueueFilter: action.filter };
+    case 'toggle_hypothesis_tree':
+      return { ...state, hypothesisTreeExpanded: !state.hypothesisTreeExpanded };
+    case 'toggle_service_map':
+      return { ...state, serviceMapOpen: !state.serviceMapOpen };
+    case 'select_service': {
+      const nextEvent = Object.values(state.events).find((event) => event.context.service === action.service);
+      return {
+        ...state,
+        activeEventId: nextEvent?.id ?? state.activeEventId,
+        activeLens: nextEvent ? 'metrics' : state.activeLens,
+        serviceFilter: action.service,
+        serviceMapOpen: false,
+      };
+    }
+    case 'toggle_context_lock':
+      return { ...state, contextLocked: !state.contextLocked };
+    case 'set_time_range':
+      if (state.contextLocked || typeof action.timeRange !== 'string') return state;
+      return updateActiveEvent(state, (event) => ({
+        ...event,
+        context: { ...event.context, timeRange: action.timeRange },
+      }));
     case 'pin_evidence':
       return updateActiveEvent(state, (event) => {
         const evidence = getEvidence(event, action.evidenceId);
@@ -139,6 +177,25 @@ export function reduceWorkbench(state, action) {
     case 'complete_verification':
       return updateActiveEvent(state, (event) => {
         if (event.verification.status !== 'running') return event;
+        const blockReason = verificationBlockReason(event);
+        if (blockReason) {
+          return {
+            ...event,
+            verification: {
+              ...event.verification,
+              status: 'blocked',
+              completedAt: null,
+              blockReason,
+            },
+            timeline: appendTimeline(event, {
+              id: 'tl-verify-blocked',
+              time: '现在',
+              kind: 'gap',
+              title: '复验受阻 · 仍不可判定',
+              detail: `${blockReason}；不得写入健康或恢复结论`,
+            }),
+          };
+        }
         return {
           ...event,
           verification: { ...event.verification, status: 'passed', completedAt: '现在' },

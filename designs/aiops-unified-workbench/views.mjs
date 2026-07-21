@@ -20,6 +20,7 @@ const workflowStatusNames = {
   in_progress: '进行中',
   running: '运行中',
   passed: '已通过',
+  blocked: '已阻断',
 };
 
 function escapeHtml(value) {
@@ -35,9 +36,16 @@ function activeEvent(state) {
   return state.events[state.activeEventId];
 }
 
+export function filteredEvents(state) {
+  return Object.values(state.events).filter((event) => {
+    const queueMatch = state.eventQueueFilter === 'all' || event.severity === state.eventQueueFilter;
+    const serviceMatch = state.serviceFilter === 'all' || event.context.service === state.serviceFilter;
+    return queueMatch && serviceMatch;
+  });
+}
+
 export function renderEventQueue(state) {
-  return Object.values(state.events)
-    .filter((event) => state.eventQueueFilter === 'all' || event.severity === state.eventQueueFilter)
+  return filteredEvents(state)
     .map((event) => {
       const health = deriveHealthState(event);
       return `<button class="event-card ${event.id === state.activeEventId ? 'is-active' : ''}" data-event-id="${event.id}" type="button">
@@ -48,6 +56,28 @@ export function renderEventQueue(state) {
       </button>`;
     })
     .join('');
+}
+
+export function renderServiceMap(state) {
+  if (!state.serviceMapOpen) return '';
+  const services = Object.values(state.events).map((event) => ({
+    eventId: event.id,
+    health: deriveHealthState(event),
+    name: event.context.service,
+  }));
+  const serviceButtons = services
+    .map(
+      (service) => `<button type="button" data-service="${escapeHtml(service.name)}">
+        <span class="status-dot status-dot--${service.health === 'unknown' ? 'unknown' : 'blocker'}"></span>
+        <span><strong>${escapeHtml(service.name)}</strong><small>${service.eventId} · ${healthNames[service.health]}</small></span>
+      </button>`,
+    )
+    .join('');
+  return `<div class="service-map-popover" role="dialog" aria-label="业务健康地图">
+    <div class="service-map-popover__head"><strong>按服务进入健康事件</strong><span>${services.length} 个关键服务</span></div>
+    ${serviceButtons}
+    <button class="service-map-reset" type="button" data-service="all">清除服务筛选</button>
+  </div>`;
 }
 
 export function renderContext(state) {
@@ -62,6 +92,20 @@ export function renderContext(state) {
   return items
     .map(([key, value]) => `<span class="context-chip"><strong>${key}</strong>${escapeHtml(value)}</span>`)
     .join('');
+}
+
+export function renderContextEditor(state) {
+  if (state.contextLocked) return '';
+  const current = activeEvent(state).context.timeRange;
+  const ranges = ['最近 30 分钟', '最近 2 小时'];
+  return `<div class="context-editor" role="group" aria-label="调整调查时间窗">
+    <span>时间窗</span>${ranges
+      .map(
+        (range) =>
+          `<button type="button" data-time-range="${range}" class="${current === range ? 'is-active' : ''}">${range}</button>`,
+      )
+      .join('')}<small>切换 Lens 后继续继承</small>
+  </div>`;
 }
 
 export function renderIncidentHeader(state) {
@@ -83,6 +127,12 @@ export function renderIncidentHeader(state) {
 
 export function renderGuardrail(state) {
   const event = activeEvent(state);
+  if (event.verification.status === 'blocked') {
+    return {
+      visible: true,
+      html: `<strong>复验已阻断</strong><span>${escapeHtml(event.verification.blockReason)}；当前仍为 unknown，不生成恢复结论或绿色报告。</span>`,
+    };
+  }
   if (event.baselineState === 'drifted') {
     return {
       visible: true,
@@ -105,7 +155,7 @@ export function renderGuardrail(state) {
 }
 
 function workflowStage(event) {
-  if (event.verification.status === 'passed' || event.verification.status === 'running') return 3;
+  if (['passed', 'running', 'blocked'].includes(event.verification.status)) return 3;
   if (event.action.status !== 'not_started') return 2;
   if (event.finding.status === 'confirmed') return 1;
   return 0;
@@ -124,8 +174,9 @@ export function renderWorkflow(state) {
 }
 
 export function renderTimeline(state) {
-  return activeEvent(state)
-    .timeline.map(
+  const event = activeEvent(state);
+  const timeline = event.timeline
+    .map(
       (entry) => `<div class="timeline-item">
       <time>${escapeHtml(entry.time)}</time>
       <span class="timeline-node timeline-node--${entry.kind}"></span>
@@ -133,9 +184,23 @@ export function renderTimeline(state) {
     </div>`,
     )
     .join('');
+  if (!state.hypothesisTreeExpanded) return timeline;
+  const unknown = deriveHealthState(event) === 'unknown';
+  const hypothesis = unknown
+    ? ['观测链路异常', '证据缺口已确认', '等待恢复采集后验证']
+    : ['发布配置变化', '日志与错误率互证', '等待人工确认因果'];
+  return `${timeline}<div class="hypothesis-tree" role="region" aria-label="调查假设树">
+    <div><span>候选假设</span><strong>${hypothesis[0]}</strong></div>
+    <span class="hypothesis-link"></span>
+    <div><span>当前证据</span><strong>${hypothesis[1]}</strong></div>
+    <span class="hypothesis-link"></span>
+    <div><span>验证条件</span><strong>${hypothesis[2]}</strong></div>
+  </div>`;
 }
 
 function findingAction(event) {
+  if (event.verification.status === 'blocked')
+    return { label: '复验受阻 · 先修复证据门禁', action: 'none', disabled: true };
   if (event.verification.status === 'passed')
     return { label: '复验通过 · 已进入恢复观察', action: 'done', disabled: true };
   if (event.verification.status === 'running') return { label: '完成复验', action: 'complete_verification' };

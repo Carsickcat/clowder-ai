@@ -65,19 +65,21 @@
               <button type="button" data-filter="unknown">未知</button>
             </div>
             <div id="event-list" class="event-list"></div>
-            <button class="service-map-button" type="button">
+            <button class="service-map-button" type="button" aria-expanded="false" aria-controls="service-map">
               <span class="map-orbit"><i></i><i></i><i></i></span>
               <span><strong>业务健康地图</strong><small>按服务与用户旅程定位</small></span>
               <span aria-hidden="true">↗</span>
             </button>
+            <div id="service-map"></div>
           </aside>
 
           <main class="investigation" id="investigation-main">
             <section class="context-lock" aria-label="已锁定调查上下文">
-              <div class="context-lock__title"><svg aria-hidden="true"><use href="#icon-lock" /></svg><span>上下文已锁定</span></div>
+              <div class="context-lock__title"><svg aria-hidden="true"><use href="#icon-lock" /></svg><span id="context-lock-label">上下文已锁定</span></div>
               <div id="context-chips" class="context-chips"></div>
               <button id="context-lock-button" class="quiet-button" type="button" aria-pressed="true">保持继承</button>
             </section>
+            <div id="context-editor"></div>
 
             <header class="incident-header" id="incident-header"></header>
             <section id="guardrail" class="guardrail" aria-live="polite"></section>
@@ -85,7 +87,7 @@
 
             <section class="story-grid">
               <article class="story-panel surface-panel">
-                <div class="section-heading"><div><p class="eyebrow">Investigation story</p><h2>发生了什么</h2></div><button class="text-button" type="button">展开假设树</button></div>
+                <div class="section-heading"><div><p class="eyebrow">Investigation story</p><h2>发生了什么</h2></div><button id="hypothesis-toggle" class="text-button" type="button" aria-expanded="false" aria-controls="timeline">展开假设树</button></div>
                 <div id="timeline" class="timeline"></div>
               </article>
               <aside id="finding-card" class="finding-card surface-panel"></aside>

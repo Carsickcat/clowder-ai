@@ -278,6 +278,21 @@
     overflow-x: auto;
     flex-wrap: nowrap;
   }
+  .context-editor {
+    flex-wrap: wrap;
+  }
+  .context-editor small {
+    width: 100%;
+    margin-left: 0;
+  }
+  .hypothesis-tree {
+    grid-template-columns: 1fr;
+  }
+  .hypothesis-link {
+    width: 1px;
+    height: 10px;
+    margin-left: 6px;
+  }
   .incident-header {
     flex-direction: column;
   }

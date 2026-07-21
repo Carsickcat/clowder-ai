@@ -11,9 +11,9 @@
 | Requirement | Implementation | Evidence |
 |---|---|---|
 | 五模块统一但保留专业入口 | Product nav 深链到同一事件的五种 Evidence Lens | 浏览器 smoke：`data-module='logs'` 后仍为 `HE-1042` |
-| 真实可点击 | 所有导航、证据、Finding、Owner、整改与复验均由 reducer 驱动 | `tests/browser-smoke.mjs` Golden Path |
+| 真实可点击 | 导航、健康地图、上下文调整、假设树、证据与治理闭环均由 reducer 驱动 | `tests/browser-smoke.mjs` Golden Path + controls proof |
 | AI 不是摘要秀 | 事实 / 推断 / 证据缺口 / 建议动作四分栏 | AI 调查员右栏 |
-| unknown 不得静默变绿 | coverage 与 baseline 门禁优先派生 unknown | unit test + `HE-1045` / `HE-1047` |
+| unknown 不得静默变绿 | coverage、freshness 与 baseline 门禁优先派生 unknown，并阻断 Verification pass | unit test + `HE-1045` / `HE-1047` |
 | 上下文不丢 | service / env / time / change / HealthEvent 顶部锁定 | unit test + browser smoke |
 | 桌面与移动端 | 桌面常驻窄栏，移动端 AI 抽屉 | desktop / mobile screenshots |
 
@@ -61,7 +61,9 @@ HE-1047
 → unknown
 → 证据链中断门禁
 → 日志 Lens
-→ 仍显示 HE-1047 / member-service / 23m freshness
+→ Finding / Owner / 整改 / 复验
+→ Verification blocked
+→ 仍显示 HE-1047 / member-service / 23m freshness，且无恢复结论
 ```
 
 Dogfood 中发现并修复：
@@ -70,12 +72,15 @@ Dogfood 中发现并修复：
 2. unknown 事件日志摘要误复用发布事件的 `842`；改为事件相关值。
 3. 移动端截图发生在抽屉退出动画中；验收等待动画结束并检查 bounding rect。
 4. Finding 状态显示英文枚举；改为中文用户文案。
+5. Reviewer 复现 unknown 可写入“复验通过”；增加 coverage / freshness / baseline 三门禁与显式 `blocked` 状态。
+6. “展开假设树”、健康地图、上下文锁是伪交互；全部接入领域状态，并纳入 Chrome smoke。
+7. 原 5278 服务的 stdout 管道失效，导致监听端口却断开请求；用受托管静态服务恢复并重新执行 HTTP/Chrome 验收。
 
 ## Fresh Verification
 
 | Command / Path | Result |
 |---|---|
-| `node --test designs/aiops-unified-workbench/tests/domain.test.mjs` | 5/5 pass |
+| `node --test designs/aiops-unified-workbench/tests/domain.test.mjs` | 7/7 pass |
 | `node designs/aiops-unified-workbench/tests/browser-smoke.mjs` | `BROWSER_SMOKE_OK`，console 0 error |
 | `pnpm exec biome check designs/aiops-unified-workbench feature-specs/... --diagnostic-level=error` | exit 0 |
 | HTTP preflight `http://127.0.0.1:5278/` | 200，title present |

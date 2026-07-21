@@ -236,6 +236,7 @@ function makeEvent(overrides) {
     coverage: 100,
     coverageState: 'complete',
     freshness: '18s',
+    freshnessState: 'fresh',
     baselineState: 'comparable',
     businessImpact: '',
     context: { service: '', env: 'prod', timeRange: 'Last 30 min', change: 'No linked change' },
@@ -324,6 +325,7 @@ export function createMockEvents() {
       coverage: 61,
       coverageState: 'unknown',
       freshness: '23m',
+      freshnessState: 'stale',
       evidence: gapEvidence,
       businessImpact: '日志采集器中断，当前无法证明服务健康或异常',
       context: {
