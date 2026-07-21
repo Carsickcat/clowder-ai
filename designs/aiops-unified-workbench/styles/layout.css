@@ -264,25 +264,25 @@
     padding-bottom: 6px;
   }
   .service-map-button {
-    display: none !important;
+    display: none;
   }
   .investigation {
     padding: 12px;
   }
   .context-lock {
-    align-items: flex-start !important;
+    align-items: flex-start;
   }
   .context-chips {
     width: 100%;
     order: 3;
     overflow-x: auto;
-    flex-wrap: nowrap !important;
+    flex-wrap: nowrap;
   }
   .incident-header {
     flex-direction: column;
   }
   .incident-meta {
-    justify-content: flex-start !important;
+    justify-content: flex-start;
   }
   .ai-panel {
     top: 64px;

@@ -1,7 +1,6 @@
 function evidence(id, lens, timestamp, title, detail, source, status) {
   return { id, lens, timestamp, title, detail, source, status };
 }
-
 const releaseEvidence = {
   metrics: [
     evidence(
@@ -113,7 +112,6 @@ const releaseEvidence = {
     ),
   ],
 };
-
 const driftEvidence = {
   metrics: [
     evidence(
@@ -171,7 +169,6 @@ const driftEvidence = {
     ),
   ],
 };
-
 const gapEvidence = {
   metrics: [
     evidence(
@@ -229,7 +226,6 @@ const gapEvidence = {
     ),
   ],
 };
-
 function makeEvent(overrides) {
   return {
     id: '',
@@ -252,7 +248,6 @@ function makeEvent(overrides) {
     ...overrides,
   };
 }
-
 export function createMockEvents() {
   return {
     'HE-1042': makeEvent({

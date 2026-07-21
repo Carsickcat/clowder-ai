@@ -61,12 +61,12 @@ function render() {
   elements.pinnedCount.textContent = `${event.pinnedEvidenceIds.length} 条已钉入`;
   elements.aiContent.innerHTML = renderAI(state);
   elements.aiPanel.classList.toggle('is-open', state.aiPanelOpen);
-  document
-    .querySelectorAll('.ai-toggle')
-    .forEach((button) => button.setAttribute('aria-pressed', String(state.aiPanelOpen)));
-  document
-    .querySelectorAll('[data-filter]')
-    .forEach((button) => button.classList.toggle('is-active', button.dataset.filter === state.eventQueueFilter));
+  document.querySelectorAll('.ai-toggle').forEach((button) => {
+    button.setAttribute('aria-pressed', String(state.aiPanelOpen));
+  });
+  document.querySelectorAll('[data-filter]').forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.filter === state.eventQueueFilter);
+  });
   renderModuleNav(state);
 }
 
@@ -97,32 +97,32 @@ function handleWorkflow(action) {
   handlers[action]?.();
 }
 
-document.addEventListener('click', (event) => {
-  const eventCard = event.target.closest('[data-event-id]');
+function handleQueueAndNavigation(target) {
+  const eventCard = target.closest('[data-event-id]');
   if (eventCard) {
     dispatch(
       { type: 'select_event', eventId: eventCard.dataset.eventId },
       `已进入 ${eventCard.dataset.eventId}，调查上下文已锁定。`,
     );
-    return;
+    return true;
   }
 
-  const filter = event.target.closest('[data-filter]');
+  const filter = target.closest('[data-filter]');
   if (filter) {
     dispatch({ type: 'set_queue_filter', filter: filter.dataset.filter });
-    return;
+    return true;
   }
 
-  const lens = event.target.closest('[data-lens]');
+  const lens = target.closest('[data-lens]');
   if (lens) {
     dispatch(
       { type: 'switch_lens', lens: lens.dataset.lens },
       `已切换到${lensNames[lens.dataset.lens]}，HealthEvent 与时间窗保持不变。`,
     );
-    return;
+    return true;
   }
 
-  const moduleButton = event.target.closest('[data-module]');
+  const moduleButton = target.closest('[data-module]');
   if (moduleButton) {
     const module = moduleButton.dataset.module;
     dispatch(
@@ -130,10 +130,13 @@ document.addEventListener('click', (event) => {
       module === 'investigations' ? '返回事件调查层。' : `从专业模块深链到${lensNames[module]}，保留当前事件上下文。`,
     );
     document.querySelector('#lens-content')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
+    return true;
   }
+  return false;
+}
 
-  const pin = event.target.closest('[data-evidence-id]');
+function handleEvidence(target) {
+  const pin = target.closest('[data-evidence-id]');
   if (pin) {
     const alreadyPinned = activeEvent(state).pinnedEvidenceIds.includes(pin.dataset.evidenceId);
     if (alreadyPinned) showToast('这条证据已在调查中，不会重复计数。');
@@ -142,41 +145,57 @@ document.addEventListener('click', (event) => {
         { type: 'pin_evidence', evidenceId: pin.dataset.evidenceId },
         '证据已钉入，并同步写入时间线与 Finding。 ',
       );
-    return;
+    return true;
   }
 
-  const workflow = event.target.closest('[data-workflow-action]');
+  const workflow = target.closest('[data-workflow-action]');
   if (workflow) {
     handleWorkflow(workflow.dataset.workflowAction);
-    return;
+    return true;
   }
+  return false;
+}
 
-  if (event.target.closest("[data-ai-action='pin_recommended']")) {
+function handleAi(target) {
+  if (target.closest("[data-ai-action='pin_recommended']")) {
     for (const evidenceId of recommendedEvidenceIds(state.activeEventId)) {
       state = reduceWorkbench(state, { type: 'pin_evidence', evidenceId });
     }
     render();
     showToast('AI 推荐证据已钉入；请人工检查后确认 Finding。 ');
-    return;
+    return true;
   }
 
-  if (event.target.closest('.ai-toggle')) {
+  if (target.closest('.ai-toggle')) {
     dispatch({ type: 'toggle_ai' }, state.aiPanelOpen ? 'AI 调查员已收起。' : 'AI 调查员已展开。 ');
-    return;
+    return true;
   }
+  return false;
+}
 
-  if (event.target.closest('#context-lock-button')) {
+function handleUtility(target) {
+  if (target.closest('#context-lock-button')) {
     const button = document.querySelector('#context-lock-button');
     const pressed = button.getAttribute('aria-pressed') === 'true';
     button.setAttribute('aria-pressed', String(!pressed));
     button.textContent = pressed ? '允许调整' : '保持继承';
     showToast(pressed ? '原型允许调整；跨 Lens 仍会继承上下文。' : '上下文已重新锁定。 ');
-    return;
+    return true;
   }
 
-  if (event.target.closest('.service-map-button')) {
+  if (target.closest('.service-map-button')) {
     showToast('健康地图是筛选入口；选择服务后仍回到 HealthEvent 工作队列。 ');
+    return true;
   }
+  return false;
+}
+
+document.addEventListener('click', (event) => {
+  const target = event.target;
+  if (handleQueueAndNavigation(target)) return;
+  if (handleEvidence(target)) return;
+  if (handleAi(target)) return;
+  handleUtility(target);
 });
 
 render();

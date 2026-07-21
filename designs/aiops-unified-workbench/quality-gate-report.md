@@ -1,9 +1,9 @@
 # AI Ops Unified Workbench — Quality Gate Report
 
-**Spec:** `feature-specs/2026-07-22-aiops-unified-workbench-prototype.md`  
-**Original request:** 统一监控、告警、日志、巡检、拨测，参考优秀 AI 运维产品，提供真实可点击的用户旅程。  
-**Checked:** 2026-07-22  
-**Worktree:** `E:\ClowderAI\cat-cafe-aiops-workbench`  
+**Spec:** `feature-specs/2026-07-22-aiops-unified-workbench-prototype.md`
+**Original request:** 统一监控、告警、日志、巡检、拨测，参考优秀 AI 运维产品，提供真实可点击的用户旅程。
+**Checked:** 2026-07-22
+**Worktree:** `E:\ClowderAI\cat-cafe-aiops-workbench`
 **Preview:** `http://127.0.0.1:5278/`
 
 ## Vision Coverage
@@ -102,8 +102,8 @@ Dogfood 中发现并修复：
 
 ## Architecture Ownership
 
-**Architecture cell:** prototype / product-design  
-**Map delta:** none  
+**Architecture cell:** prototype / product-design
+**Map delta:** none
 **Why:** 仅新增静态设计原型和测试，不改变生产路由、存储、队列、适配器或数据边界。
 
 ## Known Boundary
