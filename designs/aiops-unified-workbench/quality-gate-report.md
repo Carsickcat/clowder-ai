@@ -74,14 +74,16 @@ Dogfood 中发现并修复：
 4. Finding 状态显示英文枚举；改为中文用户文案。
 5. Reviewer 复现 unknown 可写入“复验通过”；增加 coverage / freshness / baseline 三门禁与显式 `blocked` 状态。
 6. “展开假设树”、健康地图、上下文锁是伪交互；全部接入领域状态，并纳入 Chrome smoke。
-7. 原 5278 服务的 stdout 管道失效，导致监听端口却断开请求；用受托管静态服务恢复并重新执行 HTTP/Chrome 验收。
+7. 原 Python 静态服务的 stderr 管道失效，导致监听端口却断开请求；新增无日志管道依赖的 `serve.mjs`，并用管道主动断开测试、25 次跨命令 HTTP 请求和 Chrome smoke 验收。
 
 ## Fresh Verification
 
 | Command / Path | Result |
 |---|---|
 | `node --test designs/aiops-unified-workbench/tests/domain.test.mjs` | 7/7 pass |
+| `node --test designs/aiops-unified-workbench/tests/server.test.mjs` | 1/1 pass；主动销毁 stdout/stderr 后连续请求仍为 200 |
 | `node designs/aiops-unified-workbench/tests/browser-smoke.mjs` | `BROWSER_SMOKE_OK`，console 0 error |
+| 跨命令 HTTP 稳定性 | 25/25 请求成功，交替访问 `/` 与 `/app.mjs` |
 | `pnpm exec biome check designs/aiops-unified-workbench feature-specs/... --diagnostic-level=error` | exit 0 |
 | HTTP preflight `http://127.0.0.1:5278/` | 200，title present |
 | `pnpm lint` | exit 0 |

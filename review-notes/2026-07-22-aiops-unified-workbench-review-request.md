@@ -59,7 +59,7 @@ Why: 仅新增静态设计原型和测试，不改变生产路由、存储、队
 
 - Source worktree: `E:\ClowderAI\cat-cafe-aiops-workbench`
 - Reviewer sandbox: `/tmp/cat-cafe-review/aiops-unified-workbench-prototype/opus`
-- Start command: `python -m http.server 5279 --directory designs/aiops-unified-workbench`
+- Start command: `$env:AIOPS_PORT='5279'; node designs/aiops-unified-workbench/serve.mjs`
 - Ports: `web=5279`, `api=none`
 - 当前 operator 预览：`http://127.0.0.1:5278/`
 
@@ -77,6 +77,9 @@ node --test designs/aiops-unified-workbench/tests/domain.test.mjs
 
 node designs/aiops-unified-workbench/tests/browser-smoke.mjs
 BROWSER_SMOKE_OK; desktop golden path + unknown guardrail + mobile drawer; console 0 error
+
+node --test designs/aiops-unified-workbench/tests/server.test.mjs
+1 passed; output pipes detached + repeated HTTP requests remain responsive
 
 pnpm exec biome check designs/aiops-unified-workbench feature-specs/2026-07-22-aiops-unified-workbench-prototype.md
 exit 0, no warnings

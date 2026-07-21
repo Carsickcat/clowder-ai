@@ -17,7 +17,7 @@
 ## 本地运行
 
 ```powershell
-python -m http.server 5278 --directory designs/aiops-unified-workbench
+node designs/aiops-unified-workbench/serve.mjs
 ```
 
 然后访问 `http://127.0.0.1:5278/`。
@@ -26,6 +26,7 @@ python -m http.server 5278 --directory designs/aiops-unified-workbench
 
 ```powershell
 node --test designs/aiops-unified-workbench/tests/domain.test.mjs
+node --test designs/aiops-unified-workbench/tests/server.test.mjs
 node --check designs/aiops-unified-workbench/domain.mjs
 node --check designs/aiops-unified-workbench/mock-data.mjs
 node --check designs/aiops-unified-workbench/views.mjs
@@ -37,4 +38,5 @@ node --check designs/aiops-unified-workbench/app.mjs
 - AI 只组织事实、推断、证据缺口与建议动作。
 - 最终结论、Owner、生产处置与复验均需要显式人工动作。
 - 覆盖率、新鲜度或基线门禁未恢复时，复验只能进入 `blocked`，不得写入“通过”。
+- `serve.mjs` 不向宿主 stdout/stderr 写访问日志，避免预览会话与进程管道解耦后出现空响应。
 - 原型状态不持久化，刷新后会回到初始 mock 数据。
