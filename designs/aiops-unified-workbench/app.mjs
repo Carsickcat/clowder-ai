@@ -1,88 +1,22 @@
 import { createInitialState, reduceWorkbench } from './domain.mjs';
-import {
-  activeEvent,
-  filteredEvents,
-  lensNames,
-  renderAI,
-  renderContext,
-  renderContextEditor,
-  renderEventQueue,
-  renderFinding,
-  renderGuardrail,
-  renderIncidentHeader,
-  renderLensContent,
-  renderLensTabs,
-  renderModuleNav,
-  renderServiceMap,
-  renderTimeline,
-  renderWorkflow,
-} from './views.mjs';
+import { renderApp } from './views.mjs';
 
 let state = createInitialState();
 let toastTimer;
 
-const elements = {
-  aiContent: document.querySelector('#ai-content'),
-  aiPanel: document.querySelector('#ai-panel'),
-  context: document.querySelector('#context-chips'),
-  contextEditor: document.querySelector('#context-editor'),
-  contextLockButton: document.querySelector('#context-lock-button'),
-  contextLockLabel: document.querySelector('#context-lock-label'),
-  eventCount: document.querySelector('#event-count'),
-  eventList: document.querySelector('#event-list'),
-  finding: document.querySelector('#finding-card'),
-  guardrail: document.querySelector('#guardrail'),
-  incident: document.querySelector('#incident-header'),
-  hypothesisToggle: document.querySelector('#hypothesis-toggle'),
-  lensContent: document.querySelector('#lens-content'),
-  lensTabs: document.querySelector('#lens-tabs'),
-  pinnedCount: document.querySelector('#pinned-count'),
-  serviceMap: document.querySelector('#service-map'),
-  serviceMapButton: document.querySelector('.service-map-button'),
-  timeline: document.querySelector('#timeline'),
-  toast: document.querySelector('#toast'),
-  workflow: document.querySelector('#workflow'),
-};
+const app = document.querySelector('#app');
+const toast = document.querySelector('#toast');
 
 function showToast(message) {
   window.clearTimeout(toastTimer);
-  elements.toast.textContent = message;
-  elements.toast.classList.add('is-visible');
-  toastTimer = window.setTimeout(() => elements.toast.classList.remove('is-visible'), 2400);
+  toast.textContent = message;
+  toast.classList.add('is-visible');
+  toastTimer = window.setTimeout(() => toast.classList.remove('is-visible'), 2400);
 }
 
 function render() {
-  const event = activeEvent(state);
-  elements.eventList.innerHTML = renderEventQueue(state);
-  elements.eventCount.textContent = filteredEvents(state).length;
-  elements.context.innerHTML = renderContext(state);
-  elements.contextEditor.innerHTML = renderContextEditor(state);
-  elements.contextLockButton.setAttribute('aria-pressed', String(state.contextLocked));
-  elements.contextLockButton.textContent = state.contextLocked ? '保持继承' : '完成并锁定';
-  elements.contextLockLabel.textContent = state.contextLocked ? '上下文已锁定' : '正在调整上下文';
-  elements.incident.innerHTML = renderIncidentHeader(state);
-  const guardrail = renderGuardrail(state);
-  elements.guardrail.innerHTML = guardrail.html;
-  elements.guardrail.classList.toggle('is-visible', guardrail.visible);
-  elements.workflow.innerHTML = renderWorkflow(state);
-  elements.timeline.innerHTML = renderTimeline(state);
-  elements.hypothesisToggle.setAttribute('aria-expanded', String(state.hypothesisTreeExpanded));
-  elements.hypothesisToggle.textContent = state.hypothesisTreeExpanded ? '收起假设树' : '展开假设树';
-  elements.finding.innerHTML = renderFinding(state);
-  elements.lensTabs.innerHTML = renderLensTabs(state);
-  elements.lensContent.innerHTML = renderLensContent(state);
-  elements.pinnedCount.textContent = `${event.pinnedEvidenceIds.length} 条已钉入`;
-  elements.serviceMap.innerHTML = renderServiceMap(state);
-  elements.serviceMapButton.setAttribute('aria-expanded', String(state.serviceMapOpen));
-  elements.aiContent.innerHTML = renderAI(state);
-  elements.aiPanel.classList.toggle('is-open', state.aiPanelOpen);
-  document.querySelectorAll('.ai-toggle').forEach((button) => {
-    button.setAttribute('aria-pressed', String(state.aiPanelOpen));
-  });
-  document.querySelectorAll('[data-filter]').forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.filter === state.eventQueueFilter);
-  });
-  renderModuleNav(state);
+  app.innerHTML = renderApp(state);
+  document.body.dataset.screen = state.screen;
 }
 
 function dispatch(action, message) {
@@ -91,150 +25,99 @@ function dispatch(action, message) {
   if (message) showToast(message);
 }
 
-function recommendedEvidenceIds(eventId) {
-  return (
-    {
-      'HE-1042': ['log-timeout-01', 'log-config-01'],
-      'HE-1045': ['drift-log-01', 'drift-check-01'],
-      'HE-1047': ['gap-alert-01', 'gap-check-01'],
-    }[eventId] ?? []
-  );
-}
-
-function handleWorkflow(action) {
-  const handlers = {
-    confirm_finding: () => dispatch({ type: 'confirm_finding' }, 'Finding 已确认，并保留完整证据引用。'),
-    assign_action: () => dispatch({ type: 'assign_action', owner: '陈曦' }, '整改已分派给陈曦。'),
-    start_action: () => dispatch({ type: 'start_action' }, '整改开始；生产动作仍需既有权限系统执行。'),
-    start_verification: () => dispatch({ type: 'start_verification' }, '复验已启动：发布检查 + 结算拨测。'),
-    complete_verification: () => {
-      dispatch({ type: 'complete_verification' });
-      const verification = activeEvent(state).verification;
-      showToast(
-        verification.status === 'blocked'
-          ? `复验受阻：${verification.blockReason}，状态保持 unknown。`
-          : '复验通过，事件进入恢复观察。',
-      );
-    },
-  };
-  handlers[action]?.();
-}
-
-function handleQueueAndNavigation(target) {
-  const eventCard = target.closest('[data-event-id]');
-  if (eventCard) {
+function handleNavigation(target) {
+  if (target.closest('[data-go-home]')) {
+    dispatch({ type: 'go_home' }, '已返回场景入口。');
+    return true;
+  }
+  const scenario = target.closest('[data-scenario-id]');
+  if (scenario) {
     dispatch(
-      { type: 'select_event', eventId: eventCard.dataset.eventId },
-      `已进入 ${eventCard.dataset.eventId}，调查上下文已锁定。`,
+      { type: 'start_scenario', scenarioId: scenario.dataset.scenarioId },
+      '已锁定角色、服务、环境、时间窗和触发事件。',
     );
     return true;
   }
-
-  const filter = target.closest('[data-filter]');
-  if (filter) {
-    dispatch({ type: 'set_queue_filter', filter: filter.dataset.filter });
+  const step = target.closest('[data-step-index]');
+  if (step) {
+    dispatch({ type: 'go_to_step', stepIndex: Number(step.dataset.stepIndex) });
     return true;
   }
-
-  const lens = target.closest('[data-lens]');
-  if (lens) {
-    dispatch(
-      { type: 'switch_lens', lens: lens.dataset.lens },
-      `已切换到${lensNames[lens.dataset.lens]}，HealthEvent 与时间窗保持不变。`,
-    );
+  const module = target.closest('[data-module]');
+  if (module?.matches('button')) {
+    dispatch({ type: 'open_module', module: module.dataset.module }, '已进入专业工作面，场景上下文保持不变。');
     return true;
   }
-
-  const moduleButton = target.closest('[data-module]');
-  if (moduleButton) {
-    const module = moduleButton.dataset.module;
-    dispatch(
-      { type: 'open_module', module },
-      module === 'investigations' ? '返回事件调查层。' : `从专业模块深链到${lensNames[module]}，保留当前事件上下文。`,
-    );
-    document.querySelector('#lens-content')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (target.closest('[data-return-to-journey]')) {
+    dispatch({ type: 'return_to_journey' }, '已回到同一条用户旅程。');
     return true;
   }
   return false;
 }
 
-function handleEvidence(target) {
-  const pin = target.closest('[data-evidence-id]');
-  if (pin) {
-    const alreadyPinned = activeEvent(state).pinnedEvidenceIds.includes(pin.dataset.evidenceId);
-    if (alreadyPinned) showToast('这条证据已在调查中，不会重复计数。');
-    else
-      dispatch(
-        { type: 'pin_evidence', evidenceId: pin.dataset.evidenceId },
-        '证据已钉入，并同步写入时间线与 Finding。 ',
-      );
+function handleJourney(target) {
+  const action = target.closest('[data-complete-step]');
+  if (action) {
+    dispatch(
+      { type: 'complete_current_step', actionId: action.dataset.completeStep },
+      '本步人工判断已记录，证据与旅程状态同步更新。',
+    );
     return true;
   }
-
-  const workflow = target.closest('[data-workflow-action]');
-  if (workflow) {
-    handleWorkflow(workflow.dataset.workflowAction);
+  const decision = target.closest('[data-decision-id]');
+  if (decision) {
+    dispatch({ type: 'choose_decision', decisionId: decision.dataset.decisionId }, '人工决策已选择，尚未正式提交。');
+    return true;
+  }
+  if (target.closest('[data-finish-journey]')) {
+    const scenarioId = state.activeScenarioId;
+    dispatch({ type: 'complete_journey' });
+    const progress = state.scenarioProgress[scenarioId];
+    showToast(progress.status === 'blocked' ? progress.blockReason : '旅程完成：决策、证据包与复验门槛已生成。');
     return true;
   }
   return false;
 }
 
-function handleAi(target) {
-  if (target.closest("[data-ai-action='pin_recommended']")) {
-    for (const evidenceId of recommendedEvidenceIds(state.activeEventId)) {
-      state = reduceWorkbench(state, { type: 'pin_evidence', evidenceId });
-    }
-    render();
-    showToast('AI 推荐证据已钉入；请人工检查后确认 Finding。 ');
+function handleAI(target) {
+  if (target.closest('[data-toggle-ai]')) {
+    dispatch({ type: 'toggle_ai' });
     return true;
   }
-
-  if (target.closest('.ai-toggle')) {
-    dispatch({ type: 'toggle_ai' }, state.aiPanelOpen ? 'AI 调查员已收起。' : 'AI 调查员已展开。 ');
+  const verdict = target.closest('[data-ai-verdict]');
+  if (verdict) {
+    dispatch(
+      { type: 'review_ai', insightId: verdict.dataset.insightId, verdict: verdict.dataset.aiVerdict },
+      '反馈已写入具体 AI 工件，不会模糊成一次点赞。',
+    );
     return true;
   }
   return false;
 }
 
 function handleUtility(target) {
-  if (target.closest('#hypothesis-toggle')) {
+  const focus = target.closest('[data-focus-module]');
+  if (focus) {
     dispatch(
-      { type: 'toggle_hypothesis_tree' },
-      state.hypothesisTreeExpanded ? '假设树已展开，可核对证据与验证条件。' : '假设树已收起。',
+      { type: 'focus_module_item', module: focus.dataset.focusModule, artifactId: focus.dataset.focusId },
+      `已聚焦 ${focus.dataset.focusId}，场景上下文保持不变。`,
     );
     return true;
   }
-
-  if (target.closest('#context-lock-button')) {
-    dispatch(
-      { type: 'toggle_context_lock' },
-      state.contextLocked ? '上下文已重新锁定并将跨 Lens 继承。' : '上下文已解锁，可调整调查时间窗。',
-    );
+  if (target.closest('[data-toggle-capabilities]')) {
+    dispatch({ type: 'toggle_capability_map' });
+    document.querySelector('.capability-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return true;
   }
-
-  const timeRange = target.closest('[data-time-range]');
-  if (timeRange) {
-    dispatch(
-      { type: 'set_time_range', timeRange: timeRange.dataset.timeRange },
-      `调查时间窗已更新为${timeRange.dataset.timeRange}；切换 Lens 后继续继承。`,
-    );
+  if (target.closest('[data-toggle-mobile-journey]')) {
+    dispatch({ type: 'toggle_mobile_journey' });
     return true;
   }
-
-  if (target.closest('.service-map-button')) {
-    dispatch({ type: 'toggle_service_map' }, state.serviceMapOpen ? '业务健康地图已展开。' : '业务健康地图已收起。');
-    return true;
-  }
-
-  const service = target.closest('[data-service]');
-  if (service) {
-    dispatch(
-      { type: 'select_service', service: service.dataset.service },
-      service.dataset.service === 'all'
-        ? '已清除服务筛选。'
-        : `已从健康地图进入 ${service.dataset.service} 的 HealthEvent。`,
-    );
+  const pin = target.closest('.log-line button');
+  if (pin) {
+    showToast('样本已钉入当前专业视图；旅程证据包将在本步确认时提交。');
+    pin.textContent = 'PINNED';
+    pin.disabled = true;
     return true;
   }
   return false;
@@ -242,9 +125,9 @@ function handleUtility(target) {
 
 document.addEventListener('click', (event) => {
   const target = event.target;
-  if (handleQueueAndNavigation(target)) return;
-  if (handleEvidence(target)) return;
-  if (handleAi(target)) return;
+  if (handleNavigation(target)) return;
+  if (handleJourney(target)) return;
+  if (handleAI(target)) return;
   handleUtility(target);
 });
 

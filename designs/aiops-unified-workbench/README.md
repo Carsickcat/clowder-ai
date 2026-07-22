@@ -1,51 +1,51 @@
-# NOVA Ops — AI 调查工作台原型
+# NOVA Ops · 场景驱动 AI 运维工作台 V2
 
-这是统一运维平台的可点击设计原型。它使用本地 mock 数据，不连接任何 API、Redis 或生产系统。
+这是一个无后端、无真实生产数据的高保真交互原型，用来验证三件事：
 
-## 用户旅程
+1. AI 运维的原子能力能否被用户看懂；
+2. 发布负责人、值班 SRE、服务 Owner 能否分别完成一条有结果的用户旅程；
+3. 监控、告警、日志、巡检、拨测能否共享上下文，同时保留各自不可替代的专业工作面。
 
-1. 从左侧 `HealthEvent` 工作队列选择 `HE-1042`。
-2. 点击左侧“日志”模块，或在 Evidence Lenses 中切换到“日志模式”。
-3. 钉入 `PaymentClient timeout` 与 `pool.maxConnections changed` 两条证据。
-4. 点击“人工确认 Finding”。
-5. 分派给陈曦，开始受控整改。
-6. 发起复验并完成复验。
-7. 展开假设树，验证证据、假设与验证条件的对应关系。
-8. 解锁上下文，将时间窗改为“最近 2 小时”，再次切换 Lens，确认时间窗继续继承。
-9. 从“业务健康地图”进入 `HE-1047`，执行一次复验，确认系统显式显示 `blocked`，不产生恢复结论。
-
-## 本地运行
+## 运行
 
 ```powershell
-node designs/aiops-unified-workbench/serve.mjs
+$env:AIOPS_PORT='5278'
+node designs\aiops-unified-workbench\serve.mjs
 ```
 
-然后访问 `http://127.0.0.1:5278/`。
+打开 `http://127.0.0.1:5278/`。
 
-## 离线单文件交付
+## 三条可点击旅程
 
-```powershell
-node designs/aiops-unified-workbench/scripts/build-standalone.mjs
-```
+- 发布后健康验证：验证计划 → 监控影响 → 用户拨测 → 日志差异 → 放行决策。
+- 告警风暴处置：告警归并 → 影响定界 → 根因验证 → 恢复拨测 → 受控 Runbook/交接。
+- 关键服务日巡：覆盖审计 → 候选检查 → 证据链断点 → Finding/整改 → 带 unknown 的诚实报告。
 
-产物为 `NOVA-Ops-AI-Workbench-Standalone.html`。CSS、JavaScript、mock 数据全部内嵌，可直接复制到手机并离线打开。
+专业模块导航可在任何旅程中深链打开，并继承当前 `service / env / time / change / scenario`。
 
 ## 验证
 
 ```powershell
-node --test designs/aiops-unified-workbench/tests/domain.test.mjs
-node --test designs/aiops-unified-workbench/tests/server.test.mjs
-node --test designs/aiops-unified-workbench/tests/standalone.test.mjs
-node --check designs/aiops-unified-workbench/domain.mjs
-node --check designs/aiops-unified-workbench/mock-data.mjs
-node --check designs/aiops-unified-workbench/views.mjs
-node --check designs/aiops-unified-workbench/app.mjs
+node --test designs\aiops-unified-workbench\tests\domain.test.mjs
+node --test designs\aiops-unified-workbench\tests\server.test.mjs
+node --test designs\aiops-unified-workbench\tests\standalone.test.mjs
+$env:AIOPS_PROTOTYPE_URL='http://127.0.0.1:5278/'
+node designs\aiops-unified-workbench\tests\browser-smoke.mjs
 ```
 
-## 边界
+浏览器证据默认写入系统临时目录：`cat-cafe-evidence/aiops-unified-workbench-v2/`。
 
-- AI 只组织事实、推断、证据缺口与建议动作。
-- 最终结论、Owner、生产处置与复验均需要显式人工动作。
-- 覆盖率、新鲜度或基线门禁未恢复时，复验只能进入 `blocked`，不得写入“通过”。
-- `serve.mjs` 不向宿主 stdout/stderr 写访问日志，避免预览会话与进程管道解耦后出现空响应。
-- 原型状态不持久化，刷新后会回到初始 mock 数据。
+## 离线单文件
+
+```powershell
+node designs\aiops-unified-workbench\scripts\build-standalone.mjs
+```
+
+输出：`NOVA-Ops-AI-Workbench-Standalone.html`。它不依赖 localhost、模块 import、外部样式或网络请求，可直接用 `file://` 打开。
+
+## 产品边界
+
+- AI 只做跨源归并、解释、候选、缺口识别和报告草稿。
+- 规则/遥测提供事实，人负责最终判断、权限和生产动作。
+- `unknown`、证据过期、覆盖不足、基线漂移不得折算为健康。
+- 页面里的价值数字是本次 mock 旅程的操作计数，不是行业 ROI 承诺。

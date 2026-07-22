@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%2366e0bd'/%3E%3Cpath d='M9 23V9h3l8 9V9h3v14h-3l-8-9v9z' fill='%23081018'/%3E%3C/svg%3E" />
-    <title>NOVA Ops · AI 调查工作台</title>
+    <meta name="theme-color" content="#071014" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2376f2c7'/%3E%3Cpath d='M8 23V9h4l8 9V9h4v14h-4l-8-9v9z' fill='%23071014'/%3E%3C/svg%3E" />
+    <title>NOVA Ops · 场景驱动 AI 运维工作台</title>
     <link rel="stylesheet" href="./styles/tokens.css" />
     <link rel="stylesheet" href="./styles/layout.css" />
     <link rel="stylesheet" href="./styles/components-shell.css" />
@@ -14,107 +15,7 @@
     <link rel="stylesheet" href="./styles/components-ai.css" />
   </head>
   <body>
-    <svg class="svg-symbols" aria-hidden="true">
-      <symbol id="icon-grid" viewBox="0 0 24 24"><path d="M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 0h6v6h-6z" /></symbol>
-      <symbol id="icon-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2.2-6 4.1 12 2.4-6H21" /></symbol>
-      <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 7H3s3 0 3-7Zm4 11h4" /></symbol>
-      <symbol id="icon-lines" viewBox="0 0 24 24"><path d="M4 6h16M4 12h12M4 18h16" /></symbol>
-      <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" /></symbol>
-      <symbol id="icon-signal" viewBox="0 0 24 24"><path d="M4 18h.01M8 14a6 6 0 0 1 8 0M4 10a12 12 0 0 1 16 0M12 18h.01" /></symbol>
-      <symbol id="icon-search" viewBox="0 0 24 24"><path d="m20 20-4.4-4.4M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" /></symbol>
-      <symbol id="icon-lock" viewBox="0 0 24 24"><path d="M6 10h12v10H6zM8 10V7a4 4 0 0 1 8 0v3" /></symbol>
-      <symbol id="icon-spark" viewBox="0 0 24 24"><path d="m12 2 1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2Zm7 13 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" /></symbol>
-      <symbol id="icon-pin" viewBox="0 0 24 24"><path d="m14 4 6 6-3 1-4 4-1 5-2-2-4-4-2-2 5-1 4-4 1-3Z" /></symbol>
-    </svg>
-
-    <div class="app-shell">
-      <aside class="product-nav" aria-label="统一运维模块">
-        <div class="brand-mark" aria-label="NOVA Ops">N</div>
-        <button class="product-nav__item is-active" type="button" data-module="investigations" aria-label="调查工作台"><svg aria-hidden="true"><use href="#icon-grid" /></svg><span>调查</span></button>
-        <button class="product-nav__item" type="button" data-module="metrics" aria-label="监控"><svg aria-hidden="true"><use href="#icon-pulse" /></svg><span>监控</span></button>
-        <button class="product-nav__item" type="button" data-module="alerts" aria-label="告警"><svg aria-hidden="true"><use href="#icon-bell" /></svg><span>告警</span></button>
-        <button class="product-nav__item" type="button" data-module="logs" aria-label="日志"><svg aria-hidden="true"><use href="#icon-lines" /></svg><span>日志</span></button>
-        <button class="product-nav__item" type="button" data-module="checks" aria-label="巡检"><svg aria-hidden="true"><use href="#icon-check" /></svg><span>巡检</span></button>
-        <button class="product-nav__item" type="button" data-module="synthetics" aria-label="拨测"><svg aria-hidden="true"><use href="#icon-signal" /></svg><span>拨测</span></button>
-        <div class="nav-spacer"></div>
-        <div class="operator-avatar" title="值班负责人：林澈">LC</div>
-      </aside>
-
-      <section class="workspace">
-        <header class="workspace-header">
-          <div>
-            <p class="eyebrow">Unified operations</p>
-            <h1>AI 调查工作台</h1>
-          </div>
-          <div class="header-actions">
-            <div class="search-field"><svg aria-hidden="true"><use href="#icon-search" /></svg><span>搜索服务、事件或证据</span><kbd>⌘ K</kbd></div>
-            <div class="live-indicator"><span></span>实时</div>
-            <button class="icon-button ai-toggle" type="button" aria-label="展开 AI 调查员" aria-pressed="true"><svg aria-hidden="true"><use href="#icon-spark" /></svg></button>
-          </div>
-        </header>
-
-        <div class="workbench-grid">
-          <aside class="event-queue" aria-label="HealthEvent 工作队列">
-            <div class="panel-heading">
-              <div><p class="eyebrow">Work queue</p><h2>需要处理</h2></div>
-              <span class="count-badge" id="event-count">3</span>
-            </div>
-            <div class="segmented" role="tablist" aria-label="事件筛选">
-              <button class="is-active" type="button" data-filter="all">全部</button>
-              <button type="button" data-filter="blocker">阻断</button>
-              <button type="button" data-filter="unknown">未知</button>
-            </div>
-            <div id="event-list" class="event-list"></div>
-            <button class="service-map-button" type="button" aria-expanded="false" aria-controls="service-map">
-              <span class="map-orbit"><i></i><i></i><i></i></span>
-              <span><strong>业务健康地图</strong><small>按服务与用户旅程定位</small></span>
-              <span aria-hidden="true">↗</span>
-            </button>
-            <div id="service-map"></div>
-          </aside>
-
-          <main class="investigation" id="investigation-main">
-            <section class="context-lock" aria-label="已锁定调查上下文">
-              <div class="context-lock__title"><svg aria-hidden="true"><use href="#icon-lock" /></svg><span id="context-lock-label">上下文已锁定</span></div>
-              <div id="context-chips" class="context-chips"></div>
-              <button id="context-lock-button" class="quiet-button" type="button" aria-pressed="true">保持继承</button>
-            </section>
-            <div id="context-editor"></div>
-
-            <header class="incident-header" id="incident-header"></header>
-            <section id="guardrail" class="guardrail" aria-live="polite"></section>
-            <nav id="workflow" class="workflow" aria-label="调查处理阶段"></nav>
-
-            <section class="story-grid">
-              <article class="story-panel surface-panel">
-                <div class="section-heading"><div><p class="eyebrow">Investigation story</p><h2>发生了什么</h2></div><button id="hypothesis-toggle" class="text-button" type="button" aria-expanded="false" aria-controls="timeline">展开假设树</button></div>
-                <div id="timeline" class="timeline"></div>
-              </article>
-              <aside id="finding-card" class="finding-card surface-panel"></aside>
-            </section>
-
-            <section class="lens-panel surface-panel">
-              <div class="section-heading lens-heading">
-                <div><p class="eyebrow">Evidence lenses</p><h2>用不同信号检查同一事件</h2></div>
-                <div class="pinned-summary"><svg aria-hidden="true"><use href="#icon-pin" /></svg><span id="pinned-count">0 条已钉入</span></div>
-              </div>
-              <div id="lens-tabs" class="lens-tabs" role="tablist"></div>
-              <div id="lens-content" class="lens-content"></div>
-            </section>
-          </main>
-
-          <aside class="ai-panel is-open" id="ai-panel" aria-label="AI 调查员">
-            <div class="ai-panel__header">
-              <div class="ai-orb"><svg aria-hidden="true"><use href="#icon-spark" /></svg></div>
-              <div><p class="eyebrow">Evidence-grounded</p><h2>AI 调查员</h2></div>
-              <button class="icon-button ai-toggle" type="button" aria-label="收起 AI 调查员" aria-pressed="true">×</button>
-            </div>
-            <div id="ai-content" class="ai-content"></div>
-          </aside>
-        </div>
-      </section>
-    </div>
-
+    <div id="app" aria-live="polite"></div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script type="module" src="./app.mjs"></script>
   </body>

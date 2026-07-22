@@ -1,213 +1,235 @@
-import { createMockEvents } from './mock-data.mjs';
+import { createScenarios } from './scenario-data.mjs';
 
-export const LENSES = Object.freeze(['metrics', 'alerts', 'logs', 'checks', 'synthetics']);
+export const SCENARIO_IDS = Object.freeze(['release', 'incident', 'inspection']);
+export const MODULE_IDS = Object.freeze(['metrics', 'alerts', 'logs', 'checks', 'synthetics']);
+
+function createProgress() {
+  return Object.fromEntries(
+    SCENARIO_IDS.map((id) => [
+      id,
+      {
+        status: 'not_started',
+        completedStepIds: [],
+        evidencePackage: [],
+        aiVerdicts: {},
+        moduleSelections: {},
+        decisionId: null,
+        outcome: null,
+        blockReason: null,
+      },
+    ]),
+  );
+}
 
 export function createInitialState() {
   return {
-    activeEventId: 'HE-1042',
-    activeLens: 'metrics',
-    activeModule: 'investigations',
-    aiPanelOpen: true,
-    contextLocked: true,
-    eventQueueFilter: 'all',
-    hypothesisTreeExpanded: false,
-    serviceFilter: 'all',
-    serviceMapOpen: false,
-    events: createMockEvents(),
+    screen: 'home',
+    scenarioOrder: [...SCENARIO_IDS],
+    scenarios: createScenarios(),
+    scenarioProgress: createProgress(),
+    activeScenarioId: null,
+    activeStepIndex: 0,
+    activeModule: null,
+    aiPanelOpen: false,
+    capabilityMapOpen: false,
+    mobileJourneyOpen: false,
   };
 }
 
-export function deriveHealthState(event) {
-  if (event.coverageState === 'unknown' || event.freshnessState === 'stale' || event.baselineState === 'drifted') {
-    return 'unknown';
-  }
-  if (event.verification.status === 'passed') return 'recovering';
-  return event.healthState;
+export function activeScenario(state) {
+  return state.activeScenarioId ? state.scenarios[state.activeScenarioId] : null;
 }
 
-export function verificationBlockReason(event) {
-  if (event.coverageState === 'unknown') return '检查覆盖仍不完整';
-  if (event.freshnessState === 'stale') return '证据新鲜度仍未恢复';
-  if (event.baselineState === 'drifted') return '可比基线仍未重建';
-  return null;
+export function activeStep(state) {
+  const scenario = activeScenario(state);
+  return scenario?.steps[state.activeStepIndex] ?? null;
 }
 
-export function getEvidence(event, evidenceId) {
-  return Object.values(event.evidence)
-    .flat()
-    .find((item) => item.id === evidenceId);
+export function moduleDataset(scenario, module) {
+  if (!scenario || !MODULE_IDS.includes(module)) return null;
+  return scenario.datasets[module] ?? null;
 }
 
-function updateActiveEvent(state, updater) {
-  const active = state.events[state.activeEventId];
+export function deriveScenarioStatus(state, scenarioId = state.activeScenarioId) {
+  if (!scenarioId || !state.scenarioProgress[scenarioId]) return 'not_started';
+  return state.scenarioProgress[scenarioId].status;
+}
+
+function updateProgress(state, scenarioId, updater) {
   return {
     ...state,
-    events: {
-      ...state.events,
-      [state.activeEventId]: updater(active),
+    scenarioProgress: {
+      ...state.scenarioProgress,
+      [scenarioId]: updater(state.scenarioProgress[scenarioId]),
     },
   };
 }
 
-function appendTimeline(event, entry) {
-  if (event.timeline.some((item) => item.id === entry.id)) return event.timeline;
-  return [...event.timeline, entry];
+function unique(items) {
+  return [...new Set(items)];
+}
+
+function startScenario(state, scenarioId) {
+  if (!SCENARIO_IDS.includes(scenarioId)) return state;
+  const next = updateProgress(state, scenarioId, (progress) => ({
+    ...progress,
+    status: progress.status === 'completed' ? 'completed' : 'active',
+    blockReason: null,
+  }));
+  return {
+    ...next,
+    screen: 'journey',
+    activeScenarioId: scenarioId,
+    activeStepIndex: 0,
+    activeModule: next.scenarios[scenarioId].steps[0].module,
+    mobileJourneyOpen: false,
+  };
+}
+
+function completeCurrentStep(state, actionId) {
+  const scenario = activeScenario(state);
+  const step = activeStep(state);
+  if (!scenario || !step || step.requiredAction !== actionId) return state;
+
+  const scenarioId = scenario.id;
+  let next = updateProgress(state, scenarioId, (progress) => ({
+    ...progress,
+    status: 'active',
+    completedStepIds: unique([...progress.completedStepIds, step.id]),
+    evidencePackage: unique([...progress.evidencePackage, ...step.evidenceIds]),
+    blockReason: null,
+  }));
+
+  if (state.activeStepIndex < scenario.steps.length - 1) {
+    const nextIndex = state.activeStepIndex + 1;
+    next = {
+      ...next,
+      activeStepIndex: nextIndex,
+      activeModule: scenario.steps[nextIndex].module,
+      screen: 'journey',
+    };
+  }
+  return next;
+}
+
+function reviewAI(state, insightId, verdict) {
+  const scenario = activeScenario(state);
+  if (!scenario || !['accepted', 'rejected', 'needs_evidence'].includes(verdict)) return state;
+  const insight = Object.values(scenario.ai)
+    .flat()
+    .find((item) => item.id === insightId);
+  if (!insight) return state;
+  return updateProgress(state, scenario.id, (progress) => ({
+    ...progress,
+    aiVerdicts: { ...progress.aiVerdicts, [insightId]: verdict },
+  }));
+}
+
+function chooseDecision(state, decisionId) {
+  const scenario = activeScenario(state);
+  if (!scenario?.decisions.some((item) => item.id === decisionId)) return state;
+  return updateProgress(state, scenario.id, (progress) => ({
+    ...progress,
+    status: progress.status === 'blocked' ? 'active' : progress.status,
+    decisionId,
+    blockReason: null,
+  }));
+}
+
+function blockReasonFor(scenario, decisionId) {
+  if (decisionId !== 'mark_healthy') return null;
+  if (scenario.riskGates.coverageState === 'unknown') return 'unknown 覆盖尚未恢复，不能标记健康';
+  if (scenario.riskGates.freshnessState === 'stale') return '证据已过期，不能标记健康';
+  if (scenario.riskGates.baselineState === 'drifted') return '基线不可比，不能标记健康';
+  return null;
+}
+
+function completeJourney(state) {
+  const scenario = activeScenario(state);
+  if (!scenario) return state;
+  const progress = state.scenarioProgress[scenario.id];
+  const allStepsComplete = scenario.steps.every((step) => progress.completedStepIds.includes(step.id));
+  if (!allStepsComplete || !progress.decisionId) return state;
+
+  const blockReason = blockReasonFor(scenario, progress.decisionId);
+  if (blockReason) {
+    return updateProgress(state, scenario.id, (current) => ({
+      ...current,
+      status: 'blocked',
+      blockReason,
+      outcome: null,
+    }));
+  }
+
+  return updateProgress(state, scenario.id, (current) => ({
+    ...current,
+    status: 'completed',
+    blockReason: null,
+    outcome: {
+      ...structuredClone(scenario.outcomeBlueprint),
+      decision: current.decisionId,
+      evidencePackage: [...current.evidencePackage],
+      completedAt: '现在',
+      healthState:
+        scenario.riskGates.coverageState === 'unknown' || scenario.riskGates.freshnessState === 'stale'
+          ? 'unknown'
+          : 'recovering',
+    },
+  }));
 }
 
 export function reduceWorkbench(state, action) {
   switch (action.type) {
-    case 'select_event':
-      if (!state.events[action.eventId]) return state;
-      return {
-        ...state,
-        activeEventId: action.eventId,
-        activeLens: 'metrics',
-        hypothesisTreeExpanded: false,
-      };
-    case 'switch_lens':
-      if (!LENSES.includes(action.lens)) return state;
-      return { ...state, activeLens: action.lens, activeModule: 'investigations' };
+    case 'start_scenario':
+      return startScenario(state, action.scenarioId);
+    case 'complete_current_step':
+      return completeCurrentStep(state, action.actionId);
+    case 'go_to_step': {
+      const scenario = activeScenario(state);
+      if (!scenario || action.stepIndex < 0 || action.stepIndex >= scenario.steps.length) return state;
+      const target = scenario.steps[action.stepIndex];
+      const progress = state.scenarioProgress[scenario.id];
+      const firstIncomplete = scenario.steps.findIndex((step) => !progress.completedStepIds.includes(step.id));
+      if (action.stepIndex > Math.max(firstIncomplete, state.activeStepIndex)) return state;
+      return { ...state, screen: 'journey', activeStepIndex: action.stepIndex, activeModule: target.module };
+    }
     case 'open_module':
-      if (action.module === 'investigations') {
-        return { ...state, activeModule: 'investigations' };
-      }
-      if (!LENSES.includes(action.module)) return state;
-      return { ...state, activeModule: action.module, activeLens: action.module };
+      if (!MODULE_IDS.includes(action.module) || !activeScenario(state)) return state;
+      return { ...state, screen: 'module', activeModule: action.module };
+    case 'return_to_journey': {
+      const step = activeStep(state);
+      if (!step) return state;
+      return { ...state, screen: 'journey', activeModule: step.module };
+    }
+    case 'review_ai':
+      return reviewAI(state, action.insightId, action.verdict);
+    case 'focus_module_item': {
+      const scenario = activeScenario(state);
+      if (!scenario || !MODULE_IDS.includes(action.module) || typeof action.artifactId !== 'string') return state;
+      return updateProgress(state, scenario.id, (progress) => ({
+        ...progress,
+        moduleSelections: { ...progress.moduleSelections, [action.module]: action.artifactId },
+      }));
+    }
+    case 'choose_decision':
+      return chooseDecision(state, action.decisionId);
+    case 'complete_journey':
+      return completeJourney(state);
     case 'toggle_ai':
       return { ...state, aiPanelOpen: !state.aiPanelOpen };
-    case 'set_queue_filter':
-      return { ...state, eventQueueFilter: action.filter };
-    case 'toggle_hypothesis_tree':
-      return { ...state, hypothesisTreeExpanded: !state.hypothesisTreeExpanded };
-    case 'toggle_service_map':
-      return { ...state, serviceMapOpen: !state.serviceMapOpen };
-    case 'select_service': {
-      const nextEvent = Object.values(state.events).find((event) => event.context.service === action.service);
+    case 'toggle_capability_map':
+      return { ...state, capabilityMapOpen: !state.capabilityMapOpen };
+    case 'toggle_mobile_journey':
+      return { ...state, mobileJourneyOpen: !state.mobileJourneyOpen };
+    case 'go_home':
       return {
         ...state,
-        activeEventId: nextEvent?.id ?? state.activeEventId,
-        activeLens: nextEvent ? 'metrics' : state.activeLens,
-        serviceFilter: action.service,
-        serviceMapOpen: false,
+        screen: 'home',
+        activeScenarioId: null,
+        activeStepIndex: 0,
+        activeModule: null,
+        mobileJourneyOpen: false,
       };
-    }
-    case 'toggle_context_lock':
-      return { ...state, contextLocked: !state.contextLocked };
-    case 'set_time_range':
-      if (state.contextLocked || typeof action.timeRange !== 'string') return state;
-      return updateActiveEvent(state, (event) => ({
-        ...event,
-        context: { ...event.context, timeRange: action.timeRange },
-      }));
-    case 'pin_evidence':
-      return updateActiveEvent(state, (event) => {
-        const evidence = getEvidence(event, action.evidenceId);
-        if (!evidence || event.pinnedEvidenceIds.includes(action.evidenceId)) return event;
-        return {
-          ...event,
-          pinnedEvidenceIds: [...event.pinnedEvidenceIds, action.evidenceId],
-          timeline: appendTimeline(event, {
-            id: `tl-pin-${action.evidenceId}`,
-            time: evidence.timestamp,
-            kind: 'evidence',
-            title: `证据已钉入 · ${evidence.title}`,
-            detail: evidence.source,
-          }),
-          finding: {
-            ...event.finding,
-            confidence: event.pinnedEvidenceIds.length >= 1 ? '高 · 证据互相印证' : '中 · 已补入首条证据',
-            evidenceIds: [...event.finding.evidenceIds, action.evidenceId],
-          },
-        };
-      });
-    case 'confirm_finding':
-      return updateActiveEvent(state, (event) => {
-        if (event.finding.evidenceIds.length === 0) return event;
-        return {
-          ...event,
-          finding: { ...event.finding, status: 'confirmed' },
-          timeline: appendTimeline(event, {
-            id: 'tl-finding',
-            time: '现在',
-            kind: 'finding',
-            title: 'Finding 已由人工确认',
-            detail: event.finding.title,
-          }),
-        };
-      });
-    case 'assign_action':
-      return updateActiveEvent(state, (event) => {
-        if (event.finding.status !== 'confirmed') return event;
-        return {
-          ...event,
-          finding: { ...event.finding, owner: action.owner },
-          action: { status: 'assigned', owner: action.owner },
-        };
-      });
-    case 'start_action':
-      return updateActiveEvent(state, (event) => {
-        if (event.action.status !== 'assigned') return event;
-        return {
-          ...event,
-          action: { ...event.action, status: 'in_progress' },
-          timeline: appendTimeline(event, {
-            id: 'tl-action',
-            time: '现在',
-            kind: 'action',
-            title: '整改已开始',
-            detail: `${event.action.owner} 正在执行受控处置`,
-          }),
-        };
-      });
-    case 'start_verification':
-      return updateActiveEvent(state, (event) => {
-        if (event.action.status !== 'in_progress') return event;
-        return {
-          ...event,
-          verification: { status: 'running', startedAt: '现在', completedAt: null },
-          timeline: appendTimeline(event, {
-            id: 'tl-verify',
-            time: '现在',
-            kind: 'verification',
-            title: '复验运行中',
-            detail: '重跑相关检查与用户旅程拨测',
-          }),
-        };
-      });
-    case 'complete_verification':
-      return updateActiveEvent(state, (event) => {
-        if (event.verification.status !== 'running') return event;
-        const blockReason = verificationBlockReason(event);
-        if (blockReason) {
-          return {
-            ...event,
-            verification: {
-              ...event.verification,
-              status: 'blocked',
-              completedAt: null,
-              blockReason,
-            },
-            timeline: appendTimeline(event, {
-              id: 'tl-verify-blocked',
-              time: '现在',
-              kind: 'gap',
-              title: '复验受阻 · 仍不可判定',
-              detail: `${blockReason}；不得写入健康或恢复结论`,
-            }),
-          };
-        }
-        return {
-          ...event,
-          verification: { ...event.verification, status: 'passed', completedAt: '现在' },
-          timeline: appendTimeline(event, {
-            id: 'tl-verify-pass',
-            time: '现在',
-            kind: 'positive',
-            title: '复验通过 · 进入恢复观察',
-            detail: '关键指标回归基线，所有检查重新通过',
-          }),
-        };
-      });
     default:
       return state;
   }
