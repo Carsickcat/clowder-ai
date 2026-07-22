@@ -26,7 +26,7 @@
 | AC-6 | AI 可复核、可反驳 | 事实 / 假设 / 缺口 / 建议分栏；每条支持接纳、反驳、请求补证据 | AI verdict test + UI accepted state proof |
 | AC-7 | 防静默绿硬门禁 | `unknown`、新鲜度不足、覆盖缺口、基线漂移阻断健康结论；只能产出带 unknown 的诚实报告 | `mark_healthy` blocked regression + inspection non-happy path |
 | AC-8 | 旅程必须产出价值 | 每条终局包含人工决策、证据包、Owner、复验门槛和本次 mock 流程计数 | Outcome tests + outcome screen assertions |
-| AC-9 | 桌面、手机、离线单文件 | 响应式桌面/手机工作台；standalone 内嵌所有 CSS/JS，无 localhost 与外部依赖 | HTTP Chrome + mobile viewport + `file://` Chrome |
+| AC-9 | 桌面、手机、离线与远端交付 | 响应式工作台；standalone 内嵌所有 CSS/JS；远端聊天生成无本机路径的 `html_widget` | HTTP Chrome + mobile viewport + `file://` Chrome + sandbox widget smoke |
 | AC-10 | 自动化与真实浏览器 | 领域、服务、standalone 测试和浏览器旅程覆盖快乐/非快乐路径 | 12/12 Node tests + 2 次 Browser smoke |
 
 ## Product Gate
@@ -68,10 +68,11 @@
 
 | Check | Result |
 |---|---|
-| Domain + server + standalone | 12/12 pass |
+| Domain + server + standalone + delivery | 13/13 pass |
 | HTTP Chrome desktop | 三条 Golden Path、五模块差异、AI verdict、console 0 |
 | HTTP Chrome mobile | 旅程导航和 AI 抽屉可达，console 0 |
 | Offline `file://` Chrome | 三条旅程与 unknown 门禁通过，console 0 |
+| Sandboxed HTML widget | 390px、`allow-scripts` 且无 `allow-same-origin`；进入故障旅程、继承上下文、打开 AI 抽屉 |
 | Targeted Biome | 24 files checked, no fixes, exit 0 |
 | `git diff --check` | exit 0 |
 | Standalone | 142,510 bytes；SHA-256 `C51A382DFAA703068CADC84A7F7ACD3CEDBCDEC6CE82E1D734620F86833B48D1` |

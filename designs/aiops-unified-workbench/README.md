@@ -43,6 +43,21 @@ node designs\aiops-unified-workbench\scripts\build-standalone.mjs
 
 输出：`NOVA-Ops-AI-Workbench-Standalone.html`。它不依赖 localhost、模块 import、外部样式或网络请求，可直接用 `file://` 打开。
 
+## 远端对话内交付
+
+不要把 `E:\...` 仓库路径当作远端下载链接。需要在 Cat Café 对话内交付时，生成沙箱化 `html_widget` payload：
+
+```powershell
+node designs\aiops-unified-workbench\scripts\build-rich-widget.mjs
+```
+
+该 payload 内嵌同一份 standalone，并拒绝本地路径、localhost 和外部脚本/样式依赖。验证命令：
+
+```powershell
+node --test designs\aiops-unified-workbench\tests\delivery.test.mjs
+node designs\aiops-unified-workbench\tests\widget-smoke.mjs
+```
+
 ## 产品边界
 
 - AI 只做跨源归并、解释、候选、缺口识别和报告草稿。

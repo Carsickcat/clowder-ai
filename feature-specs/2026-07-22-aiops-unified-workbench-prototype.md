@@ -12,7 +12,7 @@
 - AC-6：AI 输出始终分为事实、假设、缺口、建议；每项带来源或验证动作，允许人工接纳、反驳或请求补证据。
 - AC-7：`unknown`、证据过期、覆盖不足与基线漂移是硬门禁；不得通过健康分或“复验完成”产生静默绿。
 - AC-8：每条旅程结束页必须展示决策、证据包、责任人、复验条件和可量化的流程价值；外部厂商 ROI 不作为承诺。
-- AC-9：桌面和手机均能完成三条旅程；生成无外部依赖的 standalone HTML，直接 `file://` 打开可用。
+- AC-9：桌面和手机均能完成三条旅程；生成无外部依赖的 standalone HTML，直接 `file://` 打开可用；远端对话通过内嵌 `html_widget` 交付，不暴露本机文件路径。
 - AC-10：自动化测试覆盖场景入口、上下文继承、模块数据差异、AI 人工确认、非快乐路径与旅程终态；真实浏览器覆盖桌面 Golden Paths 和手机抽屉/导航。
 
 **Architecture cell:** prototype / product-design（仓库无生产 ownership map 变更）
@@ -137,6 +137,7 @@ JourneyOutcome = {
 - 更新 browser smoke：三条桌面旅程、unknown 门禁、手机旅程。
 - 运行 Node 全量测试、Biome/diff check、真实 Chrome console 0。
 - 重建 standalone，校验无外部依赖、`file://` 可交互。
+- 在无 `allow-same-origin` 的 HTML widget 沙箱中验证手机场景与 AI 抽屉。
 - 跨个体 reviewer 按 AC-1~10 复审后交付。
 
 ## Evidence Basis
