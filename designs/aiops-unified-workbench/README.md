@@ -22,11 +22,20 @@ node designs/aiops-unified-workbench/serve.mjs
 
 然后访问 `http://127.0.0.1:5278/`。
 
+## 离线单文件交付
+
+```powershell
+node designs/aiops-unified-workbench/scripts/build-standalone.mjs
+```
+
+产物为 `NOVA-Ops-AI-Workbench-Standalone.html`。CSS、JavaScript、mock 数据全部内嵌，可直接复制到手机并离线打开。
+
 ## 验证
 
 ```powershell
 node --test designs/aiops-unified-workbench/tests/domain.test.mjs
 node --test designs/aiops-unified-workbench/tests/server.test.mjs
+node --test designs/aiops-unified-workbench/tests/standalone.test.mjs
 node --check designs/aiops-unified-workbench/domain.mjs
 node --check designs/aiops-unified-workbench/mock-data.mjs
 node --check designs/aiops-unified-workbench/views.mjs

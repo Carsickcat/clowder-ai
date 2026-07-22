@@ -82,7 +82,9 @@ Dogfood 中发现并修复：
 |---|---|
 | `node --test designs/aiops-unified-workbench/tests/domain.test.mjs` | 7/7 pass |
 | `node --test designs/aiops-unified-workbench/tests/server.test.mjs` | 1/1 pass；主动销毁 stdout/stderr 后连续请求仍为 200 |
+| `node --test designs/aiops-unified-workbench/tests/standalone.test.mjs` | 1/1 pass；CSS、脚本和依赖全部内嵌 |
 | `node designs/aiops-unified-workbench/tests/browser-smoke.mjs` | `BROWSER_SMOKE_OK`，console 0 error |
+| Chrome `file:///.../NOVA-Ops-AI-Workbench-Standalone.html` | 完整 Golden Path、unknown 阻断、移动抽屉通过 |
 | 跨命令 HTTP 稳定性 | 25/25 请求成功，交替访问 `/` 与 `/app.mjs` |
 | `pnpm exec biome check designs/aiops-unified-workbench feature-specs/... --diagnostic-level=error` | exit 0 |
 | HTTP preflight `http://127.0.0.1:5278/` | 200，title present |
