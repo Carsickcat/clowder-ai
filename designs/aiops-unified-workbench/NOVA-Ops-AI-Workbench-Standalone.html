@@ -2964,11 +2964,17 @@ button {
         },
         samples: [
           {
+            id: "LOG-SAMPLE-INCIDENT-QUEUE",
             time: "14:06:12.618",
             level: "ERROR",
             text: "EsRejectedExecutionException queue=1000 active=48 shard=products-v19"
           },
-          { time: "14:06:13.004", level: "WARN", text: "query timeout after 3000ms node=es-7 shard=products-v19" }
+          {
+            id: "LOG-SAMPLE-INCIDENT-TIMEOUT",
+            time: "14:06:13.004",
+            level: "WARN",
+            text: "query timeout after 3000ms node=es-7 shard=products-v19"
+          }
         ]
       },
       checks: {
@@ -3180,8 +3186,18 @@ button {
           freshness: { over20m: 6, under1m: 10 }
         },
         samples: [
-          { time: "09:41:02", level: "WARN", text: "collector last_seen=23m host=member-07 rollout=88" },
-          { time: "09:41:08", level: "WARN", text: "telemetry coverage=0.61 missing_instances=6" }
+          {
+            id: "LOG-SAMPLE-INSPECTION-LAST-SEEN",
+            time: "09:41:02",
+            level: "WARN",
+            text: "collector last_seen=23m host=member-07 rollout=88"
+          },
+          {
+            id: "LOG-SAMPLE-INSPECTION-COVERAGE",
+            time: "09:41:08",
+            level: "WARN",
+            text: "telemetry coverage=0.61 missing_instances=6"
+          }
         ]
       },
       checks: {
@@ -3395,11 +3411,17 @@ button {
         },
         samples: [
           {
+            id: "LOG-SAMPLE-RELEASE-TIMEOUT",
             time: "10:24:26.083",
             level: "ERROR",
             text: "PaymentClient timeout after 1500ms poolWait=1487ms version=v42"
           },
-          { time: "10:24:26.227", level: "ERROR", text: "Checkout confirm failed order=\u2022\u2022\u2022 cause=PoolAcquireTimeout" }
+          {
+            id: "LOG-SAMPLE-RELEASE-CHECKOUT",
+            time: "10:24:26.227",
+            level: "ERROR",
+            text: "Checkout confirm failed order=\u2022\u2022\u2022 cause=PoolAcquireTimeout"
+          }
         ]
       },
       checks: {
@@ -3493,6 +3515,14 @@ button {
           evidencePackage: [],
           aiVerdicts: {},
           moduleSelections: {},
+          moduleOperations: {
+            logs: {
+              queryStatus: "idle",
+              executedQuery: null,
+              resultCount: 0,
+              pinnedSampleIds: []
+            }
+          },
           decisionId: null,
           outcome: null,
           blockReason: null
@@ -3592,12 +3622,26 @@ button {
       blockReason: null
     }));
   }
+  function evaluateRiskGates(riskGates) {
+    const blockers = [];
+    if (riskGates.coverageState !== "complete") {
+      blockers.push({ gate: "coverage", reason: "\u68C0\u67E5\u8986\u76D6\u5C1A\u672A\u5B8C\u6574\uFF0C\u4E0D\u80FD\u5F62\u6210\u6B63\u5411\u5065\u5EB7\u7ED3\u8BBA" });
+    }
+    if (riskGates.freshnessState !== "fresh") {
+      blockers.push({ gate: "freshness", reason: "\u8BC1\u636E\u5DF2\u8FC7\u671F\uFF0C\u4E0D\u80FD\u5F62\u6210\u6B63\u5411\u5065\u5EB7\u7ED3\u8BBA" });
+    }
+    if (riskGates.baselineState !== "comparable") {
+      blockers.push({ gate: "baseline", reason: "\u57FA\u7EBF\u4E0D\u53EF\u6BD4\uFF0C\u4E0D\u80FD\u5F62\u6210\u6B63\u5411\u5065\u5EB7\u7ED3\u8BBA" });
+    }
+    return {
+      blockers,
+      canProjectPositiveHealth: blockers.length === 0,
+      projectedHealthState: blockers.length === 0 ? "recovering" : "unknown"
+    };
+  }
   function blockReasonFor(scenario, decisionId) {
     if (decisionId !== "mark_healthy") return null;
-    if (scenario.riskGates.coverageState === "unknown") return "unknown \u8986\u76D6\u5C1A\u672A\u6062\u590D\uFF0C\u4E0D\u80FD\u6807\u8BB0\u5065\u5EB7";
-    if (scenario.riskGates.freshnessState === "stale") return "\u8BC1\u636E\u5DF2\u8FC7\u671F\uFF0C\u4E0D\u80FD\u6807\u8BB0\u5065\u5EB7";
-    if (scenario.riskGates.baselineState === "drifted") return "\u57FA\u7EBF\u4E0D\u53EF\u6BD4\uFF0C\u4E0D\u80FD\u6807\u8BB0\u5065\u5EB7";
-    return null;
+    return evaluateRiskGates(scenario.riskGates).blockers[0]?.reason ?? null;
   }
   function completeJourney(state2) {
     const scenario = activeScenario(state2);
@@ -3614,6 +3658,7 @@ button {
         outcome: null
       }));
     }
+    const gateAssessment = evaluateRiskGates(scenario.riskGates);
     return updateProgress(state2, scenario.id, (current) => ({
       ...current,
       status: "completed",
@@ -3623,7 +3668,48 @@ button {
         decision: current.decisionId,
         evidencePackage: [...current.evidencePackage],
         completedAt: "\u73B0\u5728",
-        healthState: scenario.riskGates.coverageState === "unknown" || scenario.riskGates.freshnessState === "stale" ? "unknown" : "recovering"
+        healthState: gateAssessment.projectedHealthState,
+        openRiskGates: gateAssessment.blockers.map((item) => item.gate)
+      }
+    }));
+  }
+  function focusModuleItem(state2, module, artifactId) {
+    const scenario = activeScenario(state2);
+    if (!scenario || !MODULE_IDS.includes(module) || typeof artifactId !== "string") return state2;
+    return updateProgress(state2, scenario.id, (progress) => ({
+      ...progress,
+      moduleSelections: { ...progress.moduleSelections, [module]: artifactId }
+    }));
+  }
+  function runLogQuery(state2) {
+    const scenario = activeScenario(state2);
+    if (!scenario?.datasets.logs) return state2;
+    const resultCount = scenario.datasets.logs.patterns.reduce((sum, item) => sum + item.count, 0);
+    return updateProgress(state2, scenario.id, (progress) => ({
+      ...progress,
+      moduleOperations: {
+        ...progress.moduleOperations,
+        logs: {
+          ...progress.moduleOperations.logs,
+          queryStatus: "completed",
+          executedQuery: scenario.datasets.logs.query,
+          resultCount
+        }
+      }
+    }));
+  }
+  function pinLogSample(state2, sampleId) {
+    const scenario = activeScenario(state2);
+    if (!scenario?.datasets.logs.samples.some((sample) => sample.id === sampleId)) return state2;
+    return updateProgress(state2, scenario.id, (progress) => ({
+      ...progress,
+      evidencePackage: unique([...progress.evidencePackage, sampleId]),
+      moduleOperations: {
+        ...progress.moduleOperations,
+        logs: {
+          ...progress.moduleOperations.logs,
+          pinnedSampleIds: unique([...progress.moduleOperations.logs.pinnedSampleIds, sampleId])
+        }
       }
     }));
   }
@@ -3652,14 +3738,12 @@ button {
       }
       case "review_ai":
         return reviewAI(state2, action.insightId, action.verdict);
-      case "focus_module_item": {
-        const scenario = activeScenario(state2);
-        if (!scenario || !MODULE_IDS.includes(action.module) || typeof action.artifactId !== "string") return state2;
-        return updateProgress(state2, scenario.id, (progress) => ({
-          ...progress,
-          moduleSelections: { ...progress.moduleSelections, [action.module]: action.artifactId }
-        }));
-      }
+      case "focus_module_item":
+        return focusModuleItem(state2, action.module, action.artifactId);
+      case "run_log_query":
+        return runLogQuery(state2);
+      case "pin_log_sample":
+        return pinLogSample(state2, action.sampleId);
       case "choose_decision":
         return chooseDecision(state2, action.decisionId);
       case "complete_journey":
@@ -3852,8 +3936,9 @@ button {
     ).join("")}</div>`;
   }
   function renderLogs(data, progress) {
+    const operations = progress.moduleOperations.logs;
     return `<section class="module-canvas logs-canvas" data-module="logs">
-    <div class="log-query"><span>${icon("search")}</span><code>${escapeHTML(data.query)}</code><button type="button">RUN QUERY</button></div>
+    <div class="log-query ${operations.queryStatus === "completed" ? "is-complete" : ""}"><span>${icon("search")}</span><code>${escapeHTML(data.query)}</code><button type="button" data-run-log-query>${operations.queryStatus === "completed" ? `${data.patterns.length} PATTERNS \xB7 ${operations.resultCount.toLocaleString()} EVENTS` : "RUN QUERY"}</button></div>
     <div class="logs-layout">
       <article class="viz-panel pattern-panel">
         ${panelTitle("PATTERN CLUSTERS", "\u4ECE\u6210\u5343\u4E0A\u4E07\u6761\u65E5\u5FD7\u6536\u655B\u5230\u53EF\u6BD4\u8F83\u6A21\u5F0F", `<span class="panel-hint">${data.patterns.reduce((sum, item) => sum + item.count, 0).toLocaleString()} events</span>`)}
@@ -3869,7 +3954,10 @@ button {
     </div>
     <article class="viz-panel log-samples">
       ${panelTitle("VERIFIABLE SAMPLES", "\u9489\u5165\u8BC1\u636E\u5305\u7684\u539F\u59CB\u6837\u672C")}
-      ${data.samples.map((sample) => `<div class="log-line"><time>${escapeHTML(sample.time)}</time><span class="log-level log-level--${sample.level.toLowerCase()}">${escapeHTML(sample.level)}</span><code>${escapeHTML(sample.text)}</code><button type="button">PIN</button></div>`).join("")}
+      ${data.samples.map((sample) => {
+      const pinned = operations.pinnedSampleIds.includes(sample.id);
+      return `<div class="log-line ${pinned ? "is-pinned" : ""}"><time>${escapeHTML(sample.time)}</time><span class="log-level log-level--${sample.level.toLowerCase()}">${escapeHTML(sample.level)}</span><code>${escapeHTML(sample.text)}</code><button type="button" data-pin-log-sample="${escapeHTML(sample.id)}" ${pinned ? "disabled" : ""}>${pinned ? "PINNED" : "PIN"}</button></div>`;
+    }).join("")}
     </article>
   </section>`;
   }
@@ -4277,11 +4365,16 @@ button {
       dispatch({ type: "toggle_mobile_journey" });
       return true;
     }
-    const pin = target.closest(".log-line button");
+    if (target.closest("[data-run-log-query]")) {
+      dispatch({ type: "run_log_query" }, "\u67E5\u8BE2\u5DF2\u6267\u884C\uFF0C\u6A21\u5F0F\u6570\u91CF\u4E0E\u4E8B\u4EF6\u603B\u91CF\u5DF2\u5199\u5165\u5F53\u524D\u573A\u666F\u3002");
+      return true;
+    }
+    const pin = target.closest("[data-pin-log-sample]");
     if (pin) {
-      showToast("\u6837\u672C\u5DF2\u9489\u5165\u5F53\u524D\u4E13\u4E1A\u89C6\u56FE\uFF1B\u65C5\u7A0B\u8BC1\u636E\u5305\u5C06\u5728\u672C\u6B65\u786E\u8BA4\u65F6\u63D0\u4EA4\u3002");
-      pin.textContent = "PINNED";
-      pin.disabled = true;
+      dispatch(
+        { type: "pin_log_sample", sampleId: pin.dataset.pinLogSample },
+        "\u539F\u59CB\u65E5\u5FD7\u6837\u672C\u5DF2\u9489\u5165\u573A\u666F\u8BC1\u636E\u5305\uFF0C\u5207\u6362\u9875\u9762\u540E\u4ECD\u4F1A\u4FDD\u7559\u3002"
+      );
       return true;
     }
     return false;

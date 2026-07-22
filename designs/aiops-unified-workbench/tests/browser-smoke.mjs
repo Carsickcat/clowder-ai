@@ -73,6 +73,15 @@ async function main() {
       await page.screenshot({ path: path.join(evidenceDir, `module-${module}.png`), fullPage: true });
     }
     await page.click("button[data-module='logs']");
+    await page.click('[data-run-log-query]');
+    assert.match(await text(page, '.log-query button'), /3 PATTERNS · 896 EVENTS/);
+    await page.click("[data-pin-log-sample='LOG-SAMPLE-RELEASE-TIMEOUT']");
+    assert.match(await text(page, "[data-pin-log-sample='LOG-SAMPLE-RELEASE-TIMEOUT']"), /PINNED/);
+    assert.equal(await page.$eval("[data-pin-log-sample='LOG-SAMPLE-RELEASE-TIMEOUT']", (node) => node.disabled), true);
+    await page.click("button[data-module='metrics']");
+    await page.click("button[data-module='logs']");
+    assert.match(await text(page, '.log-query button'), /3 PATTERNS · 896 EVENTS/);
+    assert.match(await text(page, "[data-pin-log-sample='LOG-SAMPLE-RELEASE-TIMEOUT']"), /PINNED/);
     await page.click("[data-focus-id='LOG-CONFIG-120-40']");
     assert.match(await text(page, '.pattern-row.is-selected'), /pool\.maxConnections/);
     await page.click('[data-return-to-journey]');
@@ -90,6 +99,7 @@ async function main() {
     assert.equal(await page.$eval('.module-canvas', (node) => node.dataset.module), 'logs');
     await page.click('[data-complete-step]');
     assert.equal(await page.$eval('.module-canvas', (node) => node.dataset.module), 'decision');
+    assert.match(await text(page, '.decision-evidence'), /LOG-SAMPLE-RELEASE-TIMEOUT/);
     await page.click('[data-complete-step]');
     await page.click("[data-decision-id='pause_release']");
     await page.click('[data-finish-journey]');
@@ -109,7 +119,7 @@ async function main() {
     for (let index = 0; index < 5; index += 1) await page.click('[data-complete-step]');
     await page.click("[data-decision-id='mark_healthy']");
     await page.click('[data-finish-journey]');
-    assert.match(await text(page, '.decision-guardrail'), /unknown 覆盖尚未恢复/);
+    assert.match(await text(page, '.decision-guardrail'), /覆盖尚未完整/);
     assert.equal(await page.$('.journey-outcome'), null);
     await page.click("[data-decision-id='publish_with_unknown']");
     await page.click('[data-finish-journey]');

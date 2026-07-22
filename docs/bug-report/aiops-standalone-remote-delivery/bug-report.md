@@ -46,4 +46,3 @@ widget-smoke.mjs: WIDGET_SMOKE_OK sandbox=allow-scripts
 standalone file:// browser smoke: PASS
 HTTP browser smoke: PASS
 ```
-

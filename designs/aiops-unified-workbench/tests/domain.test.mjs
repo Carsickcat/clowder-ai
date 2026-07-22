@@ -145,6 +145,48 @@ test('unknown coverage blocks a healthy or verified inspection conclusion', () =
   assert.equal(state.scenarioProgress.inspection.outcome.healthState, 'unknown');
 });
 
+test('coverage, freshness, and baseline gates all prevent a positive health projection', () => {
+  const gateCases = [
+    {
+      gates: { coverageState: 'unknown', freshnessState: 'fresh', baselineState: 'comparable' },
+      reason: /覆盖/,
+    },
+    {
+      gates: { coverageState: 'complete', freshnessState: 'stale', baselineState: 'comparable' },
+      reason: /过期/,
+    },
+    {
+      gates: { coverageState: 'complete', freshnessState: 'fresh', baselineState: 'drifted' },
+      reason: /基线/,
+    },
+  ];
+
+  for (const { gates, reason } of gateCases) {
+    let state = createInitialState();
+    state = {
+      ...state,
+      scenarios: {
+        ...state.scenarios,
+        inspection: { ...state.scenarios.inspection, riskGates: gates },
+      },
+    };
+    state = reduceWorkbench(state, { type: 'start_scenario', scenarioId: 'inspection' });
+    for (const step of activeScenario(state).steps) {
+      state = reduceWorkbench(state, { type: 'complete_current_step', actionId: step.requiredAction });
+    }
+
+    state = reduceWorkbench(state, { type: 'choose_decision', decisionId: 'mark_healthy' });
+    state = reduceWorkbench(state, { type: 'complete_journey' });
+    assert.equal(state.scenarioProgress.inspection.status, 'blocked');
+    assert.match(state.scenarioProgress.inspection.blockReason, reason);
+
+    state = reduceWorkbench(state, { type: 'choose_decision', decisionId: 'publish_with_unknown' });
+    state = reduceWorkbench(state, { type: 'complete_journey' });
+    assert.equal(state.scenarioProgress.inspection.status, 'completed');
+    assert.equal(state.scenarioProgress.inspection.outcome.healthState, 'unknown');
+  }
+});
+
 test('module deep links preserve the active scenario instead of resetting the journey', () => {
   let state = createInitialState();
   state = reduceWorkbench(state, { type: 'start_scenario', scenarioId: 'release' });
@@ -171,4 +213,34 @@ test('professional module interactions persist their selected artifact in journe
 
   assert.equal(state.scenarioProgress.release.moduleSelections.logs, 'LOG-CONFIG-120-40');
   assert.deepEqual(activeScenario(state).context, context);
+});
+
+test('log query and sample pinning are reducer-backed and contribute verifiable evidence', () => {
+  let state = createInitialState();
+  state = reduceWorkbench(state, { type: 'start_scenario', scenarioId: 'release' });
+  state = reduceWorkbench(state, { type: 'run_log_query' });
+
+  assert.equal(state.scenarioProgress.release.moduleOperations.logs.queryStatus, 'completed');
+  assert.equal(
+    state.scenarioProgress.release.moduleOperations.logs.executedQuery,
+    state.scenarios.release.datasets.logs.query,
+  );
+
+  state = reduceWorkbench(state, {
+    type: 'pin_log_sample',
+    sampleId: 'LOG-SAMPLE-RELEASE-TIMEOUT',
+  });
+
+  assert.deepEqual(state.scenarioProgress.release.moduleOperations.logs.pinnedSampleIds, [
+    'LOG-SAMPLE-RELEASE-TIMEOUT',
+  ]);
+  assert.ok(state.scenarioProgress.release.evidencePackage.includes('LOG-SAMPLE-RELEASE-TIMEOUT'));
+
+  const duplicate = reduceWorkbench(state, {
+    type: 'pin_log_sample',
+    sampleId: 'LOG-SAMPLE-RELEASE-TIMEOUT',
+  });
+  assert.deepEqual(duplicate.scenarioProgress.release.moduleOperations.logs.pinnedSampleIds, [
+    'LOG-SAMPLE-RELEASE-TIMEOUT',
+  ]);
 });

@@ -13,6 +13,14 @@ function createProgress() {
         evidencePackage: [],
         aiVerdicts: {},
         moduleSelections: {},
+        moduleOperations: {
+          logs: {
+            queryStatus: 'idle',
+            executedQuery: null,
+            resultCount: 0,
+            pinnedSampleIds: [],
+          },
+        },
         decisionId: null,
         outcome: null,
         blockReason: null,
@@ -136,12 +144,27 @@ function chooseDecision(state, decisionId) {
   }));
 }
 
+export function evaluateRiskGates(riskGates) {
+  const blockers = [];
+  if (riskGates.coverageState !== 'complete') {
+    blockers.push({ gate: 'coverage', reason: '检查覆盖尚未完整，不能形成正向健康结论' });
+  }
+  if (riskGates.freshnessState !== 'fresh') {
+    blockers.push({ gate: 'freshness', reason: '证据已过期，不能形成正向健康结论' });
+  }
+  if (riskGates.baselineState !== 'comparable') {
+    blockers.push({ gate: 'baseline', reason: '基线不可比，不能形成正向健康结论' });
+  }
+  return {
+    blockers,
+    canProjectPositiveHealth: blockers.length === 0,
+    projectedHealthState: blockers.length === 0 ? 'recovering' : 'unknown',
+  };
+}
+
 function blockReasonFor(scenario, decisionId) {
   if (decisionId !== 'mark_healthy') return null;
-  if (scenario.riskGates.coverageState === 'unknown') return 'unknown 覆盖尚未恢复，不能标记健康';
-  if (scenario.riskGates.freshnessState === 'stale') return '证据已过期，不能标记健康';
-  if (scenario.riskGates.baselineState === 'drifted') return '基线不可比，不能标记健康';
-  return null;
+  return evaluateRiskGates(scenario.riskGates).blockers[0]?.reason ?? null;
 }
 
 function completeJourney(state) {
@@ -161,6 +184,8 @@ function completeJourney(state) {
     }));
   }
 
+  const gateAssessment = evaluateRiskGates(scenario.riskGates);
+
   return updateProgress(state, scenario.id, (current) => ({
     ...current,
     status: 'completed',
@@ -170,10 +195,51 @@ function completeJourney(state) {
       decision: current.decisionId,
       evidencePackage: [...current.evidencePackage],
       completedAt: '现在',
-      healthState:
-        scenario.riskGates.coverageState === 'unknown' || scenario.riskGates.freshnessState === 'stale'
-          ? 'unknown'
-          : 'recovering',
+      healthState: gateAssessment.projectedHealthState,
+      openRiskGates: gateAssessment.blockers.map((item) => item.gate),
+    },
+  }));
+}
+
+function focusModuleItem(state, module, artifactId) {
+  const scenario = activeScenario(state);
+  if (!scenario || !MODULE_IDS.includes(module) || typeof artifactId !== 'string') return state;
+  return updateProgress(state, scenario.id, (progress) => ({
+    ...progress,
+    moduleSelections: { ...progress.moduleSelections, [module]: artifactId },
+  }));
+}
+
+function runLogQuery(state) {
+  const scenario = activeScenario(state);
+  if (!scenario?.datasets.logs) return state;
+  const resultCount = scenario.datasets.logs.patterns.reduce((sum, item) => sum + item.count, 0);
+  return updateProgress(state, scenario.id, (progress) => ({
+    ...progress,
+    moduleOperations: {
+      ...progress.moduleOperations,
+      logs: {
+        ...progress.moduleOperations.logs,
+        queryStatus: 'completed',
+        executedQuery: scenario.datasets.logs.query,
+        resultCount,
+      },
+    },
+  }));
+}
+
+function pinLogSample(state, sampleId) {
+  const scenario = activeScenario(state);
+  if (!scenario?.datasets.logs.samples.some((sample) => sample.id === sampleId)) return state;
+  return updateProgress(state, scenario.id, (progress) => ({
+    ...progress,
+    evidencePackage: unique([...progress.evidencePackage, sampleId]),
+    moduleOperations: {
+      ...progress.moduleOperations,
+      logs: {
+        ...progress.moduleOperations.logs,
+        pinnedSampleIds: unique([...progress.moduleOperations.logs.pinnedSampleIds, sampleId]),
+      },
     },
   }));
 }
@@ -203,14 +269,12 @@ export function reduceWorkbench(state, action) {
     }
     case 'review_ai':
       return reviewAI(state, action.insightId, action.verdict);
-    case 'focus_module_item': {
-      const scenario = activeScenario(state);
-      if (!scenario || !MODULE_IDS.includes(action.module) || typeof action.artifactId !== 'string') return state;
-      return updateProgress(state, scenario.id, (progress) => ({
-        ...progress,
-        moduleSelections: { ...progress.moduleSelections, [action.module]: action.artifactId },
-      }));
-    }
+    case 'focus_module_item':
+      return focusModuleItem(state, action.module, action.artifactId);
+    case 'run_log_query':
+      return runLogQuery(state);
+    case 'pin_log_sample':
+      return pinLogSample(state, action.sampleId);
     case 'choose_decision':
       return chooseDecision(state, action.decisionId);
     case 'complete_journey':

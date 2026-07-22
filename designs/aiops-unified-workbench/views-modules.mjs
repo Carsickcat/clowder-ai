@@ -75,8 +75,9 @@ function facetGroup(label, values) {
 }
 
 function renderLogs(data, progress) {
+  const operations = progress.moduleOperations.logs;
   return `<section class="module-canvas logs-canvas" data-module="logs">
-    <div class="log-query"><span>${icon('search')}</span><code>${escapeHTML(data.query)}</code><button type="button">RUN QUERY</button></div>
+    <div class="log-query ${operations.queryStatus === 'completed' ? 'is-complete' : ''}"><span>${icon('search')}</span><code>${escapeHTML(data.query)}</code><button type="button" data-run-log-query>${operations.queryStatus === 'completed' ? `${data.patterns.length} PATTERNS · ${operations.resultCount.toLocaleString()} EVENTS` : 'RUN QUERY'}</button></div>
     <div class="logs-layout">
       <article class="viz-panel pattern-panel">
         ${panelTitle('PATTERN CLUSTERS', '从成千上万条日志收敛到可比较模式', `<span class="panel-hint">${data.patterns.reduce((sum, item) => sum + item.count, 0).toLocaleString()} events</span>`)}
@@ -94,7 +95,12 @@ function renderLogs(data, progress) {
     </div>
     <article class="viz-panel log-samples">
       ${panelTitle('VERIFIABLE SAMPLES', '钉入证据包的原始样本')}
-      ${data.samples.map((sample) => `<div class="log-line"><time>${escapeHTML(sample.time)}</time><span class="log-level log-level--${sample.level.toLowerCase()}">${escapeHTML(sample.level)}</span><code>${escapeHTML(sample.text)}</code><button type="button">PIN</button></div>`).join('')}
+      ${data.samples
+        .map((sample) => {
+          const pinned = operations.pinnedSampleIds.includes(sample.id);
+          return `<div class="log-line ${pinned ? 'is-pinned' : ''}"><time>${escapeHTML(sample.time)}</time><span class="log-level log-level--${sample.level.toLowerCase()}">${escapeHTML(sample.level)}</span><code>${escapeHTML(sample.text)}</code><button type="button" data-pin-log-sample="${escapeHTML(sample.id)}" ${pinned ? 'disabled' : ''}>${pinned ? 'PINNED' : 'PIN'}</button></div>`;
+        })
+        .join('')}
     </article>
   </section>`;
 }

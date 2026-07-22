@@ -134,8 +134,18 @@ export const inspectionScenario = {
         freshness: { over20m: 6, under1m: 10 },
       },
       samples: [
-        { time: '09:41:02', level: 'WARN', text: 'collector last_seen=23m host=member-07 rollout=88' },
-        { time: '09:41:08', level: 'WARN', text: 'telemetry coverage=0.61 missing_instances=6' },
+        {
+          id: 'LOG-SAMPLE-INSPECTION-LAST-SEEN',
+          time: '09:41:02',
+          level: 'WARN',
+          text: 'collector last_seen=23m host=member-07 rollout=88',
+        },
+        {
+          id: 'LOG-SAMPLE-INSPECTION-COVERAGE',
+          time: '09:41:08',
+          level: 'WARN',
+          text: 'telemetry coverage=0.61 missing_instances=6',
+        },
       ],
     },
     checks: {

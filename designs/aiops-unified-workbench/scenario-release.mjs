@@ -126,11 +126,17 @@ export const releaseScenario = {
       },
       samples: [
         {
+          id: 'LOG-SAMPLE-RELEASE-TIMEOUT',
           time: '10:24:26.083',
           level: 'ERROR',
           text: 'PaymentClient timeout after 1500ms poolWait=1487ms version=v42',
         },
-        { time: '10:24:26.227', level: 'ERROR', text: 'Checkout confirm failed order=••• cause=PoolAcquireTimeout' },
+        {
+          id: 'LOG-SAMPLE-RELEASE-CHECKOUT',
+          time: '10:24:26.227',
+          level: 'ERROR',
+          text: 'Checkout confirm failed order=••• cause=PoolAcquireTimeout',
+        },
       ],
     },
     checks: {

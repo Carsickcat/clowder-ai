@@ -113,11 +113,16 @@ function handleUtility(target) {
     dispatch({ type: 'toggle_mobile_journey' });
     return true;
   }
-  const pin = target.closest('.log-line button');
+  if (target.closest('[data-run-log-query]')) {
+    dispatch({ type: 'run_log_query' }, '查询已执行，模式数量与事件总量已写入当前场景。');
+    return true;
+  }
+  const pin = target.closest('[data-pin-log-sample]');
   if (pin) {
-    showToast('样本已钉入当前专业视图；旅程证据包将在本步确认时提交。');
-    pin.textContent = 'PINNED';
-    pin.disabled = true;
+    dispatch(
+      { type: 'pin_log_sample', sampleId: pin.dataset.pinLogSample },
+      '原始日志样本已钉入场景证据包，切换页面后仍会保留。',
+    );
     return true;
   }
   return false;

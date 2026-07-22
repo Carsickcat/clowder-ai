@@ -22,9 +22,9 @@
 | AC-2 | 三条角色旅程 | 发布负责人、值班 SRE、服务 Owner 分别有触发、判断问题、五步旅程、终局决策和价值结果 | Domain tests + 三条桌面 Golden Path |
 | AC-3 | 五模块专业差异 | 监控、告警、日志、巡检、拨测使用不同 schema、布局、数据和动作 | Domain schema test + Browser smoke 逐页唯一内容断言 |
 | AC-4 | 上下文统一，页面不趋同 | `service / env / time / change / scenario` 被锁定并随模块深链继承；五类视图独立实现 | Context inheritance test + Browser deep-link path |
-| AC-5 | 禁止伪交互 | 步骤推进、模块聚焦、AI verdict、人工决策、完成/阻断均进入 reducer 状态 | Reducer tests + UI path state assertions |
+| AC-5 | 禁止伪交互 | 步骤推进、模块聚焦、日志查询/钉入、AI verdict、人工决策、完成/阻断均进入 reducer 状态 | Reducer tests + 跨模块重渲染后的日志证据持久化 |
 | AC-6 | AI 可复核、可反驳 | 事实 / 假设 / 缺口 / 建议分栏；每条支持接纳、反驳、请求补证据 | AI verdict test + UI accepted state proof |
-| AC-7 | 防静默绿硬门禁 | `unknown`、新鲜度不足、覆盖缺口、基线漂移阻断健康结论；只能产出带 unknown 的诚实报告 | `mark_healthy` blocked regression + inspection non-happy path |
+| AC-7 | 防静默绿硬门禁 | coverage、freshness、baseline 由统一 gate 派生；任一开放均阻断正向健康结论 | 三门禁独立回归 + inspection non-happy path |
 | AC-8 | 旅程必须产出价值 | 每条终局包含人工决策、证据包、Owner、复验门槛和本次 mock 流程计数 | Outcome tests + outcome screen assertions |
 | AC-9 | 桌面、手机、离线与远端交付 | 响应式工作台；standalone 内嵌所有 CSS/JS；远端聊天生成无本机路径的 `html_widget` | HTTP Chrome + mobile viewport + `file://` Chrome + sandbox widget smoke |
 | AC-10 | 自动化与真实浏览器 | 领域、服务、standalone 测试和浏览器旅程覆盖快乐/非快乐路径 | 12/12 Node tests + 2 次 Browser smoke |
@@ -63,19 +63,21 @@
 3. 新增模块聚焦持久化测试先失败，再实现 `focus_module_item`。
 4. 新增 blocked 决策恢复测试先失败，再实现状态从 `blocked` 回到 `active`。
 5. `unknown` 回归测试固定为 `blocked / unknown`，且不得写入恢复结论。
+6. reviewer 复现 `baselineState=drifted` 被投影为 `recovering`；新增 coverage/freshness/baseline 三组失败测试后抽出统一 gate。
+7. reviewer 复现日志 RUN/PIN 伪交互；新增 reducer 持久化测试与浏览器跨模块重渲染回归。
 
 ## Fresh Verification
 
 | Check | Result |
 |---|---|
-| Domain + server + standalone + delivery | 13/13 pass |
+| Domain + server + standalone + delivery | 15/15 pass |
 | HTTP Chrome desktop | 三条 Golden Path、五模块差异、AI verdict、console 0 |
 | HTTP Chrome mobile | 旅程导航和 AI 抽屉可达，console 0 |
 | Offline `file://` Chrome | 三条旅程与 unknown 门禁通过，console 0 |
 | Sandboxed HTML widget | 390px、`allow-scripts` 且无 `allow-same-origin`；进入故障旅程、继承上下文、打开 AI 抽屉 |
-| Targeted Biome | 24 files checked, no fixes, exit 0 |
+| Targeted Biome | 27 files checked, no fixes, exit 0 |
 | `git diff --check` | exit 0 |
-| Standalone | 142,510 bytes；SHA-256 `C51A382DFAA703068CADC84A7F7ACD3CEDBCDEC6CE82E1D734620F86833B48D1` |
+| Standalone | 145,921 bytes；SHA-256 `B415F1B0A08A3E540CB720D07D2BA143F0F4A5B3869538EC03398CB3399E7D9B` |
 
 当前分支基线未提供 `check-hotfix-pattern.mjs`、`check-fallback-layers.mjs`、`check:architecture-ownership`、`check:capability-tips`，因此这些检查记录为 **unavailable**，不伪报通过。该 slice 是独立静态产品原型，不进入 Cat Café 运行时能力发现面；spec 已写明 `tips_exempt`。
 

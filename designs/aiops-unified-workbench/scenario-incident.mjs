@@ -136,11 +136,17 @@ export const incidentScenario = {
       },
       samples: [
         {
+          id: 'LOG-SAMPLE-INCIDENT-QUEUE',
           time: '14:06:12.618',
           level: 'ERROR',
           text: 'EsRejectedExecutionException queue=1000 active=48 shard=products-v19',
         },
-        { time: '14:06:13.004', level: 'WARN', text: 'query timeout after 3000ms node=es-7 shard=products-v19' },
+        {
+          id: 'LOG-SAMPLE-INCIDENT-TIMEOUT',
+          time: '14:06:13.004',
+          level: 'WARN',
+          text: 'query timeout after 3000ms node=es-7 shard=products-v19',
+        },
       ],
     },
     checks: {
