@@ -7,6 +7,77 @@ import {
   reduceOpsState,
 } from "../lib/domain.mjs";
 
+test("SRE navigation opens only governed operational objects", () => {
+  let state = createInitialState();
+
+  assert.equal(state.activeObject, null);
+  state = reduceOpsState(state, {
+    type: "OBJECT_OPEN",
+    objectType: "change",
+    objectId: "CHG-23841",
+  });
+  assert.deepEqual(state.activeObject, {
+    type: "change",
+    id: "CHG-23841",
+  });
+  assert.equal(state.currentScreen, "change");
+
+  state = reduceOpsState(state, {
+    type: "OBJECT_OPEN",
+    objectType: "report",
+    objectId: "RPT-CHG-23841",
+  });
+  assert.equal(state.currentScreen, "change");
+  assert.equal(state.audit.at(-1).action, "object.open.rejected");
+
+  state = reduceOpsState(state, { type: "OBJECT_CLOSE" });
+  assert.equal(state.currentScreen, "home");
+  assert.equal(state.activeObject, null);
+});
+
+test("Incident preserves source provenance and cannot close the source object", () => {
+  let state = createInitialState();
+  state = reduceOpsState(state, {
+    type: "INCIDENT_ESCALATED",
+    sourceObject: { type: "change", id: "CHG-23841" },
+    findingId: "FND-8821",
+  });
+
+  assert.equal(state.currentScreen, "investigation");
+  assert.deepEqual(state.activeObject, {
+    type: "incident",
+    id: "INC-7719",
+  });
+  assert.deepEqual(state.investigation.sourceObject, {
+    type: "change",
+    id: "CHG-23841",
+  });
+  assert.equal(state.change.status, "blocked");
+
+  state = reduceOpsState(state, { type: "ACTION_PROPOSAL_WRITTEN_BACK" });
+  assert.equal(state.investigation.writeback, null);
+  assert.equal(state.audit.at(-1).action, "action-proposal.writeback.rejected");
+
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_TEST_RUN",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_CONFIRMED",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, { type: "ACTION_PROPOSAL_WRITTEN_BACK" });
+
+  assert.equal(state.investigation.writeback.status, "written_back");
+  assert.equal(state.investigation.writeback.targetFindingId, "FND-8821");
+  assert.equal(
+    state.findings.find((finding) => finding.id === "FND-8821").status,
+    "pending_action",
+  );
+  assert.equal(state.change.status, "blocked");
+  assert.notEqual(state.change.verification.status, "passed");
+});
+
 test("NL2 plan cannot publish until every gate, replay, and approval are ready", () => {
   let state = createInitialState();
 

@@ -2,21 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { AppHeader } from "./AppHeader";
-import { JourneyWorkspace } from "./JourneyWorkspace";
+import { ObjectWorkspace } from "./ObjectWorkspace";
 import { useOps } from "./OpsContext";
 import { UserGuide } from "./UserGuide";
-import { journeyCatalog } from "./journeyModel";
+import { objectCatalog } from "./objectModel";
 import { ChangeGuard } from "./screens/ChangeGuard";
 import { Governance } from "./screens/Governance";
 import { InspectionStudio } from "./screens/InspectionStudio";
 import { Investigation } from "./screens/Investigation";
-import { JourneyHome } from "./screens/JourneyHome";
 import { LiveOps } from "./screens/LiveOps";
 import { MissionCommand } from "./screens/MissionCommand";
 import { ReportsCenter } from "./screens/ReportsCenter";
+import { SreHome } from "./screens/SreHome";
+import { Icon } from "./ui";
 
 const screens = {
-  home: JourneyHome,
+  home: SreHome,
   live: LiveOps,
   mission: MissionCommand,
   change: ChangeGuard,
@@ -26,13 +27,63 @@ const screens = {
   governance: Governance,
 };
 
+const navItems = [
+  { label: "工作台", icon: "pulse", screen: "home" },
+  { label: "Incidents", icon: "alert", objectType: "incident" },
+  { label: "Changes", icon: "branch", objectType: "change" },
+  { label: "Missions", icon: "shield", objectType: "mission" },
+  { label: "Inspections", icon: "wand", objectType: "inspection" },
+  { label: "Reports", icon: "report", screen: "reports" },
+  { label: "Governance", icon: "grid", screen: "governance" },
+];
+
+function GlobalNav({ state, dispatch }) {
+  return (
+    <aside className="sre-global-nav" aria-label="SRE 对象导航">
+      <div className="sre-global-nav-label">Operate</div>
+      {navItems.map((item) => {
+        const definition = item.objectType
+          ? objectCatalog[item.objectType]
+          : null;
+        const active = item.objectType
+          ? state.activeObject?.type === item.objectType
+          : !state.activeObject && state.currentScreen === item.screen;
+        return (
+          <button
+            type="button"
+            className={active ? "active" : ""}
+            aria-current={active ? "page" : undefined}
+            key={item.label}
+            onClick={() =>
+              item.objectType
+                ? dispatch({
+                    type: "OBJECT_OPEN",
+                    objectType: item.objectType,
+                    objectId: definition.id,
+                  })
+                : dispatch({ type: "NAVIGATE", screen: item.screen })
+            }
+          >
+            <Icon name={item.icon} />
+            <span>{item.label}</span>
+            {item.objectType && <i>{definition.id.split("-")[1]}</i>}
+          </button>
+        );
+      })}
+    </aside>
+  );
+}
+
 export function AppShell() {
   const { state, dispatch, drawer, openDrawer, closeDrawer } = useOps();
   const [clock, setClock] = useState("20:18:42");
-  const activeJourneyId = state.activeJourney ?? "diagnosis";
-  const journey = journeyCatalog[activeJourneyId];
   const isHome = state.currentScreen === "home";
-  const Screen = screens[state.currentScreen] ?? JourneyHome;
+  const activeObjectType = state.activeObject?.type ?? null;
+  const activeObject = activeObjectType
+    ? objectCatalog[activeObjectType]
+    : null;
+  const isObjectWorkspace = Boolean(activeObject);
+  const Screen = screens[state.currentScreen] ?? SreHome;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -53,28 +104,33 @@ export function AppShell() {
     <div
       className={
         isHome
-          ? "app-shell journey-overview"
-          : `app-shell journey-${journey.tone}`
+          ? "app-shell object-overview"
+          : `app-shell ${
+              activeObject
+                ? `object-${activeObject.tone}`
+                : "object-global-view"
+            }`
       }
     >
+      <GlobalNav state={state} dispatch={dispatch} />
       <main className="main-shell">
         <AppHeader
           clock={clock}
           isHome={isHome}
-          journey={journey}
+          object={activeObject}
           state={state}
           dispatch={dispatch}
           openDrawer={openDrawer}
           closeDrawer={closeDrawer}
         />
 
-        {isHome ? (
+        {isHome || !isObjectWorkspace ? (
           <div className="home-screen-wrap">
             <Screen />
           </div>
         ) : (
-          <JourneyWorkspace
-            journeyId={activeJourneyId}
+          <ObjectWorkspace
+            objectType={activeObjectType}
             state={state}
             dispatch={dispatch}
             Screen={Screen}

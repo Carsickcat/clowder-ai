@@ -1,20 +1,30 @@
 # NOVA Ops V5 SRE Object Workbench Implementation Plan
 
-**Feature:** NOVA Ops V5 SRE 领域对象工作台  
-**Goal:** 把 V4 的角色/场景入口改造成以待处置运维对象为中心的 SRE 运行工作台，并保持双 Agent、证据、人工决策和复验边界。  
+**Feature:** NOVA Ops V5 SRE 领域对象工作台
+
+**Goal:** 把 V4 的角色/场景入口改造成以待处置运维对象为中心的 SRE 运行工作台，并保持双 Agent、证据、人工决策和复验边界。
+
 **Acceptance Criteria:**
+
 - 首页不再出现角色选择，以按紧急度和截止时间排序的待处置对象队列为主。
 - Incident / Change / Mission / Inspection 四类对象可从队列和全局导航进入。
 - 四类对象共享左侧对象上下文、中间专业证据、右侧 Agent Assist 的三栏骨架。
 - Change / Mission / Inspection 可追溯升级为 Incident；ActionProposal 只能回写原对象 Finding，最终恢复仍由原对象 Verification 决定。
 - 对象 accent 只表达对象类型，健康/严重度状态色继续独立表达 pass/warning/fail/unknown。
 - 桌面 1440 与手机 390 均完成真实浏览器旅程验证。
-**Not building:** 真实后端、生产数据连接、权限系统、跨页面持久化、自动执行生产动作。  
-**Architecture cell:** `AI Ops SRE object workspace`  
-**Map delta:** update required  
-**Map delta why:** 页面坐标由角色旅程切换为统一运维对象；领域对象和双 Agent owner 不变。  
-**Architecture:** `SreHome` 负责对象队列和二级入口；`ObjectWorkspace` 用对象目录投影统一三栏。领域 reducer 新增对象打开、升级 Incident、ActionProposal 回写事件，已有 Change Verification 继续作为唯一恢复 owner。  
-**Tech Stack:** React 19、Vite、CSS variables、Node test runner、Playwright/Chrome。  
+
+**Not building:** 真实后端、生产数据连接、权限系统、跨页面持久化、自动执行生产动作。
+
+**Architecture cell:** `AI Ops SRE object workspace`
+
+**Map delta:** update required
+
+**Map delta why:** 页面坐标由角色旅程切换为统一运维对象；领域对象和双 Agent owner 不变。
+
+**Architecture:** `SreHome` 负责对象队列和二级入口；`ObjectWorkspace` 用对象目录投影统一三栏。领域 reducer 新增对象打开、升级 Incident、ActionProposal 回写事件，已有 Change Verification 继续作为唯一恢复 owner。
+
+**Tech Stack:** React 19、Vite、CSS variables、Node test runner、Playwright/Chrome。
+
 **前端验证:** Yes — reviewer 必须实际打开桌面和手机页面。
 
 ---
@@ -28,7 +38,8 @@ state.activeObject = {
 };
 
 state.investigation = {
-  id: "INC-7719",
+  id: "INV-7719",
+  objectId: "INC-7719",
   sourceObject: { type, id } | null,
   sourceAlertCluster: "ALERT-CLUSTER-204",
   actionProposal,
@@ -49,13 +60,13 @@ state.investigation = {
 
 ### 状态 / 事件转移
 
-| 当前状态 | 事件 | 下一状态 | Owner | 禁止旁路 |
-| --- | --- | --- | --- | --- |
-| Home | `OBJECT_OPEN` | 对象工作台 | UI reducer | 不允许只改 DOM |
-| 原对象调查不足 | `INCIDENT_ESCALATED` | Incident investigating | Diagnosis Agent | Incident 不得直接改原对象健康 |
-| Incident concluded | `ACTION_PROPOSAL_WRITTEN_BACK` | 原 Finding pending action | SRE + reducer | 无 ActionProposal 时拒绝 |
-| 原对象 action completed | `VERIFICATION_START` | Verification running | Inspection Agent | Incident 不得启动或通过 Verification |
-| Verification gates pass | `VERIFICATION_EVALUATE` | Finding closed/report updated | Inspection Agent | unknown/stale/drifted 不得通过 |
+| 当前状态                | 事件                           | 下一状态                      | Owner            | 禁止旁路                             |
+| ----------------------- | ------------------------------ | ----------------------------- | ---------------- | ------------------------------------ |
+| Home                    | `OBJECT_OPEN`                  | 对象工作台                    | UI reducer       | 不允许只改 DOM                       |
+| 原对象调查不足          | `INCIDENT_ESCALATED`           | Incident investigating        | Diagnosis Agent  | Incident 不得直接改原对象健康        |
+| Incident concluded      | `ACTION_PROPOSAL_WRITTEN_BACK` | 原 Finding pending action     | SRE + reducer    | 无 ActionProposal 时拒绝             |
+| 原对象 action completed | `VERIFICATION_START`           | Verification running          | Inspection Agent | Incident 不得启动或通过 Verification |
+| Verification gates pass | `VERIFICATION_EVALUATE`        | Finding closed/report updated | Inspection Agent | unknown/stale/drifted 不得通过       |
 
 ### 不变量
 
@@ -78,6 +89,7 @@ state.investigation = {
 ## Task 1：合同测试（RED）
 
 **Files**
+
 - Modify: `designs/nova-ops-observability-platform-v3/tests/experience-contract.test.mjs`
 - Modify: `designs/nova-ops-observability-platform-v3/tests/domain.test.mjs`
 
@@ -89,6 +101,7 @@ state.investigation = {
 ## Task 2：领域对象与跨对象链路（GREEN）
 
 **Files**
+
 - Modify: `designs/nova-ops-observability-platform-v3/lib/domain.mjs`
 
 1. 新增 `activeObject`、Incident provenance 与 writeback 投影。
@@ -100,6 +113,7 @@ state.investigation = {
 ## Task 3：SRE 首页与对象目录
 
 **Files**
+
 - Create: `designs/nova-ops-observability-platform-v3/components/screens/SreHome.js`
 - Create: `designs/nova-ops-observability-platform-v3/components/objectModel.js`
 - Delete after replacement: `designs/nova-ops-observability-platform-v3/components/screens/JourneyHome.js`
@@ -113,6 +127,7 @@ state.investigation = {
 ## Task 4：ObjectWorkspace 与全局导航
 
 **Files**
+
 - Create: `designs/nova-ops-observability-platform-v3/components/ObjectWorkspace.js`
 - Modify: `designs/nova-ops-observability-platform-v3/components/AppHeader.js`
 - Modify: `designs/nova-ops-observability-platform-v3/components/AppShell.js`
@@ -127,6 +142,7 @@ state.investigation = {
 ## Task 5：设计 token、响应式与说明书
 
 **Files**
+
 - Modify: `designs/nova-ops-observability-platform-v3/app/globals.css`
 - Modify: `designs/nova-ops-observability-platform-v3/USER-GUIDE.md`
 - Modify: `designs/nova-ops-observability-platform-v3/components/UserGuide.js`
@@ -140,6 +156,7 @@ state.investigation = {
 ## Task 6：浏览器验收
 
 **Files**
+
 - Modify: `designs/nova-ops-observability-platform-v3/tests/golden-path.browser.mjs`
 
 1. 桌面：从待处置队列进入 Incident，生成 ActionProposal 并回写原 Change。

@@ -2,7 +2,7 @@
 
 ## 一句话定位
 
-NOVA Ops 是既有可观测平台之上的“主动健康评估与证据驱动调查层”：让保障负责人知道能否继续承载流量，让发布负责人知道能否继续灰度，让 SRE 用证据完成诊断，让服务 Owner 用自然语言安全创建可运行巡检。
+NOVA Ops 是既有可观测平台之上的 SRE 运行控制面：把 Incident、Change、Mission、Inspection 组织为可处置、可追溯的运行对象，让 SRE 在同一工作台完成主动健康评估、证据驱动调查、人工决策与复验。
 
 ## 双 Agent 职责
 
@@ -45,34 +45,49 @@ NOVA Ops 是既有可观测平台之上的“主动健康评估与证据驱动�
 
 ## 信息架构与页面骨架
 
-首屏不以七个功能模块导航用户，而以“当前角色 + 必须完成的运维决策”组织入口：
+产品用户统一为 SRE。首屏不要求选择身份，也不从监控、告警、日志等功能模块开始，而是回答“现在最需要处理哪个运行对象”：
 
-| 角色 | 场景入口 | 首要决策 | 旅程级 accent |
-| --- | --- | --- | --- |
-| 发布负责人 | 变更验证 | 继续、观察还是回滚 | 蓝 / 青 |
-| 值班 SRE | 故障诊断、大促保障 | 控制影响或继续承载流量 | 琥珀 / 橙 |
-| 服务 Owner | 关键服务日巡、NL2 巡检 | 补齐覆盖并安全发布 Plan | 薄荷 / 绿 |
+| 运行对象   | 首要问题                         | 对象 accent（仅身份） | 状态真相源              |
+| ---------- | -------------------------------- | --------------------- | ----------------------- |
+| Incident   | 当前影响是什么，哪个假设最可信？ | 低饱和橙              | Investigation 状态      |
+| Change     | 继续、观察还是回滚？             | 低饱和蓝              | Decision + Verification |
+| Mission    | 峰值阶段是否还能继续承载？       | 低饱和紫              | Mission Run + Finding   |
+| Inspection | 候选 Plan 是否可安全发布和运行？ | 低饱和绿              | Plan Gate + Run         |
 
-进入任一场景后使用同一决策骨架：
+`Reports / Governance` 是运行对象的版本化投影与治理视图，不是第五、第六类健康对象。
 
-- **左栏**：当前角色、必须回答的问题、五步旅程与可见终态。
-- **中栏**：当前步骤的专业工作面；监控、告警、日志、Trace、拨测、巡检以标签切换。
+进入任一对象后使用同一 SRE 决策骨架：
+
+- **左栏**：对象 ID、来源、影响、五步处置流程与可见终态。
+- **中栏**：与该对象 Scope 绑定的专业证据；Metrics、Alerts、Logs、Traces、Synthetics、Inspection 等以标签切换。
 - **右栏**：AI 输出分成事实、假设、证据缺口、建议；人工 verdict 独立记录决策人、截止时间与结论。
-- **顶栏**：展示 Scope 的继承来源（Mission / Change / Alert / Service Catalog）；扩展范围必须显式创建分支。
+- **顶栏**：展示 Scope 的继承来源（Mission / Change / Alert Cluster / Service Catalog）；扩展范围必须显式创建分支。
+- **全局左导航**：工作台 / Incidents / Changes / Missions / Inspections / Reports / Governance。
 
-七个工作面继续存在，但它们是旅程步骤与产物，不再承担一级导航。Evidence Lens 抽屉只在 Investigation 中作为跨源证据工具。
+对象 accent 不得复用健康或严重度颜色；passed、warning、failed、unknown 继续使用独立状态语义。
+
+## 跨对象合同
+
+唯一受支持的升级与回写链是：
+
+`Change / Mission / Inspection → Incident → ActionProposal → 源 Finding → 源对象 Verification → Report`
+
+- 创建 Incident 时必须保存 `sourceObject` 与 `sourceFindingId`。
+- Incident 可以组织 Observation、Hypothesis、反证与动作建议，但不能关闭源对象。
+- ActionProposal 只能把源 Finding 推进到待执行；最终恢复必须由源对象 Verification Run 的 Gate 判定。
+- 所有升级、回写和复验关系进入 Audit，Report 只投影对应版本的运行结果。
 
 ## 页面合同
 
-| 工作面               | 首屏决策                                     | 独有组件                                                                   | 必须改变状态的主动作                           |
-| -------------------- | -------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
-| Live Ops             | 现在最危险的业务旅程和待决策是什么？         | 旅程矩阵、决策倒计时、Agent runtime、事件时间线                            | 认领风险、进入 Guard/Investigation             |
-| Mission Command      | 当前保障阶段能否继续承载增长？               | 阶段轨道、交易漏斗、流量预测、Run heatmap、战情 Owner                      | 调频、冻结扩流、ActionProposal、阶段快照       |
-| Change Guard         | 本次灰度继续、观察还是回滚？                 | canary/control 曲线、Objective table、Decision rail、Verification timeline | 暂停、延长、回滚、复验                         |
-| NL2Inspection Studio | 这段意图最终会运行什么，是否可安全发布？     | Prompt/澄清、Check 编辑器、Query、Gate、Replay、版本 diff                  | 修复门禁、审批、发布                           |
-| Investigation        | 影响是什么，哪个假设最可信，下一测试是什么？ | 证据时间线、Observation、Hypothesis board、专业 Lens                       | 钉证据、运行测试、confirm/inconclusive、提动作 |
-| Reports              | 本次运行检查了什么、发现什么、是否闭环？     | 报告版本、覆盖/新鲜度、Finding/Action/Verification、分享投影               | 追踪整改、触发复验、生成分享快照               |
-| Governance           | 哪些服务看似绿色但其实不可判定？             | coverage matrix、stale/drift、Agent 执行健康、forecast readiness、审计     | 分派缺口、暂停 Plan、复核版本                  |
+| 工作面         | 首屏决策                                     | 独有组件                                                                     | 必须改变状态的主动作                                         |
+| -------------- | -------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| SRE 运行工作台 | 现在最需要处理哪个对象？                     | 全局态势、按紧急度排序的对象队列、对象类型入口                               | 直接打开对象当前步骤                                         |
+| Incident       | 影响是什么，哪个假设最可信，下一测试是什么？ | 事件簇、拓扑、Observation、Hypothesis board、专业 Lens                       | 钉证据、next test、confirm/inconclusive、回写 ActionProposal |
+| Change         | 本次灰度继续、观察还是回滚？                 | canary/control 曲线、Objective table、Decision Record、Verification timeline | 暂停、延长、回滚、升级 Incident、复验                        |
+| Mission        | 当前保障阶段能否继续承载增长？               | 阶段轨道、交易漏斗、流量预测、Run heatmap、Risk Signal                       | 调频、冻结扩流、升级 Incident、阶段快照                      |
+| Inspection     | 这段意图最终会运行什么，是否可安全发布？     | Prompt/澄清、Check 编辑器、Query、Gate、Replay、版本 diff                    | 修复门禁、审批、发布、升级 Incident                          |
+| Reports        | 本次运行检查了什么、发现什么、是否闭环？     | 报告版本、源 Run/Assessment、Finding/Action/Verification                     | 追踪整改、请求源对象复验、生成分享快照                       |
+| Governance     | 哪些服务看似绿色但其实不可判定？             | coverage matrix、stale/drift、Agent 执行健康、forecast readiness、审计       | 分派缺口、暂停 Plan、复核版本                                |
 
 ## 一期承诺
 

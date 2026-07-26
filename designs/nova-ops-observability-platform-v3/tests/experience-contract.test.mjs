@@ -15,36 +15,36 @@ const screens = [
   "Governance",
 ];
 
-test("entry point is organized by roles and operational scenarios", () => {
-  const file = resolve(root, "components", "screens", "JourneyHome.js");
-  assert.ok(existsSync(file), "JourneyHome must be a dedicated entry screen");
+test("entry point is an SRE object queue rather than a role chooser", () => {
+  const file = resolve(root, "components", "screens", "SreHome.js");
+  assert.ok(existsSync(file), "SreHome must be a dedicated entry screen");
   const source = readFileSync(file, "utf8");
 
   for (const label of [
-    "发布负责人",
-    "值班 SRE",
-    "服务 Owner",
-    "变更验证",
-    "故障诊断",
-    "大促保障",
-    "NL2 巡检",
+    "SRE 运行工作台",
+    "待处置对象",
+    "Incident",
+    "Change",
+    "Mission",
+    "Inspection",
   ]) {
     assert.match(source, new RegExp(label));
   }
-  assert.match(source, /data-screen=["']JourneyHome["']/);
-  assert.match(source, /JOURNEY_ENTER/);
+  assert.match(source, /data-screen=["']SreHome["']/);
+  assert.match(source, /OBJECT_OPEN/);
+  assert.doesNotMatch(source, /发布负责人|服务 Owner|role-entry-card/);
 });
 
-test("journey workspaces use the three-rail decision layout", () => {
-  const source = ["AppShell.js", "JourneyWorkspace.js", "journeyModel.js"]
+test("object workspaces use context, evidence, and decision rails", () => {
+  const source = ["AppShell.js", "ObjectWorkspace.js", "objectModel.js"]
     .map((file) => readFileSync(resolve(root, "components", file), "utf8"))
     .join("\n");
 
   for (const contractClass of [
-    "journey-workspace",
-    "journey-rail",
+    "object-workspace",
+    "object-rail",
     "professional-workbench-tabs",
-    "journey-center",
+    "object-center",
     "decision-inspector",
   ]) {
     assert.match(source, new RegExp(contractClass));
@@ -60,12 +60,12 @@ test("journey workspaces use the three-rail decision layout", () => {
   }
   assert.doesNotMatch(
     source,
-    /Agent workspaces|Evidence lenses/,
-    "module and global Evidence Lens navigation must not remain primary IA",
+    /当前角色|返回角色入口|role-entry-card/,
+    "role-based information architecture must not remain",
   );
 });
 
-test("journey accents and Cat Cafe token tiers are explicit", () => {
+test("object accents are isolated from health and severity state colors", () => {
   const source = readFileSync(resolve(root, "app", "globals.css"), "utf8");
 
   for (const token of [
@@ -73,13 +73,22 @@ test("journey accents and Cat Cafe token tiers are explicit", () => {
     "--cafe-surface-",
     "--cafe-text-",
     "--cafe-persona-",
-    "--journey-accent",
-    ".journey-release",
-    ".journey-oncall",
-    ".journey-service",
+    "--object-incident-accent",
+    "--object-change-accent",
+    "--object-mission-accent",
+    "--object-inspection-accent",
+    ".object-incident",
+    ".object-change",
+    ".object-mission",
+    ".object-inspection",
   ]) {
     assert.match(source, new RegExp(token));
   }
+  assert.doesNotMatch(
+    source,
+    /--object-(?:incident|change|mission|inspection)-accent:\s*var\(--(?:danger|warning|unknown)\)/,
+    "object identity cannot reuse status semantic tokens",
+  );
 });
 
 test("every product screen has a dedicated implementation", () => {
@@ -137,17 +146,19 @@ test("primary interactions are domain actions rather than toast-only buttons", (
   }
 });
 
-test("operator manual documents journeys, states, and agent boundaries", () => {
+test("operator manual documents SRE objects, states, and agent boundaries", () => {
   const manualPath = resolve(root, "USER-GUIDE.md");
   assert.ok(existsSync(manualPath), "USER-GUIDE.md must exist");
   const manual = readFileSync(manualPath, "utf8");
 
   for (const heading of [
     "快速开始",
-    "大促保障旅程",
-    "变更诊断与复验旅程",
-    "独立故障诊断旅程",
-    "NL2巡检旅程",
+    "SRE 运行工作台",
+    "Incident 工作台",
+    "Change 工作台",
+    "Mission 工作台",
+    "Inspection 工作台",
+    "跨对象升级与回写",
     "状态语义",
     "双 Agent 职责边界",
     "Mock 数据说明",

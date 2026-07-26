@@ -1,13 +1,14 @@
-# NOVA Ops AI Observability Platform V4
+# NOVA Ops AI Observability Platform V5
 
-面向 2026 智能运维规划的可点击高保真原型。产品坐标不是能力介绍门户，而是生产运行工作台：
+面向 2026 智能运维规划的可点击高保真原型。产品坐标是 SRE 运行控制面，不是能力介绍门户或角色选择页：
 
 - 智能巡检 Agent：Mission、Plan、Run、Assessment、Finding、Verification、Report
 - 故障诊断 Agent：Investigation、Observation、Hypothesis、Revision、ActionProposal
-- 三个角色入口：发布负责人、值班 SRE、服务 Owner
-- 四条可操作旅程：大促保障、变更诊断与复验、独立故障诊断、NL2 巡检
-- 旅程内采用左任务进度、中专业工作面、右 AI / 人工决策三栏
-- 七个异构工作面继续作为旅程步骤与产物，不再承担一级模块导航
+- 首页以待处置对象队列为中心：Incident、Change、Mission、Inspection
+- 对象工作台采用左对象流程、中专业证据、右 AI / 人工决策三栏
+- 跨对象链路：源对象 → Incident → ActionProposal → 源 Finding → 源对象 Verification
+- Reports 与 Governance 是版本化投影/治理视图，不是健康真相源
+- 对象 accent 只表达对象类型，状态仍由 passed/warning/failed/unknown 表达
 
 ## 本地运行
 
@@ -16,12 +17,13 @@ npm install
 npm run dev
 ```
 
-访问 `http://127.0.0.1:5290/`。
+访问 `http://localhost:5290/`。
 
 ## 验证
 
 ```bash
 npm test
+npm run test:browser
 npm run build
 ```
 

@@ -9,7 +9,7 @@ const seedState = {
     changeId: "CHG-23841",
   },
   currentScreen: "home",
-  activeJourney: null,
+  activeObject: null,
   mission: {
     id: "MIS-61801",
     name: "全球购 618 峰值保障",
@@ -312,8 +312,13 @@ const seedState = {
   },
   investigation: {
     id: "INV-7719",
+    objectId: "INC-7719",
     title: "支付 p95 回归",
     status: "testing_hypotheses",
+    sourceAlertCluster: "ALERT-CLUSTER-204",
+    sourceObject: null,
+    sourceFindingId: null,
+    writeback: null,
     revision: 3,
     impact: "成功率 -0.18pp · p95 +38% · 18.2k 用户",
     coverage: 82,
@@ -474,6 +479,16 @@ const seedState = {
       source: "MIS-61801",
       dueAt: "20:24",
       evidence: 4,
+    },
+    {
+      id: "FND-8840",
+      title: "华南拨测权限与可比基线未就绪",
+      severity: "P2",
+      status: "unknown",
+      owner: "payments-owner",
+      source: "PLAN-312",
+      dueAt: "21:30",
+      evidence: 2,
     },
   ],
   agentRuns: [
@@ -676,6 +691,13 @@ function evaluateVerificationGates(state) {
   };
 }
 
+const operationalObjectScreens = {
+  incident: "investigation",
+  change: "change",
+  mission: "mission",
+  inspection: "studio",
+};
+
 export function createInitialState() {
   return clone(seedState);
 }
@@ -696,19 +718,108 @@ export function reduceOpsState(current, action) {
   const state = clone(current);
 
   switch (action.type) {
-    case "JOURNEY_ENTER":
-      state.activeJourney = action.journey;
-      state.currentScreen = action.screen;
+    case "OBJECT_OPEN": {
+      const screen = operationalObjectScreens[action.objectType];
+      if (!screen || !action.objectId) {
+        audit(
+          state,
+          "SRE",
+          "object.open.rejected",
+          `${action.objectType ?? "unknown"}:${action.objectId ?? "missing"}`,
+        );
+        return state;
+      }
+      state.activeObject = {
+        type: action.objectType,
+        id: action.objectId,
+      };
+      state.currentScreen = screen;
+      audit(
+        state,
+        "SRE",
+        "object.opened",
+        `${action.objectType}:${action.objectId}`,
+      );
       return state;
+    }
 
-    case "JOURNEY_EXIT":
-      state.activeJourney = null;
+    case "OBJECT_CLOSE":
+      state.activeObject = null;
       state.currentScreen = "home";
       return state;
 
+    case "INCIDENT_ESCALATED": {
+      const sourceScreen = operationalObjectScreens[action.sourceObject?.type];
+      if (
+        !sourceScreen ||
+        action.sourceObject.type === "incident" ||
+        !action.sourceObject.id ||
+        !action.findingId
+      ) {
+        audit(
+          state,
+          "SRE",
+          "incident.escalation.rejected",
+          "source object or finding missing",
+        );
+        return state;
+      }
+      state.investigation.sourceObject = clone(action.sourceObject);
+      state.investigation.sourceFindingId = action.findingId;
+      state.investigation.writeback = null;
+      state.investigation.status = "testing_hypotheses";
+      state.activeObject = {
+        type: "incident",
+        id: state.investigation.objectId,
+      };
+      state.currentScreen = "investigation";
+      audit(
+        state,
+        "SRE",
+        "incident.escalated",
+        `${action.sourceObject.type}:${action.sourceObject.id} → ${state.investigation.objectId}`,
+      );
+      return state;
+    }
+
+    case "ACTION_PROPOSAL_WRITTEN_BACK": {
+      const targetFinding = state.findings.find(
+        (finding) => finding.id === state.investigation.sourceFindingId,
+      );
+      if (
+        !state.investigation.actionProposal ||
+        !state.investigation.sourceObject ||
+        !targetFinding
+      ) {
+        audit(
+          state,
+          "SRE",
+          "action-proposal.writeback.rejected",
+          "conclusion, source object, or target finding missing",
+        );
+        return state;
+      }
+      targetFinding.status = "pending_action";
+      state.investigation.actionProposal.status = "written_back";
+      state.investigation.writeback = {
+        status: "written_back",
+        targetFindingId: targetFinding.id,
+        targetObject: clone(state.investigation.sourceObject),
+      };
+      audit(
+        state,
+        "SRE",
+        "action-proposal.written_back",
+        `${state.investigation.objectId} → ${state.investigation.sourceObject.id}/${targetFinding.id}`,
+      );
+      return state;
+    }
+
     case "NAVIGATE":
       state.currentScreen = action.screen;
-      if (action.screen === "home") state.activeJourney = null;
+      if (["home", "live", "reports", "governance"].includes(action.screen)) {
+        state.activeObject = null;
+      }
       return state;
 
     case "MISSION_FREQUENCY_CHANGED": {
@@ -746,7 +857,7 @@ export function reduceOpsState(current, action) {
       if (state.change.status === "passed") {
         audit(
           state,
-          "发布负责人",
+          "payments-release",
           "change.decision.rejected",
           "event already verified",
         );
@@ -766,14 +877,14 @@ export function reduceOpsState(current, action) {
         approval: "L2 + oncall",
         status: "approved",
       };
-      audit(state, "发布负责人", "change.decision.set", action.decision);
+      audit(state, "payments-release", "change.decision.set", action.decision);
       return state;
 
     case "CHANGE_ACTION_COMPLETED": {
       if (state.change.actionState !== "in_progress") {
         audit(
           state,
-          "发布负责人",
+          "payments-release",
           "change.action.complete.rejected",
           "no action in progress",
         );
@@ -840,7 +951,7 @@ export function reduceOpsState(current, action) {
       state.change.verification.gates = evaluateVerificationGates(state);
       audit(
         state,
-        "发布负责人",
+        "payments-release",
         "change.action.completed",
         state.change.decision,
       );
@@ -1091,7 +1202,7 @@ export function reduceOpsState(current, action) {
       state.investigation.revision += 1;
       audit(
         state,
-        "值班 SRE",
+        "payments-oncall",
         "investigation.evidence.pinned",
         action.evidenceId,
       );
@@ -1145,7 +1256,7 @@ export function reduceOpsState(current, action) {
         approval: "L2 + oncall",
         status: "proposed",
       };
-      audit(state, "值班 SRE", "hypothesis.confirmed", hypothesis.id);
+      audit(state, "payments-oncall", "hypothesis.confirmed", hypothesis.id);
       return state;
     }
 
@@ -1159,7 +1270,7 @@ export function reduceOpsState(current, action) {
       });
       audit(
         state,
-        "值班 SRE",
+        "payments-oncall",
         "investigation.inconclusive",
         "follow-up inspection draft created",
       );
@@ -1173,7 +1284,7 @@ export function reduceOpsState(current, action) {
       );
       audit(
         state,
-        "服务 Owner",
+        "payments-owner",
         "report.verification.requested",
         action.reportId,
       );

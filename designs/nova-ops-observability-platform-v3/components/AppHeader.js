@@ -2,7 +2,7 @@
 
 import { Status } from "./ui";
 
-function ScopeDetails({ journey, state, onClose }) {
+function ScopeDetails({ object, state, onClose }) {
   return (
     <>
       <div className="drawer-head">
@@ -21,10 +21,10 @@ function ScopeDetails({ journey, state, onClose }) {
       </div>
       <div className="scope-origin-card">
         <span>当前来源</span>
-        <strong>{journey.source}</strong>
+        <strong>{object?.source ?? "全局 SRE 运行视图"}</strong>
         <p>
-          本旅程继承 service / env / region / time / change /
-          mission。扩展范围会创建新 Investigation 分支，不会静默污染原证据链。
+          当前对象继承 service / env / region / time / change /
+          mission。扩展范围会创建新 Incident Scope 分支，不会静默污染原证据链。
         </p>
       </div>
       <div className="scope-grid">
@@ -45,7 +45,7 @@ function ScopeDetails({ journey, state, onClose }) {
 export function AppHeader({
   clock,
   isHome,
-  journey,
+  object,
   state,
   dispatch,
   openDrawer,
@@ -57,8 +57,8 @@ export function AppHeader({
         <button
           type="button"
           className="brand-mark"
-          aria-label="返回角色入口"
-          onClick={() => dispatch({ type: "JOURNEY_EXIT" })}
+          aria-label="返回 SRE 工作台"
+          onClick={() => dispatch({ type: "OBJECT_CLOSE" })}
         >
           <span>N</span>
           <i aria-hidden="true">•</i>
@@ -71,6 +71,11 @@ export function AppHeader({
 
       {!isHome && (
         <div className="scope-bar">
+          {object && (
+            <span className="scope-chip object-scope-chip">
+              {object.label} · {object.id}
+            </span>
+          )}
           <span className="scope-chip strong">{state.scope.environment}</span>
           <span className="scope-chip">{state.scope.service}</span>
           <span className="scope-chip">{state.scope.regions.join(" + ")}</span>
@@ -82,7 +87,7 @@ export function AppHeader({
                 type: "content",
                 content: (
                   <ScopeDetails
-                    journey={journey}
+                    object={object}
                     state={state}
                     onClose={closeDrawer}
                   />
@@ -90,7 +95,7 @@ export function AppHeader({
               })
             }
           >
-            {journey.source} ↗
+            {object?.source ?? "全局 SRE 运行视图"} ↗
           </button>
         </div>
       )}
@@ -112,7 +117,7 @@ export function AppHeader({
             className="hil-button"
             onClick={() => dispatch({ type: "NAVIGATE", screen: "live" })}
           >
-            3 个待决策
+            运行队列 · 3
           </button>
         )}
       </div>

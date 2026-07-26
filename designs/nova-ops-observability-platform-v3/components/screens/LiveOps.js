@@ -12,7 +12,7 @@ function DecisionQueue() {
       title: "暂停 payments-router 扩流",
       context: state.change.id,
       due: "08:12",
-      owner: "发布负责人",
+      owner: "payments-release",
       action: () => dispatch({ type: "NAVIGATE", screen: "change" }),
       label: "进入 Guard",
     },

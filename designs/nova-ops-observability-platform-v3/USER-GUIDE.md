@@ -1,91 +1,108 @@
-# NOVA Ops AI 可观测平台｜使用说明书
+# NOVA Ops AI 可观测平台｜SRE 使用说明书
 
-> 版本：2026 规划高保真原型 V4
+> 版本：2026 规划高保真原型 V5
 >
 > 数据：固定 Mock 数据，不连接生产系统
 >
-> 目标：验证“故障诊断 Agent + 智能巡检 Agent”在大促保障、变更验证与 NL2 巡检中的产品工作流。
+> 目标：验证“故障诊断 Agent + 智能巡检 Agent”如何协助 SRE 处置 Incident、Change、Mission 与 Inspection。
 
 ## 快速开始
 
-1. 首屏先选择你此刻承担的角色：`发布负责人 / 值班 SRE / 服务 Owner`，再进入对应场景。大促保障和故障诊断都属于值班 SRE 的现场任务。
-2. 进入场景后使用统一三栏：左侧确认角色、决策问题与五步进度；中间完成监控、告警、日志、Trace、拨测或巡检的专业判断；右侧区分事实、假设、证据缺口、建议与人工结论。
-3. 顶部 Scope 会说明继承来源，例如 `由 CHG-23841 自动继承`、`由 MIS-61801 保障任务继承`。范围不会在跨页时静默变化。
-4. 优先处理 `blocker / unknown / stale / drifted`；它们不能被健康汇总折算为绿色。
+1. 打开首页后先看“待处置对象”，无需选择身份或功能模块。队列按 blocker、业务影响和截止时间排列。
+2. 点击一条 `Incident / Change / Mission / Inspection`，进入该对象的三栏工作台：左侧是对象上下文和五步处置流程，中间是专业证据，右侧是 Agent Assist 与人工结论。
+3. 顶部 Scope 会说明对象来源，例如 `由 CHG-23841 自动继承` 或 `由 ALERT-CLUSTER-204 创建`。范围不会在跨页时静默变化。
+4. 优先处理 `blocked / unknown / stale / drifted`；它们不能被折算为健康。
+5. `Reports / Governance` 是运行对象的投影与治理视图，不是健康真相源，也不能单独宣布恢复。
 
-## 大促保障旅程
+## SRE 运行工作台
 
-角色：保障负责人、值班 SRE。
+首页回答一个问题：**我现在最需要处理哪个对象？**
 
-1. 打开 `保障任务`，查看保障阶段、实时 Run 热力图、核心旅程漏斗和预测风险窗口。
-2. 在预测图中同时核对实际流量、预测中位数、90% 置信带、容量阈值、历史窗口与模型就绪度。
-3. 当容量风险进入黄色窗口时，点击 `提升检查频率`：巡检频次从 10 分钟提高到 2 分钟，同时展示预计成本变化并写入审计流。
-4. 对具体风险点击 `认领`，明确 Owner；必要时点击 `冻结扩流`，系统记录当前保障阶段的人工决策。
-5. 保障结束后进入 `报告中心`，确认每个 Finding、Owner、处置与复验状态，不用一个总健康分替代证据。
+- 全局态势只统计 Active Incident、Open Finding、Blocked Change、Running Mission 和 Open Inspection，不生成总健康分。
+- 待处置队列同时展示对象类型、对象 ID、当前阶段、截止时间与下一步动作。
+- 点击“下一步动作”直接进入对象当前步骤；全局导航也可打开四类对象及报告、治理视图。
+- 对象颜色只表示类型，状态仍由 passed、warning、failed、unknown 等语义表达。
 
-价值：把“保障群里人工盯图”变成带频次、证据、责任和终态的持续健康任务。
+## Incident 工作台
 
-## 变更诊断与复验旅程
+示例对象：`INC-7719`，来源 `ALERT-CLUSTER-204`。
 
-角色：发布负责人、值班 SRE、服务 Owner。
+1. 在 Alerts 工作面查看 `17 raw → 2 correlated clusters → 1 primary event`，确认事件簇成员、受影响拓扑和 Scope。
+2. 切换 Metrics、Logs、Traces、Synthetics，钉入可复核 Observation。
+3. 运行 Hypothesis 的 next test；证据不足时标为 `inconclusive`，保留修订并生成后续检查草案。
+4. 诊断 Agent 只生成 `ActionProposal`。如果 Incident 从 Change、Mission 或 Inspection 升级而来，点击“回写源 Finding”。
+5. 回写后源 Finding 进入 `pending_action`；Incident 仍不能关闭源对象，也不能宣布恢复。
 
-1. 打开 `变更验证`，核对 Canary / Control 曲线、变更时刻、SLO 阈值和 Objective 明细。
-2. 选择 `暂停发布` 或 `回滚`，形成显式发布决策；异常 Finding 可升级到 `故障调查`。
-3. 在调查页运行下一条假设测试，查看 Observation、Hypothesis、反证和结论修订；证据不足时可标为 `inconclusive`，系统会生成后续巡检草案。
-4. 整改完成后点击 `启动复验`。华南拨测仍 stale 时，Verification Run 必须保持 `blocked / unknown`。
-5. 点击 `恢复拨测数据` 只会恢复数据门禁，不会提前标绿；再次执行 Gate 评估且 coverage、freshness、baseline 全部通过后，才关闭 Finding 并更新报告。
+终态：`Investigation + ActionProposal + 原 Finding 回写`。
 
-价值：发布是否继续、由谁处置、何时恢复都由同一条证据链和 Verification Run 决定。
+## Change 工作台
 
-## 独立故障诊断旅程
+示例对象：`CHG-23841 · payments-router v3.18.0`。
 
-角色：值班 SRE、领域专家。
+1. 比较 Canary / Control 曲线、变更时刻、SLO 阈值和 Objective 明细。
+2. 查看华南拨测 stale 等证据缺口；任何 unknown 都会阻断继续放量。
+3. 需要跨源诊断时点击“升级为 Incident 调查”。新 Incident 固定保留来源对象和 Finding ID。
+4. 人工选择观察或回滚，形成 Decision Record，记录决策人、业务影响、可逆性与关联 Run。
+5. 整改完成后由 Change 的 Verification Run 评估 coverage、freshness、baseline、execution 与 objectives。全部通过后才能关闭 Finding 并更新报告。
 
-1. 从 `值班 SRE → 故障诊断` 进入，入口可以是告警归并后的主事件，也可以是人工建案；系统创建独立 `Investigation`，而不是附着在某个页面抽屉中。
-2. 继承 Alert 或 Finding 的 Scope，确认业务影响、依赖拓扑、Owner 与时间窗；如需扩展范围，必须显式创建调查分支。
-3. 在中栏按 `告警 / 监控 / 日志 / Trace / 拨测` 切换专业工作面，把可复核证据写成 Observation。
-4. 故障诊断 Agent 维护多个可证伪 Hypothesis、反证和 next test；证据不足时结论为 `inconclusive`。
-5. 调查只生成 `ActionProposal` 或后续观察 Check；动作执行后必须回写原 Finding，并由智能巡检 Agent 的 Verification Run 给出最终恢复结论。
+终态：`Decision Record + ActionRun + Verification`。
 
-价值：让告警风暴、人工升级和跨源调查拥有独立值班旅程，同时守住“诊断不等于恢复”的职责边界。
+## Mission 工作台
 
-## NL2巡检旅程
+示例对象：`MIS-61801 · 全球购 618 峰值保障`。
 
-角色：平台工程师、SRE 负责人。
+1. 查看保障阶段、业务交易漏斗、关键旅程矩阵和高频 Run。
+2. 在 Forecast 中同时核对实际 RPS、预测中位数、90% 置信带、容量阈值、风险窗口和模型就绪度。
+3. 对具体 Risk Signal 创建或认领 Finding；需要深查时升级为 Incident。
+4. 调整巡检频次或冻结扩流时，系统同步展示成本影响并写入审计。
+5. 阶段结束后生成版本化保障快照；报告必须保留源 Run、门禁和未决 Finding。
 
-1. 打开 `巡检工程`，从自然语言意图开始。Agent 先澄清目标旅程、场景、频次和允许动作。
-2. 检查生成的结构化 Plan：每个 Check 都有数据源、窗口、判定规则、Owner 和等价 Query。
-3. 逐项解除发布门禁：申请只读权限、补齐可比基线、回放过去 7 天、审核版本 Diff。
-4. 只有 Schema、Sample、Freshness、Permission、Baseline、Cost、Replay、Approval 全部通过时，`发布 Plan` 才可用；领域层也会再次校验，不能绕过 UI 发布。
-5. 发布后生成首次 Run，结果进入 Finding、整改、复验与报告闭环。
+终态：`阶段决策 + Finding + 保障快照`。
 
-价值：自然语言降低检查定义成本，但生产安全仍由结构化定义、回放、权限和审批保证。
+## Inspection 工作台
+
+示例对象：`PLAN-312 · 全球购结算链路峰值巡检 · Draft v2`。
+
+1. 从自然语言意图开始，Agent 澄清目标旅程、场景、频次与允许动作。
+2. 检查结构化 Plan：每个 Check 都有数据源、窗口、判定规则、Owner 和等价 Query。
+3. 逐项解除权限、基线、新鲜度和成本门禁，再回放过去 7 天。
+4. 只有 Schema、Sample、Freshness、Permission、Baseline、Cost、Replay、Approval 全部通过时才能发布。
+5. 发布后生成首次 Run；异常进入 Finding，复杂异常可升级为 Incident，最终仍回到 Inspection 的 Verification 与报告。
+
+终态：`Published Plan + First Run + 治理报告`。
+
+## 跨对象升级与回写
+
+唯一受支持的闭环是：
+
+`Change / Mission / Inspection → Incident → Investigation → ActionProposal → 源 Finding → 源对象 Verification → Report`
+
+- 升级时必须保存 `sourceObject.type / sourceObject.id / sourceFindingId`。
+- Incident 左栏固定展示来源对象并提供返回链接。
+- ActionProposal 未形成前，回写动作不可用；形成后只能改变源 Finding 的处置状态。
+- Incident 不拥有源对象的健康状态，不能自行关闭 Change、Mission 或 Inspection。
+- 只有源对象 Verification 的所有 Gate 通过后，系统才能给出 `passed` 并更新报告。
+- 所有跨对象动作进入 Audit，形成可追溯关系。
 
 ## 状态语义
 
 - `healthy / passed`：覆盖率、数据新鲜度、基线可比性和检查结果均通过。
 - `unhealthy / failed`：存在可复核的失败证据，需要 Finding 和 Owner。
 - `unknown`：证据不足、检查未覆盖或数据不可用；不得计入健康、不得默认过滤。
-- `stale`：数据已超过新鲜度门限，相关判断进入 unknown。
-- `drifted`：检查、拓扑、模型或基线发生变化，历史趋势暂不可比。
+- `stale`：数据超过新鲜度门限，相关判断进入 unknown。
+- `drifted`：检查、拓扑、模型或基线变化，历史趋势暂不可比。
 - `blocked`：Run 已执行但风险门禁未通过；只能恢复门禁并重新复验。
 - `inconclusive`：当前调查证据不足以确认假设；保留 Revision，并创建下一项验证计划。
 
+对象 accent 只用于图标、边框和 hover：Incident 橙、Change 蓝、Mission 紫、Inspection 绿。它不表达健康、严重度或处置优先级。
+
 ## 双 Agent 职责边界
 
-智能巡检 Agent 拥有 `Mission → Plan → Check → Run → Assessment → Finding → Verification → Report`。它负责主动发现、健康评估、检查生成、覆盖缺口和最终复验。
+智能巡检 Agent 拥有 `Mission → Plan → Check → Run → Assessment → Finding → Verification → Report`，负责主动发现、健康评估、检查生成、覆盖缺口和最终复验。
 
-故障诊断 Agent 拥有 `Investigation → Observation → Hypothesis → Revision → ActionProposal`。它由告警或 Finding 触发，负责跨源取证、验证假设和提出动作建议。
+故障诊断 Agent 拥有 `Investigation → Observation → Hypothesis → Revision → ActionProposal`，由告警或 Finding 触发，负责跨源取证、验证假设和提出动作建议。
 
-两个 Agent 共享 ScopeContext、服务拓扑、变更和 Evidence；诊断 Agent 不能宣布业务恢复，只有原巡检 Plan 的 Verification Run 可以给出 `passed`。
-
-## 页面结构
-
-- **角色入口**：不要求用户先理解七个功能模块，直接按当前责任与决策进入。
-- **左栏**：角色任务、当前必须回答的问题、五步旅程和可见终态。
-- **中栏**：当前步骤的专业工作面；监控、告警、日志、Trace、拨测与巡检以标签切换。
-- **右栏**：AI 的事实、假设、缺口和建议，与人工 verdict 分层展示。
-- **报告与治理**：作为旅程产物或服务治理步骤进入，不是脱离 Run/Finding/Verification 的独立健康真相。
+两个 Agent 共享 ScopeContext、服务拓扑、变更和 Evidence；诊断 Agent 不能宣布业务恢复，只有源对象的 Verification Run 可以给出 `passed`。
 
 ## Mock 数据说明
 

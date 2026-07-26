@@ -51,7 +51,7 @@ export function InspectionStudio() {
             </div>
           </header>
           <div className="prompt-box">
-            <div className="prompt-author">服务 Owner</div>
+            <div className="prompt-author">payments-owner</div>
             <p>{plan.prompt}</p>
           </div>
           <div className="clarification-list">
