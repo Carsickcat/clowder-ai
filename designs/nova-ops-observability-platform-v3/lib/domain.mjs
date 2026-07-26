@@ -491,6 +491,7 @@ const seedState = {
       evidence: 2,
     },
   ],
+  verificationRequests: [],
   agentRuns: [
     {
       id: "RUN-1842",
@@ -522,6 +523,9 @@ const seedState = {
       findings: 4,
       openActions: 3,
       verification: "blocked",
+      sourceObject: { type: "mission", id: "MIS-61801" },
+      runId: "RUN-1842",
+      snapshotFindingIds: ["FND-8832"],
     },
     {
       id: "RPT-618-06",
@@ -533,6 +537,9 @@ const seedState = {
       findings: 2,
       openActions: 0,
       verification: "passed",
+      sourceObject: { type: "mission", id: "MIS-61801" },
+      runId: "RUN-1834",
+      snapshotFindingIds: [],
     },
     {
       id: "RPT-CHG-23841",
@@ -544,6 +551,9 @@ const seedState = {
       findings: 3,
       openActions: 1,
       verification: "blocked",
+      sourceObject: { type: "change", id: "CHG-23841" },
+      runId: "VR-2898",
+      snapshotFindingIds: ["FND-8821", "FND-8824", "FND-8828"],
     },
   ],
   governance: {
@@ -674,6 +684,33 @@ function nextRunId(state, prefix) {
   return `${prefix}-${2900 + count + 1}`;
 }
 
+function createVerificationRequest(
+  state,
+  { reportId, sourceObject, sourceFindingId, sourceSnapshot, reason },
+) {
+  const duplicate = state.verificationRequests.find(
+    (request) =>
+      request.reportId === reportId &&
+      request.sourceFindingId === sourceFindingId &&
+      request.reason === reason &&
+      ["requested", "running"].includes(request.status),
+  );
+  if (duplicate) return duplicate;
+
+  const request = {
+    id: `VREQ-${String(state.verificationRequests.length + 1).padStart(4, "0")}`,
+    reportId,
+    sourceObject: clone(sourceObject),
+    sourceFindingId,
+    sourceSnapshot: clone(sourceSnapshot),
+    reason,
+    status: "requested",
+    requestedBy: "SRE",
+  };
+  state.verificationRequests.push(request);
+  return request;
+}
+
 function evaluateVerificationGates(state) {
   const objectiveStates = state.change.objectiveRows.map((row) => row.status);
   const objectives = objectiveStates.every((status) => status === "pass")
@@ -698,8 +735,70 @@ const operationalObjectScreens = {
   inspection: "studio",
 };
 
+function getOperationalObjectId(state, objectType) {
+  return {
+    incident: state.investigation.objectId,
+    change: state.change.id,
+    mission: state.mission.id,
+    inspection: state.inspectionPlan.id,
+  }[objectType];
+}
+
+function isKnownOperationalObject(state, sourceObject) {
+  return Boolean(
+    sourceObject?.type &&
+      sourceObject?.id &&
+      getOperationalObjectId(state, sourceObject.type) === sourceObject.id,
+  );
+}
+
+function sameSourceObject(left, right) {
+  return Boolean(
+    left && right && left.type === right.type && left.id === right.id,
+  );
+}
+
+function createReportSnapshot(state, report) {
+  const sourceObject = clone(report.sourceObject);
+  const findings = state.findings
+    .filter((finding) => report.snapshotFindingIds.includes(finding.id))
+    .map((finding) => ({
+      ...clone(finding),
+      sourceObject: clone(sourceObject),
+    }));
+  const gates =
+    sourceObject.type === "change"
+      ? clone(state.change.verification.gates)
+      : {
+          coverage: report.coverage >= 95 ? "pass" : "warning",
+          freshness: report.verification === "passed" ? "pass" : "unknown",
+          execution: "pass",
+          objectives: report.verification === "passed" ? "pass" : "warning",
+        };
+
+  return {
+    runId: report.runId,
+    assessment: {
+      status: report.verification,
+      coverage: report.coverage,
+      openActions: report.openActions,
+      gates,
+    },
+    planVersion: state.mission.planVersion,
+    investigationRevision: state.investigation.revision,
+    sourceObject,
+    findings,
+    journeys: clone(state.journeys),
+  };
+}
+
 export function createInitialState() {
-  return clone(seedState);
+  const state = clone(seedState);
+  state.reports = state.reports.map((report) => ({
+    ...report,
+    snapshot: createReportSnapshot(state, report),
+  }));
+  return state;
 }
 
 export function getPlanPublishBlockers(state) {
@@ -720,12 +819,13 @@ export function reduceOpsState(current, action) {
   switch (action.type) {
     case "OBJECT_OPEN": {
       const screen = operationalObjectScreens[action.objectType];
-      if (!screen || !action.objectId) {
+      const expectedObjectId = getOperationalObjectId(state, action.objectType);
+      if (!screen || !action.objectId || action.objectId !== expectedObjectId) {
         audit(
           state,
           "SRE",
           "object.open.rejected",
-          `${action.objectType ?? "unknown"}:${action.objectId ?? "missing"}`,
+          `${action.objectType ?? "unknown"}:${action.objectId ?? "missing"}; expected=${expectedObjectId ?? "unknown"}`,
         );
         return state;
       }
@@ -750,23 +850,36 @@ export function reduceOpsState(current, action) {
 
     case "INCIDENT_ESCALATED": {
       const sourceScreen = operationalObjectScreens[action.sourceObject?.type];
+      const sourceFinding = state.findings.find(
+        (finding) => finding.id === action.findingId,
+      );
       if (
         !sourceScreen ||
         action.sourceObject.type === "incident" ||
-        !action.sourceObject.id ||
-        !action.findingId
+        !isKnownOperationalObject(state, action.sourceObject) ||
+        !sourceFinding ||
+        sourceFinding.source !== action.sourceObject.id
       ) {
         audit(
           state,
           "SRE",
           "incident.escalation.rejected",
-          "source object or finding missing",
+          "unknown source object or finding/source mismatch",
         );
         return state;
       }
       state.investigation.sourceObject = clone(action.sourceObject);
       state.investigation.sourceFindingId = action.findingId;
       state.investigation.writeback = null;
+      state.investigation.actionProposal = null;
+      state.investigation.hypotheses = clone(
+        seedState.investigation.hypotheses,
+      );
+      state.investigation.observations = clone(
+        seedState.investigation.observations,
+      );
+      state.investigation.evidence = clone(seedState.investigation.evidence);
+      state.investigation.revision += 1;
       state.investigation.status = "testing_hypotheses";
       state.activeObject = {
         type: "incident",
@@ -786,26 +899,49 @@ export function reduceOpsState(current, action) {
       const targetFinding = state.findings.find(
         (finding) => finding.id === state.investigation.sourceFindingId,
       );
+      const proposal = state.investigation.actionProposal;
+      const proposalMatchesSource =
+        proposal?.investigationId === state.investigation.id &&
+        proposal?.sourceFindingId === state.investigation.sourceFindingId &&
+        sameSourceObject(
+          proposal?.sourceObject,
+          state.investigation.sourceObject,
+        );
       if (
-        !state.investigation.actionProposal ||
-        !state.investigation.sourceObject ||
-        !targetFinding
+        !proposal ||
+        !isKnownOperationalObject(state, state.investigation.sourceObject) ||
+        !targetFinding ||
+        targetFinding.source !== state.investigation.sourceObject.id ||
+        !proposalMatchesSource
       ) {
         audit(
           state,
           "SRE",
           "action-proposal.writeback.rejected",
-          "conclusion, source object, or target finding missing",
+          "proposal provenance, source object, or target finding mismatch",
         );
         return state;
       }
       targetFinding.status = "pending_action";
-      state.investigation.actionProposal.status = "written_back";
+      proposal.status = "written_back";
       state.investigation.writeback = {
         status: "written_back",
         targetFindingId: targetFinding.id,
         targetObject: clone(state.investigation.sourceObject),
+        investigationId: state.investigation.id,
+        actionProposalId: proposal.id,
       };
+      createVerificationRequest(state, {
+        reportId: null,
+        sourceObject: state.investigation.sourceObject,
+        sourceFindingId: targetFinding.id,
+        sourceSnapshot: {
+          investigationId: state.investigation.id,
+          investigationRevision: state.investigation.revision,
+          actionProposalId: proposal.id,
+        },
+        reason: "action_proposal_writeback",
+      });
       audit(
         state,
         "SRE",
@@ -871,12 +1007,16 @@ export function reduceOpsState(current, action) {
         action.decision === "rollback"
           ? "执行回滚并复验"
           : "保持 10% 并延长观察";
-      state.investigation.actionProposal = {
-        action: action.decision,
-        runbook: "payments-router-rollback-v3",
-        approval: "L2 + oncall",
-        status: "approved",
-      };
+      if (
+        sameSourceObject(state.investigation.actionProposal?.sourceObject, {
+          type: "change",
+          id: state.change.id,
+        }) &&
+        state.investigation.actionProposal?.investigationId ===
+          state.investigation.id
+      ) {
+        state.investigation.actionProposal.status = "approved";
+      }
       audit(state, "payments-release", "change.decision.set", action.decision);
       return state;
 
@@ -970,7 +1110,13 @@ export function reduceOpsState(current, action) {
       }
       const previousBlocked = [...state.agentRuns]
         .reverse()
-        .find((run) => run.kind === "verification" && run.status === "blocked");
+        .find(
+          (run) =>
+            run.kind === "verification" &&
+            run.status === "blocked" &&
+            run.sourceObject?.type === "change" &&
+            run.sourceObject?.id === state.change.id,
+        );
       const id = nextRunId(state, "VR");
       state.change.verification.status = "running";
       state.agentRuns.push({
@@ -982,6 +1128,10 @@ export function reduceOpsState(current, action) {
         currentStep: "collecting post-action evidence",
         elapsed: "0m 18s",
         retryOf: previousBlocked?.id ?? null,
+        sourceObject: { type: "change", id: state.change.id },
+        sourceFindingIds: state.findings
+          .filter((finding) => finding.source === state.change.id)
+          .map((finding) => finding.id),
       });
       audit(state, "Inspection Agent", "verification.started", id);
       return state;
@@ -1004,7 +1154,13 @@ export function reduceOpsState(current, action) {
         .map(([key]) => key);
       const activeRun = [...state.agentRuns]
         .reverse()
-        .find((run) => run.kind === "verification" && run.status === "running");
+        .find(
+          (run) =>
+            run.kind === "verification" &&
+            run.status === "running" &&
+            run.sourceObject?.type === "change" &&
+            run.sourceObject?.id === state.change.id,
+        );
 
       if (blockers.length > 0) {
         state.change.verification.status = "blocked";
@@ -1095,7 +1251,11 @@ export function reduceOpsState(current, action) {
         const previousBlocked = [...state.agentRuns]
           .reverse()
           .find(
-            (run) => run.kind === "verification" && run.status === "blocked",
+            (run) =>
+              run.kind === "verification" &&
+              run.status === "blocked" &&
+              run.sourceObject?.type === "change" &&
+              run.sourceObject?.id === state.change.id,
           );
         const id = nextRunId(state, "VR");
         state.change.verification.status = "running";
@@ -1108,6 +1268,10 @@ export function reduceOpsState(current, action) {
           currentStep: "collecting recovered synthetic evidence",
           elapsed: "0m 11s",
           retryOf: previousBlocked?.id ?? null,
+          sourceObject: { type: "change", id: state.change.id },
+          sourceFindingIds: state.findings
+            .filter((finding) => finding.source === state.change.id)
+            .map((finding) => finding.id),
         });
       }
       audit(
@@ -1251,10 +1415,14 @@ export function reduceOpsState(current, action) {
       hypothesis.status = "confirmed";
       hypothesis.confidence = 0.97;
       state.investigation.actionProposal = {
+        id: `AP-${state.investigation.id}-${state.audit.length + 1}`,
         action: "rollback v3.18.0",
         runbook: "payments-router-rollback-v3",
         approval: "L2 + oncall",
         status: "proposed",
+        investigationId: state.investigation.id,
+        sourceObject: clone(state.investigation.sourceObject),
+        sourceFindingId: state.investigation.sourceFindingId,
       };
       audit(state, "payments-oncall", "hypothesis.confirmed", hypothesis.id);
       return state;
@@ -1276,19 +1444,164 @@ export function reduceOpsState(current, action) {
       );
       return state;
 
-    case "REPORT_VERIFICATION_REQUESTED":
-      state.reports = state.reports.map((report) =>
-        report.id === action.reportId
-          ? { ...report, verification: "requested" }
-          : report,
+    case "REPORT_VERIFICATION_REQUESTED": {
+      const report = state.reports.find((item) => item.id === action.reportId);
+      const openFindings = report?.snapshot.findings.filter(
+        (finding) => finding.status !== "closed",
       );
+      if (!report || !openFindings?.length) {
+        audit(
+          state,
+          "SRE",
+          "report.verification.request.rejected",
+          `${action.reportId ?? "missing"}; no open snapshot findings`,
+        );
+        return state;
+      }
+
+      const requestIds = [];
+      for (const snapshotFinding of openFindings) {
+        const currentFinding = state.findings.find(
+          (finding) => finding.id === snapshotFinding.id,
+        );
+        if (
+          !currentFinding ||
+          currentFinding.source !== report.snapshot.sourceObject.id ||
+          !isKnownOperationalObject(state, report.snapshot.sourceObject)
+        ) {
+          continue;
+        }
+        const request = createVerificationRequest(state, {
+          reportId: report.id,
+          sourceObject: report.snapshot.sourceObject,
+          sourceFindingId: currentFinding.id,
+          sourceSnapshot: {
+            runId: report.snapshot.runId,
+            assessment: report.snapshot.assessment,
+            planVersion: report.snapshot.planVersion,
+            investigationRevision: report.snapshot.investigationRevision,
+          },
+          reason: "report_reverification",
+        });
+        requestIds.push(request.id);
+      }
+
+      if (!requestIds.length) {
+        audit(
+          state,
+          "SRE",
+          "report.verification.request.rejected",
+          `${report.id}; source object or finding unavailable`,
+        );
+        return state;
+      }
+      report.reverification = {
+        status: "requested",
+        requestIds: [...new Set(requestIds)],
+      };
       audit(
         state,
-        "payments-owner",
+        "SRE",
         "report.verification.requested",
-        action.reportId,
+        `${report.id} → ${[...new Set(requestIds)].join(", ")}`,
       );
       return state;
+    }
+
+    case "INSPECTION_VERIFICATION_STARTED": {
+      const request = state.verificationRequests.find(
+        (item) => item.id === action.requestId,
+      );
+      const sourceFinding = state.findings.find(
+        (finding) => finding.id === request?.sourceFindingId,
+      );
+      if (
+        request?.status !== "requested" ||
+        !isKnownOperationalObject(state, request?.sourceObject) ||
+        !sourceFinding ||
+        sourceFinding.source !== request.sourceObject.id
+      ) {
+        audit(
+          state,
+          "Inspection Agent",
+          "verification.request.start.rejected",
+          action.requestId ?? "missing",
+        );
+        return state;
+      }
+
+      const runId = nextRunId(state, "VR");
+      request.status = "running";
+      request.runId = runId;
+      state.agentRuns.push({
+        id: runId,
+        kind: "verification",
+        title: `${request.sourceFindingId} 源对象复验`,
+        status: "running",
+        progress: 12,
+        currentStep: "loading immutable source snapshot",
+        elapsed: "0m 04s",
+        requestId: request.id,
+        sourceObject: clone(request.sourceObject),
+        sourceFindingId: request.sourceFindingId,
+        sourceSnapshot: clone(request.sourceSnapshot),
+      });
+      audit(
+        state,
+        "Inspection Agent",
+        "verification.request.started",
+        `${request.id} → ${runId}`,
+      );
+      return state;
+    }
+
+    case "INSPECTION_VERIFICATION_EVALUATED": {
+      const request = state.verificationRequests.find(
+        (item) => item.id === action.requestId,
+      );
+      const run = state.agentRuns.find(
+        (item) =>
+          item.requestId === action.requestId &&
+          item.kind === "verification" &&
+          item.status === "running",
+      );
+      if (
+        request?.status !== "running" ||
+        !run ||
+        !["passed", "blocked"].includes(action.result)
+      ) {
+        audit(
+          state,
+          "Inspection Agent",
+          "verification.request.evaluate.rejected",
+          action.requestId ?? "missing",
+        );
+        return state;
+      }
+
+      request.status = action.result;
+      run.status = action.result === "passed" ? "succeeded" : "blocked";
+      run.progress = action.result === "passed" ? 100 : 68;
+      run.currentStep =
+        action.result === "passed"
+          ? "source gates passed"
+          : "blocked by source gates";
+      if (action.result === "passed") {
+        const sourceFinding = state.findings.find(
+          (finding) => finding.id === request.sourceFindingId,
+        );
+        if (sourceFinding?.source === request.sourceObject.id) {
+          sourceFinding.status = "closed";
+        }
+      }
+      audit(
+        state,
+        "Inspection Agent",
+        `verification.request.${action.result}`,
+        `${request.id} / ${request.sourceFindingId}`,
+      );
+      return state;
+    }
 
     case "GOVERNANCE_GAP_ASSIGNED":
       state.governance.coverageMatrix = state.governance.coverageMatrix.map(

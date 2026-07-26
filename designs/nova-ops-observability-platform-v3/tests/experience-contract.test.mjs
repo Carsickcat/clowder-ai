@@ -146,6 +146,18 @@ test("primary interactions are domain actions rather than toast-only buttons", (
   }
 });
 
+test("reports render versioned snapshots and deep-link findings to source objects", () => {
+  const source = readFileSync(
+    resolve(root, "components", "screens", "ReportsCenter.js"),
+    "utf8",
+  );
+
+  assert.match(source, /report\.snapshot/);
+  assert.match(source, /type:\s*["']OBJECT_OPEN["']/);
+  assert.match(source, /objectType:\s*finding\.sourceObject\.type/);
+  assert.match(source, /objectId:\s*finding\.sourceObject\.id/);
+});
+
 test("operator manual documents SRE objects, states, and agent boundaries", () => {
   const manualPath = resolve(root, "USER-GUIDE.md");
   assert.ok(existsSync(manualPath), "USER-GUIDE.md must exist");

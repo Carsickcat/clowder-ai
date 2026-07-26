@@ -2,15 +2,22 @@
 
 import { useState } from "react";
 import { useOps } from "../OpsContext";
-import { Metric, PageHeading, Panel, Status } from "../ui";
+import { Metric, PageHeading, Status } from "../ui";
 
 export function ReportsCenter() {
   const { state, dispatch } = useOps();
   const [selectedId, setSelectedId] = useState(state.reports[0].id);
   const report =
     state.reports.find((item) => item.id === selectedId) ?? state.reports[0];
-  const reportFindings = state.findings.filter((finding) =>
-    report.id.includes("CHG") ? finding.source === state.change.id : true,
+  const snapshot = report.snapshot;
+  const reportFindings = snapshot.findings;
+  const openFindings = reportFindings.filter(
+    (finding) => finding.status !== "closed",
+  );
+  const reverifyPending = state.verificationRequests.some(
+    (request) =>
+      request.reportId === report.id &&
+      ["requested", "running"].includes(request.status),
   );
 
   return (
@@ -26,6 +33,7 @@ export function ReportsCenter() {
             type="button"
             className="button button-primary"
             data-domain-action="report.verification.requested"
+            disabled={!openFindings.length || reverifyPending}
             onClick={() =>
               dispatch({
                 type: "REPORT_VERIFICATION_REQUESTED",
@@ -33,7 +41,7 @@ export function ReportsCenter() {
               })
             }
           >
-            请求复验
+            {reverifyPending ? "复验已进入 Inspection 队列" : "请求复验"}
           </button>,
         ]}
       />
@@ -61,7 +69,9 @@ export function ReportsCenter() {
                   {item.id} · {item.generatedAt}
                 </span>
               </div>
-              <Status state={item.verification}>{item.verification}</Status>
+              <Status state={item.snapshot.assessment.status}>
+                {item.snapshot.assessment.status}
+              </Status>
             </button>
           ))}
         </aside>
@@ -80,34 +90,38 @@ export function ReportsCenter() {
             </div>
             <div className="report-stamp">
               <span>Verification</span>
-              <Status state={report.verification}>{report.verification}</Status>
+              <Status state={snapshot.assessment.status}>
+                {snapshot.assessment.status}
+              </Status>
             </div>
           </header>
 
           <div className="report-metrics">
             <Metric
               label="健康可判定覆盖"
-              value={`${report.coverage}%`}
+              value={`${snapshot.assessment.coverage}%`}
               detail="coverage gate"
-              tone={report.coverage > 95 ? "good" : "warning"}
+              tone={snapshot.assessment.coverage > 95 ? "good" : "warning"}
             />
             <Metric
               label="Findings"
               value={report.findings}
-              detail={`${reportFindings.filter((finding) => finding.status !== "closed").length} open`}
+              detail={`${openFindings.length} open in this version`}
               tone="danger"
             />
             <Metric
               label="Open Actions"
-              value={report.openActions}
+              value={snapshot.assessment.openActions}
               detail="Owner + due time"
               tone="warning"
             />
             <Metric
               label="Freshness gaps"
-              value={report.verification === "passed" ? "0" : "1"}
+              value={snapshot.assessment.status === "passed" ? "0" : "1"}
               detail="cn-south synthetic"
-              tone={report.verification === "passed" ? "good" : "unknown"}
+              tone={
+                snapshot.assessment.status === "passed" ? "good" : "unknown"
+              }
             />
           </div>
 
@@ -116,7 +130,7 @@ export function ReportsCenter() {
             <div>
               <h2>执行范围与门禁</h2>
               <div className="report-gate-grid">
-                {Object.entries(state.change.verification.gates).map(
+                {Object.entries(snapshot.assessment.gates).map(
                   ([gate, status]) => (
                     <div key={gate}>
                       <span>{gate}</span>
@@ -138,7 +152,7 @@ export function ReportsCenter() {
                 当前建议保持暂停扩流，完成回滚并由原 Guard 复验。
               </p>
               <div className="report-journeys">
-                {state.journeys.map((journey) => (
+                {snapshot.journeys.map((journey) => (
                   <div key={journey.id}>
                     <strong>{journey.name}</strong>
                     <Status state={journey.health}>{journey.health}</Status>
@@ -162,11 +176,9 @@ export function ReportsCenter() {
                     key={finding.id}
                     onClick={() =>
                       dispatch({
-                        type: "NAVIGATE",
-                        screen:
-                          finding.source === state.change.id
-                            ? "change"
-                            : "mission",
+                        type: "OBJECT_OPEN",
+                        objectType: finding.sourceObject.type,
+                        objectId: finding.sourceObject.id,
                       })
                     }
                   >
@@ -187,8 +199,10 @@ export function ReportsCenter() {
             <div>
               <h2>分享与审计</h2>
               <p>
-                该快照固定引用 Mission v12、Plan Draft v2、Change CHG-23841 和
-                Investigation Revision {state.investigation.revision}。
+                该版本固定引用 Run {snapshot.runId}、Assessment{" "}
+                {snapshot.assessment.status}、PlanVersion v
+                {snapshot.planVersion} 和 Investigation Revision{" "}
+                {snapshot.investigationRevision}。
               </p>
               <div className="button-row">
                 <button
@@ -211,6 +225,7 @@ export function ReportsCenter() {
                   type="button"
                   className="button button-primary"
                   data-domain-action="report.verification.requested"
+                  disabled={!openFindings.length || reverifyPending}
                   onClick={() =>
                     dispatch({
                       type: "REPORT_VERIFICATION_REQUESTED",
@@ -218,7 +233,9 @@ export function ReportsCenter() {
                     })
                   }
                 >
-                  将 Open Finding 送入复验队列
+                  {reverifyPending
+                    ? "Open Finding 已进入复验队列"
+                    : "将 Open Finding 送入复验队列"}
                 </button>
               </div>
             </div>

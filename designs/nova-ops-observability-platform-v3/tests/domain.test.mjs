@@ -78,6 +78,199 @@ test("Incident preserves source provenance and cannot close the source object", 
   assert.notEqual(state.change.verification.status, "passed");
 });
 
+test("a new Incident cannot reuse an ActionProposal from another source object", () => {
+  let state = createInitialState();
+  state = reduceOpsState(state, {
+    type: "INCIDENT_ESCALATED",
+    sourceObject: { type: "change", id: "CHG-23841" },
+    findingId: "FND-8821",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_TEST_RUN",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_CONFIRMED",
+    hypothesisId: "H1",
+  });
+  assert.ok(state.investigation.actionProposal);
+
+  state = reduceOpsState(state, {
+    type: "INCIDENT_ESCALATED",
+    sourceObject: { type: "mission", id: "MIS-61801" },
+    findingId: "FND-8832",
+  });
+
+  assert.equal(state.investigation.actionProposal, null);
+  assert.equal(
+    state.findings.find((finding) => finding.id === "FND-8832").status,
+    "open",
+  );
+
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_TEST_RUN",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_CONFIRMED",
+    hypothesisId: "H1",
+  });
+
+  assert.deepEqual(state.investigation.actionProposal.sourceObject, {
+    type: "mission",
+    id: "MIS-61801",
+  });
+  assert.equal(
+    state.investigation.actionProposal.investigationId,
+    state.investigation.id,
+  );
+  assert.equal(state.investigation.actionProposal.sourceFindingId, "FND-8832");
+
+  state = reduceOpsState(state, { type: "ACTION_PROPOSAL_WRITTEN_BACK" });
+  assert.equal(
+    state.findings.find((finding) => finding.id === "FND-8832").status,
+    "pending_action",
+  );
+  assert.equal(
+    state.findings.find((finding) => finding.id === "FND-8821").status,
+    "investigating",
+  );
+});
+
+test("object boundaries reject unknown object ids and mismatched findings", () => {
+  let state = createInitialState();
+
+  state = reduceOpsState(state, {
+    type: "OBJECT_OPEN",
+    objectType: "mission",
+    objectId: "MIS-UNKNOWN",
+  });
+  assert.equal(state.activeObject, null);
+  assert.equal(state.audit.at(-1).action, "object.open.rejected");
+
+  state = reduceOpsState(state, {
+    type: "INCIDENT_ESCALATED",
+    sourceObject: { type: "mission", id: "MIS-61801" },
+    findingId: "FND-8821",
+  });
+  assert.equal(state.investigation.sourceObject, null);
+  assert.equal(state.audit.at(-1).action, "incident.escalation.rejected");
+});
+
+test("writeback rejects a target Finding owned by a different source object", () => {
+  let state = createInitialState();
+  state = reduceOpsState(state, {
+    type: "INCIDENT_ESCALATED",
+    sourceObject: { type: "change", id: "CHG-23841" },
+    findingId: "FND-8821",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_TEST_RUN",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_CONFIRMED",
+    hypothesisId: "H1",
+  });
+
+  state.investigation.sourceFindingId = "FND-8832";
+  state.investigation.actionProposal.sourceFindingId = "FND-8832";
+  state = reduceOpsState(state, { type: "ACTION_PROPOSAL_WRITTEN_BACK" });
+
+  assert.equal(
+    state.findings.find((finding) => finding.id === "FND-8832").status,
+    "open",
+  );
+  assert.equal(state.investigation.writeback, null);
+  assert.equal(state.audit.at(-1).action, "action-proposal.writeback.rejected");
+});
+
+test("report re-verification creates source-linked requests owned by the Inspection Agent chain", () => {
+  let state = createInitialState();
+  const initialRunCount = state.agentRuns.length;
+
+  state = reduceOpsState(state, {
+    type: "REPORT_VERIFICATION_REQUESTED",
+    reportId: "RPT-CHG-23841",
+  });
+
+  const requests = state.verificationRequests.filter(
+    (request) => request.reportId === "RPT-CHG-23841",
+  );
+  assert.equal(requests.length, 3);
+  assert.equal(state.agentRuns.length, initialRunCount);
+  assert.equal(
+    requests.every(
+      (request) =>
+        request.status === "requested" &&
+        request.sourceObject.type === "change" &&
+        request.sourceObject.id === "CHG-23841" &&
+        request.sourceFindingId,
+    ),
+    true,
+  );
+
+  state = reduceOpsState(state, {
+    type: "INSPECTION_VERIFICATION_STARTED",
+    requestId: requests[0].id,
+  });
+  const run = state.agentRuns.at(-1);
+  assert.equal(run.kind, "verification");
+  assert.equal(run.requestId, requests[0].id);
+  assert.deepEqual(run.sourceObject, requests[0].sourceObject);
+  assert.equal(run.sourceFindingId, requests[0].sourceFindingId);
+  assert.equal(
+    state.verificationRequests.find((request) => request.id === requests[0].id)
+      .status,
+    "running",
+  );
+
+  state = reduceOpsState(state, {
+    type: "INSPECTION_VERIFICATION_EVALUATED",
+    requestId: requests[0].id,
+    result: "passed",
+  });
+  assert.equal(
+    state.verificationRequests.find((request) => request.id === requests[0].id)
+      .status,
+    "passed",
+  );
+  assert.equal(
+    state.findings.find((finding) => finding.id === requests[0].sourceFindingId)
+      .status,
+    "closed",
+  );
+});
+
+test("report projections retain immutable Run, Assessment, and PlanVersion snapshots", () => {
+  let state = createInitialState();
+  const report = state.reports.find((item) => item.id === "RPT-CHG-23841");
+  assert.equal(report.snapshot.runId, "VR-2898");
+  assert.equal(report.snapshot.planVersion, 12);
+  assert.deepEqual(report.snapshot.sourceObject, {
+    type: "change",
+    id: "CHG-23841",
+  });
+  assert.equal(report.snapshot.findings.length, 3);
+  const snapshot = structuredClone(report.snapshot);
+
+  state = reduceOpsState(state, {
+    type: "INVESTIGATION_EVIDENCE_PINNED",
+    lens: "logs",
+    evidenceId: "LOG-NEW-1001",
+  });
+  state = reduceOpsState(state, {
+    type: "FINDING_CLAIMED",
+    findingId: "FND-8828",
+    owner: "synthetics-oncall",
+  });
+
+  assert.deepEqual(
+    state.reports.find((item) => item.id === "RPT-CHG-23841").snapshot,
+    snapshot,
+  );
+});
+
 test("NL2 plan cannot publish until every gate, replay, and approval are ready", () => {
   let state = createInitialState();
 

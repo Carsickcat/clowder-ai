@@ -259,16 +259,35 @@ export function Investigation() {
               <button
                 type="button"
                 className="button button-danger button-full"
-                data-domain-action="change.decision.set"
+                data-domain-action={
+                  investigation.actionProposal.sourceObject?.type === "change"
+                    ? "change.decision.set"
+                    : "action-proposal.written_back"
+                }
+                disabled={!investigation.actionProposal.sourceObject}
                 onClick={() => {
+                  const sourceObject =
+                    investigation.actionProposal.sourceObject;
+                  if (sourceObject.type === "change") {
+                    dispatch({
+                      type: "CHANGE_DECISION_SET",
+                      decision: "rollback",
+                    });
+                  } else {
+                    dispatch({ type: "ACTION_PROPOSAL_WRITTEN_BACK" });
+                  }
                   dispatch({
-                    type: "CHANGE_DECISION_SET",
-                    decision: "rollback",
+                    type: "OBJECT_OPEN",
+                    objectType: sourceObject.type,
+                    objectId: sourceObject.id,
                   });
-                  dispatch({ type: "NAVIGATE", screen: "change" });
                 }}
               >
-                进入 Guard 审批并执行
+                {investigation.actionProposal.sourceObject?.type === "change"
+                  ? "进入 Change Guard 审批并执行"
+                  : investigation.actionProposal.sourceObject
+                    ? `回写 ${investigation.actionProposal.sourceObject.id} Finding → Verification`
+                    : "关联源对象后回写"}
               </button>
             </section>
           )}

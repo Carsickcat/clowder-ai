@@ -3,11 +3,13 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright-core";
 
-const baseUrl = process.env.BASE_URL || "http://127.0.0.1:5290/";
+const baseUrl = process.env.BASE_URL || "http://localhost:5290/";
 const executablePath =
   process.env.CHROME_PATH ||
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const evidenceDir = resolve(import.meta.dirname, "..", "evidence");
+const evidenceDir = process.env.EVIDENCE_DIR
+  ? resolve(process.env.EVIDENCE_DIR)
+  : resolve(import.meta.dirname, "..", "evidence");
 mkdirSync(evidenceDir, { recursive: true });
 
 const browser = await chromium.launch({ executablePath, headless: true });
@@ -60,6 +62,18 @@ async function desktopJourneys() {
     .first()
     .click();
   await page.getByText("¥126/day", { exact: true }).waitFor();
+  await page.getByRole("button", { name: "升级为 Incident 调查" }).click();
+  await page.locator('[data-screen="Investigation"]').waitFor();
+  const missionH1 = page.locator(".hypothesis", { hasText: "H1" });
+  await missionH1.getByRole("button", { name: "运行测试" }).click();
+  await missionH1.getByRole("button", { name: "Confirm" }).click();
+  await page
+    .locator(".decision-inspector")
+    .getByRole("button", { name: /回写 MIS-61801 Finding/ })
+    .click();
+  await page.getByText("FND-8832 已进入 pending action").waitFor();
+  await page.getByRole("button", { name: /返回 MIS-61801/ }).click();
+  await page.locator('[data-screen="MissionCommand"]').waitFor();
 
   await page
     .getByRole("button", { name: "← 返回 SRE 工作台", exact: true })
@@ -134,6 +148,31 @@ async function desktopJourneys() {
   await page.getByText("FND-8821 已进入 pending action").waitFor();
   await page.getByText(/恢复结论仍由源对象 Verification Run/).waitFor();
 
+  await page.reload({ waitUntil: "networkidle" });
+  await page.locator(".sre-global-nav button", { hasText: "Reports" }).click();
+  await page.locator('[data-screen="ReportsCenter"]').waitFor();
+  await page
+    .locator(".report-index-item", { hasText: "RPT-CHG-23841" })
+    .click();
+  await page.getByText(/Run VR-2898/).waitFor();
+  await page.screenshot({
+    path: resolve(evidenceDir, "04-report-versioned-projection.png"),
+    fullPage: true,
+  });
+  await page
+    .locator(".report-finding-table button", { hasText: "FND-8821" })
+    .click();
+  await page.locator('[data-screen="ChangeGuard"]').waitFor();
+  await page.getByText("CHG-23841", { exact: true }).first().waitFor();
+  await page.locator(".sre-global-nav button", { hasText: "Reports" }).click();
+  await page
+    .locator(".report-index-item", { hasText: "RPT-CHG-23841" })
+    .click();
+  await page.getByRole("button", { name: "请求复验" }).first().click();
+  await page
+    .getByRole("button", { name: "复验已进入 Inspection 队列" })
+    .waitFor();
+
   await context.close();
 }
 
@@ -173,7 +212,7 @@ try {
     `browser console failures:\n${failures.join("\n")}`,
   );
   process.stdout.write(
-    "Browser golden paths passed: SRE queue, Mission, Change verification, Inspection, Incident writeback, and mobile, console 0.\n",
+    "Browser golden paths passed: SRE queue, Mission/Change Incident writeback, Change verification, Inspection, versioned Report deep-link/reverification, and mobile, console 0.\n",
   );
 } finally {
   await browser.close();
