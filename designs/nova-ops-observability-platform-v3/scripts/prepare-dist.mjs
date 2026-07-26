@@ -1,31 +1,34 @@
-import { cpSync, existsSync, rmSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 
-export function prepareStaticDistribution(source, target) {
-  const sourceRoot = resolve(source);
-  const targetRoot = resolve(target);
+export function prepareSitesDistribution(distRoot, hostingConfigPath) {
+  const root = resolve(distRoot);
+  const serverEntry = resolve(root, "server", "index.js");
+  const clientRoot = resolve(root, "client");
+  const sourceConfig = resolve(hostingConfigPath);
 
-  if (!existsSync(sourceRoot)) {
-    throw new Error(`Static export is missing: ${sourceRoot}`);
+  if (!existsSync(serverEntry)) {
+    throw new Error(`Sites server entry is missing: ${serverEntry}`);
   }
-  if (
-    targetRoot === sourceRoot ||
-    sourceRoot.startsWith(`${targetRoot}${sep}`)
-  ) {
-    throw new Error("Distribution target must not contain the source export");
+  if (!existsSync(clientRoot)) {
+    throw new Error(`Sites client bundle is missing: ${clientRoot}`);
+  }
+  if (!existsSync(sourceConfig)) {
+    throw new Error(`Sites hosting config is missing: ${sourceConfig}`);
   }
 
-  rmSync(targetRoot, { recursive: true, force: true });
-  cpSync(sourceRoot, targetRoot, { recursive: true });
-  return targetRoot;
+  const targetConfig = resolve(root, ".openai", "hosting.json");
+  mkdirSync(dirname(targetConfig), { recursive: true });
+  copyFileSync(sourceConfig, targetConfig);
+  return { serverEntry, clientRoot, targetConfig };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  prepareStaticDistribution(
-    resolve(projectRoot, "out"),
+  prepareSitesDistribution(
     resolve(projectRoot, "dist"),
+    resolve(projectRoot, ".openai", "hosting.json"),
   );
 }
