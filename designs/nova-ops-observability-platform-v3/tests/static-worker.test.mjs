@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -65,4 +71,16 @@ test("static worker keeps SPA navigation inside the application shell", async ()
   assert.equal(response.status, 200);
   assert.match(await response.text(), /NOVA Ops/);
   assert.match(readFileSync(result.hostingTarget, "utf8"), /test-project/);
+});
+
+test("static worker removes a stale SSR entrypoint before packaging", () => {
+  const { staticRoot, outputRoot, hostingConfig } = fixture();
+  const staleServer = join(outputRoot, "server", "index.js");
+  mkdirSync(join(outputRoot, "server"), { recursive: true });
+  writeFileSync(staleServer, "export default { stale: true };");
+
+  buildStaticWorker({ staticRoot, outputRoot, hostingConfig });
+
+  assert.equal(existsSync(staleServer), false);
+  assert.equal(existsSync(join(outputRoot, "index.js")), true);
 });

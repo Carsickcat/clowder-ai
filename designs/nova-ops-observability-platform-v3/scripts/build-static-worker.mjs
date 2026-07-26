@@ -4,9 +4,10 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, extname, relative, resolve, sep } from "node:path";
+import { basename, dirname, extname, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -119,9 +120,13 @@ export function buildStaticWorker({ staticRoot, outputRoot, hostingConfig }) {
   if (!existsSync(sourceConfig)) {
     throw new Error(`Sites hosting config is missing: ${sourceConfig}`);
   }
+  if (basename(targetRoot) !== "dist") {
+    throw new Error(`Refusing to replace a non-dist output: ${targetRoot}`);
+  }
 
   const workerPath = resolve(targetRoot, "index.js");
   const hostingTarget = resolve(targetRoot, ".openai", "hosting.json");
+  rmSync(targetRoot, { recursive: true, force: true });
   mkdirSync(dirname(workerPath), { recursive: true });
   mkdirSync(dirname(hostingTarget), { recursive: true });
 

@@ -93,8 +93,9 @@ Scope verdict：✅ 必做。
 
 ## 最新验证证据
 
-- `npm run check`：15/15 tests pass，Vite SPA + Sites Fetch Worker build exit 0。
+- `npm run check`：16/16 tests pass，Vite SPA + Sites Fetch Worker build exit 0。
 - 静态 Worker 契约：`GET /`、不可变资源、SPA 深链与 hosting config 均通过自动测试。
+- 构建会先清理旧 `dist/server/index.js`，回归测试确保站点不会重新选择失效的 SSR 入口。
 - `BASE_URL=http://127.0.0.1:5291 npm run test:browser`：desktop 三条旅程 + mobile guide/studio 通过，console 0。
 - `npm audit`：0 vulnerabilities。
 - `git diff --check`：通过。
