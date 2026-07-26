@@ -89,12 +89,13 @@ Scope verdict：✅ 必做。
 - 页面切换保留旧滚动位置，标题会进入 sticky 顶栏下方；已增加页面切换滚动复位与浏览器断言。
 - Verification 可在 Objective 仍失败时显示 passed；已改为整改完成前禁止启动，Gate 由领域层派生，并要求 objectives 一致通过。
 - passed 页面仍显示旧 blocker 与可重复决策；已改为动态计数、verified 终态和决策锁定。
-- 首次 Sites 构建成功后托管端要求 `dist/server/index.js` 与 `dist/client`，静态目录复制仍不满足运行时契约；已迁移为 Sites 支持的 vinext 构建，并测试 server、client 与 hosting config 三件套。
+- 首次公开部署使用 vinext SSR 入口，部署状态虽成功，但未登录公网请求稳定返回 522；Worker 日志显示请求在应用执行前被取消。现改为单一静态 Worker 入口：Vite 生成 SPA 资源，构建器将资源嵌入标准 Fetch handler，不再依赖 SSR 源站。
 
 ## 最新验证证据
 
-- `npm run check`：13/13 tests pass，vinext production build / Sites server+client distribution exit 0。
-- `npm run test:browser`：desktop 三条旅程 + mobile guide/studio 通过，console 0。
+- `npm run check`：15/15 tests pass，Vite SPA + Sites Fetch Worker build exit 0。
+- 静态 Worker 契约：`GET /`、不可变资源、SPA 深链与 hosting config 均通过自动测试。
+- `BASE_URL=http://127.0.0.1:5291 npm run test:browser`：desktop 三条旅程 + mobile guide/studio 通过，console 0。
 - `npm audit`：0 vulnerabilities。
 - `git diff --check`：通过。
-- 本地验收：worktree `E:\ClowderAI\cat-cafe-aiops-hifi-v3`，URL `http://127.0.0.1:5290/`。
+- 本地验收：worktree `E:\ClowderAI\cat-cafe-aiops-hifi-v3`，静态预览 `http://127.0.0.1:5291/`。

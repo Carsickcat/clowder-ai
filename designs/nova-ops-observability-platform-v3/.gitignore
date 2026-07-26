@@ -1,5 +1,7 @@
 .next/
+.vinext/
 dist/
 node_modules/
 out/
+static-dist/
 dev-server*.log
