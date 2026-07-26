@@ -34,7 +34,7 @@ export function UserGuide({ onClose }) {
     <>
       <div className="drawer-head">
         <div>
-          <div className="eyebrow">Operator manual · V3</div>
+          <div className="eyebrow">Operator manual · V4</div>
           <h2>如何使用这套 AI 运维平台</h2>
         </div>
         <button

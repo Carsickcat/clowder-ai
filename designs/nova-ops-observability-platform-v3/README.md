@@ -1,4 +1,4 @@
-# NOVA Ops AI Observability Platform V3
+# NOVA Ops AI Observability Platform V4
 
 面向 2026 智能运维规划的可点击高保真原型。产品坐标不是能力介绍门户，而是生产运行工作台：
 
