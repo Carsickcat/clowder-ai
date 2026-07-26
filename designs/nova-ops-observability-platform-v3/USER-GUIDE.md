@@ -30,8 +30,8 @@
 1. 在 Alerts 工作面查看 `17 raw → 2 correlated clusters → 1 primary event`，确认事件簇成员、受影响拓扑和 Scope。
 2. 切换 Metrics、Logs、Traces、Synthetics，钉入可复核 Observation。
 3. 运行 Hypothesis 的 next test；证据不足时标为 `inconclusive`，保留修订并生成后续检查草案。
-4. 诊断 Agent 只生成 `ActionProposal`。如果 Incident 从 Change、Mission 或 Inspection 升级而来，点击“回写源 Finding”。
-5. 回写后源 Finding 进入 `pending_action`；Incident 仍不能关闭源对象，也不能宣布恢复。
+4. 诊断 Agent 只生成 `ActionProposal`。Change 来源必须返回 Change Guard 记录整改与门禁；Mission / Inspection 来源才可回写源 Finding。
+5. Mission / Inspection 回写后，源 Finding 进入 `pending_action`；源对象提交绑定证据的整改回执后，才能进入 Verification。Incident 仍不能关闭源对象，也不能宣布恢复。
 
 终态：`Investigation + ActionProposal + 原 Finding 回写`。
 
@@ -79,9 +79,12 @@
 
 - 升级时必须保存 `sourceObject.type / sourceObject.id / sourceFindingId`。
 - Incident 左栏固定展示来源对象并提供返回链接。
-- ActionProposal 未形成前，回写动作不可用；形成后只能改变源 Finding 的处置状态。
+- Change 的 ActionProposal 必须返回 Change Guard，经 `Decision Record → ActionRun → Change Verification` 完成；通用回写与 Inspection Verification 均拒绝 Change。
+- Mission / Inspection 的 ActionProposal 只能写回原 Finding；源对象必须提交绑定 ActionRun 证据的整改回执，才能启动 Inspection Verification。
+- 同一源对象与 Finding 的报告复验、Incident 写回会合并为一条可追溯 Verification Request，不会生成并行复验链。
 - Incident 不拥有源对象的健康状态，不能自行关闭 Change、Mission 或 Inspection。
-- 只有源对象 Verification 的所有 Gate 通过后，系统才能给出 `passed` 并更新报告。
+- Verification 必须绑定整改回执和结构化 Gate / Evidence；只有全部 Gate 通过后，系统才能给出 `passed` 并关闭 Finding。
+- 报告正文是生成时的不可变快照；“请求复验”按当前源 Finding 判定。当前已关闭时显示“已在源对象解决”，不会从历史快照重复排队。
 - 所有跨对象动作进入 Audit，形成可追溯关系。
 
 ## 状态语义

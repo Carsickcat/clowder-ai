@@ -155,10 +155,33 @@ function CrossObjectAction({ objectType, state, dispatch }) {
         </div>
       );
     }
+    if (state.investigation.sourceObject.type === "change") {
+      return (
+        <button
+          type="button"
+          className="button button-primary cross-object-button"
+          data-domain-action="change.decision.set"
+          disabled={!state.investigation.actionProposal}
+          onClick={() => {
+            dispatch({
+              type: "CHANGE_DECISION_SET",
+              decision: "rollback",
+            });
+            dispatch({
+              type: "OBJECT_OPEN",
+              objectType: "change",
+              objectId: state.investigation.sourceObject.id,
+            });
+          }}
+        >
+          进入 Change Guard 记录整改与门禁
+        </button>
+      );
+    }
     if (state.investigation.writeback?.status === "written_back") {
       return (
         <div className="cross-object-receipt">
-          <Status state="passed">written back</Status>
+          <Status state="running">written back</Status>
           <strong>
             {state.investigation.writeback.targetFindingId} 已进入 pending
             action
@@ -190,6 +213,58 @@ function CrossObjectAction({ objectType, state, dispatch }) {
   }
 
   const currentFinding = sourceFindings[objectType];
+  const sourceFinding = state.findings.find(
+    (finding) => finding.id === currentFinding,
+  );
+  const linkedWriteback =
+    state.investigation.writeback?.status === "written_back" &&
+    state.investigation.writeback?.targetFindingId === currentFinding &&
+    state.investigation.writeback?.targetObject?.type === objectType &&
+    state.investigation.writeback?.targetObject?.id ===
+      objectCatalog[objectType].id;
+  const remediationReceipt = state.remediationReceipts.find(
+    (receipt) =>
+      receipt.status === "completed" &&
+      receipt.sourceFindingId === currentFinding &&
+      receipt.sourceObject.type === objectType &&
+      receipt.sourceObject.id === objectCatalog[objectType].id,
+  );
+
+  if (["mission", "inspection"].includes(objectType) && linkedWriteback) {
+    if (remediationReceipt) {
+      return (
+        <div className="cross-object-receipt">
+          <Status state="running">awaiting verification</Status>
+          <strong>整改回执 {remediationReceipt.id} 已绑定源 Finding</strong>
+          <small>Inspection Agent 只按回执后的证据与 Gate 判定。</small>
+        </div>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className="button button-primary cross-object-button"
+        data-domain-action="source.remediation.recorded"
+        disabled={sourceFinding?.status !== "pending_action"}
+        onClick={() =>
+          dispatch({
+            type: "SOURCE_REMEDIATION_RECORDED",
+            sourceObject: {
+              type: objectType,
+              id: objectCatalog[objectType].id,
+            },
+            findingId: currentFinding,
+            evidenceIds: [
+              `ACTION-RECEIPT-${objectCatalog[objectType].id}-${currentFinding}`,
+            ],
+          })
+        }
+      >
+        记录整改回执 → 进入源对象复验
+      </button>
+    );
+  }
+
   const alreadyLinked =
     state.investigation.sourceObject?.type === objectType &&
     state.investigation.sourceObject?.id === objectCatalog[objectType].id;

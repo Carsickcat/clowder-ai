@@ -74,6 +74,13 @@ async function desktopJourneys() {
   await page.getByText("FND-8832 已进入 pending action").waitFor();
   await page.getByRole("button", { name: /返回 MIS-61801/ }).click();
   await page.locator('[data-screen="MissionCommand"]').waitFor();
+  await page
+    .getByRole("button", {
+      name: "记录整改回执 → 进入源对象复验",
+      exact: true,
+    })
+    .click();
+  await page.getByText(/整改回执 RR-\d+ 已绑定源 Finding/).waitFor();
 
   await page
     .getByRole("button", { name: "← 返回 SRE 工作台", exact: true })
@@ -114,6 +121,14 @@ async function desktopJourneys() {
     path: resolve(evidenceDir, "02-change-object-verification-passed.png"),
     fullPage: true,
   });
+  await page.locator(".sre-global-nav button", { hasText: "Reports" }).click();
+  await page
+    .locator(".report-index-item", { hasText: "RPT-CHG-23841" })
+    .click();
+  await page.getByRole("button", { name: "已在源对象解决" }).first().waitFor();
+  await page
+    .locator(".report-finding-table", { hasText: "已在源对象解决" })
+    .waitFor();
 
   await page.reload({ waitUntil: "networkidle" });
   await openQueueObject(page, "PLAN-312");
@@ -144,9 +159,12 @@ async function desktopJourneys() {
   const h1 = page.locator(".hypothesis", { hasText: "H1" });
   await h1.getByRole("button", { name: "运行测试" }).click();
   await h1.getByRole("button", { name: "Confirm" }).click();
-  await page.getByRole("button", { name: /回写 CHG-23841 Finding/ }).click();
-  await page.getByText("FND-8821 已进入 pending action").waitFor();
-  await page.getByText(/恢复结论仍由源对象 Verification Run/).waitFor();
+  await page
+    .locator(".decision-inspector")
+    .getByRole("button", { name: "进入 Change Guard 记录整改与门禁" })
+    .click();
+  await page.locator('[data-screen="ChangeGuard"]').waitFor();
+  await page.getByRole("button", { name: "确认回滚完成 · 等待复验" }).waitFor();
 
   await page.reload({ waitUntil: "networkidle" });
   await page.locator(".sre-global-nav button", { hasText: "Reports" }).click();
@@ -170,7 +188,8 @@ async function desktopJourneys() {
     .click();
   await page.getByRole("button", { name: "请求复验" }).first().click();
   await page
-    .getByRole("button", { name: "复验已进入 Inspection 队列" })
+    .getByRole("button", { name: "复验已进入 Change Guard 队列" })
+    .first()
     .waitFor();
 
   await context.close();
@@ -212,7 +231,7 @@ try {
     `browser console failures:\n${failures.join("\n")}`,
   );
   process.stdout.write(
-    "Browser golden paths passed: SRE queue, Mission/Change Incident writeback, Change verification, Inspection, versioned Report deep-link/reverification, and mobile, console 0.\n",
+    "Browser golden paths passed: SRE queue, source-specific Mission/Change remediation, Change verification, Inspection, current-state Report deep-link/reverification, and mobile, console 0.\n",
   );
 } finally {
   await browser.close();

@@ -11,14 +11,36 @@ export function ReportsCenter() {
     state.reports.find((item) => item.id === selectedId) ?? state.reports[0];
   const snapshot = report.snapshot;
   const reportFindings = snapshot.findings;
-  const openFindings = reportFindings.filter(
-    (finding) => finding.status !== "closed",
+  const currentFindings = reportFindings.map((snapshotFinding) => ({
+    snapshot: snapshotFinding,
+    current: state.findings.find(
+      (finding) => finding.id === snapshotFinding.id,
+    ),
+  }));
+  const currentOpenFindings = currentFindings.filter(
+    ({ current }) => current && current.status !== "closed",
   );
-  const reverifyPending = state.verificationRequests.some(
+  const reportRequests = state.verificationRequests.filter(
     (request) =>
-      request.reportId === report.id &&
-      ["requested", "running"].includes(request.status),
+      (request.reportId === report.id ||
+        request.reportIds?.includes(report.id)) &&
+      ["awaiting_remediation", "requested", "running"].includes(request.status),
   );
+  const reverifyPending = reportRequests.length > 0;
+  const waitingForRemediation = reportRequests.some(
+    (request) => request.status === "awaiting_remediation",
+  );
+  const allResolvedAtSource =
+    reportFindings.length > 0 && currentOpenFindings.length === 0;
+  const requestLabel = allResolvedAtSource
+    ? "已在源对象解决"
+    : waitingForRemediation
+      ? "等待源对象整改回执"
+      : reverifyPending
+        ? snapshot.sourceObject.type === "change"
+          ? "复验已进入 Change Guard 队列"
+          : "复验已进入 Inspection 队列"
+        : "请求复验";
 
   return (
     <div data-screen="ReportsCenter">
@@ -33,7 +55,7 @@ export function ReportsCenter() {
             type="button"
             className="button button-primary"
             data-domain-action="report.verification.requested"
-            disabled={!openFindings.length || reverifyPending}
+            disabled={!currentOpenFindings.length || reverifyPending}
             onClick={() =>
               dispatch({
                 type: "REPORT_VERIFICATION_REQUESTED",
@@ -41,7 +63,7 @@ export function ReportsCenter() {
               })
             }
           >
-            {reverifyPending ? "复验已进入 Inspection 队列" : "请求复验"}
+            {requestLabel}
           </button>,
         ]}
       />
@@ -106,7 +128,7 @@ export function ReportsCenter() {
             <Metric
               label="Findings"
               value={report.findings}
-              detail={`${openFindings.length} open in this version`}
+              detail={`${currentOpenFindings.length} open at source now`}
               tone="danger"
             />
             <Metric
@@ -170,26 +192,32 @@ export function ReportsCenter() {
             <div>
               <h2>Finding → Owner → Verification</h2>
               <div className="report-finding-table">
-                {reportFindings.map((finding) => (
-                  <button
-                    type="button"
-                    key={finding.id}
-                    onClick={() =>
-                      dispatch({
-                        type: "OBJECT_OPEN",
-                        objectType: finding.sourceObject.type,
-                        objectId: finding.sourceObject.id,
-                      })
-                    }
-                  >
-                    <span>{finding.id}</span>
-                    <strong>{finding.title}</strong>
-                    <small>
-                      {finding.owner} · due {finding.dueAt}
-                    </small>
-                    <Status state={finding.status}>{finding.status}</Status>
-                  </button>
-                ))}
+                {currentFindings.map(({ snapshot: finding, current }) => {
+                  const resolvedAtSource = current?.status === "closed";
+                  return (
+                    <button
+                      type="button"
+                      key={finding.id}
+                      onClick={() =>
+                        dispatch({
+                          type: "OBJECT_OPEN",
+                          objectType: finding.sourceObject.type,
+                          objectId: finding.sourceObject.id,
+                        })
+                      }
+                    >
+                      <span>{finding.id}</span>
+                      <strong>{finding.title}</strong>
+                      <small>
+                        {finding.owner} · due {finding.dueAt}
+                        {resolvedAtSource
+                          ? " · 已在源对象解决"
+                          : ` · current ${current?.status ?? "unavailable"}`}
+                      </small>
+                      <Status state={finding.status}>{finding.status}</Status>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -225,7 +253,7 @@ export function ReportsCenter() {
                   type="button"
                   className="button button-primary"
                   data-domain-action="report.verification.requested"
-                  disabled={!openFindings.length || reverifyPending}
+                  disabled={!currentOpenFindings.length || reverifyPending}
                   onClick={() =>
                     dispatch({
                       type: "REPORT_VERIFICATION_REQUESTED",
@@ -233,9 +261,11 @@ export function ReportsCenter() {
                     })
                   }
                 >
-                  {reverifyPending
-                    ? "Open Finding 已进入复验队列"
-                    : "将 Open Finding 送入复验队列"}
+                  {allResolvedAtSource
+                    ? "Open Finding 已在源对象解决"
+                    : requestLabel === "请求复验"
+                      ? "将 Open Finding 送入复验队列"
+                      : requestLabel}
                 </button>
               </div>
             </div>

@@ -491,6 +491,7 @@ const seedState = {
       evidence: 2,
     },
   ],
+  remediationReceipts: [],
   verificationRequests: [],
   agentRuns: [
     {
@@ -686,29 +687,97 @@ function nextRunId(state, prefix) {
 
 function createVerificationRequest(
   state,
-  { reportId, sourceObject, sourceFindingId, sourceSnapshot, reason },
+  {
+    reportId,
+    sourceObject,
+    sourceFindingId,
+    sourceSnapshot,
+    reason,
+    status = "requested",
+    remediationReceiptId = null,
+  },
 ) {
   const duplicate = state.verificationRequests.find(
     (request) =>
-      request.reportId === reportId &&
       request.sourceFindingId === sourceFindingId &&
-      request.reason === reason &&
-      ["requested", "running"].includes(request.status),
+      sameSourceObject(request.sourceObject, sourceObject) &&
+      ["awaiting_remediation", "requested", "running"].includes(request.status),
   );
-  if (duplicate) return duplicate;
+  if (duplicate) {
+    duplicate.reportId ??= reportId;
+    duplicate.reportIds = [
+      ...new Set(
+        [...(duplicate.reportIds ?? []), duplicate.reportId, reportId].filter(
+          Boolean,
+        ),
+      ),
+    ];
+    duplicate.reasons = [
+      ...new Set([...(duplicate.reasons ?? []), duplicate.reason, reason]),
+    ];
+    duplicate.sourceSnapshot = {
+      ...duplicate.sourceSnapshot,
+      ...clone(sourceSnapshot),
+    };
+    if (remediationReceiptId) {
+      duplicate.remediationReceiptId = remediationReceiptId;
+      duplicate.status = "requested";
+    }
+    return duplicate;
+  }
 
   const request = {
     id: `VREQ-${String(state.verificationRequests.length + 1).padStart(4, "0")}`,
     reportId,
+    reportIds: reportId ? [reportId] : [],
     sourceObject: clone(sourceObject),
     sourceFindingId,
     sourceSnapshot: clone(sourceSnapshot),
     reason,
-    status: "requested",
+    reasons: [reason],
+    status,
+    remediationReceiptId,
     requestedBy: "SRE",
   };
   state.verificationRequests.push(request);
   return request;
+}
+
+function findCompletedRemediationReceipt(state, sourceObject, sourceFindingId) {
+  return [...state.remediationReceipts]
+    .reverse()
+    .find(
+      (receipt) =>
+        receipt.status === "completed" &&
+        receipt.sourceFindingId === sourceFindingId &&
+        sameSourceObject(receipt.sourceObject, sourceObject) &&
+        receipt.evidenceIds.length > 0,
+    );
+}
+
+function linkChangeVerificationRequests(state, runId, statuses) {
+  const requests = state.verificationRequests.filter(
+    (request) =>
+      request.sourceObject?.type === "change" &&
+      request.sourceObject?.id === state.change.id &&
+      statuses.includes(request.status),
+  );
+  for (const request of requests) {
+    request.status = "running";
+    request.runId = runId;
+  }
+  return requests.map((request) => request.id);
+}
+
+function settleChangeVerificationRequests(state, runId, status, gates) {
+  for (const request of state.verificationRequests) {
+    if (request.runId !== runId) continue;
+    request.status = status;
+    request.assessment = {
+      gates: clone(gates),
+      evidenceIds: [`${runId}-SOURCE-GATES`],
+    };
+  }
 }
 
 function evaluateVerificationGates(state) {
@@ -910,15 +979,19 @@ export function reduceOpsState(current, action) {
       if (
         !proposal ||
         !isKnownOperationalObject(state, state.investigation.sourceObject) ||
+        state.investigation.sourceObject?.type === "change" ||
         !targetFinding ||
         targetFinding.source !== state.investigation.sourceObject.id ||
+        ["pending_action", "awaiting_verification", "closed"].includes(
+          targetFinding.status,
+        ) ||
         !proposalMatchesSource
       ) {
         audit(
           state,
           "SRE",
           "action-proposal.writeback.rejected",
-          "proposal provenance, source object, or target finding mismatch",
+          "Change must return to Guard; otherwise proposal provenance, source object, or target finding mismatch",
         );
         return state;
       }
@@ -931,7 +1004,7 @@ export function reduceOpsState(current, action) {
         investigationId: state.investigation.id,
         actionProposalId: proposal.id,
       };
-      createVerificationRequest(state, {
+      const verificationRequest = createVerificationRequest(state, {
         reportId: null,
         sourceObject: state.investigation.sourceObject,
         sourceFindingId: targetFinding.id,
@@ -941,7 +1014,10 @@ export function reduceOpsState(current, action) {
           actionProposalId: proposal.id,
         },
         reason: "action_proposal_writeback",
+        status: "awaiting_remediation",
       });
+      state.investigation.writeback.verificationRequestId =
+        verificationRequest.id;
       audit(
         state,
         "SRE",
@@ -1118,6 +1194,10 @@ export function reduceOpsState(current, action) {
             run.sourceObject?.id === state.change.id,
         );
       const id = nextRunId(state, "VR");
+      const requestIds = linkChangeVerificationRequests(state, id, [
+        "requested",
+        "blocked",
+      ]);
       state.change.verification.status = "running";
       state.agentRuns.push({
         id,
@@ -1132,6 +1212,7 @@ export function reduceOpsState(current, action) {
         sourceFindingIds: state.findings
           .filter((finding) => finding.source === state.change.id)
           .map((finding) => finding.id),
+        requestIds,
       });
       audit(state, "Inspection Agent", "verification.started", id);
       return state;
@@ -1169,6 +1250,12 @@ export function reduceOpsState(current, action) {
           activeRun.status = "blocked";
           activeRun.progress = 66;
           activeRun.currentStep = `blocked by ${blockers.join(", ")}`;
+          settleChangeVerificationRequests(
+            state,
+            activeRun.id,
+            "blocked",
+            gates,
+          );
         }
         audit(
           state,
@@ -1187,6 +1274,7 @@ export function reduceOpsState(current, action) {
         activeRun.status = "succeeded";
         activeRun.progress = 100;
         activeRun.currentStep = "all gates passed";
+        settleChangeVerificationRequests(state, activeRun.id, "passed", gates);
       }
       const journey = state.journeys.find((item) => item.id === "order-query");
       journey.health = "healthy";
@@ -1258,6 +1346,9 @@ export function reduceOpsState(current, action) {
               run.sourceObject?.id === state.change.id,
           );
         const id = nextRunId(state, "VR");
+        const requestIds = linkChangeVerificationRequests(state, id, [
+          "blocked",
+        ]);
         state.change.verification.status = "running";
         state.agentRuns.push({
           id,
@@ -1272,6 +1363,7 @@ export function reduceOpsState(current, action) {
           sourceFindingIds: state.findings
             .filter((finding) => finding.source === state.change.id)
             .map((finding) => finding.id),
+          requestIds,
         });
       }
       audit(
@@ -1444,6 +1536,71 @@ export function reduceOpsState(current, action) {
       );
       return state;
 
+    case "SOURCE_REMEDIATION_RECORDED": {
+      const sourceFinding = state.findings.find(
+        (finding) => finding.id === action.findingId,
+      );
+      const proposal = state.investigation.actionProposal;
+      const writeback = state.investigation.writeback;
+      const evidenceIds = Array.isArray(action.evidenceIds)
+        ? action.evidenceIds.filter(
+            (evidenceId) =>
+              typeof evidenceId === "string" && evidenceId.length > 0,
+          )
+        : [];
+      if (
+        !["mission", "inspection"].includes(action.sourceObject?.type) ||
+        !isKnownOperationalObject(state, action.sourceObject) ||
+        !sourceFinding ||
+        sourceFinding.source !== action.sourceObject.id ||
+        sourceFinding.status !== "pending_action" ||
+        !proposal ||
+        proposal.status !== "written_back" ||
+        !sameSourceObject(proposal.sourceObject, action.sourceObject) ||
+        proposal.sourceFindingId !== sourceFinding.id ||
+        writeback?.actionProposalId !== proposal.id ||
+        writeback?.targetFindingId !== sourceFinding.id ||
+        evidenceIds.length === 0
+      ) {
+        audit(
+          state,
+          "Source Owner",
+          "source.remediation.record.rejected",
+          `${action.sourceObject?.id ?? "unknown"}/${action.findingId ?? "missing"}`,
+        );
+        return state;
+      }
+
+      const receipt = {
+        id: `RR-${String(state.remediationReceipts.length + 1).padStart(4, "0")}`,
+        sourceObject: clone(action.sourceObject),
+        sourceFindingId: sourceFinding.id,
+        investigationId: state.investigation.id,
+        actionProposalId: proposal.id,
+        evidenceIds,
+        status: "completed",
+      };
+      state.remediationReceipts.push(receipt);
+      sourceFinding.status = "awaiting_verification";
+      for (const request of state.verificationRequests) {
+        if (
+          request.status === "awaiting_remediation" &&
+          request.sourceFindingId === sourceFinding.id &&
+          sameSourceObject(request.sourceObject, action.sourceObject)
+        ) {
+          request.status = "requested";
+          request.remediationReceiptId = receipt.id;
+        }
+      }
+      audit(
+        state,
+        "Source Owner",
+        "source.remediation.recorded",
+        `${receipt.id} → ${sourceFinding.id}`,
+      );
+      return state;
+    }
+
     case "REPORT_VERIFICATION_REQUESTED": {
       const report = state.reports.find((item) => item.id === action.reportId);
       const openFindings = report?.snapshot.findings.filter(
@@ -1466,11 +1623,21 @@ export function reduceOpsState(current, action) {
         );
         if (
           !currentFinding ||
+          currentFinding.status === "closed" ||
           currentFinding.source !== report.snapshot.sourceObject.id ||
           !isKnownOperationalObject(state, report.snapshot.sourceObject)
         ) {
           continue;
         }
+        const remediationReceipt = findCompletedRemediationReceipt(
+          state,
+          report.snapshot.sourceObject,
+          currentFinding.id,
+        );
+        const requestStatus =
+          report.snapshot.sourceObject.type === "change" || remediationReceipt
+            ? "requested"
+            : "awaiting_remediation";
         const request = createVerificationRequest(state, {
           reportId: report.id,
           sourceObject: report.snapshot.sourceObject,
@@ -1482,6 +1649,8 @@ export function reduceOpsState(current, action) {
             investigationRevision: report.snapshot.investigationRevision,
           },
           reason: "report_reverification",
+          status: requestStatus,
+          remediationReceiptId: remediationReceipt?.id ?? null,
         });
         requestIds.push(request.id);
       }
@@ -1496,7 +1665,14 @@ export function reduceOpsState(current, action) {
         return state;
       }
       report.reverification = {
-        status: "requested",
+        status: requestIds.some(
+          (requestId) =>
+            state.verificationRequests.find(
+              (request) => request.id === requestId,
+            )?.status === "awaiting_remediation",
+        )
+          ? "awaiting_remediation"
+          : "requested",
         requestIds: [...new Set(requestIds)],
       };
       audit(
@@ -1515,11 +1691,23 @@ export function reduceOpsState(current, action) {
       const sourceFinding = state.findings.find(
         (finding) => finding.id === request?.sourceFindingId,
       );
+      const remediationReceipt = state.remediationReceipts.find(
+        (receipt) => receipt.id === request?.remediationReceiptId,
+      );
       if (
         request?.status !== "requested" ||
+        request.sourceObject?.type === "change" ||
         !isKnownOperationalObject(state, request?.sourceObject) ||
         !sourceFinding ||
-        sourceFinding.source !== request.sourceObject.id
+        sourceFinding.source !== request.sourceObject.id ||
+        sourceFinding.status !== "awaiting_verification" ||
+        remediationReceipt?.status !== "completed" ||
+        !sameSourceObject(
+          remediationReceipt.sourceObject,
+          request.sourceObject,
+        ) ||
+        remediationReceipt.sourceFindingId !== request.sourceFindingId ||
+        remediationReceipt.evidenceIds.length === 0
       ) {
         audit(
           state,
@@ -1545,6 +1733,8 @@ export function reduceOpsState(current, action) {
         sourceObject: clone(request.sourceObject),
         sourceFindingId: request.sourceFindingId,
         sourceSnapshot: clone(request.sourceSnapshot),
+        remediationReceiptId: remediationReceipt.id,
+        sourceEvidenceIds: clone(remediationReceipt.evidenceIds),
       });
       audit(
         state,
@@ -1565,10 +1755,39 @@ export function reduceOpsState(current, action) {
           item.kind === "verification" &&
           item.status === "running",
       );
+      const remediationReceipt = state.remediationReceipts.find(
+        (receipt) => receipt.id === run?.remediationReceiptId,
+      );
+      const requiredGates = [
+        "coverage",
+        "freshness",
+        "execution",
+        "objectives",
+      ];
+      const gates = action.assessment?.gates;
+      const evidenceIds = Array.isArray(action.assessment?.evidenceIds)
+        ? action.assessment.evidenceIds.filter(
+            (evidenceId) =>
+              typeof evidenceId === "string" && evidenceId.length > 0,
+          )
+        : [];
+      const hasStructuredAssessment =
+        gates &&
+        requiredGates.every((gate) =>
+          ["pass", "fail", "unknown", "blocked"].includes(gates[gate]),
+        ) &&
+        evidenceIds.length > 0;
       if (
         request?.status !== "running" ||
+        request.sourceObject?.type === "change" ||
         !run ||
-        !["passed", "blocked"].includes(action.result)
+        remediationReceipt?.status !== "completed" ||
+        !sameSourceObject(
+          remediationReceipt.sourceObject,
+          request.sourceObject,
+        ) ||
+        remediationReceipt.sourceFindingId !== request.sourceFindingId ||
+        !hasStructuredAssessment
       ) {
         audit(
           state,
@@ -1579,14 +1798,20 @@ export function reduceOpsState(current, action) {
         return state;
       }
 
-      request.status = action.result;
-      run.status = action.result === "passed" ? "succeeded" : "blocked";
-      run.progress = action.result === "passed" ? 100 : 68;
+      const result = requiredGates.every((gate) => gates[gate] === "pass")
+        ? "passed"
+        : "blocked";
+      request.status = result;
+      request.assessment = {
+        gates: clone(gates),
+        evidenceIds,
+      };
+      run.status = result === "passed" ? "succeeded" : "blocked";
+      run.progress = result === "passed" ? 100 : 68;
+      run.sourceVerificationEvidenceIds = clone(evidenceIds);
       run.currentStep =
-        action.result === "passed"
-          ? "source gates passed"
-          : "blocked by source gates";
-      if (action.result === "passed") {
+        result === "passed" ? "source gates passed" : "blocked by source gates";
+      if (result === "passed") {
         const sourceFinding = state.findings.find(
           (finding) => finding.id === request.sourceFindingId,
         );
@@ -1597,7 +1822,7 @@ export function reduceOpsState(current, action) {
       audit(
         state,
         "Inspection Agent",
-        `verification.request.${action.result}`,
+        `verification.request.${result}`,
         `${request.id} / ${request.sourceFindingId}`,
       );
       return state;

@@ -35,7 +35,7 @@ test("SRE navigation opens only governed operational objects", () => {
   assert.equal(state.activeObject, null);
 });
 
-test("Incident preserves source provenance and cannot close the source object", () => {
+test("Incident preserves source provenance and routes Change remediation back to Guard", () => {
   let state = createInitialState();
   state = reduceOpsState(state, {
     type: "INCIDENT_ESCALATED",
@@ -68,14 +68,21 @@ test("Incident preserves source provenance and cannot close the source object", 
   });
   state = reduceOpsState(state, { type: "ACTION_PROPOSAL_WRITTEN_BACK" });
 
-  assert.equal(state.investigation.writeback.status, "written_back");
-  assert.equal(state.investigation.writeback.targetFindingId, "FND-8821");
+  assert.equal(state.investigation.writeback, null);
+  assert.equal(state.audit.at(-1).action, "action-proposal.writeback.rejected");
   assert.equal(
     state.findings.find((finding) => finding.id === "FND-8821").status,
-    "pending_action",
+    "investigating",
   );
   assert.equal(state.change.status, "blocked");
   assert.notEqual(state.change.verification.status, "passed");
+
+  state = reduceOpsState(state, {
+    type: "CHANGE_DECISION_SET",
+    decision: "rollback",
+  });
+  assert.equal(state.change.actionState, "in_progress");
+  assert.equal(state.investigation.actionProposal.status, "approved");
 });
 
 test("a new Incident cannot reuse an ActionProposal from another source object", () => {
@@ -185,7 +192,7 @@ test("writeback rejects a target Finding owned by a different source object", ()
   assert.equal(state.audit.at(-1).action, "action-proposal.writeback.rejected");
 });
 
-test("report re-verification creates source-linked requests owned by the Inspection Agent chain", () => {
+test("Change report requests remain source-linked but cannot start outside Change Guard", () => {
   let state = createInitialState();
   const initialRunCount = state.agentRuns.length;
 
@@ -214,31 +221,205 @@ test("report re-verification creates source-linked requests owned by the Inspect
     type: "INSPECTION_VERIFICATION_STARTED",
     requestId: requests[0].id,
   });
-  const run = state.agentRuns.at(-1);
-  assert.equal(run.kind, "verification");
-  assert.equal(run.requestId, requests[0].id);
-  assert.deepEqual(run.sourceObject, requests[0].sourceObject);
-  assert.equal(run.sourceFindingId, requests[0].sourceFindingId);
+  assert.equal(state.agentRuns.length, initialRunCount);
   assert.equal(
     state.verificationRequests.find((request) => request.id === requests[0].id)
       .status,
+    "requested",
+  );
+  assert.equal(
+    state.audit.at(-1).action,
+    "verification.request.start.rejected",
+  );
+});
+
+test("Mission verification requires a bound remediation receipt and structured source evidence", () => {
+  let state = createInitialState();
+  state = reduceOpsState(state, {
+    type: "INCIDENT_ESCALATED",
+    sourceObject: { type: "mission", id: "MIS-61801" },
+    findingId: "FND-8832",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_TEST_RUN",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_CONFIRMED",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, { type: "ACTION_PROPOSAL_WRITTEN_BACK" });
+
+  const request = state.verificationRequests.at(-1);
+  assert.equal(request.status, "awaiting_remediation");
+
+  state = reduceOpsState(state, {
+    type: "INSPECTION_VERIFICATION_STARTED",
+    requestId: request.id,
+  });
+  assert.equal(
+    state.audit.at(-1).action,
+    "verification.request.start.rejected",
+  );
+
+  state = reduceOpsState(state, {
+    type: "SOURCE_REMEDIATION_RECORDED",
+    sourceObject: { type: "mission", id: "MIS-61801" },
+    findingId: "FND-8832",
+    evidenceIds: ["ACTION-RUN-MIS-61801-01"],
+  });
+  const receipt = state.remediationReceipts.at(-1);
+  assert.equal(receipt.status, "completed");
+  assert.equal(
+    state.verificationRequests.find((item) => item.id === request.id).status,
+    "requested",
+  );
+  assert.equal(
+    state.findings.find((finding) => finding.id === "FND-8832").status,
+    "awaiting_verification",
+  );
+
+  state = reduceOpsState(state, {
+    type: "INSPECTION_VERIFICATION_STARTED",
+    requestId: request.id,
+  });
+  const run = state.agentRuns.at(-1);
+  assert.equal(run.requestId, request.id);
+  assert.equal(run.remediationReceiptId, receipt.id);
+  assert.deepEqual(run.sourceEvidenceIds, receipt.evidenceIds);
+
+  state = reduceOpsState(state, {
+    type: "INSPECTION_VERIFICATION_EVALUATED",
+    requestId: request.id,
+    result: "passed",
+  });
+  assert.equal(
+    state.verificationRequests.find((item) => item.id === request.id).status,
     "running",
+  );
+  assert.equal(
+    state.findings.find((finding) => finding.id === "FND-8832").status,
+    "awaiting_verification",
+  );
+  assert.equal(
+    state.audit.at(-1).action,
+    "verification.request.evaluate.rejected",
   );
 
   state = reduceOpsState(state, {
     type: "INSPECTION_VERIFICATION_EVALUATED",
-    requestId: requests[0].id,
-    result: "passed",
+    requestId: request.id,
+    assessment: {
+      gates: {
+        coverage: "pass",
+        freshness: "pass",
+        execution: "pass",
+        objectives: "pass",
+      },
+      evidenceIds: ["VERIFY-MIS-61801-POST-ACTION"],
+    },
   });
   assert.equal(
-    state.verificationRequests.find((request) => request.id === requests[0].id)
-      .status,
+    state.verificationRequests.find((item) => item.id === request.id).status,
     "passed",
   );
   assert.equal(
-    state.findings.find((finding) => finding.id === requests[0].sourceFindingId)
-      .status,
+    state.findings.find((finding) => finding.id === "FND-8832").status,
     "closed",
+  );
+});
+
+test("report and Incident writeback converge on one source-bound verification request", () => {
+  let state = createInitialState();
+  state = reduceOpsState(state, {
+    type: "REPORT_VERIFICATION_REQUESTED",
+    reportId: "RPT-618-07",
+  });
+  state = reduceOpsState(state, {
+    type: "INCIDENT_ESCALATED",
+    sourceObject: { type: "mission", id: "MIS-61801" },
+    findingId: "FND-8832",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_TEST_RUN",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, {
+    type: "HYPOTHESIS_CONFIRMED",
+    hypothesisId: "H1",
+  });
+  state = reduceOpsState(state, { type: "ACTION_PROPOSAL_WRITTEN_BACK" });
+
+  const sourceRequests = state.verificationRequests.filter(
+    (request) =>
+      request.sourceObject.type === "mission" &&
+      request.sourceObject.id === "MIS-61801" &&
+      request.sourceFindingId === "FND-8832" &&
+      ["awaiting_remediation", "requested", "running"].includes(request.status),
+  );
+  assert.equal(sourceRequests.length, 1);
+  assert.equal(sourceRequests[0].reportId, "RPT-618-07");
+  assert.deepEqual(sourceRequests[0].reportIds, ["RPT-618-07"]);
+  assert.deepEqual(sourceRequests[0].reasons, [
+    "report_reverification",
+    "action_proposal_writeback",
+  ]);
+  assert.equal(
+    state.investigation.writeback.verificationRequestId,
+    sourceRequests[0].id,
+  );
+});
+
+test("a historical report cannot requeue Findings already closed at the source", () => {
+  let state = createInitialState();
+  state.findings = state.findings.map((finding) =>
+    finding.source === "CHG-23841" ? { ...finding, status: "closed" } : finding,
+  );
+
+  state = reduceOpsState(state, {
+    type: "REPORT_VERIFICATION_REQUESTED",
+    reportId: "RPT-CHG-23841",
+  });
+
+  assert.equal(
+    state.verificationRequests.filter(
+      (request) => request.reportId === "RPT-CHG-23841",
+    ).length,
+    0,
+  );
+  assert.equal(
+    state.audit.at(-1).action,
+    "report.verification.request.rejected",
+  );
+});
+
+test("Change Guard owns report-linked verification request completion", () => {
+  let state = createInitialState();
+  state = reduceOpsState(state, {
+    type: "REPORT_VERIFICATION_REQUESTED",
+    reportId: "RPT-CHG-23841",
+  });
+  const requestIds = state.verificationRequests.map((request) => request.id);
+
+  state = reduceOpsState(state, {
+    type: "CHANGE_DECISION_SET",
+    decision: "rollback",
+  });
+  state = reduceOpsState(state, { type: "CHANGE_ACTION_COMPLETED" });
+  state = reduceOpsState(state, { type: "VERIFICATION_START" });
+
+  assert.equal(
+    state.verificationRequests
+      .filter((request) => requestIds.includes(request.id))
+      .every((request) => request.status === "running" && request.runId),
+    true,
+  );
+
+  state = reduceOpsState(state, { type: "VERIFICATION_EVALUATE" });
+  assert.equal(
+    state.verificationRequests.find((request) => request.id === requestIds[0])
+      .status,
+    "blocked",
   );
 });
 

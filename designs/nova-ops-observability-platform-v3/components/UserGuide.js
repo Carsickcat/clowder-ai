@@ -113,8 +113,13 @@ export function UserGuide({ onClose }) {
           </li>
           <li>主按钮改变领域状态；置灰按钮会说明未满足的前置条件。</li>
           <li>
-            Change / Mission / Inspection 只能升级创建 Incident；ActionProposal
-            必须回写源 Finding，再由源对象 Verification 给出终态。
+            Change 的 ActionProposal 必须返回 Change Guard；Mission / Inspection
+            回写源 Finding 后还要提交绑定证据的整改回执，才可由源对象
+            Verification 给出终态。
+          </li>
+          <li>
+            报告保留生成时快照，但复验按当前源 Finding 判定；已关闭 Finding
+            不会被历史报告重复排队。
           </li>
           <li>页面使用固定 Mock 数据，不连接生产系统、不执行生产变更。</li>
         </ul>

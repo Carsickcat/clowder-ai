@@ -156,6 +156,19 @@ test("reports render versioned snapshots and deep-link findings to source object
   assert.match(source, /type:\s*["']OBJECT_OPEN["']/);
   assert.match(source, /objectType:\s*finding\.sourceObject\.type/);
   assert.match(source, /objectId:\s*finding\.sourceObject\.id/);
+  assert.match(source, /已在源对象解决/);
+  assert.match(source, /currentFindings/);
+});
+
+test("cross-object verification exposes source remediation receipts", () => {
+  const source = readFileSync(
+    resolve(root, "components", "ObjectWorkspace.js"),
+    "utf8",
+  );
+
+  assert.match(source, /SOURCE_REMEDIATION_RECORDED/);
+  assert.match(source, /整改回执/);
+  assert.match(source, /进入 Change Guard/);
 });
 
 test("operator manual documents SRE objects, states, and agent boundaries", () => {
