@@ -58,6 +58,7 @@ Thumbs.db
 
 # Browser/automation files
 cookies.json
+designs/nova-ops-observability-platform-v3/evidence/.video-temp/
 
 # Logs
 *.log
