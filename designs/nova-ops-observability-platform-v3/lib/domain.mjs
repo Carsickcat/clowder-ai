@@ -8,7 +8,8 @@ const seedState = {
     missionId: "MIS-61801",
     changeId: "CHG-23841",
   },
-  currentScreen: "live",
+  currentScreen: "home",
+  activeJourney: null,
   mission: {
     id: "MIS-61801",
     name: "全球购 618 峰值保障",
@@ -695,8 +696,19 @@ export function reduceOpsState(current, action) {
   const state = clone(current);
 
   switch (action.type) {
+    case "JOURNEY_ENTER":
+      state.activeJourney = action.journey;
+      state.currentScreen = action.screen;
+      return state;
+
+    case "JOURNEY_EXIT":
+      state.activeJourney = null;
+      state.currentScreen = "home";
+      return state;
+
     case "NAVIGATE":
       state.currentScreen = action.screen;
+      if (action.screen === "home") state.activeJourney = null;
       return state;
 
     case "MISSION_FREQUENCY_CHANGED": {

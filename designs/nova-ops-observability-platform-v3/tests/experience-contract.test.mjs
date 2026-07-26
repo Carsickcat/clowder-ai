@@ -15,6 +15,73 @@ const screens = [
   "Governance",
 ];
 
+test("entry point is organized by roles and operational scenarios", () => {
+  const file = resolve(root, "components", "screens", "JourneyHome.js");
+  assert.ok(existsSync(file), "JourneyHome must be a dedicated entry screen");
+  const source = readFileSync(file, "utf8");
+
+  for (const label of [
+    "发布负责人",
+    "值班 SRE",
+    "服务 Owner",
+    "变更验证",
+    "故障诊断",
+    "大促保障",
+    "NL2 巡检",
+  ]) {
+    assert.match(source, new RegExp(label));
+  }
+  assert.match(source, /data-screen=["']JourneyHome["']/);
+  assert.match(source, /JOURNEY_ENTER/);
+});
+
+test("journey workspaces use the three-rail decision layout", () => {
+  const source = ["AppShell.js", "JourneyWorkspace.js", "journeyModel.js"]
+    .map((file) => readFileSync(resolve(root, "components", file), "utf8"))
+    .join("\n");
+
+  for (const contractClass of [
+    "journey-workspace",
+    "journey-rail",
+    "professional-workbench-tabs",
+    "journey-center",
+    "decision-inspector",
+  ]) {
+    assert.match(source, new RegExp(contractClass));
+  }
+  for (const decisionLayer of [
+    "事实",
+    "假设",
+    "证据缺口",
+    "建议",
+    "人工结论",
+  ]) {
+    assert.match(source, new RegExp(decisionLayer));
+  }
+  assert.doesNotMatch(
+    source,
+    /Agent workspaces|Evidence lenses/,
+    "module and global Evidence Lens navigation must not remain primary IA",
+  );
+});
+
+test("journey accents and Cat Cafe token tiers are explicit", () => {
+  const source = readFileSync(resolve(root, "app", "globals.css"), "utf8");
+
+  for (const token of [
+    "--cafe-base-",
+    "--cafe-surface-",
+    "--cafe-text-",
+    "--cafe-persona-",
+    "--journey-accent",
+    ".journey-release",
+    ".journey-oncall",
+    ".journey-service",
+  ]) {
+    assert.match(source, new RegExp(token));
+  }
+});
+
 test("every product screen has a dedicated implementation", () => {
   for (const screen of screens) {
     const file = resolve(root, "components", "screens", `${screen}.js`);
@@ -79,6 +146,7 @@ test("operator manual documents journeys, states, and agent boundaries", () => {
     "快速开始",
     "大促保障旅程",
     "变更诊断与复验旅程",
+    "独立故障诊断旅程",
     "NL2巡检旅程",
     "状态语义",
     "双 Agent 职责边界",

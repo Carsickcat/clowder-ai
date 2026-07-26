@@ -6,19 +6,25 @@ const journeys = [
   {
     title: "大促保障",
     role: "保障负责人 / 值班 SRE",
-    path: "保障任务 → 风险窗口 → 提频 / 冻结 → Finding → 报告",
+    path: "角色入口 → 保障阶段 → 风险窗口 → 人工调频 / 冻结 → 复验",
     value: "把人工盯图变为可追责、可复验的持续健康任务。",
   },
   {
     title: "变更诊断与复验",
     role: "发布负责人 / 服务 Owner",
-    path: "变更验证 → 调查假设 → 整改 → Verification Run → 放行",
+    path: "角色入口 → Canary / Control → 调查 → 人工决策 → Verification",
     value: "只有原巡检 Run 的 Gate 全部通过，系统才宣布恢复。",
+  },
+  {
+    title: "独立故障诊断",
+    role: "值班 SRE / 专家",
+    path: "告警归并 / 人工建案 → 影响 → Observation → Hypothesis → 回写复验",
+    value: "诊断形成可复核 ActionProposal，但不越权宣布业务恢复。",
   },
   {
     title: "NL2巡检",
     role: "平台工程师 / SRE 负责人",
-    path: "意图澄清 → 结构化 Plan → 回放门禁 → 审批 → 发布",
+    path: "角色入口 → 覆盖缺口 → 结构化 Plan → 回放审批 → First Run",
     value: "AI 降低定义成本，权限、基线和审批守住生产安全。",
   },
 ];
@@ -50,7 +56,7 @@ export function UserGuide({ onClose }) {
       </div>
 
       <section className="guide-section">
-        <div className="eyebrow">三条核心旅程</div>
+        <div className="eyebrow">三个角色 · 四条核心旅程</div>
         <div className="guide-journeys">
           {journeys.map((journey, index) => (
             <article key={journey.title}>
@@ -94,12 +100,16 @@ export function UserGuide({ onClose }) {
         <div className="eyebrow">操作规则</div>
         <ul className="guide-rules">
           <li>
-            顶部 Scope 在所有工作面继承并锁定同一 service / env / region / time
-            / change。
+            首屏先选择角色与场景；进入后按左侧任务进度、中间专业工作面、右侧 AI
+            / 人工决策完成旅程。
           </li>
           <li>
-            Evidence Lens 可查看查询与新鲜度；“钉入调查”会真实更新 Observation
-            时间线。
+            顶部 Scope 显示来自 Mission、Change、Alert 或 Service Catalog
+            的继承来源，扩展范围必须创建显式分支。
+          </li>
+          <li>
+            监控、告警、日志、Trace、拨测与巡检是中栏专业标签；跨源 Evidence
+            抽屉只用于 Investigation。
           </li>
           <li>主按钮改变领域状态；置灰按钮会说明未满足的前置条件。</li>
           <li>页面使用固定 Mock 数据，不连接生产系统、不执行生产变更。</li>

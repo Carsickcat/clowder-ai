@@ -20,9 +20,10 @@ const video = page.video();
 
 await page.goto(baseUrl, { waitUntil: "networkidle" });
 await page.waitForTimeout(2200);
-await page.getByRole("button", { name: /保障任务/ }).click();
+await page.locator(".role-scene").nth(2).click();
 await page.waitForTimeout(2200);
-await page.getByRole("button", { name: /变更验证/ }).click();
+await page.locator(".journey-home-link").click();
+await page.locator(".role-scene").first().click();
 await page.waitForTimeout(1800);
 await page.getByRole("button", { name: "提议回滚", exact: true }).click();
 await page.getByRole("button", { name: "确认回滚完成 · 等待复验" }).click();
@@ -33,7 +34,8 @@ await page.locator('[data-domain-action="synthetic.recovery.started"]').click();
 await page.locator('[data-domain-action="synthetic.recovered"]').click();
 await page.getByRole("button", { name: "重跑 Gate 并生成结论" }).click();
 await page.waitForTimeout(2300);
-await page.getByRole("button", { name: /巡检工程/ }).click();
+await page.locator(".journey-home-link").click();
+await page.locator(".role-scene").nth(4).click();
 await page.waitForTimeout(2800);
 
 await context.close();

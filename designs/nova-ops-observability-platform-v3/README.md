@@ -4,8 +4,10 @@
 
 - 智能巡检 Agent：Mission、Plan、Run、Assessment、Finding、Verification、Report
 - 故障诊断 Agent：Investigation、Observation、Hypothesis、Revision、ActionProposal
-- 三条可操作旅程：大促保障、变更诊断与复验、NL2 巡检
-- 七个异构工作面：运行态势、保障任务、变更验证、巡检工程、故障调查、报告中心、治理审计
+- 三个角色入口：发布负责人、值班 SRE、服务 Owner
+- 四条可操作旅程：大促保障、变更诊断与复验、独立故障诊断、NL2 巡检
+- 旅程内采用左任务进度、中专业工作面、右 AI / 人工决策三栏
+- 七个异构工作面继续作为旅程步骤与产物，不再承担一级模块导航
 
 ## 本地运行
 
