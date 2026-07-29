@@ -34,7 +34,8 @@ The reporting-iPhone screenshot showed the mobile shell permanently stuck at
 ## Product and architecture contract
 
 - Public health requires all same-origin scripts referenced by live HTML to be
-  loadable JavaScript responses and `/api/cats` to contain available members.
+  loadable JavaScript responses, the root document to be served as HTML, and
+  `/api/cats` to contain available members.
 - Probe requests do not follow redirects; a same-origin URL cannot silently
   leave the public-origin boundary.
 - Architecture cell: F010 release-acceptance and deployment harness.
@@ -53,12 +54,15 @@ The reporting-iPhone screenshot showed the mobile shell permanently stuck at
   “Missing expected rejection”; it now fails the JavaScript media-type check.
 - Fresh-context FC-2: a same-origin script URL initially followed an off-origin
   redirect; all requests now use `redirect: manual`, and HTTP 302 fails.
+- Formal-review P2: a `200 text/plain; nosniff` root containing script tags
+  initially produced “Missing expected rejection”; it now fails the HTML
+  media-type check before the body is parsed.
 
 Focused suite:
 
 ```text
 node --test test/scripts/f010-public-runtime-health.test.mjs test/scripts/f010-tailscale-serve-status.test.mjs
-7/7 passed
+8/8 passed
 ```
 
 Additional gates:

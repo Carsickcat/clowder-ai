@@ -597,10 +597,10 @@ both complete member loading and render messages. The remaining
 `/api/debug/callback-auth` 403 is the intentional remote safety boundary.
 
 The existing `scripts/f010-tailscale-serve-guard.mjs` now also probes the public
-artifact: it fails on missing/non-200 HTML scripts, a scriptless shell, or an
-empty/unreadable member API. Script requests cannot redirect and must return a
-JavaScript media type, preventing an HTTP 200 HTML fallback from producing a
-false green. Focused guard tests pass 7/7; the live guard reports `28 scripts, 5
-members`.
+artifact: it fails on a non-HTML root response, missing/non-200 HTML scripts, a
+scriptless shell, or an empty/unreadable member API. Script requests cannot
+redirect and must return a JavaScript media type, preventing HTTP 200 plain-text
+or HTML fallbacks from producing a false green. Focused guard tests pass 8/8;
+the live guard reports `28 scripts, 5 members`.
 
 [丢丢/gpt-5.6-sol🐾]

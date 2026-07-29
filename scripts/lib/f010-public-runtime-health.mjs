@@ -33,6 +33,13 @@ function assertJavaScriptMediaType(response, url) {
   }
 }
 
+function assertHtmlMediaType(response, url) {
+  const mediaType = response.headers.get('content-type')?.split(';', 1)[0].trim();
+  if (mediaType?.toLowerCase() !== 'text/html') {
+    throw new Error(`${new URL(url).pathname} did not return an HTML media type`);
+  }
+}
+
 export async function probeF010PublicRuntime({
   baseUrl,
   fetchImpl = globalThis.fetch,
@@ -41,6 +48,7 @@ export async function probeF010PublicRuntime({
   if (typeof fetchImpl !== 'function') throw new Error('fetch implementation is unavailable');
   const rootUrl = normalizeBaseUrl(baseUrl);
   const rootResponse = await checkedFetch(fetchImpl, rootUrl, timeoutMs);
+  assertHtmlMediaType(rootResponse, rootUrl);
   const html = await rootResponse.text();
   const scriptUrls = extractSameOriginScriptUrls(html, rootUrl);
   if (scriptUrls.length === 0) {

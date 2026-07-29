@@ -44,9 +44,10 @@ not hydratable.
 3. Replaced only stale Web PID `37656` with PID `59708` on port 4310.
    API 4311, Redis, production 443, and runtime configuration were untouched.
 4. Extended the existing F010 serve guard with a public runtime probe. The
-   guard now fails if the HTML contains no same-origin scripts, any referenced
-   script is non-200 or not served with a JavaScript media type, a probe request
-   redirects, or `/api/cats` has no available members.
+   guard now fails if the root is not served as HTML, the HTML contains no
+   same-origin scripts, any referenced script is non-200 or not served with a
+   JavaScript media type, a probe request redirects, or `/api/cats` has no
+   available members.
 
 ## Verification
 
@@ -59,7 +60,7 @@ not hydratable.
   callback-auth safety boundary and does not block member loading or chat.
 - Unit tests:
   `node --test test/scripts/f010-public-runtime-health.test.mjs test/scripts/f010-tailscale-serve-status.test.mjs`
-  — 7/7 passed.
+  — 8/8 passed.
 - Live guard:
   `node scripts/f010-tailscale-serve-guard.mjs`
   — mappings present; public runtime hydrated with 28 scripts and 5 members.
