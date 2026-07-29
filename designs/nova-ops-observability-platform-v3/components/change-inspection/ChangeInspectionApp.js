@@ -24,11 +24,6 @@ export function ChangeInspectionApp() {
   }
 
   function handlePrimaryAction(type) {
-    if (type === "REMEDIATION_RECORDED") {
-      dispatch({ type: "REMEDIATION_RECORDED" });
-      dispatch({ type: "VERIFICATION_RAN" });
-      return;
-    }
     if (type === "REPORT_OPENED") {
       openReport();
       return;

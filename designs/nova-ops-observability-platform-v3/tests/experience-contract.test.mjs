@@ -36,6 +36,7 @@ test("the product opens directly into one Chinese change inspection journey", ()
 test("the workspace answers task, conclusion, and next action in every state", () => {
   const surface = read("components", "change-inspection", "DecisionSurface.js");
   const domain = read("lib", "change-inspection.mjs");
+  const actions = read("lib", "change-inspection-actions.mjs");
 
   for (const label of [
     "当前任务",
@@ -43,12 +44,12 @@ test("the workspace answers task, conclusion, and next action in every state", (
     "下一步",
     "确认方案并执行变更前巡检",
     "批准进入 25% 灰度",
-    "记录处置并重新验证",
+    "记录处置",
     "继续到 100% 放量",
     "执行变更后验收",
     "查看最终报告",
   ]) {
-    assert.match(`${surface}\n${domain}`, new RegExp(label));
+    assert.match(`${surface}\n${domain}\n${actions}`, new RegExp(label));
   }
   assert.match(surface, /data-ui-role=["']primary-action["']/);
 });
@@ -62,22 +63,33 @@ test("Claw shares domain actions but cannot execute production changes", () => {
   assert.match(claw, /INTENT_SUBMITTED/);
   assert.match(claw, /REPORT_EXPLANATION_REQUESTED/);
   assert.match(app, /changeInspectionReducer/);
+  assert.doesNotMatch(
+    app,
+    /type === ["']REMEDIATION_RECORDED["'][\s\S]{0,240}VERIFICATION_RAN/,
+    "one page click cannot collapse remediation recording and verification into one transition",
+  );
   assert.doesNotMatch(claw, /ROLLBACK|DEPLOY|CANARY_ADVANCED|POST_CHANGE_RAN/);
 });
 
-test("unknown and stale states are explicit blockers rather than green success", () => {
+test("unknown and stale states block progression and expose corrective actions", () => {
   const domain = read("lib", "change-inspection.mjs");
   const surface = read("components", "change-inspection", "DecisionSurface.js");
   const styles = read("app", "change-inspection.css");
 
-  for (const label of ["不可判定", "基线不可比", "证据已过期"]) {
+  for (const label of [
+    "不可判定",
+    "基线不可比",
+    "证据已过期",
+    "COMPARABILITY_RESTORED",
+    "EVIDENCE_REFRESHED",
+  ]) {
     assert.match(`${domain}\n${surface}`, new RegExp(label));
   }
-  assert.match(domain, /disabled:\s*true/);
   assert.match(`${surface}\n${styles}`, /status-unknown/);
 });
 
 test("runs and final report remain visible as one auditable timeline", () => {
+  const surface = read("components", "change-inspection", "DecisionSurface.js");
   const timeline = read("components", "change-inspection", "RunTimeline.js");
   const domain = read("lib", "change-inspection.mjs");
 
@@ -91,6 +103,17 @@ test("runs and final report remain visible as one auditable timeline", () => {
   ]) {
     assert.match(`${timeline}\n${domain}`, new RegExp(token));
   }
+  for (const field of ["title", "summary", "conclusion"]) {
+    assert.match(
+      `${surface}\n${timeline}`,
+      new RegExp(`reportSnapshot\\.${field}`),
+    );
+  }
+  assert.doesNotMatch(
+    `${surface}\n${timeline}`,
+    /<h3>本次变更验收通过<\/h3>|结论：通过/,
+    "report copy must be projected from ReportSnapshot rather than duplicated in the view",
+  );
 });
 
 test("mobile keeps semantic labels and stacks the decision before Claw", () => {

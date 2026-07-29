@@ -29,7 +29,12 @@ await page.waitForTimeout(1800);
 await page.getByRole("button", { name: "批准进入 25% 灰度" }).click();
 await page.getByText("暂停在 25% 灰度", { exact: true }).waitFor();
 await page.waitForTimeout(2600);
-await page.getByRole("button", { name: "记录处置并重新验证" }).click();
+await page.getByRole("button", { name: "记录处置" }).click();
+await page
+  .getByText("已记录处置：连接池上限 80 → 120", { exact: true })
+  .waitFor();
+await page.waitForTimeout(1200);
+await page.getByRole("button", { name: "执行 Verification Run" }).click();
 await page.getByText("可以继续到 100% 放量", { exact: true }).waitFor();
 await page.waitForTimeout(1800);
 await page.getByRole("button", { name: "继续到 100% 放量" }).click();

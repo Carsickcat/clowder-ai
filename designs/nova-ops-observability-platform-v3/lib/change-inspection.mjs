@@ -4,6 +4,8 @@ import {
 } from "./change-inspection-fixtures.mjs";
 import { inspectionActionPolicy } from "./change-inspection-actions.mjs";
 
+export { getPrimaryAction } from "./change-inspection-actions.mjs";
+
 export const journeyStages = [
   { id: "pre-change", label: "变更前准入", hint: "确认是否具备灰度条件" },
   { id: "canary", label: "灰度持续验证", hint: "逐阶段比较 canary 与 stable" },
@@ -137,6 +139,25 @@ export function changeInspectionReducer(state, action) {
         },
       });
 
+    case "COMPARABILITY_RESTORED":
+      return {
+        ...state,
+        comparabilityContract: {
+          status: "valid",
+          label: "基线可比",
+          detail: "已补充相同流量结构、地区和依赖版本的对照组",
+        },
+        decision: {
+          status: state.plan.status === "ready" ? "ready" : "waiting",
+          label: "阻断已解除",
+          title: "基线可比性已恢复",
+          summary:
+            state.plan.status === "ready"
+              ? "现在可以重新确认方案并执行变更前巡检。"
+              : "现在可以描述巡检需求并生成方案。",
+        },
+      };
+
     case "PLAN_CONFIRMED": {
       if (state.comparabilityContract.status !== "valid") {
         return blockForComparability(state);
@@ -245,6 +266,18 @@ export function changeInspectionReducer(state, action) {
     case "EVIDENCE_BECAME_STALE":
       return blockForFreshness({ ...state, evidenceFreshness: "stale" });
 
+    case "EVIDENCE_REFRESHED":
+      return {
+        ...state,
+        evidenceFreshness: "fresh",
+        decision: {
+          status: "working",
+          label: "等待验证",
+          title: "指标窗口已刷新",
+          summary: "需要产生新的 Verification Run，旧执行证据保持不变。",
+        },
+      };
+
     case "CANARY_ADVANCED": {
       if (state.evidenceFreshness !== "fresh") return blockForFreshness(state);
       if (state.stage !== "canary" || state.decision.status !== "passed") {
@@ -269,6 +302,17 @@ export function changeInspectionReducer(state, action) {
       if (state.stage !== "post-change") return state;
       const run = nextRun(state, runFixtures.acceptance);
       const runs = [...state.runs, run];
+      const decisions = [
+        ...state.decisions,
+        {
+          kind: "DecisionRecord",
+          id: `DEC-${String(state.decisions.length + 1).padStart(3, "0")}`,
+          result: "变更验收通过",
+          evidenceRunId: run.id,
+        },
+      ];
+      const conclusion = "通过";
+      const riskCount = state.findings.length;
       return {
         ...state,
         stage: "completed",
@@ -279,21 +323,18 @@ export function changeInspectionReducer(state, action) {
           title: "本次变更未发现异常退化",
           summary: "最终报告已生成，包含全部 Run、Finding 和 DecisionRecord。",
         },
-        decisions: [
-          ...state.decisions,
-          {
-            kind: "DecisionRecord",
-            id: `DEC-${String(state.decisions.length + 1).padStart(3, "0")}`,
-            result: "变更验收通过",
-            evidenceRunId: run.id,
-          },
-        ],
+        decisions,
         reportSnapshot: {
           kind: "ReportSnapshot",
           id: "RPT-CHG-23841-V1",
           status: "published",
-          conclusion: "通过",
+          conclusion,
+          title: "本次变更验收通过",
+          summary: `共执行 ${runs.length} 次巡检，发现 ${riskCount} 个风险并完成复验；变更前后关键指标无异常退化。`,
+          explanation: `结论为${conclusion}。25% 灰度曾出现 ${riskCount} 个延迟风险，但风险已完成复验；全量与变更后指标均在阈值内。`,
           runIds: runs.map((item) => item.id),
+          findingIds: state.findings.map((item) => item.id),
+          decisionIds: decisions.map((item) => item.id),
         },
       };
     }
@@ -301,49 +342,4 @@ export function changeInspectionReducer(state, action) {
     default:
       return state;
   }
-}
-
-export function getPrimaryAction(state) {
-  if (state.comparabilityContract.status !== "valid") {
-    return {
-      type: "PLAN_CONFIRMED",
-      label: "补充可比基线后重试",
-      disabled: true,
-      reason: "基线不可比，不能执行准入判定",
-    };
-  }
-  if (state.evidenceFreshness !== "fresh") {
-    return {
-      type: "CANARY_ADVANCED",
-      label: "刷新证据后继续",
-      disabled: true,
-      reason: "证据已过期，不能继续放量",
-    };
-  }
-  if (state.plan.status === "empty") {
-    return {
-      type: "INTENT_SUBMITTED",
-      label: "先在 Claw 中描述巡检需求",
-      disabled: true,
-    };
-  }
-  if (state.stage === "draft") {
-    return { type: "PLAN_CONFIRMED", label: "确认方案并执行变更前巡检" };
-  }
-  if (state.stage === "pre-change") {
-    return { type: "CANARY_APPROVED", label: "批准进入 25% 灰度" };
-  }
-  if (state.stage === "canary" && state.decision.status === "risk") {
-    return { type: "REMEDIATION_RECORDED", label: "记录处置并重新验证" };
-  }
-  if (state.stage === "canary" && state.decision.status === "working") {
-    return { type: "VERIFICATION_RAN", label: "执行 Verification Run" };
-  }
-  if (state.stage === "canary") {
-    return { type: "CANARY_ADVANCED", label: "继续到 100% 放量" };
-  }
-  if (state.stage === "post-change") {
-    return { type: "POST_CHANGE_RAN", label: "执行变更后验收" };
-  }
-  return { type: "REPORT_OPENED", label: "查看最终报告" };
 }

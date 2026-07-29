@@ -55,7 +55,8 @@ export function RunTimeline({ state, onReportOpen }) {
             <strong>{state.reportSnapshot.id}</strong>
           </div>
           <p>
-            结论：通过 · 已固化 {state.reportSnapshot.runIds.length} 次执行证据
+            结论：{state.reportSnapshot.conclusion} · 已固化{" "}
+            {state.reportSnapshot.runIds.length} 次执行证据
           </p>
           <button onClick={onReportOpen} type="button">
             查看完整报告

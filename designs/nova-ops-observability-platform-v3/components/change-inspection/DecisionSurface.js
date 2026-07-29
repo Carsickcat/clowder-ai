@@ -125,11 +125,8 @@ function FinalReport({ state }) {
       <span className="ci-report-icon">✓</span>
       <div>
         <span className="ci-eyebrow">最终报告 · {state.reportSnapshot.id}</span>
-        <h3>本次变更验收通过</h3>
-        <p>
-          共执行 {state.runs.length} 次巡检，发现 1
-          个风险并完成复验；变更前后关键指标无异常退化。
-        </p>
+        <h3>{state.reportSnapshot.title}</h3>
+        <p>{state.reportSnapshot.summary}</p>
       </div>
     </section>
   );

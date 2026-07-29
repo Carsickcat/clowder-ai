@@ -69,7 +69,16 @@ async function finishJourney(page) {
     .getByText("连接池在 canary 实例出现排队", { exact: true })
     .waitFor();
 
-  await page.getByRole("button", { name: "记录处置并重新验证" }).click();
+  await page.getByRole("button", { name: "记录处置" }).click();
+  await page
+    .getByText("已记录处置：连接池上限 80 → 120", { exact: true })
+    .waitFor();
+  assert.equal(
+    await page.locator(".ci-run-item").count(),
+    2,
+    "recording remediation must not silently execute verification",
+  );
+  await page.getByRole("button", { name: "执行 Verification Run" }).click();
   await page.getByText("可以继续到 100% 放量", { exact: true }).waitFor();
   assert.equal(
     await page.locator(".ci-run-item").count(),
@@ -117,13 +126,14 @@ async function desktopJourney() {
     .getByRole("heading", { name: "基线不可比，不能执行准入判定" })
     .waitFor();
   assert.equal(
-    await page.locator('[data-ui-role="primary-action"]').isDisabled(),
-    true,
-    "an incomparable baseline must block admission",
+    await page.locator('[data-domain-action="PLAN_CONFIRMED"]').count(),
+    0,
+    "an incomparable baseline must remove the admission action",
   );
   await capture(page, "02-change-inspection-unknown-desktop.png");
 
-  await page.getByRole("button", { name: "重新开始" }).click();
+  await page.getByRole("button", { name: "补充可比基线并重新判定" }).click();
+  await page.getByText("基线可比性已恢复", { exact: true }).waitFor();
   await submitIntent(page);
   await capture(page, "03-change-inspection-plan-desktop.png");
 
@@ -133,7 +143,11 @@ async function desktopJourney() {
   await page.getByText("暂停在 25% 灰度", { exact: true }).waitFor();
   await capture(page, "04-change-inspection-canary-risk-desktop.png");
 
-  await page.getByRole("button", { name: "记录处置并重新验证" }).click();
+  await page.getByRole("button", { name: "记录处置" }).click();
+  await page
+    .getByText("已记录处置：连接池上限 80 → 120", { exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "执行 Verification Run" }).click();
   await page.getByText("可以继续到 100% 放量", { exact: true }).waitFor();
   await page.getByRole("button", { name: "继续到 100% 放量" }).click();
   await page.getByRole("button", { name: "执行变更后验收" }).click();

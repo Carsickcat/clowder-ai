@@ -54,9 +54,13 @@ test("one case completes pre-change, canary verification, and post-change accept
   assert.equal(state.stage, "canary");
   assert.equal(state.canary.percent, 25);
   assert.equal(state.decision.status, "risk");
-  assert.equal(getPrimaryAction(state).label, "记录处置并重新验证");
+  assert.equal(getPrimaryAction(state).label, "记录处置");
 
   state = reduce(state, "REMEDIATION_RECORDED");
+  assert.equal(state.decision.status, "working");
+  assert.equal(state.runs.length, 2);
+  assert.equal(getPrimaryAction(state).label, "执行 Verification Run");
+
   state = reduce(state, "VERIFICATION_RAN");
   assert.equal(state.runs.at(-1).purpose, "verification");
   assert.equal(state.runs.at(-1).result, "passed");
@@ -73,10 +77,14 @@ test("one case completes pre-change, canary verification, and post-change accept
   assert.equal(state.runs.at(-1).purpose, "acceptance");
   assert.equal(state.reportSnapshot.status, "published");
   assert.equal(state.reportSnapshot.runIds.length, state.runs.length);
+  assert.equal(state.reportSnapshot.findingIds.length, state.findings.length);
+  assert.equal(state.reportSnapshot.decisionIds.length, state.decisions.length);
+  assert.equal(state.reportSnapshot.title, "本次变更验收通过");
+  assert.match(state.reportSnapshot.summary, /发现 1 个风险并完成复验/);
   assert.equal(getPrimaryAction(state).label, "查看最终报告");
 });
 
-test("an incomparable baseline is unknown and cannot be admitted", () => {
+test("an incomparable baseline blocks admission and can be restored in the same case", () => {
   let state = createChangeInspectionState();
   state = reduce(state, "INTENT_SUBMITTED", {
     text: "检查 payments-router",
@@ -87,11 +95,16 @@ test("an incomparable baseline is unknown and cannot be admitted", () => {
   assert.equal(state.stage, "draft");
   assert.equal(state.decision.status, "unknown");
   assert.equal(state.runs.length, 0);
-  assert.equal(getPrimaryAction(state).disabled, true);
+  assert.equal(getPrimaryAction(state).type, "COMPARABILITY_RESTORED");
   assert.match(getPrimaryAction(state).reason, /基线不可比/);
+
+  state = reduce(state, "COMPARABILITY_RESTORED");
+  assert.equal(state.comparabilityContract.status, "valid");
+  assert.equal(state.decision.status, "ready");
+  assert.equal(getPrimaryAction(state).type, "PLAN_CONFIRMED");
 });
 
-test("stale evidence blocks canary progression without rewriting prior runs", () => {
+test("stale evidence blocks progression and requires refresh plus a new verification run", () => {
   let state = createChangeInspectionState();
   state = reduce(state, "INTENT_SUBMITTED", { text: "检查支付服务" });
   state = reduce(state, "PLAN_CONFIRMED");
@@ -106,8 +119,19 @@ test("stale evidence blocks canary progression without rewriting prior runs", ()
   assert.equal(state.stage, "canary");
   assert.equal(state.decision.status, "unknown");
   assert.equal(JSON.stringify(state.runs), immutableRunSnapshot);
-  assert.equal(getPrimaryAction(state).disabled, true);
+  assert.equal(getPrimaryAction(state).type, "EVIDENCE_REFRESHED");
   assert.match(getPrimaryAction(state).reason, /证据已过期/);
+
+  state = reduce(state, "EVIDENCE_REFRESHED");
+  assert.equal(state.evidenceFreshness, "fresh");
+  assert.equal(state.decision.status, "working");
+  assert.equal(JSON.stringify(state.runs), immutableRunSnapshot);
+  assert.equal(getPrimaryAction(state).type, "VERIFICATION_RAN");
+
+  state = reduce(state, "VERIFICATION_RAN");
+  assert.equal(state.runs.length, 4);
+  assert.equal(state.runs.at(-1).purpose, "verification");
+  assert.equal(state.decision.status, "passed");
 });
 
 test("reset creates a clean case after a non-happy-path demonstration", () => {
@@ -141,4 +165,18 @@ test("completed cases reject draft mutations and preserve their report truth", (
   assert.equal(state.decision.label, "验收通过");
   assert.equal(state.reportSnapshot.status, "published");
   assert.equal(state.runs.length, 5);
+});
+
+test("report explanation is projected from the immutable report snapshot", () => {
+  const completed = completeCase();
+  const alteredReport = {
+    ...completed,
+    reportSnapshot: {
+      ...completed.reportSnapshot,
+      explanation: "来自快照的独立解释",
+    },
+  };
+  const explained = reduce(alteredReport, "REPORT_EXPLANATION_REQUESTED");
+
+  assert.equal(explained.conversation.at(-1).text, "来自快照的独立解释");
 });

@@ -33,7 +33,9 @@
 | AC-6 | 通过 | acceptance Run 与变更前基线比较，并生成不可变 ReportSnapshot。          |
 | AC-7 | 通过 | 用户动作与状态全中文；英文仅用于 ID、服务、Metric 和对象类型。          |
 | AC-8 | 通过 | 1440、720、390 三视口完整路径通过，无横向溢出，console error 0。        |
-| AC-9 | 通过 | 基线不可比与证据过期均为 `不可判定` 且主动作禁用。                      |
+| AC-9 | 通过 | 基线不可比与证据过期均为 `不可判定`，不会暴露准入或放量动作。           |
+| AC-10 | 通过 | 两类阻断均能在同一 Case 内纠正，且不会越过后续执行动作。                |
+| AC-11 | 通过 | 报告页面、时间线摘要与 Claw 解读全部来自同一 `ReportSnapshot`。         |
 
 ## 产品原子能力
 
@@ -68,6 +70,10 @@ desktop/720/mobile, console 0.
 3. 粘性品牌栏会遮挡长页面证据；改为普通页头。
 4. 报告页有静态按钮且 Claw 缺少报告解读；统一接到最终 ReportSnapshot，并补领域动作。
 5. 完成后的 Case 仍接受 draft 动作；增加领域动作策略，拒绝改写已执行方案和最终报告。
+6. 页面把“记录处置”和“执行复验”连续 dispatch；拆成两个可见状态并补浏览器断言。
+7. `不可判定` 只有禁用 CTA 和 demo reset；补充同一 Case 内的基线恢复与证据刷新动作。
+8. 最终报告部分文案与 Claw 解读硬编码；改为完整投影不可变 `ReportSnapshot`。
+9. 录屏脚本仍依赖旧的一步复验；同步为两步真实旅程后重新生成动态证据。
 
 ## 视觉证据映射
 
@@ -90,7 +96,7 @@ desktop/720/mobile, console 0.
 ```text
 npm run check
   format:check: all matched files use Prettier
-  node tests: 36 passed, 0 failed
+  node tests: 37 passed, 0 failed
   Vite build: exit 0
 
 npm run test:browser
