@@ -3,7 +3,7 @@
 - **Review-Target-ID:** `feat-aiops-observability-platform-hifi-v3`
 - **Author:** 丢丢 / gpt-5.6-sol
 - **Branch:** `feat/aiops-observability-platform-hifi-v3`
-- **Review SHA:** `877c986`
+- **Review SHA:** `98a82fe`
 - **Spec:** `feature-specs/2026-07-30-nova-change-inspection-journey.md`
 - **Quality gate:** `review-notes/2026-07-30-nova-change-inspection-quality-gate-sonnet.md`
 
@@ -63,7 +63,7 @@ co-creator 的原始要求不是给旧模块补文案，而是先从用户旅程
 ```text
 npm run check
   Prettier: pass
-  node tests: 37 passed, 0 failed
+  node tests: 41 passed, 0 failed
   Vite build: pass
 
 npm run test:browser
@@ -90,7 +90,7 @@ Visual evidence:
 
 ## Exclusions
 
-工作区中旧 V6 截图和 2026-07-26/29 历史评审记录属于既有未提交产物，没有纳入 `1994f64` 或 `877c986`，也不属于本次 review scope。
+工作区中旧 V6 截图和 2026-07-26/29 历史评审记录属于既有未提交产物，没有纳入 `1994f64`、`877c986` 或 `98a82fe`，也不属于本次 review scope。
 
 ## Fresh-Context Findings
 
@@ -104,9 +104,20 @@ Visual evidence:
 
 Failure-mode audit：三项共同违反“UI 的动作与陈述必须来自显式领域状态/快照”不变量。扫描全部 dispatch、主动作、阻断承诺与报告文案后，没有发现其他同型分叉；fallback 检查脚本在目标仓库和根仓库均不可用。
 
+## Luna Findings
+
+Luna 对 `1994f64` 的正式评审给出 `REQUEST CHANGES`。其中报告真相、不可判定恢复和双 dispatch 已由 fresh-context 修复覆盖；`98a82fe` 继续修复三项新发现：
+
+- `[FC:new]` 从本次自然语言输入提取服务名与版本，缺参时澄清，不再生成固定服务方案；
+- `[FC:new]` 输入框初始为空，示例只放在 placeholder；
+- `[FC:new]` 用户主界面的内部英文对象名统一替换为中文；
+- `[FC:new]` 可比性失效时 Claw 不再显示绿色“已完成”。
+
+完整 Red→Green 记录：`review-notes/2026-07-30-nova-change-inspection-luna-review-fixes-sonnet.md`。
+
 ## Requested verdict
 
-请对固定 SHA `877c986` 给出明确的 `APPROVE` 或 `REQUEST CHANGES`。每个 finding 请标注：
+请对固定 SHA `98a82fe` 给出明确的 `APPROVE` 或 `REQUEST CHANGES`。每个 finding 请标注：
 
 - `P1`：阻断；
 - `P2`：应修；
