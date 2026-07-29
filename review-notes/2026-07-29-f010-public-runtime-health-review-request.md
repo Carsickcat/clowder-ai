@@ -4,16 +4,19 @@ Review-Target-ID: f010
 
 Branch: `feat/f010-mobile-pwa`
 
-Implementation commit: `cd57b8a7` (`fix(f010): verify public runtime artifacts`)
+Implementation range: `b0bd9a1..d47399881eb519c1206c4db265f2502446cc779c`
+
+- `cd57b8a26f9d5f1d9eebef80c24a1b7f76ba9254` — public artifact probe
+- `d47399881eb519c1206c4db265f2502446cc779c` — root HTML media-type guard
 
 ## What
 
 - Extend `scripts/f010-tailscale-serve-guard.mjs` beyond route-map presence to
   check the real public PWA artifact and member API.
 - Add a reusable public-runtime probe that requires same-origin HTML scripts,
-  HTTP success, JavaScript/ECMAScript media types, no redirects, and at least
-  one available member.
-- Add seven focused route/probe tests, including the observed missing-chunk
+  an HTML root response, HTTP success, JavaScript/ECMAScript media types, no
+  redirects, and at least one available member.
+- Add eight focused route/probe tests, including the observed missing-chunk
   failure, a 200 HTML fallback, an off-origin redirect, and a scriptless shell.
 - Record the incident, runtime recovery and quality-gate evidence.
 
@@ -93,8 +96,8 @@ Total findings: 2 (0 P1, 2 P2, 0 P3)
 
 | # | Finding | Author disposition | Status |
 |---|---|---|---|
-| FC-1 | HTTP 200 HTML fallback was accepted as a script | fixed in `cd57b8a`; RED missing rejection → MIME rejection → 7/7 | closed |
-| FC-2 | native fetch could follow a script redirect off origin | fixed in `cd57b8a`; RED missing rejection → `redirect: manual` → 7/7 | closed |
+| FC-1 | HTTP 200 HTML fallback was accepted as a script | fixed in `cd57b8a`; RED missing rejection → MIME rejection → 8/8 | closed |
+| FC-2 | native fetch could follow a script redirect off origin | fixed in `cd57b8a`; RED missing rejection → `redirect: manual` → 8/8 | closed |
 
 Terra independently confirmed both findings closed and reported no new
 fresh-context finding. This was not a formal verdict.
@@ -102,12 +105,22 @@ fresh-context finding. This was not a formal verdict.
 Reviewer delta tracking: please tag formal findings `[FC:covered]`, `[FC:new]`
 or `[FC:N/A]`.
 
+## Formal Review Round 1
+
+Terra returned `REQUEST_CHANGES` with P1=0, P2=2, P3=0:
+
+| # | Finding | Red → Green | Status |
+|---|---|---|---|
+| P2-1 `[FC:new]` | A `text/plain; nosniff` root containing script tags could false-green | Missing expected rejection → root `text/html` check before parsing; `d473998` | closed |
+| P2-2 `[FC:new]` | The previous malformed review target did not resolve | Request now binds the complete implementation range to full, resolvable SHA `d47399881eb519c1206c4db265f2502446cc779c` | closed |
+
 ## Next Action
 
-Please independently inspect exact commit `cd57b8a7`, rerun the focused suite
-and whichever public-boundary cases you consider high risk, then return
-`APPROVE` or `REQUEST_CHANGES` with P1/P2/P3 counts. Do not rely on the author's
-live-health claim without rerunning the read-only guard.
+Please independently inspect implementation range
+`b0bd9a1..d47399881eb519c1206c4db265f2502446cc779c`, rerun the focused
+suite and whichever public-boundary cases you consider high risk, then return
+`APPROVE` or `REQUEST_CHANGES` with P1/P2/P3 counts. Do not rely on the
+author's live-health claim without rerunning the read-only guard.
 
 ## Review Sandbox
 
@@ -141,7 +154,7 @@ No package build is required for the two `.mjs` test suites.
 
 ```text
 node --test test/scripts/f010-public-runtime-health.test.mjs test/scripts/f010-tailscale-serve-status.test.mjs
-7 tests passed, 0 failed
+8 tests passed, 0 failed
 
 pnpm exec biome check scripts/f010-tailscale-serve-guard.mjs scripts/lib/f010-public-runtime-health.mjs test/scripts/f010-public-runtime-health.test.mjs
 3 files clean
