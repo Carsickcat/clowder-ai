@@ -1,12 +1,7 @@
 "use client";
 
-import { AppShell } from "./AppShell";
-import { OpsProvider } from "./OpsContext";
+import { ChangeInspectionApp } from "./change-inspection/ChangeInspectionApp";
 
 export function OpsApp() {
-  return (
-    <OpsProvider>
-      <AppShell />
-    </OpsProvider>
-  );
+  return <ChangeInspectionApp />;
 }

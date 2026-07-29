@@ -1,0 +1,26 @@
+# 变更全生命周期巡检：竞品证据账本
+
+检索日期：2026-07-30  
+证据边界：仅记录厂商官方文档中的可验证事实；“对 NOVA 的启示”是本项目推论，不冒充竞品事实。
+
+| 产品                                | 官方证据                                                                                                                                                                                                                                                                                                                                                                                                   | 可验证事实                                                                                                                          | 对 NOVA 的启示                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Dynatrace Site Reliability Guardian | [Guardian](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian)、[触发方式](https://docs.dynatrace.com/docs/deliver/site-reliability-guardian/trigger-srg)、[质量门禁](https://docs.dynatrace.com/docs/deliver/quality-gates)                                                                                                                                                                | Guardian 由目标与指标组成，可手动、事件或工作流触发；验证结果包含 pass/warn/fail/error/info，可用于自动发布验证与持续健康监控。     | 巡检计划必须是可复用、可触发、可解释的门禁对象，不是一组散落图表。                         |
+| Harness Continuous Verification     | [Argo Rollouts CV](https://developer.harness.io/docs/continuous-delivery/gitops/argo-rollouts/argo-rollouts-with-cv/)、[Verify step](https://developer.harness.io/3k-docs/continuous-delivery/verify/verify-deployments-with-the-verify-step/)                                                                                                                                                             | 可逐灰度阶段验证；canary 可与 stable baseline 在同一窗口比较；滚动/蓝绿可比较变更前后指标；健康判定可接自动回滚。                   | “变更中巡检”不是重复执行同一个体检，而是每个放量阶段的新 Run，并显式记录对照组和阶段决策。 |
+| Keptn                               | [Lifecycle management](https://keptn.sh/stable/docs/getting-started/lifecycle-management/)、[Evaluations](https://keptn.sh/stable/docs/guides/evaluations/)                                                                                                                                                                                                                                                | 支持部署前后任务和评估；部署前评估可以让部署保持 pending，直到评估完成。                                                            | 巡检结果应进入变更准入流程，而不只是生成一份事后报告。                                     |
+| Alibaba Cloud STAROps               | [核心概念](https://www.alibabacloud.com/help/en/starops/product-overview/core-concept)、[长期任务](https://www.alibabacloud.com/help/en/starops/getting-started/quick-start-for-long-term-tasks)、[人工干预](https://www.alibabacloud.com/help/en/starops/user-guide/task-execution-and-human-intervention)、[报告](https://www.alibabacloud.com/help/en/starops/user-guide/product-and-report-management) | 自然语言目标可生成 Blueprint，澄清后由用户确认；任务可手动或定时执行；高风险或不确定节点支持人工干预；任务和 Mission 均可生成报告。 | 对话适合表达目标与补充上下文，但计划确认、风险动作和最终报告必须有持久页面真相源。         |
+| Google Cloud Assist Investigations  | [创建调查](https://docs.cloud.google.com/cloud-assist/create-investigation?hl=en)、[调查模型](https://docs.cloud.google.com/cloud-assist/investigations?hl=en)                                                                                                                                                                                                                                             | 用户可用自然语言并指定资源/时间范围创建调查；调查会持续记录 observations；聊天可以预填调查输入；调查是只读分析。                    | Claw 可以成为巡检创建入口和解释器，但不能成为绕过确认直接放量的第二套状态机。              |
+| Datadog Bits AI Investigations      | [Investigations](https://docs.datadoghq.com/bits_ai/bits_investigation/)、[Knowledge sources](https://docs.datadoghq.com/bits_ai/bits_investigation/knowledge_sources/)                                                                                                                                                                                                                                    | 调查会形成假设并查询遥测；可利用知识源和 runbook。                                                                                  | 报告解读应把“结论—证据—建议动作”连起来，而不是让用户自己读完所有指标。                     |
+
+## 交叉验证后的共同模式
+
+1. 持久对象不是“某个菜单”，而是目标/计划、一次执行、判定、报告。
+2. 对话用于表达意图、澄清和解释；页面用于确认、观察、决策和审计。
+3. 变更前、变更中、变更后共享一个 Case，但每一阶段产生独立且不可变的 Run。
+4. `不可判定` 不能折叠成 `通过`；缺数据、基线不可比、证据过期都必须阻止自动绿灯。
+5. 灰度阶段必须记录 canary、stable/control、窗口、放量比例和门禁结果，否则“持续巡检”只有定时刷新，没有发布语义。
+
+## 不适用边界
+
+- 无可靠实时对照组的离线迁移、长周期业务指标，不应套用短窗口 canary 比较；应改用业务对账或延迟验收模型。
+- 若发布平台已经拥有放量与回滚状态机，NOVA 应嵌入其门禁或调用其 API，不复制一套独立发布控制台。
