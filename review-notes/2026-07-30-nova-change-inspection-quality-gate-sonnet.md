@@ -23,17 +23,17 @@
 
 ## AC 矩阵
 
-| AC   | 结果 | 实现与证据                                                              |
-| ---- | ---- | ----------------------------------------------------------------------- |
-| AC-1 | 通过 | `OpsApp.js` 直接渲染 `ChangeInspectionApp`；浏览器断言旧导航为 0。      |
-| AC-2 | 通过 | Claw 自然语言输入生成 5 个检查项、基线、频率和窗口。                    |
-| AC-3 | 通过 | `PLAN_CONFIRMED` 生成 admission Run、BaselineSnapshot、DecisionRecord。 |
-| AC-4 | 通过 | 25% canary/stable 比较后发现风险；复验后进入 100% 放量。                |
-| AC-5 | 通过 | 风险态必须记录处置并生成新的 Verification Run；旧风险 Run 保留。        |
-| AC-6 | 通过 | acceptance Run 与变更前基线比较，并生成不可变 ReportSnapshot。          |
-| AC-7 | 通过 | 用户动作与状态全中文；英文仅用于 ID、服务、Metric 和对象类型。          |
-| AC-8 | 通过 | 1440、720、390 三视口完整路径通过，无横向溢出，console error 0。        |
-| AC-9 | 通过 | 基线不可比与证据过期均为 `不可判定`，不会暴露准入或放量动作。           |
+| AC    | 结果 | 实现与证据                                                              |
+| ----- | ---- | ----------------------------------------------------------------------- |
+| AC-1  | 通过 | `OpsApp.js` 直接渲染 `ChangeInspectionApp`；浏览器断言旧导航为 0。      |
+| AC-2  | 通过 | Claw 自然语言输入生成 5 个检查项、基线、频率和窗口。                    |
+| AC-3  | 通过 | `PLAN_CONFIRMED` 生成 admission Run、BaselineSnapshot、DecisionRecord。 |
+| AC-4  | 通过 | 25% canary/stable 比较后发现风险；复验后进入 100% 放量。                |
+| AC-5  | 通过 | 风险态必须记录处置并生成新的 Verification Run；旧风险 Run 保留。        |
+| AC-6  | 通过 | acceptance Run 与变更前基线比较，并生成不可变 ReportSnapshot。          |
+| AC-7  | 通过 | 用户动作与状态全中文；英文仅用于 ID、服务、Metric 和对象类型。          |
+| AC-8  | 通过 | 1440、720、390 三视口完整路径通过，无横向溢出，console error 0。        |
+| AC-9  | 通过 | 基线不可比与证据过期均为 `不可判定`，不会暴露准入或放量动作。           |
 | AC-10 | 通过 | 两类阻断均能在同一 Case 内纠正，且不会越过后续执行动作。                |
 | AC-11 | 通过 | 报告页面、时间线摘要与 Claw 解读全部来自同一 `ReportSnapshot`。         |
 
