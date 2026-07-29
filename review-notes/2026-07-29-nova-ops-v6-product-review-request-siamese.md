@@ -1,7 +1,7 @@
 # Review Request: Nova Ops V6 产品形态与视觉复审
 
-Review-Target-ID: `feat-aiops-observability-platform-hifi-v3`  
-Branch: `feat/aiops-observability-platform-hifi-v3`
+- Review-Target-ID: `feat-aiops-observability-platform-hifi-v3`
+- Branch: `feat/aiops-observability-platform-hifi-v3`
 
 ## What
 
@@ -18,8 +18,8 @@ Branch: `feat/aiops-observability-platform-hifi-v3`
 
 ## Original Requirements
 
-> 当前页面优化和体验打磨；框架还没做完，内容高度重复。  
-> 不应再有“进入页”，也不需要选择角色，产品聚焦 SRE 使用。  
+> 当前页面优化和体验打磨；框架还没做完，内容高度重复。
+> 不应再有“进入页”，也不需要选择角色，产品聚焦 SRE 使用。
 > 不急着做公网地址。
 
 - 来源：Cat Café thread `thread_mrrzdymcf3z6bx77`, message
@@ -35,9 +35,9 @@ Branch: `feat/aiops-observability-platform-hifi-v3`
 
 ## Architecture Ownership
 
-Architecture cell: prototype-local SRE UI projection  
-Map delta: none  
-Why: 仅改变原型屏幕组合、展示元数据、体验合同与文档，不新增运行时边界。
+- Architecture cell: prototype-local SRE UI projection
+- Map delta: none
+- Why: 仅改变原型屏幕组合、展示元数据、体验合同与文档，不新增运行时边界。
 
 请 reviewer 检查：
 

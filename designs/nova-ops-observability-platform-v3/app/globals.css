@@ -5244,6 +5244,10 @@ time {
     display: block;
     padding: 18px 12px 76px;
   }
+
+  .layout-forensics .investigation-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -5310,10 +5314,6 @@ time {
   }
 
   .cockpit-live-rail {
-    grid-template-columns: 1fr;
-  }
-
-  .layout-forensics .investigation-layout {
     grid-template-columns: 1fr;
   }
 }

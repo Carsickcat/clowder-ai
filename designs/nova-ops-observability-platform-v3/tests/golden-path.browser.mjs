@@ -28,6 +28,19 @@ async function openQueueObject(page, objectId) {
   await page.locator(".sre-queue-row", { hasText: objectId }).click();
 }
 
+async function assertNoHorizontalOverflow(page, label) {
+  const metrics = await page.evaluate(() => ({
+    viewportWidth: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    bodyWidth: document.body.scrollWidth,
+  }));
+  const renderedWidth = Math.max(metrics.documentWidth, metrics.bodyWidth);
+  assert.ok(
+    renderedWidth <= metrics.viewportWidth,
+    `${label} must not overflow horizontally: ${renderedWidth}px rendered in ${metrics.viewportWidth}px viewport`,
+  );
+}
+
 async function desktopJourneys() {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -222,6 +235,37 @@ async function desktopJourneys() {
   await context.close();
 }
 
+async function intermediateResponsiveJourneys() {
+  const operationalObjects = [
+    ["INC-7719", "Investigation"],
+    ["CHG-23841", "ChangeGuard"],
+    ["MIS-61801", "MissionCommand"],
+    ["PLAN-312", "InspectionStudio"],
+  ];
+
+  for (const width of [600, 720]) {
+    const context = await browser.newContext({
+      viewport: { width, height: 900 },
+    });
+    const page = await trackedPage(context);
+
+    for (const [objectId, screen] of operationalObjects) {
+      await page.goto(baseUrl, { waitUntil: "networkidle" });
+      await openQueueObject(page, objectId);
+      await page.locator(`[data-screen="${screen}"]`).waitFor();
+      await assertNoHorizontalOverflow(page, `${objectId} at ${width}px`);
+      if (width === 720 && objectId === "INC-7719") {
+        await page.screenshot({
+          path: resolve(evidenceDir, "08-v6-incident-forensics-720px.png"),
+          fullPage: true,
+        });
+      }
+    }
+
+    await context.close();
+  }
+}
+
 async function mobileJourney() {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -257,6 +301,7 @@ async function mobileJourney() {
 
 try {
   await desktopJourneys();
+  await intermediateResponsiveJourneys();
   await mobileJourney();
   assert.deepEqual(
     failures,

@@ -1,8 +1,8 @@
 # Nova Ops V6 — Quality Gate
 
-Date: 2026-07-29  
-Author: [丢丢/gpt-5.6-sol🐾]  
-Branch: `feat/aiops-observability-platform-hifi-v3`
+- Date: 2026-07-29
+- Author: [丢丢/gpt-5.6-sol🐾]
+- Branch: `feat/aiops-observability-platform-hifi-v3`
 
 ## Verdict
 
@@ -11,8 +11,8 @@ release or deployment verdict.
 
 ## Original requirement
 
-> 当前页面优化和体验打磨；框架还没做完，内容高度重复。  
-> 不应再有“进入页”，也不需要选择角色，产品聚焦 SRE 使用。  
+> 当前页面优化和体验打磨；框架还没做完，内容高度重复。
+> 不应再有“进入页”，也不需要选择角色，产品聚焦 SRE 使用。
 > 不急着做公网地址。
 
 Source: Cat Café thread `thread_mrrzdymcf3z6bx77`, message
@@ -35,7 +35,8 @@ correction: message `0001785082347340-000167-582eb39d`.
   than explaining the product.
 - Design gate: one compact SRE shell remains constant while each operational
   object changes information topology according to its job.
-- Responsive gate: desktop and 390 px mobile journeys were exercised.
+- Responsive gate: desktop, 720px, 600px, and 390px journeys were exercised;
+  the two intermediate widths cover all four operational objects.
 - Pencil: no matching `.pen` exists in this prototype and Pencil MCP was not
   available in this environment. The design proof therefore uses real browser
   screenshots, not a fabricated Pencil artifact.
@@ -85,17 +86,18 @@ browser suite/screenshots were regenerated before this gate.
 
 ## Architecture ownership
 
-Architecture cell: prototype-local SRE UI projection  
-Map delta: none  
-Why: this changes screen composition, presentation metadata, browser contracts,
-and prototype documentation only. It adds no parallel Store, Queue, Router,
-Adapter, Dispatcher, Binding, or production runtime boundary.
+- Architecture cell: prototype-local SRE UI projection
+- Map delta: none
+- Why: this changes screen composition, presentation metadata, browser
+  contracts, and prototype documentation only. It adds no parallel Store,
+  Queue, Router, Adapter, Dispatcher, Binding, or production runtime boundary.
 
 ## Repository and artifact hygiene
 
 - All edits are in `E:\ClowderAI\cat-cafe-aiops-hifi-v3`; the dirty main
   worktree was not touched.
-- `git diff --check`: pass.
+- `git diff --check c8f32dd`: pass (covers the complete V6 commit range plus
+  review fixes).
 - Root-level media/design artifact checks: no new root artifacts.
 - Evidence is under the prototype's `evidence/` directory.
 - Three unrelated, pre-existing untracked review notes remain untouched and

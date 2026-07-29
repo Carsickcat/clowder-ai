@@ -1,7 +1,7 @@
 # Review Request: Nova Ops V6 代码与边界复审
 
-Review-Target-ID: `feat-aiops-observability-platform-hifi-v3`  
-Branch: `feat/aiops-observability-platform-hifi-v3`
+- Review-Target-ID: `feat-aiops-observability-platform-hifi-v3`
+- Branch: `feat/aiops-observability-platform-hifi-v3`
 
 ## What
 
@@ -19,8 +19,8 @@ Branch: `feat/aiops-observability-platform-hifi-v3`
 
 ## Original Requirements
 
-> 当前页面优化和体验打磨；框架还没做完，内容高度重复。  
-> 不应再有“进入页”，也不需要选择角色，产品聚焦 SRE 使用。  
+> 当前页面优化和体验打磨；框架还没做完，内容高度重复。
+> 不应再有“进入页”，也不需要选择角色，产品聚焦 SRE 使用。
 > 不急着做公网地址。
 
 - 来源：Cat Café thread `thread_mrrzdymcf3z6bx77`, message
@@ -36,10 +36,10 @@ Branch: `feat/aiops-observability-platform-hifi-v3`
 
 ## Architecture Ownership
 
-Architecture cell: prototype-local SRE UI projection  
-Map delta: none  
-Why: diff 不改变生产 owner、boundary、extension point 或 canonical anchor，
-也不新增 Store、Queue、Router、Adapter、Dispatcher 或 Binding。
+- Architecture cell: prototype-local SRE UI projection
+- Map delta: none
+- Why: diff 不改变生产 owner、boundary、extension point 或 canonical anchor，
+  也不新增 Store、Queue、Router、Adapter、Dispatcher 或 Binding。
 
 请 reviewer 检查：
 
