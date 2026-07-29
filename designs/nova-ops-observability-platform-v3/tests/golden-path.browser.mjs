@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { chromium } from "playwright-core";
 
@@ -7,9 +8,12 @@ const baseUrl = process.env.BASE_URL || "http://localhost:5290/";
 const executablePath =
   process.env.CHROME_PATH ||
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const recordEvidence = process.argv.includes("--record-evidence");
 const evidenceDir = process.env.EVIDENCE_DIR
   ? resolve(process.env.EVIDENCE_DIR)
-  : resolve(import.meta.dirname, "..", "evidence");
+  : recordEvidence
+    ? resolve(import.meta.dirname, "..", "evidence")
+    : resolve(tmpdir(), "nova-ops-browser-evidence");
 mkdirSync(evidenceDir, { recursive: true });
 
 const browser = await chromium.launch({ executablePath, headless: true });

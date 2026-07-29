@@ -154,6 +154,37 @@ test("running agents panel has an explicit empty state", () => {
   assert.match(source, /没有运行中的 Agent/);
 });
 
+test("routine browser tests isolate evidence from versioned artifacts", () => {
+  const browserSource = readFileSync(
+    resolve(root, "tests", "golden-path.browser.mjs"),
+    "utf8",
+  );
+  const packageJson = JSON.parse(
+    readFileSync(resolve(root, "package.json"), "utf8"),
+  );
+
+  assert.match(
+    browserSource,
+    /import\s+\{\s*tmpdir\s*\}\s+from\s+["']node:os["']/,
+  );
+  assert.match(
+    browserSource,
+    /process\.argv\.includes\(["']--record-evidence["']\)/,
+  );
+  assert.match(
+    browserSource,
+    /resolve\(tmpdir\(\),\s*["']nova-ops-browser-evidence["']\)/,
+  );
+  assert.equal(
+    packageJson.scripts["test:browser"],
+    "node tests/golden-path.browser.mjs",
+  );
+  assert.equal(
+    packageJson.scripts["test:browser:evidence"],
+    "node tests/golden-path.browser.mjs --record-evidence",
+  );
+});
+
 test("object accents are isolated from health and severity state colors", () => {
   const source = readFileSync(resolve(root, "app", "globals.css"), "utf8");
 

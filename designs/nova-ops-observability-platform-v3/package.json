@@ -11,6 +11,7 @@
     "start": "vinext start -p 5290",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/golden-path.browser.mjs",
+    "test:browser:evidence": "node tests/golden-path.browser.mjs --record-evidence",
     "evidence:video": "node tests/evidence-recording.mjs",
     "format": "prettier --write \"app/**/*.{js,css}\" \"components/**/*.js\" \"lib/**/*.mjs\" \"scripts/**/*.mjs\" \"static/**/*.{html,jsx}\" \"tests/**/*.mjs\" \"*.{md,mjs,json}\"",
     "format:check": "prettier --check \"app/**/*.{js,css}\" \"components/**/*.js\" \"lib/**/*.mjs\" \"scripts/**/*.mjs\" \"static/**/*.{html,jsx}\" \"tests/**/*.mjs\" \"*.{md,mjs,json}\"",
