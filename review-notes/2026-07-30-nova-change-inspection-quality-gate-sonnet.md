@@ -127,9 +127,10 @@ root media hygiene
 
 ## Gate 结论
 
-**PASS — 可以进入跨个体 review。**
+**PASS — 产品 SHA `25fee13` 已通过跨个体终态 review。**
 
 - 没有未满足 AC。
 - 没有延期尾巴或静态占位动作。
+- Terra 与 Kimi 均对固定产品 SHA `25fee13` 给出 `APPROVE`，无剩余 P1/P2。
 - Tips exempt：这是独立外部产品原型，不存在 Cat Café `capability-tips` 注册面。
 - 本轮只提交本报告列出的新旅程文件；旧 V6 评审截图与旧评审信不纳入作者提交。
