@@ -196,7 +196,7 @@ async function mobileJourney() {
   await context.close();
 }
 
-async function intermediateResponsiveCheck() {
+async function customServiceJourney() {
   const context = await browser.newContext({
     viewport: { width: 720, height: 900 },
   });
@@ -212,6 +212,14 @@ async function intermediateResponsiveCheck() {
     .getByText("inventory-service.business.success.rate", { exact: true })
     .waitFor();
   await assertNoHorizontalOverflow(page, "720px plan state");
+  await finishJourney(page);
+  await page.getByRole("heading", { name: "inventory-service v2.4" }).waitFor();
+  assert.doesNotMatch(
+    await page.locator("body").innerText(),
+    /支付成功率|支付回调/,
+    "custom-service execution cannot leak payments-router evidence",
+  );
+  await assertNoHorizontalOverflow(page, "720px completed custom service");
   await context.close();
 }
 
@@ -241,7 +249,7 @@ async function clarificationCheck() {
 
 try {
   await desktopJourney();
-  await intermediateResponsiveCheck();
+  await customServiceJourney();
   await clarificationCheck();
   await mobileJourney();
   assert.deepEqual(
@@ -250,7 +258,7 @@ try {
     `browser console failures:\n${failures.join("\n")}`,
   );
   process.stdout.write(
-    "Browser golden paths passed: Chinese single journey, unknown baseline blocker, pre-change admission, canary risk and verification, post-change report, desktop/720/mobile, console 0.\n",
+    "Browser golden paths passed: Chinese single journey, custom-service evidence truth, clarification and unknown blockers, pre-change admission, canary verification, post-change report, desktop/720/mobile, console 0.\n",
   );
 } finally {
   await browser.close();

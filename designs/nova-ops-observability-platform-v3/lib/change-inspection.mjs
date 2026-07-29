@@ -1,7 +1,8 @@
 import {
   createInspectionChecks,
-  runFixtures,
+  createRunFixture,
 } from "./change-inspection-fixtures.mjs";
+import { deepFreeze } from "./change-inspection-immutability.mjs";
 import { inspectionActionPolicy } from "./change-inspection-actions.mjs";
 import { applyInspectionIntent } from "./change-inspection-intent.mjs";
 
@@ -18,7 +19,7 @@ export const journeyStages = [
 ];
 
 export function createChangeInspectionState() {
-  return {
+  return deepFreeze({
     kind: "ChangeInspectionCase",
     id: "CIC-2026-0718",
     service: "待识别服务",
@@ -59,13 +60,15 @@ export function createChangeInspectionState() {
         text: "告诉我服务、版本和你担心的风险，我会先生成一份可审阅的巡检方案。",
       },
     ],
-  };
+  });
 }
 
 function nextRun(state, run) {
   return {
     kind: "InspectionRun",
     id: `RUN-${String(state.runs.length + 1).padStart(3, "0")}`,
+    service: state.service,
+    version: state.version,
     ...run,
   };
 }
@@ -94,7 +97,7 @@ function blockForFreshness(state) {
   };
 }
 
-export function changeInspectionReducer(state, action) {
+function reduceInspectionState(state, action) {
   if (!inspectionActionPolicy.allows(state, action.type)) return state;
   switch (action.type) {
     case "CASE_RESET":
@@ -141,13 +144,15 @@ export function changeInspectionReducer(state, action) {
         return blockForFreshness(state);
       }
       if (state.plan.status !== "ready") return state;
-      const run = nextRun(state, runFixtures.admission);
+      const run = nextRun(state, createRunFixture(state.service, "admission"));
       return {
         ...state,
         stage: "pre-change",
         runs: [...state.runs, run],
         baselineSnapshot: {
           kind: "BaselineSnapshot",
+          service: state.service,
+          version: state.version,
           runId: run.id,
           capturedAt: run.time,
           contract: state.comparabilityContract.detail,
@@ -174,7 +179,7 @@ export function changeInspectionReducer(state, action) {
       if (state.stage !== "pre-change" || state.decision.status !== "passed") {
         return state;
       }
-      const run = nextRun(state, runFixtures.canaryRisk);
+      const run = nextRun(state, createRunFixture(state.service, "canaryRisk"));
       return {
         ...state,
         stage: "canary",
@@ -185,8 +190,10 @@ export function changeInspectionReducer(state, action) {
           {
             kind: "Finding",
             id: "FND-017",
+            service: state.service,
+            version: state.version,
             severity: "risk",
-            title: "支付回调 p95 延迟上升 17.8%",
+            title: `${state.service} p95 延迟上升 17.8%`,
             runId: run.id,
           },
         ],
@@ -224,7 +231,10 @@ export function changeInspectionReducer(state, action) {
 
     case "VERIFICATION_RAN": {
       if (state.decision.status !== "working") return state;
-      const run = nextRun(state, runFixtures.verification);
+      const run = nextRun(
+        state,
+        createRunFixture(state.service, "verification"),
+      );
       return {
         ...state,
         runs: [...state.runs, run],
@@ -258,7 +268,10 @@ export function changeInspectionReducer(state, action) {
       if (state.stage !== "canary" || state.decision.status !== "passed") {
         return state;
       }
-      const run = nextRun(state, runFixtures.fullTraffic);
+      const run = nextRun(
+        state,
+        createRunFixture(state.service, "fullTraffic"),
+      );
       return {
         ...state,
         stage: "post-change",
@@ -275,7 +288,7 @@ export function changeInspectionReducer(state, action) {
 
     case "POST_CHANGE_RAN": {
       if (state.stage !== "post-change") return state;
-      const run = nextRun(state, runFixtures.acceptance);
+      const run = nextRun(state, createRunFixture(state.service, "acceptance"));
       const runs = [...state.runs, run];
       const decisions = [
         ...state.decisions,
@@ -302,6 +315,8 @@ export function changeInspectionReducer(state, action) {
         reportSnapshot: {
           kind: "ReportSnapshot",
           id: "RPT-CHG-23841-V1",
+          service: state.service,
+          version: state.version,
           status: "published",
           conclusion,
           title: "本次变更验收通过",
@@ -317,4 +332,8 @@ export function changeInspectionReducer(state, action) {
     default:
       return state;
   }
+}
+
+export function changeInspectionReducer(state, action) {
+  return deepFreeze(reduceInspectionState(state, action));
 }

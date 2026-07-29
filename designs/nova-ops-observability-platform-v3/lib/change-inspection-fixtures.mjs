@@ -25,6 +25,7 @@ export const inspectionChecks = [
   },
   {
     id: "business",
+    role: "business",
     name: "支付成功率",
     metric: "payment.success.rate",
     rule: "相对基线下降 < 0.30%",
@@ -32,16 +33,16 @@ export const inspectionChecks = [
 ];
 
 export function createInspectionChecks(service) {
-  if (service.includes("payment")) return inspectionChecks;
-  return inspectionChecks.map((check) =>
-    check.id === "business"
-      ? {
-          ...check,
-          name: "核心业务成功率",
-          metric: `${service}.business.success.rate`,
-        }
-      : check,
-  );
+  return inspectionChecks.map((check) => {
+    if (check.id !== "business" || service.includes("payment")) {
+      return { ...check };
+    }
+    return {
+      ...check,
+      name: "核心业务成功率",
+      metric: `${service}.business.success.rate`,
+    };
+  });
 }
 
 export const runFixtures = {
@@ -57,6 +58,7 @@ export const runFixtures = {
       { name: "p95 延迟", value: "184 ms", delta: "-2.1%", status: "passed" },
       { name: "错误率", value: "0.18%", delta: "-0.04pp", status: "passed" },
       {
+        role: "business",
         name: "支付成功率",
         value: "99.72%",
         delta: "+0.06pp",
@@ -76,6 +78,7 @@ export const runFixtures = {
       { name: "p95 延迟", value: "263 ms", delta: "+17.8%", status: "risk" },
       { name: "错误率", value: "0.22%", delta: "+0.03pp", status: "passed" },
       {
+        role: "business",
         name: "支付成功率",
         value: "99.68%",
         delta: "-0.05pp",
@@ -95,6 +98,7 @@ export const runFixtures = {
       { name: "p95 延迟", value: "218 ms", delta: "+6.2%", status: "passed" },
       { name: "错误率", value: "0.19%", delta: "+0.01pp", status: "passed" },
       {
+        role: "business",
         name: "支付成功率",
         value: "99.71%",
         delta: "-0.02pp",
@@ -114,6 +118,7 @@ export const runFixtures = {
       { name: "p95 延迟", value: "201 ms", delta: "+4.4%", status: "passed" },
       { name: "错误率", value: "0.20%", delta: "+0.02pp", status: "passed" },
       {
+        role: "business",
         name: "支付成功率",
         value: "99.70%",
         delta: "-0.02pp",
@@ -133,6 +138,7 @@ export const runFixtures = {
       { name: "p95 延迟", value: "198 ms", delta: "+3.1%", status: "passed" },
       { name: "错误率", value: "0.19%", delta: "+0.01pp", status: "passed" },
       {
+        role: "business",
         name: "支付成功率",
         value: "99.73%",
         delta: "+0.01pp",
@@ -141,3 +147,20 @@ export const runFixtures = {
     ],
   },
 };
+
+export function createRunFixture(service, fixtureName) {
+  const fixture = runFixtures[fixtureName];
+  const isPaymentService = service.includes("payment");
+  return {
+    ...fixture,
+    summary:
+      fixtureName === "canaryRisk"
+        ? `发现 ${service} p95 延迟异常，已暂停自动放量`
+        : fixture.summary,
+    metrics: fixture.metrics.map((metric) =>
+      metric.role === "business" && !isPaymentService
+        ? { ...metric, name: "核心业务成功率" }
+        : { ...metric },
+    ),
+  };
+}

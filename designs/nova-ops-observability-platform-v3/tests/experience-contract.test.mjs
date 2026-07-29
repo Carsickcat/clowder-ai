@@ -195,6 +195,7 @@ test("all new implementation files stay within the frontend size boundary", () =
   const files = [
     ["lib", "change-inspection.mjs"],
     ["lib", "change-inspection-intent.mjs"],
+    ["lib", "change-inspection-immutability.mjs"],
     ["components", "change-inspection", "ChangeInspectionApp.js"],
     ["components", "change-inspection", "JourneyHeader.js"],
     ["components", "change-inspection", "DecisionSurface.js"],

@@ -102,6 +102,35 @@ test("natural language intent creates the plan for the requested service and ver
   assert.match(state.conversation.at(-1).text, /inventory-service v2\.4/);
 });
 
+test("a custom service keeps one service truth through runs, findings, and report", () => {
+  let state = createChangeInspectionState();
+  for (const type of [
+    "INTENT_SUBMITTED",
+    "PLAN_CONFIRMED",
+    "CANARY_APPROVED",
+    "REMEDIATION_RECORDED",
+    "VERIFICATION_RAN",
+    "CANARY_ADVANCED",
+    "POST_CHANGE_RAN",
+  ]) {
+    state = reduce(
+      state,
+      type,
+      type === "INTENT_SUBMITTED"
+        ? { text: "请检查 inventory-service v2.4 是否可以灰度" }
+        : {},
+    );
+  }
+
+  assert.equal(state.stage, "completed");
+  assert.ok(state.runs.every((run) => run.service === "inventory-service"));
+  assert.ok(state.runs.every((run) => run.version === "v2.4"));
+  assert.match(state.findings.at(0).title, /inventory-service/);
+  assert.equal(state.reportSnapshot.service, "inventory-service");
+  assert.equal(state.reportSnapshot.version, "v2.4");
+  assert.doesNotMatch(JSON.stringify(state), /支付成功率|支付回调/);
+});
+
 test("missing service or version asks for clarification instead of fabricating a plan", () => {
   let state = createChangeInspectionState();
   state = reduce(state, "INTENT_SUBMITTED", {
@@ -212,4 +241,32 @@ test("report explanation is projected from the immutable report snapshot", () =>
   const explained = reduce(alteredReport, "REPORT_EXPLANATION_REQUESTED");
 
   assert.equal(explained.conversation.at(-1).text, "来自快照的独立解释");
+});
+
+test("all persisted evidence is deeply immutable after reducer transitions", () => {
+  const completed = completeCase();
+  const persistedObjects = [
+    completed,
+    completed.baselineSnapshot,
+    completed.runs,
+    completed.runs.at(0),
+    completed.runs.at(0).metrics,
+    completed.runs.at(0).metrics.at(0),
+    completed.findings,
+    completed.findings.at(0),
+    completed.decisions,
+    completed.decisions.at(0),
+    completed.reportSnapshot,
+    completed.reportSnapshot.runIds,
+  ];
+
+  for (const value of persistedObjects) {
+    assert.equal(Object.isFrozen(value), true);
+  }
+  assert.throws(() => {
+    completed.runs.at(0).metrics.at(0).value = "tampered";
+  }, TypeError);
+  assert.throws(() => {
+    completed.reportSnapshot.conclusion = "tampered";
+  }, TypeError);
 });
