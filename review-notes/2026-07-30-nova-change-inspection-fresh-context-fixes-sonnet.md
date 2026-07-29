@@ -1,9 +1,9 @@
 # NOVA 变更巡检 Fresh-Context 修复确认
 
-**Base:** `1994f64`  
-**Fix commit:** `877c986`  
-**Source:** `fable-5` finding-only fresh-context scan  
-**Scope:** 1 × P1、2 × P2
+- **Base:** `1994f64`
+- **Fix commit:** `877c986`
+- **Source:** `fable-5` finding-only fresh-context scan
+- **Scope:** 1 × P1、2 × P2
 
 ## Red → Green
 

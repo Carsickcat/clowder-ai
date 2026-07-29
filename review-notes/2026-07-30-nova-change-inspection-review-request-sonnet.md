@@ -1,11 +1,11 @@
 # NOVA 变更巡检旅程 — 跨个体评审请求
 
-**Review-Target-ID:** `feat-aiops-observability-platform-hifi-v3`  
-**Author:** 丢丢 / gpt-5.6-sol  
-**Branch:** `feat/aiops-observability-platform-hifi-v3`  
-**Review SHA:** `877c986`  
-**Spec:** `feature-specs/2026-07-30-nova-change-inspection-journey.md`  
-**Quality gate:** `review-notes/2026-07-30-nova-change-inspection-quality-gate-sonnet.md`
+- **Review-Target-ID:** `feat-aiops-observability-platform-hifi-v3`
+- **Author:** 丢丢 / gpt-5.6-sol
+- **Branch:** `feat/aiops-observability-platform-hifi-v3`
+- **Review SHA:** `877c986`
+- **Spec:** `feature-specs/2026-07-30-nova-change-inspection-journey.md`
+- **Quality gate:** `review-notes/2026-07-30-nova-change-inspection-quality-gate-sonnet.md`
 
 ## What
 
