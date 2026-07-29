@@ -215,9 +215,34 @@ async function intermediateResponsiveCheck() {
   await context.close();
 }
 
+async function clarificationCheck() {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await trackedPage(context);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByLabel("描述巡检需求").fill("请帮我检查支付服务");
+  await page.getByRole("button", { name: "生成巡检方案" }).click();
+  await page.getByRole("heading", { name: "还缺少服务名或版本号" }).waitFor();
+  await page.getByText("方案尚未生成", { exact: true }).waitFor();
+  assert.equal(
+    await page.getByText("5/5 风险面已覆盖", { exact: true }).count(),
+    0,
+    "clarification state cannot claim complete risk coverage",
+  );
+  assert.equal(
+    await page.getByText("基线可比", { exact: true }).count(),
+    0,
+    "clarification state cannot claim a comparable baseline",
+  );
+  await assertNoHorizontalOverflow(page, "clarification state");
+  await context.close();
+}
+
 try {
   await desktopJourney();
   await intermediateResponsiveCheck();
+  await clarificationCheck();
   await mobileJourney();
   assert.deepEqual(
     failures,

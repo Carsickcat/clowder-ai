@@ -23,6 +23,22 @@ function PlanView({ state }) {
     );
   }
 
+  if (state.plan.status === "clarification") {
+    return (
+      <div
+        className="ci-empty-state ci-clarification-state"
+        data-testid="inspection-plan"
+      >
+        <span className="ci-empty-icon">?</span>
+        <h3>方案尚未生成</h3>
+        <p>
+          补充明确的服务名和版本号后，Claw
+          才会生成检查项、比较基线、阈值和执行频率。
+        </p>
+      </div>
+    );
+  }
+
   return (
     <section className="ci-plan" data-testid="inspection-plan">
       <div className="ci-section-heading">
