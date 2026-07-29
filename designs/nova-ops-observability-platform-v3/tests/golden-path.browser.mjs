@@ -36,7 +36,18 @@ async function desktopJourneys() {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
 
   await page.locator('[data-screen="SreHome"]').waitFor();
-  await page.getByRole("heading", { name: "SRE 运行工作台" }).waitFor();
+  await page.getByRole("heading", { name: "当前需要决策" }).waitFor();
+  await page.getByRole("heading", { name: "现场脉冲" }).waitFor();
+  await page.getByRole("heading", { name: "正在运行" }).waitFor();
+  assert.equal(
+    await page
+      .locator(
+        ".sre-home-hero, .sre-posture-grid, .object-entry-section, .role-entry-grid",
+      )
+      .count(),
+    0,
+    "home must not render an introduction, role chooser, or secondary object navigator",
+  );
   assert.equal(
     await page.locator(".sre-queue-row").count(),
     4,
@@ -48,15 +59,20 @@ async function desktopJourneys() {
     "global navigation must expose objects plus projection views",
   );
   await page.screenshot({
-    path: resolve(evidenceDir, "01-sre-object-queue-desktop.png"),
+    path: resolve(evidenceDir, "01-v6-operational-cockpit-desktop.png"),
     fullPage: true,
   });
 
   await openQueueObject(page, "MIS-61801");
   await page.locator('[data-screen="MissionCommand"]').waitFor();
+  await page.locator('[data-workspace-layout="command"]').waitFor();
   await page.locator(".object-rail").waitFor();
   await page.locator(".decision-inspector").waitFor();
   await page.locator(".professional-workbench-tabs").waitFor();
+  await page.screenshot({
+    path: resolve(evidenceDir, "05-v6-mission-command-desktop.png"),
+    fullPage: true,
+  });
   await page
     .locator('[data-domain-action="mission.frequency.changed"]')
     .first()
@@ -64,6 +80,11 @@ async function desktopJourneys() {
   await page.getByText("¥126/day", { exact: true }).waitFor();
   await page.getByRole("button", { name: "升级为 Incident 调查" }).click();
   await page.locator('[data-screen="Investigation"]').waitFor();
+  await page.locator('[data-workspace-layout="forensics"]').waitFor();
+  await page.screenshot({
+    path: resolve(evidenceDir, "06-v6-incident-forensics-desktop.png"),
+    fullPage: true,
+  });
   const missionH1 = page.locator(".hypothesis", { hasText: "H1" });
   await missionH1.getByRole("button", { name: "运行测试" }).click();
   await missionH1.getByRole("button", { name: "Confirm" }).click();
@@ -87,6 +108,7 @@ async function desktopJourneys() {
     .click();
   await openQueueObject(page, "CHG-23841");
   await page.locator('[data-screen="ChangeGuard"]').waitFor();
+  await page.locator('[data-workspace-layout="validation"]').waitFor();
   await page.getByRole("button", { name: "提议回滚", exact: true }).click();
   await page.getByRole("button", { name: "确认回滚完成 · 等待复验" }).click();
   await page.locator('[data-domain-action="verification.started"]').click();
@@ -118,7 +140,7 @@ async function desktopJourneys() {
   );
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
-    path: resolve(evidenceDir, "02-change-object-verification-passed.png"),
+    path: resolve(evidenceDir, "02-v6-change-verification-passed.png"),
     fullPage: true,
   });
   await page.locator(".sre-global-nav button", { hasText: "Reports" }).click();
@@ -133,6 +155,11 @@ async function desktopJourneys() {
   await page.reload({ waitUntil: "networkidle" });
   await openQueueObject(page, "PLAN-312");
   await page.locator('[data-screen="InspectionStudio"]').waitFor();
+  await page.locator('[data-workspace-layout="compiler"]').waitFor();
+  await page.screenshot({
+    path: resolve(evidenceDir, "07-v6-inspection-compiler-desktop.png"),
+    fullPage: true,
+  });
   const publish = page.locator('[data-domain-action="plan.published"]').first();
   assert.equal(await publish.isDisabled(), true, "NL2 publish starts blocked");
   await page
@@ -203,6 +230,11 @@ async function mobileJourney() {
   });
   const page = await trackedPage(context);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "当前需要决策" }).waitFor();
+  await page.screenshot({
+    path: resolve(evidenceDir, "04-v6-operational-cockpit-mobile.png"),
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "使用说明" }).click();
   await page
     .getByRole("heading", { name: "如何使用这套 AI 运维平台" })
@@ -211,12 +243,13 @@ async function mobileJourney() {
   await page.getByRole("button", { name: "关闭" }).click();
   await openQueueObject(page, "PLAN-312");
   await page.locator('[data-screen="InspectionStudio"]').waitFor();
+  await page.locator('[data-workspace-layout="compiler"]').waitFor();
   await page.locator(".object-steps").waitFor();
   await page.locator(".professional-workbench-tabs").waitFor();
   await page.locator(".decision-inspector").waitFor();
   await page.locator(".sre-global-nav").waitFor();
   await page.screenshot({
-    path: resolve(evidenceDir, "03-inspection-object-mobile.png"),
+    path: resolve(evidenceDir, "03-v6-inspection-mobile.png"),
     fullPage: true,
   });
   await context.close();

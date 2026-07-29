@@ -1,6 +1,6 @@
 # NOVA Ops AI 可观测平台｜SRE 使用说明书
 
-> 版本：2026 规划高保真原型 V5
+> 版本：2026 规划高保真原型 V6
 >
 > 数据：固定 Mock 数据，不连接生产系统
 >
@@ -8,19 +8,21 @@
 
 ## 快速开始
 
-1. 打开首页后先看“待处置对象”，无需选择身份或功能模块。队列按 blocker、业务影响和截止时间排列。
-2. 点击一条 `Incident / Change / Mission / Inspection`，进入该对象的三栏工作台：左侧是对象上下文和五步处置流程，中间是专业证据，右侧是 Agent Assist 与人工结论。
-3. 顶部 Scope 会说明对象来源，例如 `由 CHG-23841 自动继承` 或 `由 ALERT-CLUSTER-204 创建`。范围不会在跨页时静默变化。
-4. 优先处理 `blocked / unknown / stale / drifted`；它们不能被折算为健康。
-5. `Reports / Governance` 是运行对象的投影与治理视图，不是健康真相源，也不能单独宣布恢复。
+1. 打开应用时已经处于 SRE 值班现场，没有欢迎页、身份选择或对象类型入口。“当前需要决策”按 blocker、业务影响和截止时间排列。
+2. 右侧“现场脉冲”只显示会改变当前判断的 stale、风险窗口和责任缺口；“正在运行”显示后台 Agent Run 的真实进度。
+3. 点击一条 `Incident / Change / Mission / Inspection` 进入该对象的专属工作区：Incident 是调查取证，Change 是验证门禁，Mission 是阶段指挥，Inspection 是计划编译。
+4. 顶部 Scope 会说明对象来源，例如 `由 CHG-23841 自动继承` 或 `由 ALERT-CLUSTER-204 创建`。范围不会在跨页时静默变化。
+5. 优先处理 `blocked / unknown / stale / drifted`；它们不能被折算为健康。
+6. `Reports / Governance` 是运行对象的投影与治理视图，不是健康真相源，也不能单独宣布恢复。
 
 ## SRE 运行工作台
 
 首页回答一个问题：**我现在最需要处理哪个对象？**
 
-- 全局态势只统计 Active Incident、Open Finding、Blocked Change、Running Mission 和 Open Inspection，不生成总健康分。
-- 待处置队列同时展示对象类型、对象 ID、当前阶段、截止时间与下一步动作。
-- 点击“下一步动作”直接进入对象当前步骤；全局导航也可打开四类对象及报告、治理视图。
+- 顶部值班条只保留当前 Scope、Open Finding、Agent Run 和班次，不再用五张卡重复汇报对象队列。
+- 决策队列同时展示对象、业务影响、当前阶段、截止时间与下一步判断。
+- “现场脉冲”在当前页暴露 evidence freshness、风险窗口与 Owner 缺口；Governance 只做事后深挖。
+- 点击对象直接进入当前判断位置；全局导航也可打开四类对象及报告、治理视图。
 - 对象颜色只表示类型，状态仍由 passed、warning、failed、unknown 等语义表达。
 
 ## Incident 工作台

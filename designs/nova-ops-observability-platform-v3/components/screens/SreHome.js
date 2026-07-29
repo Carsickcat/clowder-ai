@@ -4,39 +4,6 @@ import { useOps } from "../OpsContext";
 import { objectCatalog, sreQueue } from "../objectModel";
 import { Icon, Status } from "../ui";
 
-const posture = [
-  {
-    label: "Active Incidents",
-    value: "2",
-    detail: "1 P1 · 1 P2",
-    tone: "fail",
-  },
-  {
-    label: "Open Findings",
-    value: "4",
-    detail: "2 awaiting owner",
-    tone: "warning",
-  },
-  {
-    label: "Blocked Changes",
-    value: "1",
-    detail: "2 fail · 1 unknown",
-    tone: "unknown",
-  },
-  {
-    label: "Running Missions",
-    value: "1",
-    detail: "峰值 · cadence 2m",
-    tone: "running",
-  },
-  {
-    label: "Open Inspections",
-    value: "7",
-    detail: "3 gate blocked",
-    tone: "unknown",
-  },
-];
-
 function runtimeQueueItem(item, state) {
   if (item.type === "incident") {
     return { ...item, status: state.investigation.status };
@@ -65,18 +32,52 @@ function runtimeQueueItem(item, state) {
   };
 }
 
+function QueueRow({ item, onOpen }) {
+  const definition = objectCatalog[item.type];
+  return (
+    <button
+      type="button"
+      className={`sre-queue-row object-${item.type}`}
+      data-domain-action="object.opened"
+      onClick={() => onOpen(item)}
+    >
+      <span className="queue-priority">
+        <b>{item.urgency}</b>
+        <i>{item.due}</i>
+      </span>
+      <span className="queue-object">
+        <i className="object-type-icon">
+          <Icon name={definition.icon} />
+        </i>
+        <span>
+          <small>
+            {definition.label} · {item.id}
+          </small>
+          <strong>{item.title}</strong>
+          <em>{definition.impact}</em>
+        </span>
+      </span>
+      <span className="queue-stage">
+        <Status state={item.status}>{item.stage}</Status>
+        {item.signal && <small>{item.signal}</small>}
+      </span>
+      <span className="queue-next">
+        <small>下一判断</small>
+        <strong>{item.nextAction}</strong>
+        <i aria-hidden="true">→</i>
+      </span>
+    </button>
+  );
+}
+
 export function SreHome() {
   const { state, dispatch } = useOps();
-  const runtimePosture = posture.map((item) =>
-    item.label === "Open Findings"
-      ? {
-          ...item,
-          value: String(
-            state.findings.filter((finding) => finding.status !== "closed")
-              .length,
-          ),
-        }
-      : item,
+  const queue = sreQueue.map((item) => runtimeQueueItem(item, state));
+  const openFindings = state.findings.filter(
+    (finding) => finding.status !== "closed",
+  );
+  const unownedFindings = openFindings.filter(
+    (finding) => finding.owner === "unassigned",
   );
 
   const openObject = (item) =>
@@ -87,160 +88,115 @@ export function SreHome() {
     });
 
   return (
-    <div className="sre-home" data-screen="SreHome">
-      <header className="sre-home-hero">
-        <div>
-          <span className="home-kicker">NOVA Ops · SRE control plane</span>
-          <h1>SRE 运行工作台</h1>
-          <p>
-            从当前待处置对象进入，而不是先选择身份或功能模块。每个对象保留独立
-            Scope、证据、人工决策与跨对象回写链。
-          </p>
-        </div>
-        <div className="home-runtime-card">
+    <div className="sre-cockpit" data-screen="SreHome">
+      <header className="cockpit-shift-bar">
+        <div className="shift-identity">
+          <span className="live-indicator" />
           <div>
-            <span className="live-indicator" />
-            <strong>Production · Mock live</strong>
+            <span>Production · 当班现场</span>
+            <strong>全球购核心链路</strong>
           </div>
-          <span>
-            {state.agentRuns.filter((run) => run.status === "running").length}{" "}
-            Agent Runs
-          </span>
-          <span>
-            {
-              state.findings.filter((finding) => finding.status !== "closed")
-                .length
-            }{" "}
-            Open Findings
-          </span>
-          <Status state="unknown">3 decisions due</Status>
         </div>
+        <dl className="shift-readout">
+          <div>
+            <dt>Scope</dt>
+            <dd>payments-router · cn-east + cn-south</dd>
+          </div>
+          <div>
+            <dt>Open findings</dt>
+            <dd>{openFindings.length}</dd>
+          </div>
+          <div>
+            <dt>Agent runs</dt>
+            <dd>
+              {state.agentRuns.filter((run) => run.status === "running").length}
+            </dd>
+          </div>
+        </dl>
+        <span className="shift-time">20:18 · shift 04</span>
       </header>
 
-      <section className="sre-posture-grid" aria-label="全局运行态势">
-        {runtimePosture.map((item) => (
-          <article className="sre-posture-card" key={item.label}>
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-            <Status state={item.tone}>{item.detail}</Status>
-          </article>
-        ))}
-      </section>
-
-      <section className="sre-queue-panel" aria-label="待处置对象">
-        <header>
-          <div>
-            <span className="eyebrow">Priority queue</span>
-            <h2>待处置对象</h2>
+      <div className="cockpit-grid">
+        <section
+          className="cockpit-decision-board sre-queue-panel"
+          aria-label="待处置对象"
+        >
+          <header>
+            <div>
+              <span className="eyebrow">Decision queue · 待处置对象</span>
+              <h1>当前需要决策</h1>
+            </div>
+            <p>按业务影响、阻塞程度与截止时间排序</p>
+          </header>
+          <div className="sre-queue">
+            {queue.map((item) => (
+              <QueueRow item={item} key={item.id} onOpen={openObject} />
+            ))}
           </div>
-          <p>按 blocker、业务影响与截止时间排序 · 不生成总健康分</p>
-        </header>
+        </section>
 
-        <div className="sre-queue-head" aria-hidden="true">
-          <span>类型 / 对象</span>
-          <span>当前阶段</span>
-          <span>截止</span>
-          <span>下一步动作</span>
-        </div>
-        <div className="sre-queue">
-          {sreQueue.map((queueItem) => {
-            const item = runtimeQueueItem(queueItem, state);
-            const definition = objectCatalog[item.type];
-            return (
-              <button
-                type="button"
-                className={`sre-queue-row object-${item.type}`}
-                data-domain-action="object.opened"
-                key={item.id}
-                onClick={() => openObject(item)}
-              >
-                <span className="queue-object">
-                  <i className="object-type-icon">
-                    <Icon name={definition.icon} />
-                  </i>
-                  <span>
-                    <small>{definition.label}</small>
-                    <strong>{item.id}</strong>
-                    <em>{item.title}</em>
-                  </span>
-                </span>
-                <span className="queue-stage">
-                  <Status state={item.status}>{item.stage}</Status>
-                  {item.signal && <small>{item.signal}</small>}
-                </span>
-                <span className="queue-due">
-                  <small>{item.urgency}</small>
-                  <strong>{item.due}</strong>
-                </span>
-                <span className="queue-next">
-                  <strong>{item.nextAction}</strong>
-                  <i aria-hidden="true">→</i>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="object-entry-section">
-        <header>
-          <div>
-            <span className="eyebrow">Operational objects</span>
-            <h2>对象类型入口</h2>
-          </div>
-          <span>Incident / Change / Mission / Inspection 是运行对象</span>
-        </header>
-        <div className="object-entry-grid">
-          {Object.values(objectCatalog).map((item) => (
+        <aside className="cockpit-live-rail" aria-label="值班运行态">
+          <section className="cockpit-pulse">
+            <header>
+              <span className="eyebrow">In context</span>
+              <h2>现场脉冲</h2>
+            </header>
             <button
               type="button"
-              className={`object-entry object-${item.type}`}
-              data-domain-action="object.opened"
-              key={item.type}
-              onClick={() => openObject(item)}
+              className="pulse-item pulse-danger"
+              onClick={() => openObject(objectCatalog.change)}
             >
-              <i className="object-type-icon">
-                <Icon name={item.icon} />
-              </i>
-              <span>
-                <strong>{item.label}</strong>
-                <small>
-                  {item.id} · {item.status}
-                </small>
-              </span>
-              <b aria-hidden="true">→</b>
+              <span>证据缺口</span>
+              <strong>华南拨测 stale 6m</strong>
+              <small>CHG-23841 · Verification 仍不可判定</small>
             </button>
-          ))}
-          <button
-            type="button"
-            className="object-entry object-view"
-            onClick={() => dispatch({ type: "NAVIGATE", screen: "reports" })}
-          >
-            <i className="object-type-icon">
-              <Icon name="report" />
-            </i>
-            <span>
-              <strong>Reports</strong>
-              <small>版本化运行投影</small>
-            </span>
-            <b aria-hidden="true">→</b>
-          </button>
-          <button
-            type="button"
-            className="object-entry object-view"
-            onClick={() => dispatch({ type: "NAVIGATE", screen: "governance" })}
-          >
-            <i className="object-type-icon">
-              <Icon name="grid" />
-            </i>
-            <span>
-              <strong>Governance</strong>
-              <small>覆盖与 Agent 健康视图</small>
-            </span>
-            <b aria-hidden="true">→</b>
-          </button>
-        </div>
-      </section>
+            <button
+              type="button"
+              className="pulse-item pulse-warning"
+              onClick={() => openObject(objectCatalog.mission)}
+            >
+              <span>风险窗口</span>
+              <strong>容量预测 20:24 越线</strong>
+              <small>MIS-61801 · inventory-sync 尚未确认扩容</small>
+            </button>
+            <button
+              type="button"
+              className="pulse-item pulse-unknown"
+              onClick={() => openObject(objectCatalog.incident)}
+            >
+              <span>责任缺口</span>
+              <strong>{unownedFindings.length || 1} 个 Finding 未认领</strong>
+              <small>先处理证据与 Owner，不折算为健康</small>
+            </button>
+          </section>
+
+          <section className="cockpit-runs">
+            <header>
+              <span className="eyebrow">Automation</span>
+              <h2>正在运行</h2>
+            </header>
+            <div className="run-list">
+              {state.agentRuns
+                .filter((run) => run.status === "running")
+                .map((run) => (
+                  <article className="run-item" key={run.id}>
+                    <div>
+                      <span>{run.kind}</span>
+                      <Status state="running">live</Status>
+                    </div>
+                    <strong>{run.title}</strong>
+                    <small>
+                      {run.currentStep} · {run.elapsed}
+                    </small>
+                    <i>
+                      <b style={{ width: `${run.progress}%` }} />
+                    </i>
+                  </article>
+                ))}
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

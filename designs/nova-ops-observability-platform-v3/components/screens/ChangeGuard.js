@@ -21,7 +21,7 @@ export function ChangeGuard() {
   const evaluateGates = () => dispatch({ type: "VERIFICATION_EVALUATE" });
 
   return (
-    <div data-screen="ChangeGuard">
+    <div className="change-verification-workbench" data-screen="ChangeGuard">
       <PageHeading
         eyebrow={`${change.id} · ${change.canaryPercent}% canary / ${change.controlPercent}% control`}
         title={change.title}

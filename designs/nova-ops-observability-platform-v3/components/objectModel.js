@@ -76,6 +76,7 @@ export const professionalWorkspaces = {
 export const objectCatalog = {
   incident: {
     type: "incident",
+    layout: "forensics",
     tone: "incident",
     label: "Incident",
     plural: "Incidents",
@@ -114,6 +115,7 @@ export const objectCatalog = {
   },
   change: {
     type: "change",
+    layout: "validation",
     tone: "change",
     label: "Change",
     plural: "Changes",
@@ -140,6 +142,7 @@ export const objectCatalog = {
   },
   mission: {
     type: "mission",
+    layout: "command",
     tone: "mission",
     label: "Mission",
     plural: "Missions",
@@ -170,6 +173,7 @@ export const objectCatalog = {
   },
   inspection: {
     type: "inspection",
+    layout: "compiler",
     tone: "inspection",
     label: "Inspection",
     plural: "Inspections",

@@ -56,11 +56,13 @@ NOVA Ops 是既有可观测平台之上的 SRE 运行控制面：把 Incident、
 
 `Reports / Governance` 是运行对象的版本化投影与治理视图，不是第五、第六类健康对象。
 
-进入任一对象后使用同一 SRE 决策骨架：
+进入任一对象后共享同一套 SRE 决策合同，但不共享同一页面模板：
 
-- **左栏**：对象 ID、来源、影响、五步处置流程与可见终态。
-- **中栏**：与该对象 Scope 绑定的专业证据；Metrics、Alerts、Logs、Traces、Synthetics、Inspection 等以标签切换。
-- **右栏**：AI 输出分成事实、假设、证据缺口、建议；人工 verdict 独立记录决策人、截止时间与结论。
+- **Incident / forensics**：左侧保留来源与调查阶段，中间并列事实时间线、Evidence Lens 与可证伪假设，右侧固化人工结论和回写。
+- **Change / validation**：处置阶段横向铺在对象顶部，主区以 canary/control、Objective 和 Verification 为中心，右侧保留 Decision Record。
+- **Mission / command**：阶段指挥、预测与 Run heatmap 占据主区，处置流程收在页面下沿，右侧持续显示风险 verdict。
+- **Inspection / compiler**：左侧保留 Plan 生命周期，主区按意图、结构化 Check、Gate/Replay 顺序展开，Agent Assist 在页面下方汇总发布判断。
+- **共同不变量**：专业证据与对象 Scope 绑定；AI 输出必须分成事实、假设、证据缺口、建议；人工 verdict 独立记录决策人、截止时间与结论。
 - **顶栏**：展示 Scope 的继承来源（Mission / Change / Alert Cluster / Service Catalog）；扩展范围必须显式创建分支。
 - **全局左导航**：工作台 / Incidents / Changes / Missions / Inspections / Reports / Governance。
 
@@ -81,7 +83,7 @@ NOVA Ops 是既有可观测平台之上的 SRE 运行控制面：把 Incident、
 
 | 工作面         | 首屏决策                                     | 独有组件                                                                     | 必须改变状态的主动作                                         |
 | -------------- | -------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| SRE 运行工作台 | 现在最需要处理哪个对象？                     | 全局态势、按紧急度排序的对象队列、对象类型入口                               | 直接打开对象当前步骤                                         |
+| SRE 运行工作台 | 现在最需要处理哪个对象？                     | 值班条、按紧急度排序的决策队列、现场脉冲、Agent Run；无欢迎/角色/对象入口    | 直接打开对象当前步骤                                         |
 | Incident       | 影响是什么，哪个假设最可信，下一测试是什么？ | 事件簇、拓扑、Observation、Hypothesis board、专业 Lens                       | 钉证据、next test、confirm/inconclusive、回写 ActionProposal |
 | Change         | 本次灰度继续、观察还是回滚？                 | canary/control 曲线、Objective table、Decision Record、Verification timeline | 暂停、延长、回滚、升级 Incident、复验                        |
 | Mission        | 当前保障阶段能否继续承载增长？               | 阶段轨道、交易漏斗、流量预测、Run heatmap、Risk Signal                       | 调频、冻结扩流、升级 Incident、阶段快照                      |

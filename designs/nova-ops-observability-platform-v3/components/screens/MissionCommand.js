@@ -11,7 +11,7 @@ export function MissionCommand() {
   const mission = state.mission;
 
   return (
-    <div data-screen="MissionCommand">
+    <div className="mission-phase-workbench" data-screen="MissionCommand">
       <PageHeading
         eyebrow={`${mission.id} · Plan v${mission.planVersion}`}
         title={mission.name}

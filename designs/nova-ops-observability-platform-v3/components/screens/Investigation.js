@@ -42,7 +42,7 @@ export function Investigation() {
   const selectedEvidence = lensEvidence[lens];
 
   return (
-    <div data-screen="Investigation">
+    <div className="incident-causal-workbench" data-screen="Investigation">
       <PageHeading
         eyebrow={`${investigation.id} · Revision ${investigation.revision}`}
         title={investigation.title}

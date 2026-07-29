@@ -374,7 +374,10 @@ export function ObjectWorkspace({ objectType, state, dispatch, Screen }) {
   }, [object]);
 
   return (
-    <div className="object-workspace journey-workspace">
+    <div
+      className={`object-workspace journey-workspace layout-${object.layout}`}
+      data-workspace-layout={object.layout}
+    >
       <ObjectRail
         object={object}
         objectType={objectType}

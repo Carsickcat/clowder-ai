@@ -100,16 +100,16 @@ export function UserGuide({ onClose }) {
         <div className="eyebrow">操作规则</div>
         <ul className="guide-rules">
           <li>
-            首屏先处理待处置对象；进入后按左侧对象流程、中间专业证据、右侧 AI /
-            人工决策完成处置。
+            打开即在 SRE 值班现场；首屏先处理当前决策，并同时看见现场证据缺口与
+            Agent Run。四类对象使用不同构图，不再套同一三栏模板。
           </li>
           <li>
             顶部 Scope 显示来自 Mission、Change、Alert Cluster 或 Service
             Catalog 的继承来源，扩展范围必须创建显式分支。
           </li>
           <li>
-            监控、告警、日志、Trace、拨测与巡检是中栏专业标签；跨源 Evidence
-            抽屉只用于 Investigation。
+            监控、告警、日志、Trace、拨测与巡检是对象内专业证据面；跨源 Evidence
+            工作台只用于 Investigation。
           </li>
           <li>主按钮改变领域状态；置灰按钮会说明未满足的前置条件。</li>
           <li>

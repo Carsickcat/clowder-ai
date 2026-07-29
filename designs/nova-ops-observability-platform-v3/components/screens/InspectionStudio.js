@@ -19,7 +19,10 @@ export function InspectionStudio() {
   const blockers = getPlanPublishBlockers(state);
 
   return (
-    <div data-screen="InspectionStudio">
+    <div
+      className="inspection-compiler-workbench"
+      data-screen="InspectionStudio"
+    >
       <PageHeading
         eyebrow={`${plan.id} · ${plan.version}`}
         title="NL2Inspection Studio"

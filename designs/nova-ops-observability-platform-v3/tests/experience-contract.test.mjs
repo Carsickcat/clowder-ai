@@ -15,24 +15,61 @@ const screens = [
   "Governance",
 ];
 
-test("entry point is an SRE object queue rather than a role chooser", () => {
+test("entry point is a live SRE operational cockpit rather than an introduction or secondary navigator", () => {
   const file = resolve(root, "components", "screens", "SreHome.js");
   assert.ok(existsSync(file), "SreHome must be a dedicated entry screen");
   const source = readFileSync(file, "utf8");
 
   for (const label of [
-    "SRE 运行工作台",
+    "当前需要决策",
     "待处置对象",
-    "Incident",
-    "Change",
-    "Mission",
-    "Inspection",
+    "正在运行",
+    "现场脉冲",
+    "sre-cockpit",
   ]) {
     assert.match(source, new RegExp(label));
   }
   assert.match(source, /data-screen=["']SreHome["']/);
   assert.match(source, /OBJECT_OPEN/);
-  assert.doesNotMatch(source, /发布负责人|服务 Owner|role-entry-card/);
+  assert.doesNotMatch(
+    source,
+    /sre-home-hero|sre-posture-grid|object-entry-section|object-entry-grid|对象类型入口|发布负责人|服务 Owner|role-entry-card/,
+    "the application must open inside the SRE shift, not on an entry or role-selection page",
+  );
+});
+
+test("four operational objects declare distinct workspace compositions", () => {
+  const model = readFileSync(
+    resolve(root, "components", "objectModel.js"),
+    "utf8",
+  );
+  const workspace = readFileSync(
+    resolve(root, "components", "ObjectWorkspace.js"),
+    "utf8",
+  );
+
+  for (const layout of ["forensics", "validation", "command", "compiler"]) {
+    assert.match(model, new RegExp(`layout:\\s*["']${layout}["']`));
+  }
+  assert.match(workspace, /data-workspace-layout=\{object\.layout\}/);
+
+  const screenContracts = {
+    Investigation: "incident-causal-workbench",
+    ChangeGuard: "change-verification-workbench",
+    MissionCommand: "mission-phase-workbench",
+    InspectionStudio: "inspection-compiler-workbench",
+  };
+  for (const [screen, contractClass] of Object.entries(screenContracts)) {
+    const source = readFileSync(
+      resolve(root, "components", "screens", `${screen}.js`),
+      "utf8",
+    );
+    assert.match(
+      source,
+      new RegExp(contractClass),
+      `${screen} must expose its own primary workspace composition`,
+    );
+  }
 });
 
 test("object workspaces use context, evidence, and decision rails", () => {

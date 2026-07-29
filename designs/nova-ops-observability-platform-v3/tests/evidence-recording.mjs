@@ -23,27 +23,31 @@ await page.waitForTimeout(2000);
 await page.locator(".sre-queue-row", { hasText: "MIS-61801" }).click();
 await page.waitForTimeout(2000);
 await page
-  .getByRole("button", { name: "← 返回 SRE 工作台", exact: true })
+  .locator('[data-domain-action="mission.frequency.changed"]')
+  .first()
   .click();
+await page.waitForTimeout(1200);
+await page.locator(".journey-home-link").click();
 await page.waitForTimeout(1000);
 await page.locator(".sre-queue-row", { hasText: "CHG-23841" }).click();
 await page.waitForTimeout(2000);
-await page.getByRole("button", { name: "升级为 Incident 调查" }).click();
+await page.locator('[data-domain-action="incident.escalated"]').click();
 await page.waitForTimeout(1800);
 const h1 = page.locator(".hypothesis", { hasText: "H1" });
-await h1.getByRole("button", { name: "运行测试" }).click();
-await h1.getByRole("button", { name: "Confirm" }).click();
+await h1.locator('[data-domain-action="hypothesis.test.completed"]').click();
+await h1.locator('[data-domain-action="hypothesis.confirmed"]').click();
 await page.waitForTimeout(1500);
-await page.getByRole("button", { name: /回写 CHG-23841 Finding/ }).click();
-await page.waitForTimeout(1800);
-await page.getByRole("button", { name: /返回 CHG-23841/ }).click();
-await page.waitForTimeout(3100);
+await page
+  .locator(".decision-inspector")
+  .locator('[data-domain-action="change.decision.set"]')
+  .click();
+await page.waitForTimeout(4900);
 
 await context.close();
 await video.saveAs(
-  resolve(evidenceDir, "nova-ops-v5-sre-object-path-15s.webm"),
+  resolve(evidenceDir, "nova-ops-v6-sre-cockpit-to-change-decision-15s.webm"),
 );
 await browser.close();
 process.stdout.write(
-  "Saved V5 15s SRE object escalation/writeback recording.\n",
+  "Saved V6 15s SRE cockpit escalation/change decision recording.\n",
 );
