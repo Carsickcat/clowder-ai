@@ -106,6 +106,8 @@ ChangeInspectionCase = {
 - AC-11：最终报告页面、时间线摘要和 Claw 解读都投影同一份不可变 `ReportSnapshot`。
 - AC-12：Claw 必须从用户本次输入中识别服务名和版本号；任一缺失时进入澄清态，不得用预置服务伪造方案或执行记录。
 - AC-13：输入框初始为空且只用 placeholder 给示例；用户主界面不暴露 `InspectionRun`、`DecisionRecord`、`ReportSnapshot` 等内部对象名。
+- AC-14：方案、全部 Run、Finding、BaselineSnapshot 与 ReportSnapshot 必须共享同一 Case 的 service/version，不得跨服务复用执行证据。
+- AC-15：已生成的 Run、嵌套指标、BaselineSnapshot、Finding、DecisionRecord 与 ReportSnapshot 必须深不可变；后续动作只能追加新记录。
 
 ## 拒绝的替代方案
 

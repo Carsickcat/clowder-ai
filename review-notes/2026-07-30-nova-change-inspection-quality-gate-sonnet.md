@@ -38,6 +38,8 @@
 | AC-11 | 通过 | 报告页面、时间线摘要与 Claw 解读全部来自同一 `ReportSnapshot`。         |
 | AC-12 | 通过 | 意图解析从本次输入提取服务与版本；信息不全时进入澄清态，不生成方案或 Run。 |
 | AC-13 | 通过 | 输入框初始为空；主界面的内部对象名已替换为中文用户语言。                |
+| AC-14 | 通过 | 自定义服务完整旅程中的方案、五次 Run、Finding、基线与报告共享同一 service/version。 |
+| AC-15 | 通过 | 全部持久证据及嵌套指标递归冻结；篡改历史 metric 或报告结论会抛出 `TypeError`。 |
 
 ## 产品原子能力
 
@@ -81,6 +83,8 @@ desktop/720/mobile, console 0.
 12. 页面仍暴露 `Run`、`DecisionRecord`、`ReportSnapshot` 等内部术语；替换为“巡检记录、决策、报告快照”等中文用户语言。
 13. 基线从可比变为不可比后，Claw 仍显示绿色“已完成”；改为互斥的琥珀色补充信息状态。
 14. 缺参澄清页仍展示“5/5 风险面已覆盖”和“基线可比”；改为独立的“方案尚未生成”状态，并用浏览器契约禁止提前宣称覆盖与可比性。
+15. 自定义服务只改变方案，执行后又套回支付服务 Run/Finding；改为从同一 Case service 派生每次执行证据，并补自定义服务完整浏览器旅程。
+16. Run 与最终报告虽声明不可变，但嵌套字段仍可直接改写；在 reducer 出口建立递归冻结边界，并补逐层冻结与篡改失败测试。
 
 ## 视觉证据映射
 
@@ -103,11 +107,12 @@ desktop/720/mobile, console 0.
 ```text
 npm run check
   format:check: all matched files use Prettier
-  node tests: 41 passed, 0 failed
+  node tests: 43 passed, 0 failed
   Vite build: exit 0
 
 npm run test:browser
   desktop / 720 / 390 golden paths passed
+  custom-service evidence truth passed through final report
   clarification state cannot claim coverage or baseline comparability
   console errors: 0
 

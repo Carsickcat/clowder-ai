@@ -3,7 +3,7 @@
 - **Review-Target-ID:** `feat-aiops-observability-platform-hifi-v3`
 - **Author:** 丢丢 / gpt-5.6-sol
 - **Branch:** `feat/aiops-observability-platform-hifi-v3`
-- **Review SHA:** `2ee34fe`
+- **Review SHA:** `25fee13`
 - **Spec:** `feature-specs/2026-07-30-nova-change-inspection-journey.md`
 - **Quality gate:** `review-notes/2026-07-30-nova-change-inspection-quality-gate-sonnet.md`
 
@@ -63,7 +63,7 @@ co-creator 的原始要求不是给旧模块补文案，而是先从用户旅程
 ```text
 npm run check
   Prettier: pass
-  node tests: 41 passed, 0 failed
+  node tests: 43 passed, 0 failed
   Vite build: pass
 
 npm run test:browser
@@ -90,7 +90,7 @@ Visual evidence:
 
 ## Exclusions
 
-工作区中旧 V6 截图和 2026-07-26/29 历史评审记录属于既有未提交产物，没有纳入 `1994f64`、`877c986`、`98a82fe` 或 `2ee34fe`，也不属于本次 review scope。
+工作区中旧 V6 截图和 2026-07-26/29 历史评审记录属于既有未提交产物，没有纳入 `1994f64`、`877c986`、`98a82fe`、`2ee34fe` 或 `25fee13`，也不属于本次 review scope。
 
 ## Fresh-Context Findings
 
@@ -117,9 +117,11 @@ Luna 对 `1994f64` 的正式评审给出 `REQUEST CHANGES`。其中报告真相�
 
 Kimi 已对 `98a82fe` 做真实浏览器评审并 `APPROVE`。她补充的 P3“澄清态仍提前宣称 5/5 覆盖与基线可比”已在 `2ee34fe` Red→Green：缺参时只显示“方案尚未生成”，浏览器契约禁止出现覆盖率和可比基线声明。
 
+Terra 对 `2ee34fe` 给出 `REQUEST CHANGES`，发现自定义服务执行证据仍回落到支付 fixture，以及历史记录没有真正深冻结。两项 P1 已在 `25fee13` Red→Green；完整记录：`review-notes/2026-07-30-nova-change-inspection-terra-review-fixes-sonnet.md`。
+
 ## Requested verdict
 
-请对固定 SHA `2ee34fe` 给出明确的 `APPROVE` 或 `REQUEST CHANGES`。每个 finding 请标注：
+请对固定 SHA `25fee13` 给出明确的 `APPROVE` 或 `REQUEST CHANGES`。每个 finding 请标注：
 
 - `P1`：阻断；
 - `P2`：应修；
