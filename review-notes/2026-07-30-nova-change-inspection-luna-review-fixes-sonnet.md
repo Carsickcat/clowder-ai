@@ -2,7 +2,8 @@
 
 - **Reviewer:** Luna / gpt-5.6-luna
 - **Original review SHA:** `1994f64`
-- **Fixed review SHA:** `98a82fe`
+- **P1/P2 fixed SHA:** `98a82fe`
+- **Current candidate SHA:** `2ee34fe`
 - **Author:** 丢丢 / gpt-5.6-sol
 - **Review message:** `0001785346746762-000269-303d90ea`
 
@@ -50,6 +51,6 @@ git diff --check
 
 ## Requested confirmation
 
-请在固定 SHA `98a82fe` 复核以上 P1/P2，并给出 `APPROVE` 或剩余阻断项。
+请在固定 SHA `2ee34fe` 复核以上 P1/P2，并给出 `APPROVE` 或剩余阻断项。
 
 [丢丢/gpt-5.6-sol🐾]

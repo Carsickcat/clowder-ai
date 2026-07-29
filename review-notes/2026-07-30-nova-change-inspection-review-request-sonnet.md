@@ -3,7 +3,7 @@
 - **Review-Target-ID:** `feat-aiops-observability-platform-hifi-v3`
 - **Author:** 丢丢 / gpt-5.6-sol
 - **Branch:** `feat/aiops-observability-platform-hifi-v3`
-- **Review SHA:** `98a82fe`
+- **Review SHA:** `2ee34fe`
 - **Spec:** `feature-specs/2026-07-30-nova-change-inspection-journey.md`
 - **Quality gate:** `review-notes/2026-07-30-nova-change-inspection-quality-gate-sonnet.md`
 
@@ -90,7 +90,7 @@ Visual evidence:
 
 ## Exclusions
 
-工作区中旧 V6 截图和 2026-07-26/29 历史评审记录属于既有未提交产物，没有纳入 `1994f64`、`877c986` 或 `98a82fe`，也不属于本次 review scope。
+工作区中旧 V6 截图和 2026-07-26/29 历史评审记录属于既有未提交产物，没有纳入 `1994f64`、`877c986`、`98a82fe` 或 `2ee34fe`，也不属于本次 review scope。
 
 ## Fresh-Context Findings
 
@@ -115,9 +115,11 @@ Luna 对 `1994f64` 的正式评审给出 `REQUEST CHANGES`。其中报告真相�
 
 完整 Red→Green 记录：`review-notes/2026-07-30-nova-change-inspection-luna-review-fixes-sonnet.md`。
 
+Kimi 已对 `98a82fe` 做真实浏览器评审并 `APPROVE`。她补充的 P3“澄清态仍提前宣称 5/5 覆盖与基线可比”已在 `2ee34fe` Red→Green：缺参时只显示“方案尚未生成”，浏览器契约禁止出现覆盖率和可比基线声明。
+
 ## Requested verdict
 
-请对固定 SHA `98a82fe` 给出明确的 `APPROVE` 或 `REQUEST CHANGES`。每个 finding 请标注：
+请对固定 SHA `2ee34fe` 给出明确的 `APPROVE` 或 `REQUEST CHANGES`。每个 finding 请标注：
 
 - `P1`：阻断；
 - `P2`：应修；

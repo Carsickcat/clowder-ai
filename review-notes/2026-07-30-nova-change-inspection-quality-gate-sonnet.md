@@ -80,6 +80,7 @@ desktop/720/mobile, console 0.
 11. 输入框预填完整请求会让演示看起来像用户已输入；改为空输入，仅以 placeholder 提供示例，并在空输入时禁用提交。
 12. 页面仍暴露 `Run`、`DecisionRecord`、`ReportSnapshot` 等内部术语；替换为“巡检记录、决策、报告快照”等中文用户语言。
 13. 基线从可比变为不可比后，Claw 仍显示绿色“已完成”；改为互斥的琥珀色补充信息状态。
+14. 缺参澄清页仍展示“5/5 风险面已覆盖”和“基线可比”；改为独立的“方案尚未生成”状态，并用浏览器契约禁止提前宣称覆盖与可比性。
 
 ## 视觉证据映射
 
@@ -107,6 +108,7 @@ npm run check
 
 npm run test:browser
   desktop / 720 / 390 golden paths passed
+  clarification state cannot claim coverage or baseline comparability
   console errors: 0
 
 git diff --check
