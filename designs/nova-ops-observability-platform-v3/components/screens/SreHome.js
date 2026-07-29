@@ -79,6 +79,9 @@ export function SreHome() {
   const unownedFindings = openFindings.filter(
     (finding) => finding.owner === "unassigned",
   );
+  const runningAgentRuns = state.agentRuns.filter(
+    (run) => run.status === "running",
+  );
 
   const openObject = (item) =>
     dispatch({
@@ -108,9 +111,7 @@ export function SreHome() {
           </div>
           <div>
             <dt>Agent runs</dt>
-            <dd>
-              {state.agentRuns.filter((run) => run.status === "running").length}
-            </dd>
+            <dd>{runningAgentRuns.length}</dd>
           </div>
         </dl>
         <span className="shift-time">20:18 · shift 04</span>
@@ -176,9 +177,8 @@ export function SreHome() {
               <h2>正在运行</h2>
             </header>
             <div className="run-list">
-              {state.agentRuns
-                .filter((run) => run.status === "running")
-                .map((run) => (
+              {runningAgentRuns.length > 0 ? (
+                runningAgentRuns.map((run) => (
                   <article className="run-item" key={run.id}>
                     <div>
                       <span>{run.kind}</span>
@@ -192,7 +192,13 @@ export function SreHome() {
                       <b style={{ width: `${run.progress}%` }} />
                     </i>
                   </article>
-                ))}
+                ))
+              ) : (
+                <div className="run-empty-state">
+                  <strong>没有运行中的 Agent</strong>
+                  <small>新的诊断或验证任务会在这里显示进度。</small>
+                </div>
+              )}
             </div>
           </section>
         </aside>

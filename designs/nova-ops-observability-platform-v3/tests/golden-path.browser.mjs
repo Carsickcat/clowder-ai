@@ -275,6 +275,47 @@ async function mobileJourney() {
   const page = await trackedPage(context);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "当前需要决策" }).waitFor();
+  const mobileNav = page.locator(".sre-global-nav");
+  const navMetrics = await mobileNav.evaluate((nav) => {
+    const navRect = nav.getBoundingClientRect();
+    const buttons = [...nav.querySelectorAll("button")].map((button) => {
+      const rect = button.getBoundingClientRect();
+      return {
+        label: button.getAttribute("aria-label"),
+        left: rect.left,
+        right: rect.right,
+        width: rect.width,
+      };
+    });
+    return {
+      clientWidth: nav.clientWidth,
+      scrollWidth: nav.scrollWidth,
+      left: navRect.left,
+      right: navRect.right,
+      buttons,
+    };
+  });
+  assert.ok(
+    navMetrics.scrollWidth <= navMetrics.clientWidth,
+    `390px global nav must expose every entry without clipping: ${navMetrics.scrollWidth}px content in ${navMetrics.clientWidth}px rail`,
+  );
+  assert.deepEqual(
+    navMetrics.buttons.filter(
+      (button) =>
+        button.width < 44 ||
+        button.left < navMetrics.left ||
+        button.right > navMetrics.right,
+    ),
+    [],
+    "every mobile global-nav target must remain visible and at least 44px wide",
+  );
+  assert.equal(
+    await page
+      .locator('.sre-global-nav button[aria-label="Inspections"]')
+      .count(),
+    1,
+    "the compact Inspections entry must retain its full accessible name",
+  );
   await page.screenshot({
     path: resolve(evidenceDir, "04-v6-operational-cockpit-mobile.png"),
     fullPage: true,
@@ -292,8 +333,40 @@ async function mobileJourney() {
   await page.locator(".professional-workbench-tabs").waitFor();
   await page.locator(".decision-inspector").waitFor();
   await page.locator(".sre-global-nav").waitFor();
+  const returnAffordance = page.locator(".journey-home-link");
+  assert.equal(
+    await returnAffordance.getAttribute("data-ui-role"),
+    "secondary-navigation",
+  );
+  const returnStyles = await returnAffordance.evaluate((element) => {
+    const styles = getComputedStyle(element);
+    return {
+      backgroundColor: styles.backgroundColor,
+      borderStyle: styles.borderStyle,
+    };
+  });
+  assert.notEqual(returnStyles.borderStyle, "none");
+  assert.notEqual(returnStyles.backgroundColor, "rgba(0, 0, 0, 0)");
+
+  const tabStyles = await page
+    .locator(".professional-workbench-tabs")
+    .evaluate((tabs) => ({
+      scrollSnapType: getComputedStyle(tabs).scrollSnapType,
+      buttonWhiteSpace: [...tabs.querySelectorAll("button")].map(
+        (button) => getComputedStyle(button).whiteSpace,
+      ),
+    }));
+  assert.match(tabStyles.scrollSnapType, /x/);
+  assert.ok(
+    tabStyles.buttonWhiteSpace.every((value) => value === "nowrap"),
+    "professional workspace tabs must remain on one readable line",
+  );
   await page.screenshot({
     path: resolve(evidenceDir, "03-v6-inspection-mobile.png"),
+    fullPage: true,
+  });
+  await page.screenshot({
+    path: resolve(evidenceDir, "09-v6-mobile-navigation-polish.png"),
     fullPage: true,
   });
   await context.close();

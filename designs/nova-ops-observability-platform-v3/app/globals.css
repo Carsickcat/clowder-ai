@@ -3309,15 +3309,23 @@ time {
 }
 
 .journey-home-link {
-  border: 0;
-  padding: 7px 4px;
-  background: transparent;
-  color: var(--text-3);
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  border: 1px solid rgb(var(--journey-accent-rgb) / 24%);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: rgb(var(--journey-accent-rgb) / 6%);
+  color: var(--text-2);
   cursor: pointer;
   font-size: 10px;
+  font-weight: 600;
 }
 
 .journey-home-link:hover {
+  border-color: rgb(var(--journey-accent-rgb) / 42%);
+  background: rgb(var(--journey-accent-rgb) / 11%);
   color: var(--journey-accent);
 }
 
@@ -3485,6 +3493,8 @@ time {
   gap: 2px;
   padding: 0 16px;
   overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
 }
 
 .professional-workbench-tabs > span {
@@ -3501,6 +3511,7 @@ time {
 
 .professional-workbench-tabs button {
   min-width: 72px;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3511,6 +3522,8 @@ time {
   color: var(--text-3);
   cursor: pointer;
   font-size: 10px;
+  scroll-snap-align: start;
+  white-space: nowrap;
 }
 
 .professional-workbench-tabs button:hover,
@@ -3859,7 +3872,7 @@ time {
   }
 
   .journey-home-link {
-    padding-left: 0;
+    padding: 7px 9px;
   }
 
   .journey-steps {
@@ -4061,6 +4074,10 @@ time {
   font-family: var(--mono);
   font-size: 8px;
   font-style: normal;
+}
+
+.nav-label-compact {
+  display: none;
 }
 
 .app-shell > .main-shell {
@@ -4498,6 +4515,32 @@ time {
 }
 
 @media (max-width: 560px) {
+  .sre-global-nav {
+    overflow-x: hidden;
+  }
+
+  .sre-global-nav button {
+    min-width: 0;
+    flex: 1 1 0;
+    gap: 3px;
+    padding: 0 2px;
+    font-size: 8px;
+  }
+
+  .nav-label-full {
+    display: none;
+  }
+
+  .nav-label-compact {
+    display: inline;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 7px;
+    letter-spacing: 0.02em;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
   .home-screen-wrap {
     width: calc(100% - 20px);
     padding-top: 12px;
@@ -4800,6 +4843,26 @@ time {
 
 .run-list {
   display: grid;
+}
+
+.run-empty-state {
+  min-height: 92px;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  padding: 16px;
+  color: var(--cafe-text-muted);
+  text-align: center;
+}
+
+.run-empty-state strong {
+  color: var(--cafe-text-secondary);
+  font-size: 10px;
+}
+
+.run-empty-state small {
+  font-family: var(--mono);
+  font-size: 8px;
 }
 
 .run-item {

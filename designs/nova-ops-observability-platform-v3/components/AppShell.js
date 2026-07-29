@@ -28,13 +28,38 @@ const screens = {
 };
 
 const navItems = [
-  { label: "工作台", icon: "pulse", screen: "home" },
-  { label: "Incidents", icon: "alert", objectType: "incident" },
-  { label: "Changes", icon: "branch", objectType: "change" },
-  { label: "Missions", icon: "shield", objectType: "mission" },
-  { label: "Inspections", icon: "wand", objectType: "inspection" },
-  { label: "Reports", icon: "report", screen: "reports" },
-  { label: "Governance", icon: "grid", screen: "governance" },
+  { label: "工作台", shortLabel: "SRE", icon: "pulse", screen: "home" },
+  {
+    label: "Incidents",
+    shortLabel: "INC",
+    icon: "alert",
+    objectType: "incident",
+  },
+  {
+    label: "Changes",
+    shortLabel: "CHG",
+    icon: "branch",
+    objectType: "change",
+  },
+  {
+    label: "Missions",
+    shortLabel: "MIS",
+    icon: "shield",
+    objectType: "mission",
+  },
+  {
+    label: "Inspections",
+    shortLabel: "INSP",
+    icon: "wand",
+    objectType: "inspection",
+  },
+  { label: "Reports", shortLabel: "RPT", icon: "report", screen: "reports" },
+  {
+    label: "Governance",
+    shortLabel: "GOV",
+    icon: "grid",
+    screen: "governance",
+  },
 ];
 
 function GlobalNav({ state, dispatch }) {
@@ -52,6 +77,7 @@ function GlobalNav({ state, dispatch }) {
           <button
             type="button"
             className={active ? "active" : ""}
+            aria-label={item.label}
             aria-current={active ? "page" : undefined}
             key={item.label}
             onClick={() =>
@@ -65,7 +91,10 @@ function GlobalNav({ state, dispatch }) {
             }
           >
             <Icon name={item.icon} />
-            <span>{item.label}</span>
+            <span className="nav-label-full">{item.label}</span>
+            <span className="nav-label-compact" aria-hidden="true">
+              {item.shortLabel}
+            </span>
             {item.objectType && <i>{definition.id.split("-")[1]}</i>}
           </button>
         );

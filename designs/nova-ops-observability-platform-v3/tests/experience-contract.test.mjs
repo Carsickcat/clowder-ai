@@ -102,6 +102,58 @@ test("object workspaces use context, evidence, and decision rails", () => {
   );
 });
 
+test("mobile global navigation exposes stable accessible compact labels", () => {
+  const source = readFileSync(
+    resolve(root, "components", "AppShell.js"),
+    "utf8",
+  );
+
+  for (const shortLabel of ["SRE", "INC", "CHG", "MIS", "INSP", "RPT", "GOV"]) {
+    assert.match(source, new RegExp(`shortLabel:\\s*["']${shortLabel}["']`));
+  }
+  assert.match(source, /aria-label=\{item\.label\}/);
+  assert.match(source, /nav-label-full/);
+  assert.match(source, /nav-label-compact/);
+});
+
+test("object workspace exposes a secondary-navigation return affordance", () => {
+  const workspace = readFileSync(
+    resolve(root, "components", "ObjectWorkspace.js"),
+    "utf8",
+  );
+  const styles = readFileSync(resolve(root, "app", "globals.css"), "utf8");
+
+  assert.match(workspace, /data-ui-role=["']secondary-navigation["']/);
+  assert.match(
+    styles,
+    /\.journey-home-link\s*\{[^}]*border:\s*1px solid[^}]*background:/s,
+  );
+});
+
+test("professional workspace tabs declare a single-line scroll contract", () => {
+  const styles = readFileSync(resolve(root, "app", "globals.css"), "utf8");
+
+  assert.match(
+    styles,
+    /\.professional-workbench-tabs\s*\{[^}]*scroll-snap-type:\s*x mandatory/s,
+  );
+  assert.match(
+    styles,
+    /\.professional-workbench-tabs button\s*\{[^}]*white-space:\s*nowrap/s,
+  );
+});
+
+test("running agents panel has an explicit empty state", () => {
+  const source = readFileSync(
+    resolve(root, "components", "screens", "SreHome.js"),
+    "utf8",
+  );
+
+  assert.match(source, /const runningAgentRuns/);
+  assert.match(source, /run-empty-state/);
+  assert.match(source, /没有运行中的 Agent/);
+});
+
 test("object accents are isolated from health and severity state colors", () => {
   const source = readFileSync(resolve(root, "app", "globals.css"), "utf8");
 

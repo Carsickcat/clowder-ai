@@ -34,6 +34,7 @@ function ObjectRail({ object, objectType, state, dispatch }) {
       <button
         type="button"
         className="journey-home-link"
+        data-ui-role="secondary-navigation"
         onClick={() => dispatch({ type: "OBJECT_CLOSE" })}
       >
         ← 返回 SRE 工作台
