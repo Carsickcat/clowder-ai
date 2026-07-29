@@ -14,8 +14,7 @@ export function RunTimeline({ state, onReportOpen }) {
           <h2>一条时间线看完整次变更</h2>
         </div>
         <span className="ci-object-count">
-          {state.runs.length} InspectionRun · {state.decisions.length}{" "}
-          DecisionRecord
+          {state.runs.length} 次巡检 · {state.decisions.length} 条决策
         </span>
       </header>
 
@@ -51,7 +50,7 @@ export function RunTimeline({ state, onReportOpen }) {
       {state.reportSnapshot && (
         <footer className="ci-report-snapshot">
           <div>
-            <span className="ci-eyebrow">ReportSnapshot</span>
+            <span className="ci-eyebrow">报告快照</span>
             <strong>{state.reportSnapshot.id}</strong>
           </div>
           <p>

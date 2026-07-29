@@ -71,6 +71,18 @@ test("Claw shares domain actions but cannot execute production changes", () => {
   assert.doesNotMatch(claw, /ROLLBACK|DEPLOY|CANARY_ADVANCED|POST_CHANGE_RAN/);
 });
 
+test("Claw requires explicit user intent and the domain never fabricates service context", () => {
+  const claw = read("components", "change-inspection", "ClawPanel.js");
+  const domain = read("lib", "change-inspection.mjs");
+  const intent = read("lib", "change-inspection-intent.mjs");
+
+  assert.match(claw, /useState\(["']["']\)/);
+  assert.match(claw, /placeholder=\{EXAMPLE\}/);
+  assert.doesNotMatch(claw, /useState\(EXAMPLE\)/);
+  assert.match(intent, /parseInspectionIntent/);
+  assert.match(intent, /status:\s*["']clarification["']/);
+});
+
 test("unknown and stale states block progression and expose corrective actions", () => {
   const domain = read("lib", "change-inspection.mjs");
   const surface = read("components", "change-inspection", "DecisionSurface.js");
@@ -116,6 +128,30 @@ test("runs and final report remain visible as one auditable timeline", () => {
   );
 });
 
+test("primary user copy is Chinese while technical ids remain available", () => {
+  const timeline = read("components", "change-inspection", "RunTimeline.js");
+  const actions = read("lib", "change-inspection-actions.mjs");
+  const fixtures = read("lib", "change-inspection-fixtures.mjs");
+  const domain = read("lib", "change-inspection.mjs");
+
+  for (const exposedTerm of [
+    "InspectionRun",
+    "DecisionRecord",
+    "ReportSnapshot",
+  ]) {
+    assert.doesNotMatch(
+      timeline,
+      new RegExp(`>${exposedTerm}<|${exposedTerm} ·`),
+    );
+  }
+  assert.doesNotMatch(actions, /label:\s*["'][^"']*Verification Run/);
+  assert.doesNotMatch(fixtures, /canary 25%|vs stable|BaselineSnapshot/);
+  assert.doesNotMatch(domain, /canary 与 stable|Verification Run|历史风险 Run/);
+  assert.match(timeline, /次巡检/);
+  assert.match(timeline, /条决策/);
+  assert.match(actions, /执行复验/);
+});
+
 test("mobile keeps semantic labels and stacks the decision before Claw", () => {
   const styles = read("app", "change-inspection.css");
   const app = read("components", "change-inspection", "ChangeInspectionApp.js");
@@ -158,6 +194,7 @@ test("routine browser tests isolate evidence from versioned artifacts", () => {
 test("all new implementation files stay within the frontend size boundary", () => {
   const files = [
     ["lib", "change-inspection.mjs"],
+    ["lib", "change-inspection-intent.mjs"],
     ["components", "change-inspection", "ChangeInspectionApp.js"],
     ["components", "change-inspection", "JourneyHeader.js"],
     ["components", "change-inspection", "DecisionSurface.js"],

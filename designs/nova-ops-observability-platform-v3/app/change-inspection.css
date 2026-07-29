@@ -842,6 +842,21 @@
   color: var(--ci-mint);
 }
 
+.ci-claw-blocker {
+  margin: 4px 2px 12px;
+  padding: 11px 12px;
+  border: 1px solid rgb(232 181 93 / 22%);
+  border-radius: 9px;
+  background: rgb(232 181 93 / 7%);
+}
+
+.ci-claw-blocker p {
+  margin: 7px 0 0;
+  color: #b9a47c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 .ci-claw-panel form {
   padding-top: 12px;
   border-top: 1px solid #1d2d39;

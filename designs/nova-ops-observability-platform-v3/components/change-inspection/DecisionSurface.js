@@ -107,10 +107,10 @@ function LatestEvidence({ state }) {
         <div className="ci-finding">
           <div>
             <span className="ci-eyebrow">风险定位</span>
-            <strong>连接池在 canary 实例出现排队</strong>
+            <strong>连接池在灰度实例出现排队</strong>
           </div>
           <p>
-            建议把连接池上限从 80 调整到 120，保持 25% 流量并生成新的复验 Run。
+            建议把连接池上限从 80 调整到 120，保持 25% 流量并生成新的复验记录。
           </p>
         </div>
       )}

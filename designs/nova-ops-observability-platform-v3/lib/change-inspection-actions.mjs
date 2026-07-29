@@ -55,6 +55,13 @@ export function getPrimaryAction(state) {
       disabled: true,
     };
   }
+  if (state.plan.status !== "ready") {
+    return {
+      type: "INTENT_SUBMITTED",
+      label: "请先在 Claw 中补充服务名和版本",
+      disabled: true,
+    };
+  }
   if (state.stage === "draft") {
     return { type: "PLAN_CONFIRMED", label: "确认方案并执行变更前巡检" };
   }
@@ -65,7 +72,7 @@ export function getPrimaryAction(state) {
     return { type: "REMEDIATION_RECORDED", label: "记录处置" };
   }
   if (state.stage === "canary" && state.decision.status === "working") {
-    return { type: "VERIFICATION_RAN", label: "执行 Verification Run" };
+    return { type: "VERIFICATION_RAN", label: "执行复验" };
   }
   if (state.stage === "canary") {
     return { type: "CANARY_ADVANCED", label: "继续到 100% 放量" };

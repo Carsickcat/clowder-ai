@@ -3,7 +3,7 @@ import { useState } from "react";
 const EXAMPLE = "请帮我巡检 payments-router v3.18.0 是否可以灰度发布";
 
 export function ClawPanel({ state, dispatch }) {
-  const [text, setText] = useState(EXAMPLE);
+  const [text, setText] = useState("");
 
   function submit(event) {
     event.preventDefault();
@@ -43,14 +43,27 @@ export function ClawPanel({ state, dispatch }) {
         ))}
       </div>
 
-      {state.plan.status === "ready" && (
-        <div className="ci-claw-insight">
-          <span className="ci-eyebrow">Claw 已完成</span>
-          <ul>
-            <li>识别服务与版本</li>
-            <li>匹配已接入的 5 类指标</li>
-            <li>建立变更前可比基线</li>
-          </ul>
+      {state.plan.status === "ready" &&
+        state.comparabilityContract.status === "valid" && (
+          <div className="ci-claw-insight">
+            <span className="ci-eyebrow">Claw 已完成</span>
+            <ul>
+              <li>识别服务与版本</li>
+              <li>匹配已接入的 5 类指标</li>
+              <li>建立变更前可比基线</li>
+            </ul>
+          </div>
+        )}
+
+      {(state.plan.status === "clarification" ||
+        state.comparabilityContract.status !== "valid") && (
+        <div className="ci-claw-blocker">
+          <span className="ci-eyebrow">Claw 需要补充</span>
+          <p>
+            {state.plan.status === "clarification"
+              ? "缺少明确的服务名或版本号，暂不能生成巡检方案。"
+              : "当前基线不可比，补充对照组后才能完成方案校验。"}
+          </p>
         </div>
       )}
 
@@ -71,7 +84,7 @@ export function ClawPanel({ state, dispatch }) {
           <textarea
             id="claw-input"
             onChange={(event) => setText(event.target.value)}
-            placeholder="例如：请帮我检查支付服务是否可以灰度"
+            placeholder={EXAMPLE}
             rows="4"
             value={text}
           />
@@ -87,7 +100,7 @@ export function ClawPanel({ state, dispatch }) {
       ) : (
         <div className="ci-plan-locked">
           <strong>方案已锁定</strong>
-          <span>执行开始后不能改写本次 Case 的巡检方案。</span>
+          <span>执行开始后不能改写本次巡检的方案。</span>
         </div>
       )}
 
@@ -106,7 +119,7 @@ export function ClawPanel({ state, dispatch }) {
           data-domain-action="CASE_RESET"
           onClick={() => {
             dispatch({ type: "CASE_RESET" });
-            setText(EXAMPLE);
+            setText("");
           }}
           type="button"
         >

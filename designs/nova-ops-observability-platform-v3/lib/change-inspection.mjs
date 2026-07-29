@@ -1,14 +1,19 @@
 import {
-  inspectionChecks,
+  createInspectionChecks,
   runFixtures,
 } from "./change-inspection-fixtures.mjs";
 import { inspectionActionPolicy } from "./change-inspection-actions.mjs";
+import { applyInspectionIntent } from "./change-inspection-intent.mjs";
 
 export { getPrimaryAction } from "./change-inspection-actions.mjs";
 
 export const journeyStages = [
   { id: "pre-change", label: "变更前准入", hint: "确认是否具备灰度条件" },
-  { id: "canary", label: "灰度持续验证", hint: "逐阶段比较 canary 与 stable" },
+  {
+    id: "canary",
+    label: "灰度持续验证",
+    hint: "逐阶段比较灰度版本与稳定版本",
+  },
   { id: "post-change", label: "变更后验收", hint: "对比基线并形成最终结论" },
 ];
 
@@ -16,8 +21,8 @@ export function createChangeInspectionState() {
   return {
     kind: "ChangeInspectionCase",
     id: "CIC-2026-0718",
-    service: "payments-router",
-    version: "v3.18.0",
+    service: "待识别服务",
+    version: "待识别版本",
     environment: "生产环境",
     changeId: "CHG-23841",
     stage: "draft",
@@ -65,10 +70,6 @@ function nextRun(state, run) {
   };
 }
 
-function appendConversation(state, ...messages) {
-  return [...state.conversation, ...messages];
-}
-
 function blockForComparability(state) {
   return {
     ...state,
@@ -88,7 +89,7 @@ function blockForFreshness(state) {
       status: "unknown",
       label: "不可判定",
       title: "证据已过期，不能继续放量",
-      summary: "请刷新指标窗口，产生新的验证 Run。",
+      summary: "请刷新指标窗口，产生新的复验记录。",
     },
   };
 }
@@ -100,34 +101,8 @@ export function changeInspectionReducer(state, action) {
       return createChangeInspectionState();
     case "REPORT_EXPLANATION_REQUESTED":
       return inspectionActionPolicy.explain(state);
-    case "INTENT_SUBMITTED": {
-      const text = action.text?.trim();
-      if (!text) return state;
-      return {
-        ...state,
-        plan: {
-          ...state.plan,
-          status: "ready",
-          version: 1,
-          intent: text,
-          checks: inspectionChecks,
-        },
-        decision: {
-          status: "ready",
-          label: "方案待确认",
-          title: "已生成覆盖 5 个风险面的巡检方案",
-          summary: "范围、阈值、基线和频率已就绪，确认后执行变更前巡检。",
-        },
-        conversation: appendConversation(
-          state,
-          { role: "user", text },
-          {
-            role: "assistant",
-            text: "已识别 payments-router v3.18.0，并生成 5 个检查项。请在左侧确认方案。",
-          },
-        ),
-      };
-    }
+    case "INTENT_SUBMITTED":
+      return applyInspectionIntent(state, action.text, createInspectionChecks);
 
     case "COMPARABILITY_INVALIDATED":
       return blockForComparability({
@@ -219,7 +194,7 @@ export function changeInspectionReducer(state, action) {
           status: "risk",
           label: "发现风险",
           title: "暂停在 25% 灰度",
-          summary: "canary 延迟显著高于 stable，建议扩容连接池后重新验证。",
+          summary: "灰度版本延迟显著高于稳定版本，建议扩容连接池后重新验证。",
         },
       };
     }
@@ -234,7 +209,7 @@ export function changeInspectionReducer(state, action) {
           status: "working",
           label: "等待验证",
           title: "已记录处置：连接池上限 80 → 120",
-          summary: "需要产生新的 Verification Run，历史风险 Run 保持不变。",
+          summary: "需要产生新的复验记录，历史风险记录保持不变。",
         },
         decisions: [
           ...state.decisions,
@@ -274,7 +249,7 @@ export function changeInspectionReducer(state, action) {
           status: "working",
           label: "等待验证",
           title: "指标窗口已刷新",
-          summary: "需要产生新的 Verification Run，旧执行证据保持不变。",
+          summary: "需要产生新的复验记录，旧执行证据保持不变。",
         },
       };
 
@@ -321,7 +296,7 @@ export function changeInspectionReducer(state, action) {
           status: "passed",
           label: "验收通过",
           title: "本次变更未发现异常退化",
-          summary: "最终报告已生成，包含全部 Run、Finding 和 DecisionRecord。",
+          summary: "最终报告已生成，包含全部巡检、风险和决策记录。",
         },
         decisions,
         reportSnapshot: {

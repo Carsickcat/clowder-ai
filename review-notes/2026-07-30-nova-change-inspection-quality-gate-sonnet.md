@@ -36,6 +36,8 @@
 | AC-9  | 通过 | 基线不可比与证据过期均为 `不可判定`，不会暴露准入或放量动作。           |
 | AC-10 | 通过 | 两类阻断均能在同一 Case 内纠正，且不会越过后续执行动作。                |
 | AC-11 | 通过 | 报告页面、时间线摘要与 Claw 解读全部来自同一 `ReportSnapshot`。         |
+| AC-12 | 通过 | 意图解析从本次输入提取服务与版本；信息不全时进入澄清态，不生成方案或 Run。 |
+| AC-13 | 通过 | 输入框初始为空；主界面的内部对象名已替换为中文用户语言。                |
 
 ## 产品原子能力
 
@@ -74,6 +76,10 @@ desktop/720/mobile, console 0.
 7. `不可判定` 只有禁用 CTA 和 demo reset；补充同一 Case 内的基线恢复与证据刷新动作。
 8. 最终报告部分文案与 Claw 解读硬编码；改为完整投影不可变 `ReportSnapshot`。
 9. 录屏脚本仍依赖旧的一步复验；同步为两步真实旅程后重新生成动态证据。
+10. 任意自然语言输入都会被套用 `payments-router v3.18.0`；新增意图解析与缺参澄清，禁止伪造服务上下文。
+11. 输入框预填完整请求会让演示看起来像用户已输入；改为空输入，仅以 placeholder 提供示例，并在空输入时禁用提交。
+12. 页面仍暴露 `Run`、`DecisionRecord`、`ReportSnapshot` 等内部术语；替换为“巡检记录、决策、报告快照”等中文用户语言。
+13. 基线从可比变为不可比后，Claw 仍显示绿色“已完成”；改为互斥的琥珀色补充信息状态。
 
 ## 视觉证据映射
 
@@ -96,7 +102,7 @@ desktop/720/mobile, console 0.
 ```text
 npm run check
   format:check: all matched files use Prettier
-  node tests: 37 passed, 0 failed
+  node tests: 41 passed, 0 failed
   Vite build: exit 0
 
 npm run test:browser

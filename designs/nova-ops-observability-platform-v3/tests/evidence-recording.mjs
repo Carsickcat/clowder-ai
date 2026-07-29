@@ -20,6 +20,9 @@ const video = page.video();
 
 await page.goto(baseUrl, { waitUntil: "networkidle" });
 await page.waitForTimeout(1200);
+await page
+  .getByLabel("描述巡检需求")
+  .fill("请帮我巡检 payments-router v3.18.0 是否可以灰度发布");
 await page.getByRole("button", { name: "生成巡检方案" }).click();
 await page.getByTestId("inspection-plan").waitFor();
 await page.waitForTimeout(1800);
@@ -34,7 +37,7 @@ await page
   .getByText("已记录处置：连接池上限 80 → 120", { exact: true })
   .waitFor();
 await page.waitForTimeout(1200);
-await page.getByRole("button", { name: "执行 Verification Run" }).click();
+await page.getByRole("button", { name: "执行复验" }).click();
 await page.getByText("可以继续到 100% 放量", { exact: true }).waitFor();
 await page.waitForTimeout(1800);
 await page.getByRole("button", { name: "继续到 100% 放量" }).click();

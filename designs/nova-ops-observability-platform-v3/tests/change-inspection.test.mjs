@@ -24,7 +24,9 @@ function completeCase() {
     state = reduce(
       state,
       type,
-      type === "INTENT_SUBMITTED" ? { text: "巡检" } : {},
+      type === "INTENT_SUBMITTED"
+        ? { text: "请巡检 payments-router v3.18.0 是否可以灰度发布" }
+        : {},
     );
   }
   return state;
@@ -59,7 +61,7 @@ test("one case completes pre-change, canary verification, and post-change accept
   state = reduce(state, "REMEDIATION_RECORDED");
   assert.equal(state.decision.status, "working");
   assert.equal(state.runs.length, 2);
-  assert.equal(getPrimaryAction(state).label, "执行 Verification Run");
+  assert.equal(getPrimaryAction(state).label, "执行复验");
 
   state = reduce(state, "VERIFICATION_RAN");
   assert.equal(state.runs.at(-1).purpose, "verification");
@@ -84,10 +86,39 @@ test("one case completes pre-change, canary verification, and post-change accept
   assert.equal(getPrimaryAction(state).label, "查看最终报告");
 });
 
+test("natural language intent creates the plan for the requested service and version", () => {
+  let state = createChangeInspectionState();
+  state = reduce(state, "INTENT_SUBMITTED", {
+    text: "请检查 inventory-service v2.4 是否可以灰度",
+  });
+
+  assert.equal(state.service, "inventory-service");
+  assert.equal(state.version, "v2.4");
+  assert.equal(state.plan.status, "ready");
+  assert.equal(
+    state.plan.checks.at(-1).metric,
+    "inventory-service.business.success.rate",
+  );
+  assert.match(state.conversation.at(-1).text, /inventory-service v2\.4/);
+});
+
+test("missing service or version asks for clarification instead of fabricating a plan", () => {
+  let state = createChangeInspectionState();
+  state = reduce(state, "INTENT_SUBMITTED", {
+    text: "请帮我检查支付服务",
+  });
+
+  assert.equal(state.plan.status, "clarification");
+  assert.equal(state.runs.length, 0);
+  assert.equal(state.decision.label, "需要补充信息");
+  assert.match(state.conversation.at(-1).text, /服务名和版本号/);
+  assert.equal(getPrimaryAction(state).disabled, true);
+});
+
 test("an incomparable baseline blocks admission and can be restored in the same case", () => {
   let state = createChangeInspectionState();
   state = reduce(state, "INTENT_SUBMITTED", {
-    text: "检查 payments-router",
+    text: "检查 payments-router v3.18.0",
   });
   state = reduce(state, "COMPARABILITY_INVALIDATED");
   state = reduce(state, "PLAN_CONFIRMED");
@@ -106,7 +137,9 @@ test("an incomparable baseline blocks admission and can be restored in the same 
 
 test("stale evidence blocks progression and requires refresh plus a new verification run", () => {
   let state = createChangeInspectionState();
-  state = reduce(state, "INTENT_SUBMITTED", { text: "检查支付服务" });
+  state = reduce(state, "INTENT_SUBMITTED", {
+    text: "检查 payments-router v3.18.0",
+  });
   state = reduce(state, "PLAN_CONFIRMED");
   state = reduce(state, "CANARY_APPROVED");
   state = reduce(state, "REMEDIATION_RECORDED");

@@ -65,9 +65,7 @@ async function finishJourney(page) {
 
   await page.getByRole("button", { name: "批准进入 25% 灰度" }).click();
   await page.getByText("暂停在 25% 灰度", { exact: true }).waitFor();
-  await page
-    .getByText("连接池在 canary 实例出现排队", { exact: true })
-    .waitFor();
+  await page.getByText("连接池在灰度实例出现排队", { exact: true }).waitFor();
 
   await page.getByRole("button", { name: "记录处置" }).click();
   await page
@@ -78,7 +76,7 @@ async function finishJourney(page) {
     2,
     "recording remediation must not silently execute verification",
   );
-  await page.getByRole("button", { name: "执行 Verification Run" }).click();
+  await page.getByRole("button", { name: "执行复验" }).click();
   await page.getByText("可以继续到 100% 放量", { exact: true }).waitFor();
   assert.equal(
     await page.locator(".ci-run-item").count(),
@@ -109,6 +107,7 @@ async function desktopJourney() {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
 
   await page.locator('[data-screen="change-inspection"]').waitFor();
+  await page.getByRole("heading", { name: "待识别服务 待识别版本" }).waitFor();
   await page.getByText("变更前准入", { exact: true }).waitFor();
   await page.getByText("灰度持续验证", { exact: true }).waitFor();
   await page.getByText("变更后验收", { exact: true }).waitFor();
@@ -117,9 +116,15 @@ async function desktopJourney() {
     0,
     "the change journey must not render the old product menu",
   );
+  assert.equal(
+    await page.getByRole("button", { name: "生成巡检方案" }).isDisabled(),
+    true,
+    "the example prompt cannot be submitted without explicit user input",
+  );
   await assertNoHorizontalOverflow(page, "desktop initial state");
   await capture(page, "01-change-inspection-request-desktop.png");
 
+  await submitIntent(page);
   await page.locator(".ci-demo-controls summary").click();
   await page.getByRole("button", { name: "模拟基线不可比" }).click();
   await page
@@ -130,11 +135,16 @@ async function desktopJourney() {
     0,
     "an incomparable baseline must remove the admission action",
   );
+  await page.getByText("Claw 需要补充", { exact: true }).waitFor();
+  assert.equal(
+    await page.getByText("Claw 已完成", { exact: true }).count(),
+    0,
+    "Claw cannot claim completion while the baseline is incomparable",
+  );
   await capture(page, "02-change-inspection-unknown-desktop.png");
 
   await page.getByRole("button", { name: "补充可比基线并重新判定" }).click();
   await page.getByText("基线可比性已恢复", { exact: true }).waitFor();
-  await submitIntent(page);
   await capture(page, "03-change-inspection-plan-desktop.png");
 
   await page.getByRole("button", { name: "确认方案并执行变更前巡检" }).click();
@@ -147,7 +157,7 @@ async function desktopJourney() {
   await page
     .getByText("已记录处置：连接池上限 80 → 120", { exact: true })
     .waitFor();
-  await page.getByRole("button", { name: "执行 Verification Run" }).click();
+  await page.getByRole("button", { name: "执行复验" }).click();
   await page.getByText("可以继续到 100% 放量", { exact: true }).waitFor();
   await page.getByRole("button", { name: "继续到 100% 放量" }).click();
   await page.getByRole("button", { name: "执行变更后验收" }).click();
@@ -193,7 +203,14 @@ async function intermediateResponsiveCheck() {
   const page = await trackedPage(context);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.locator('[data-screen="change-inspection"]').waitFor();
-  await submitIntent(page);
+  await page
+    .getByLabel("描述巡检需求")
+    .fill("请检查 inventory-service v2.4 是否可以灰度");
+  await page.getByRole("button", { name: "生成巡检方案" }).click();
+  await page.getByRole("heading", { name: "inventory-service v2.4" }).waitFor();
+  await page
+    .getByText("inventory-service.business.success.rate", { exact: true })
+    .waitFor();
   await assertNoHorizontalOverflow(page, "720px plan state");
   await context.close();
 }

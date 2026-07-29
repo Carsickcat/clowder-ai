@@ -3,7 +3,7 @@ export const inspectionChecks = [
     id: "latency",
     name: "请求延迟",
     metric: "http.server.duration.p95",
-    rule: "相对 stable 增幅 ≤ 10%",
+    rule: "相对稳定版本增幅 ≤ 10%",
   },
   {
     id: "errors",
@@ -30,6 +30,19 @@ export const inspectionChecks = [
     rule: "相对基线下降 < 0.30%",
   },
 ];
+
+export function createInspectionChecks(service) {
+  if (service.includes("payment")) return inspectionChecks;
+  return inspectionChecks.map((check) =>
+    check.id === "business"
+      ? {
+          ...check,
+          name: "核心业务成功率",
+          metric: `${service}.business.success.rate`,
+        }
+      : check,
+  );
+}
 
 export const runFixtures = {
   admission: {
@@ -58,7 +71,7 @@ export const runFixtures = {
     label: "25% 灰度持续巡检",
     time: "10:18",
     summary: "发现支付回调 p95 延迟异常，已暂停自动放量",
-    comparison: "canary 25% vs stable 75%，同一 10 分钟窗口",
+    comparison: "灰度版本 25% 对比稳定版本 75%，同一 10 分钟窗口",
     metrics: [
       { name: "p95 延迟", value: "263 ms", delta: "+17.8%", status: "risk" },
       { name: "错误率", value: "0.22%", delta: "+0.03pp", status: "passed" },
@@ -76,8 +89,8 @@ export const runFixtures = {
     result: "passed",
     label: "处置后重新验证",
     time: "10:31",
-    summary: "延迟恢复，canary 与 stable 差异回到阈值内",
-    comparison: "处置后 canary 25% vs stable 75%",
+    summary: "延迟恢复，灰度版本与稳定版本的差异回到阈值内",
+    comparison: "处置后灰度版本 25% 对比稳定版本 75%",
     metrics: [
       { name: "p95 延迟", value: "218 ms", delta: "+6.2%", status: "passed" },
       { name: "错误率", value: "0.19%", delta: "+0.01pp", status: "passed" },
@@ -115,7 +128,7 @@ export const runFixtures = {
     label: "变更后验收巡检",
     time: "11:22",
     summary: "变更前后无异常退化，本次变更验收通过",
-    comparison: "变更后 15 分钟 vs 变更前 BaselineSnapshot",
+    comparison: "变更后 15 分钟对比变更前基线快照",
     metrics: [
       { name: "p95 延迟", value: "198 ms", delta: "+3.1%", status: "passed" },
       { name: "错误率", value: "0.19%", delta: "+0.01pp", status: "passed" },

@@ -46,7 +46,7 @@ export function ChangeInspectionApp() {
         <RunTimeline onReportOpen={openReport} state={state} />
       </main>
       <footer className="ci-page-footer">
-        <span>NOVA Change Inspection</span>
+        <span>NOVA · 变更巡检</span>
         <span>所有数据均为演示，不会触发真实生产动作</span>
       </footer>
     </div>
