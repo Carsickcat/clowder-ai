@@ -13,38 +13,43 @@
  * Exit 1: tailscale CLI failed or mappings still missing after repair.
  */
 import { execFileSync } from 'node:child_process';
+import { probeF010PublicRuntime } from './lib/f010-public-runtime-health.mjs';
 import { findMissingF010ServeMappings } from './lib/f010-tailscale-serve-status.mjs';
 
 const TAILSCALE = process.env.TAILSCALE_BIN ?? 'C:\\Program Files\\Tailscale\\tailscale.exe';
+const PUBLIC_BASE_URL = process.env.F010_PUBLIC_BASE_URL ?? 'https://desktop-9o1va3o.tail58c13e.ts.net:8443';
 
 function serveStatus() {
   return execFileSync(TAILSCALE, ['serve', 'status'], { encoding: 'utf8' });
 }
 
-function main() {
+async function main() {
   let status = serveStatus();
   const missing = findMissingF010ServeMappings(status);
   if (missing.length === 0) {
     console.log('OK: all F010 acceptance serve mappings present (8443 web/api/socket.io).');
-    return 0;
+  } else {
+    for (const entry of missing) {
+      console.log(`REPAIRED: ${entry.repair.join(' ')}`);
+      execFileSync(TAILSCALE, entry.repair, { stdio: 'inherit' });
+    }
+    status = serveStatus();
+    const stillMissing = findMissingF010ServeMappings(status);
+    if (stillMissing.length > 0) {
+      console.error(`FAIL: ${stillMissing.length} mapping(s) still missing after repair.`);
+      return 1;
+    }
+    console.log(`OK: repaired ${missing.length} missing mapping(s); all required mappings now present.`);
   }
-  for (const entry of missing) {
-    console.log(`REPAIRED: ${entry.repair.join(' ')}`);
-    execFileSync(TAILSCALE, entry.repair, { stdio: 'inherit' });
-  }
-  status = serveStatus();
-  const stillMissing = findMissingF010ServeMappings(status);
-  if (stillMissing.length > 0) {
-    console.error(`FAIL: ${stillMissing.length} mapping(s) still missing after repair.`);
-    return 1;
-  }
-  console.log(`OK: repaired ${missing.length} missing mapping(s); all required mappings now present.`);
+
+  const runtime = await probeF010PublicRuntime({ baseUrl: PUBLIC_BASE_URL });
+  console.log(`OK: public F010 runtime is hydrated (${runtime.scriptCount} scripts, ${runtime.catCount} members).`);
   return 0;
 }
 
 try {
-  process.exit(main());
+  process.exit(await main());
 } catch (error) {
-  console.error(`FAIL: tailscale CLI error: ${error.message}`);
+  console.error(`FAIL: ${error.message}`);
   process.exit(1);
 }

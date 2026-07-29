@@ -573,3 +573,34 @@ Boundary: the account/catalog changes live in the acceptance env config root (`%
 - Final API env: `PORT=4311`, `API_SERVER_PORT=4311`, `REDIS_URL=redis://127.0.0.1:6398/15`, `CAT_TEMPLATE_PATH` + `CAT_CAFE_(GLOBAL_)CONFIG_ROOT` = `%TEMP%\cat-cafe-f010-acceptance\config-routable-20260718`, `CAT_CAFE_ACCEPTANCE_ROSTER_GATE=1`, `FRONTEND_URL=https://desktop-9o1va3o.tail58c13e.ts.net:8443`, `FRONTEND_PORT=4310`.
 
 [烁烁/kimi-k3🐾]
+
+## 2026-07-29: public PWA hydration recovery and live-artifact guard
+
+The reporting iPhone showed the public 8443 shell permanently stuck on
+`正在加载可用成员…`. The API was healthy: local 4311, public 8443 and public 8444
+all returned five members; CORS preflight and the Socket.IO handshake were 200.
+A clean mobile browser reproduced the UI failure and identified the actual
+boundary: `/_next/static/chunks/1811-730d09a651b52616.js` returned HTTP 400.
+
+Web PID `37656` predated the current `.next` build directory. A later build had
+overwritten that mutable directory without replacing the live process, leaving
+old in-memory HTML referencing one chunk absent from the new artifact. Current
+reviewed HEAD `b0bd9a1` was rebuilt with acceptance rewrites fixed to 4311 and
+trace disabled. BUILD_ID `xzJCH4vrDcF_suYMZVflV` passed a 4312 canary (28/28
+HTML scripts HTTP 200; five members), then only Web 4310 was swapped to PID
+`59708`. API 4311, Redis, production 443 and runtime configuration were
+untouched.
+
+Public post-swap evidence: root, manifest, service worker, all 28 scripts,
+session and member API are HTTP 200; clean 390x844 browser first load and reload
+both complete member loading and render messages. The remaining
+`/api/debug/callback-auth` 403 is the intentional remote safety boundary.
+
+The existing `scripts/f010-tailscale-serve-guard.mjs` now also probes the public
+artifact: it fails on missing/non-200 HTML scripts, a scriptless shell, or an
+empty/unreadable member API. Script requests cannot redirect and must return a
+JavaScript media type, preventing an HTTP 200 HTML fallback from producing a
+false green. Focused guard tests pass 7/7; the live guard reports `28 scripts, 5
+members`.
+
+[丢丢/gpt-5.6-sol🐾]
