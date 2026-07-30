@@ -12,6 +12,8 @@ test('F010 offline demo is a self-contained mock that opens without a runtime', 
   assert.match(html, /<script>[\s\S]+<\/script>/i);
   assert.match(html, /const MOCK_THREADS\s*=/);
   assert.match(html, /data-testid="conversation"/);
+  assert.match(html, /class="mobile-offline-badge"[^>]*aria-label="离线模拟数据"[^>]*>离线 mock<\/span>/);
+  assert.match(html, /@media \(max-width: 820px\)[\s\S]*?\.mobile-offline-badge\s*\{[\s\S]*?display:\s*inline-flex/);
   assert.doesNotMatch(html, /\b(?:src|href)=["'](?:https?:)?\/\//i);
   assert.doesNotMatch(html, /\bfetch\s*\(|\bWebSocket\b|\bEventSource\b/);
 });
