@@ -2,9 +2,18 @@ import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
 
-const baseUrl = process.env.BASE_URL || "http://localhost:5290/";
+const standaloneMode = process.argv.includes("--standalone");
+const standaloneArtifactPath = resolve(
+  import.meta.dirname,
+  "..",
+  "NOVA-Ops-Intelligence-Standalone.html",
+);
+const baseUrl = standaloneMode
+  ? pathToFileURL(standaloneArtifactPath).href
+  : process.env.BASE_URL || "http://localhost:5290/";
 const executablePath =
   process.env.CHROME_PATH ||
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
@@ -18,6 +27,7 @@ mkdirSync(evidenceDir, { recursive: true });
 
 const browser = await chromium.launch({ executablePath, headless: true });
 const failures = [];
+const networkRequests = [];
 const prompt = "请帮我巡检 payments-router v3.18.0 是否可以灰度发布";
 
 async function trackedPage(context) {
@@ -26,6 +36,11 @@ async function trackedPage(context) {
     if (message.type() === "error") failures.push(`console: ${message.text()}`);
   });
   page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
+  page.on("request", (request) => {
+    if (standaloneMode && /^https?:/i.test(request.url())) {
+      networkRequests.push(request.url());
+    }
+  });
   return page;
 }
 
@@ -257,8 +272,15 @@ try {
     [],
     `browser console failures:\n${failures.join("\n")}`,
   );
+  if (standaloneMode) {
+    assert.deepEqual(
+      networkRequests,
+      [],
+      `standalone golden path cannot use the network:\n${networkRequests.join("\n")}`,
+    );
+  }
   process.stdout.write(
-    "Browser golden paths passed: Chinese single journey, custom-service evidence truth, clarification and unknown blockers, pre-change admission, canary verification, post-change report, desktop/720/mobile, console 0.\n",
+    `Browser golden paths passed${standaloneMode ? " against committed file:// artifact" : ""}: Chinese single journey, custom-service evidence truth, clarification and unknown blockers, pre-change admission, canary verification, post-change report, desktop/720/mobile, console 0${standaloneMode ? ", network 0" : ""}.\n`,
   );
 } finally {
   await browser.close();
