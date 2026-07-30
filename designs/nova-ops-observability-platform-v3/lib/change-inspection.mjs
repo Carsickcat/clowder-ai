@@ -3,6 +3,7 @@ import {
   createRunFixture,
 } from "./change-inspection-fixtures.mjs";
 import { deepFreeze } from "./change-inspection-immutability.mjs";
+import { createCaseFromJob } from "./change-inspection-jobs.mjs";
 import { inspectionActionPolicy } from "./change-inspection-actions.mjs";
 import { applyInspectionIntent } from "./change-inspection-intent.mjs";
 
@@ -22,6 +23,7 @@ export function createChangeInspectionState() {
   return deepFreeze({
     kind: "ChangeInspectionCase",
     id: "CIC-2026-0718",
+    sourceJob: null,
     service: "待识别服务",
     version: "待识别版本",
     environment: "生产环境",
@@ -102,6 +104,14 @@ function reduceInspectionState(state, action) {
   switch (action.type) {
     case "CASE_RESET":
       return createChangeInspectionState();
+    case "JOB_SELECTED":
+      return (
+        createCaseFromJob(
+          createChangeInspectionState(),
+          action.jobId,
+          createInspectionChecks,
+        ) ?? state
+      );
     case "REPORT_EXPLANATION_REQUESTED":
       return inspectionActionPolicy.explain(state);
     case "INTENT_SUBMITTED":
@@ -314,7 +324,7 @@ function reduceInspectionState(state, action) {
         decisions,
         reportSnapshot: {
           kind: "ReportSnapshot",
-          id: "RPT-CHG-23841-V1",
+          id: `RPT-${state.changeId}-V1`,
           service: state.service,
           version: state.version,
           status: "published",

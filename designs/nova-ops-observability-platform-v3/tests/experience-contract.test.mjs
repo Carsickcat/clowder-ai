@@ -33,6 +33,25 @@ test("the product opens directly into one Chinese change inspection journey", ()
   );
 });
 
+test("the journey includes reusable saved jobs without creating a second product shell", () => {
+  const app = read("components", "change-inspection", "ChangeInspectionApp.js");
+  const jobs = read("lib", "change-inspection-jobs.mjs");
+  const domain = read("lib", "change-inspection.mjs");
+
+  assert.match(app, /InspectionJobPlatform/);
+  assert.match(app, /JOB_SELECTED/);
+  assert.match(jobs, /InspectionJobTemplate/);
+  assert.match(jobs, /支付路由灰度巡检/);
+  assert.match(jobs, /库存服务发布巡检/);
+  assert.match(jobs, /结算链路日常巡检/);
+  assert.match(domain, /sourceJob/);
+  assert.doesNotMatch(
+    app,
+    /AppShell|primary-nav|side-nav/,
+    "saved jobs belong to the same journey rather than another product menu",
+  );
+});
+
 test("the workspace answers task, conclusion, and next action in every state", () => {
   const surface = read("components", "change-inspection", "DecisionSurface.js");
   const domain = read("lib", "change-inspection.mjs");
@@ -196,7 +215,9 @@ test("all new implementation files stay within the frontend size boundary", () =
     ["lib", "change-inspection.mjs"],
     ["lib", "change-inspection-intent.mjs"],
     ["lib", "change-inspection-immutability.mjs"],
+    ["lib", "change-inspection-jobs.mjs"],
     ["components", "change-inspection", "ChangeInspectionApp.js"],
+    ["components", "change-inspection", "InspectionJobPlatform.js"],
     ["components", "change-inspection", "JourneyHeader.js"],
     ["components", "change-inspection", "DecisionSurface.js"],
     ["components", "change-inspection", "ClawPanel.js"],

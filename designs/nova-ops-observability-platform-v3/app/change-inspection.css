@@ -251,16 +251,195 @@
   padding-block: 20px 48px;
 }
 
+.ci-job-platform {
+  border: 1px solid #1c2c3a;
+  border-radius: 14px;
+  background: rgb(14 22 30 / 94%);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 15%);
+  padding: 16px;
+}
+
+.ci-job-platform > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ci-job-platform h2 {
+  margin: 5px 0 0;
+  font-size: 16px;
+}
+
+.ci-new-job-button {
+  min-height: 30px;
+  border: 1px solid rgb(115 167 255 / 30%);
+  border-radius: 8px;
+  background: rgb(115 167 255 / 8%);
+  color: #a9caff;
+  cursor: pointer;
+  padding: 0 9px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ci-new-job-button:disabled,
+.ci-job-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.ci-job-intro {
+  margin: 14px 0;
+  color: #778b9e;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.ci-job-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ci-job-card {
+  min-width: 0;
+  border: 1px solid #20313f;
+  border-radius: 10px;
+  background: #101a23;
+  color: #dce7f0;
+  cursor: pointer;
+  padding: 11px;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.ci-job-card:hover:not(:disabled) {
+  border-color: #365777;
+  background: #132231;
+  transform: translateY(-1px);
+}
+
+.ci-job-card-active {
+  border-color: rgb(93 211 163 / 48%);
+  background: rgb(93 211 163 / 7%);
+  box-shadow: inset 2px 0 0 var(--ci-mint);
+}
+
+.ci-job-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ci-job-card-topline time {
+  color: #5f7487;
+  font-family: var(--mono, monospace);
+  font-size: 8px;
+}
+
+.ci-job-result {
+  border-radius: 999px;
+  padding: 3px 6px;
+  font-size: 8px;
+  font-weight: 750;
+}
+
+.ci-job-result-passed {
+  background: rgb(93 211 163 / 10%);
+  color: #7de1b8;
+}
+
+.ci-job-result-risk {
+  background: rgb(255 119 125 / 11%);
+  color: #ff969b;
+}
+
+.ci-job-result-unknown {
+  background: rgb(170 141 245 / 12%);
+  color: #bea9f5;
+}
+
+.ci-job-card > strong,
+.ci-job-card > small,
+.ci-job-card > code {
+  display: block;
+}
+
+.ci-job-card > strong {
+  font-size: 11px;
+}
+
+.ci-job-card > small {
+  margin-top: 4px;
+  color: #6f8497;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.ci-job-card > code {
+  margin-top: 9px;
+  color: #90a6ba;
+  font-family: var(--mono, monospace);
+  font-size: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-job-platform > footer {
+  margin-top: 13px;
+  border-top: 1px solid #1b2a37;
+  padding-top: 11px;
+  color: #687d90;
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 7px;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.ci-job-platform > footer p {
+  margin: 0;
+}
+
+.ci-job-platform > footer span {
+  color: var(--ci-mint);
+}
+
+.ci-job-platform > footer.ci-job-lock-active span {
+  color: var(--ci-amber);
+}
+
 .inspection-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-areas: "jobs decision claw";
+  grid-template-columns: 230px minmax(0, 1fr) 340px;
   align-items: start;
   gap: 18px;
+}
+
+.inspection-job-column {
+  grid-area: jobs;
+  min-width: 0;
 }
 
 .inspection-decision-column,
 .inspection-claw-column {
   min-width: 0;
+}
+
+.inspection-decision-column {
+  grid-area: decision;
+}
+
+.inspection-claw-column {
+  grid-area: claw;
 }
 
 .ci-decision-surface,
@@ -1092,13 +1271,26 @@
   font-size: 9px;
 }
 
+@media (max-width: 1180px) {
+  .inspection-layout {
+    grid-template-areas:
+      "jobs jobs"
+      "decision claw";
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  .ci-job-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 980px) {
   .ci-case-context dl {
     gap: 16px;
   }
 
   .inspection-layout {
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(0, 1fr) 300px;
   }
 }
 
@@ -1159,7 +1351,19 @@
   }
 
   .inspection-layout {
+    grid-template-areas:
+      "jobs"
+      "decision"
+      "claw";
     grid-template-columns: 1fr;
+  }
+
+  .ci-job-list {
+    grid-template-columns: 1fr;
+  }
+
+  .inspection-job-column {
+    order: 0;
   }
 
   .inspection-decision-column {

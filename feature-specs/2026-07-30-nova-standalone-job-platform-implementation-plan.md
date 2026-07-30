@@ -59,10 +59,12 @@ InspectionJobTemplate = deepFreeze({
 
 ChangeInspectionCase = deepFreeze({
   ...existingCaseFields,
-  sourceJob: null | {
-    id,
-    name,
-  },
+  sourceJob:
+    null |
+    {
+      id,
+      name,
+    },
 });
 ```
 
@@ -72,22 +74,22 @@ The template library is immutable fixture data. `sourceJob` is provenance copied
 
 ### Object Census
 
-| Object | Lifecycle owner | Storage | Notes |
-| --- | --- | --- | --- |
-| `InspectionJobTemplate` | `change-inspection-jobs.mjs` | Immutable fixture | Read-only demo catalog |
-| `ChangeInspectionCase` | `changeInspectionReducer` | React reducer state | Existing state machine, extended with template provenance |
-| `InspectionRun` / evidence objects | `changeInspectionReducer` | Nested in Case | Never copied from a template or previous Case |
+| Object                             | Lifecycle owner              | Storage             | Notes                                                     |
+| ---------------------------------- | ---------------------------- | ------------------- | --------------------------------------------------------- |
+| `InspectionJobTemplate`            | `change-inspection-jobs.mjs` | Immutable fixture   | Read-only demo catalog                                    |
+| `ChangeInspectionCase`             | `changeInspectionReducer`    | React reducer state | Existing state machine, extended with template provenance |
+| `InspectionRun` / evidence objects | `changeInspectionReducer`    | Nested in Case      | Never copied from a template or previous Case             |
 
 ### State × Event Transition Table
 
-| Current Case state | Event | Result |
-| --- | --- | --- |
-| `draft` | `JOB_SELECTED(jobId)` | Replace with a fresh draft Case whose plan is ready and whose evidence arrays are empty |
-| `completed` | `JOB_SELECTED(jobId)` | Start a fresh draft Case from the selected template |
-| `pre-change` / `canary` / `post-change` | `JOB_SELECTED(jobId)` | Reject/no-op; active evidence cannot be discarded silently |
-| any | `CASE_RESET` | Return to a blank draft Case with `sourceJob: null` |
-| template-backed `draft` | `PLAN_CONFIRMED` | Create the first admission Run exactly as the existing journey does |
-| any | unknown `jobId` | Reject/no-op; never fabricate a template |
+| Current Case state                      | Event                 | Result                                                                                  |
+| --------------------------------------- | --------------------- | --------------------------------------------------------------------------------------- |
+| `draft`                                 | `JOB_SELECTED(jobId)` | Replace with a fresh draft Case whose plan is ready and whose evidence arrays are empty |
+| `completed`                             | `JOB_SELECTED(jobId)` | Start a fresh draft Case from the selected template                                     |
+| `pre-change` / `canary` / `post-change` | `JOB_SELECTED(jobId)` | Reject/no-op; active evidence cannot be discarded silently                              |
+| any                                     | `CASE_RESET`          | Return to a blank draft Case with `sourceJob: null`                                     |
+| template-backed `draft`                 | `PLAN_CONFIRMED`      | Create the first admission Run exactly as the existing journey does                     |
+| any                                     | unknown `jobId`       | Reject/no-op; never fabricate a template                                                |
 
 ### Invariants
 
@@ -101,14 +103,14 @@ The template library is immutable fixture data. `sourceJob` is provenance copied
 
 ### Adversarial Test Matrix
 
-| Scenario | Expected proof |
-| --- | --- |
-| Select template, then inspect state before confirmation | Plan ready; all evidence collections empty |
-| Select template A, start canary, attempt template B | Reducer returns the same Case |
-| Complete template A, then select template B | New draft Case contains B provenance and no A evidence |
-| Select unknown template ID | Reducer returns the same Case |
-| Mutate template or nested last-run metadata | Throws `TypeError` |
-| Open standalone at `file://`, use a saved job through completion | Full journey passes; network 0; console 0 |
+| Scenario                                                         | Expected proof                                         |
+| ---------------------------------------------------------------- | ------------------------------------------------------ |
+| Select template, then inspect state before confirmation          | Plan ready; all evidence collections empty             |
+| Select template A, start canary, attempt template B              | Reducer returns the same Case                          |
+| Complete template A, then select template B                      | New draft Case contains B provenance and no A evidence |
+| Select unknown template ID                                       | Reducer returns the same Case                          |
+| Mutate template or nested last-run metadata                      | Throws `TypeError`                                     |
+| Open standalone at `file://`, use a saved job through completion | Full journey passes; network 0; console 0              |
 
 ## Implementation Tasks
 
@@ -174,4 +176,3 @@ The template library is immutable fixture data. `sourceJob` is provenance copied
 3. Verify the leader demo path and one blocked path.
 4. Commit only owned source, tests, docs, and the standalone artifact.
 5. Request cross-individual review; do not include reviewer-owned dirty evidence files.
-

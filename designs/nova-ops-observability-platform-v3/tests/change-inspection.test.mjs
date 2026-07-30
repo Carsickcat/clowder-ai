@@ -6,6 +6,7 @@ import {
   createChangeInspectionState,
   getPrimaryAction,
 } from "../lib/change-inspection.mjs";
+import { inspectionJobTemplates } from "../lib/change-inspection-jobs.mjs";
 
 const reduce = (state, type, payload = {}) =>
   changeInspectionReducer(state, { type, ...payload });
@@ -31,6 +32,71 @@ function completeCase() {
   }
   return state;
 }
+
+test("publishes a deeply immutable library of reusable inspection jobs", () => {
+  const jobs = inspectionJobTemplates;
+
+  assert.ok(Array.isArray(jobs), "the domain must export saved jobs");
+  assert.ok(jobs.length >= 3, "the leader demo needs a credible job library");
+  assert.ok(jobs.every((job) => job.kind === "InspectionJobTemplate"));
+  assert.ok(jobs.every((job) => Object.isFrozen(job)));
+  assert.ok(jobs.every((job) => Object.isFrozen(job.lastRun)));
+  assert.throws(() => {
+    jobs.at(0).lastRun.result = "tampered";
+  }, TypeError);
+});
+
+test("selecting a saved job creates a fresh reviewable case without evidence", () => {
+  const empty = createChangeInspectionState();
+  const state = reduce(empty, "JOB_SELECTED", {
+    jobId: "JOB-PAYMENTS-CANARY",
+  });
+
+  assert.notEqual(state, empty);
+  assert.deepEqual(state.sourceJob, {
+    id: "JOB-PAYMENTS-CANARY",
+    name: "支付路由灰度巡检",
+  });
+  assert.equal(state.service, "payments-router");
+  assert.equal(state.version, "v3.18.0");
+  assert.equal(state.plan.status, "ready");
+  assert.equal(state.plan.checks.length, 5);
+  assert.equal(state.runs.length, 0);
+  assert.equal(state.findings.length, 0);
+  assert.equal(state.decisions.length, 0);
+  assert.equal(state.baselineSnapshot, null);
+  assert.equal(state.reportSnapshot, null);
+  assert.equal(getPrimaryAction(state).type, "PLAN_CONFIRMED");
+});
+
+test("saved jobs cannot replace an active case but can start after completion", () => {
+  let active = createChangeInspectionState();
+  active = reduce(active, "JOB_SELECTED", {
+    jobId: "JOB-PAYMENTS-CANARY",
+  });
+  active = reduce(active, "PLAN_CONFIRMED");
+  const rejectedSwitch = reduce(active, "JOB_SELECTED", {
+    jobId: "JOB-INVENTORY-RELEASE",
+  });
+
+  assert.equal(rejectedSwitch, active);
+
+  const completed = completeCase();
+  const next = reduce(completed, "JOB_SELECTED", {
+    jobId: "JOB-INVENTORY-RELEASE",
+  });
+  assert.notEqual(next, completed);
+  assert.equal(next.stage, "draft");
+  assert.equal(next.service, "inventory-service");
+  assert.equal(next.version, "v2.4");
+  assert.equal(next.sourceJob.id, "JOB-INVENTORY-RELEASE");
+  assert.equal(next.runs.length, 0);
+  assert.equal(next.reportSnapshot, null);
+
+  const reset = reduce(next, "CASE_RESET");
+  assert.equal(reset.sourceJob, null);
+  assert.equal(reset.plan.status, "empty");
+});
 
 test("one case completes pre-change, canary verification, and post-change acceptance", () => {
   let state = createChangeInspectionState();

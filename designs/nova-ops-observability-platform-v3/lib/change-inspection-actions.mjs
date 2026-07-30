@@ -8,6 +8,9 @@ const draftOnly = new Set([
 export const inspectionActionPolicy = {
   allows(state, type) {
     if (draftOnly.has(type)) return state.stage === "draft";
+    if (type === "JOB_SELECTED") {
+      return state.stage === "draft" || state.stage === "completed";
+    }
     if (type === "EVIDENCE_BECAME_STALE") return state.stage === "canary";
     if (type === "EVIDENCE_REFRESHED") {
       return state.stage === "canary" && state.evidenceFreshness === "stale";

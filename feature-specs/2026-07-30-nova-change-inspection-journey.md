@@ -1,7 +1,7 @@
 # NOVA 变更巡检旅程
 
 **Feature:** NOVA Change Inspection Journey  
-**Goal:** 用户从一句自然语言请求出发，在一个工作区内完成变更前准入、灰度持续验证和变更后验收。  
+**Goal:** 用户可从一句自然语言请求或已固化的巡检作业出发，在一个工作区内完成变更前准入、灰度持续验证和变更后验收。
 **Architecture cell:** Prototype-local frontend projection  
 **Map delta:** none  
 **Map delta why:** 只重构高保真原型的主对象、状态与交互，不增加后端、生产连接器或持久化契约。  
@@ -16,7 +16,7 @@
 3. 对话与页面分别负责什么？
 4. 页面如何投影当前任务，而不是展示产品能力目录？
 
-本轮答案：一个 `ChangeInspectionCase`，一个工作区，三个阶段；没有七菜单全局导航。
+本轮答案：一个作业平台入口，一个 `ChangeInspectionCase` 工作区，三个执行阶段；没有七菜单全局导航。
 
 ## 用户故事
 
@@ -29,11 +29,29 @@
 5. 异常时停止在当前阶段，并给我证据和处置建议；
 6. 变更完成后与变更前基线比较，生成最终验收报告。
 
+作为经常发布同一服务的负责人，我还可以：
+
+1. 在作业平台看到已经固化的巡检方案及最近一次运行结果；
+2. 选择一个作业，直接载入服务、版本、检查项、频率、窗口和基线；
+3. 在执行前重新审阅方案，而不是让历史作业自动触发生产动作；
+4. 每次执行都创建新的 Case、Run 和报告，不复用历史证据；
+5. 完成当前巡检后继续启动另一个作业，或新建空白巡检。
+
 ## 终态对象
 
 ```js
+InspectionJobTemplate = {
+  id,
+  name,
+  service,
+  version,
+  plan,
+  lastRunSummary
+}
+
 ChangeInspectionCase = {
   id,
+  sourceJob, // null | { id, name }
   service,
   change,
   environment,
@@ -49,6 +67,7 @@ ChangeInspectionCase = {
 ```
 
 `InspectionRun` 和 `ReportSnapshot` 一经生成不可原地修改。新的验证产生新的 Run。
+`InspectionJobTemplate` 只复用检查定义，不保存或复制历史证据；选择作业只创建待确认的全新 Case。
 
 ## 状态与主动作
 
@@ -60,6 +79,13 @@ ChangeInspectionCase = {
 | canary-risk | 风险是否需要暂停？               | 记录处置并重新验证 |
 | post-change | 与变更前相比是否出现异常？       | 完成验收并生成报告 |
 | completed   | 最终结论和证据是否可追溯？       | 查看/导出报告      |
+
+作业平台的选择边界：
+
+- `draft` 或 `completed` 状态可以选择其他作业；
+- `pre-change`、`canary`、`post-change` 状态禁止静默切换作业；
+- 选择作业后方案处于待确认状态，首次 Run 仍只能由“确认方案并执行”产生；
+- “新建巡检”回到空白 Case，不保留作业来源或历史证据。
 
 阻断状态不等于结束状态：
 
@@ -108,6 +134,11 @@ ChangeInspectionCase = {
 - AC-13：输入框初始为空且只用 placeholder 给示例；用户主界面不暴露 `InspectionRun`、`DecisionRecord`、`ReportSnapshot` 等内部对象名。
 - AC-14：方案、全部 Run、Finding、BaselineSnapshot 与 ReportSnapshot 必须共享同一 Case 的 service/version，不得跨服务复用执行证据。
 - AC-15：已生成的 Run、嵌套指标、BaselineSnapshot、Finding、DecisionRecord 与 ReportSnapshot 必须深不可变；后续动作只能追加新记录。
+- AC-16：同一工作区内提供作业平台，至少展示三条已固化巡检作业及最近运行状态。
+- AC-17：选择作业只载入可审阅方案，初始 Run、Finding、Decision、Baseline 和 Report 必须为空。
+- AC-18：执行中的 Case 不能被其他作业静默替换；完成或重新开始后才能切换。
+- AC-19：作业路径必须走通与自然语言路径相同的准入、灰度风险、处置、复验、全量和验收状态机。
+- AC-20：单文件离线 HTML 必须包含作业平台与完整旅程，并在 `file://` 下保持 network 0、console error 0。
 
 ## 拒绝的替代方案
 
@@ -115,3 +146,4 @@ ChangeInspectionCase = {
 - 把 Claw 做成唯一界面：拒绝，因为执行状态、证据和决策无法稳定审计。
 - 把变更前/中/后做成三个模块：拒绝，因为用户心智里它们属于同一次变更。
 - 让聊天直接放量：拒绝，因为高风险动作缺少显式确认与可追溯记录。
+- 把作业平台做成另一套执行状态机：拒绝；作业只负责复用方案，执行仍由 `ChangeInspectionCase` 唯一拥有。

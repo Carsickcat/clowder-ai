@@ -184,6 +184,54 @@ async function desktopJourney() {
   await context.close();
 }
 
+async function savedJobJourney() {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await trackedPage(context);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+
+  await page.getByRole("heading", { name: "作业平台" }).waitFor();
+  await page.getByRole("button", { name: /库存服务发布巡检/ }).click();
+  await page.getByRole("heading", { name: "inventory-service v2.4" }).waitFor();
+  await page.getByText("已载入可复用巡检作业", { exact: true }).waitFor();
+  assert.equal(
+    await page.locator(".ci-run-item").count(),
+    0,
+    "saved jobs must not reuse historical execution evidence",
+  );
+
+  await page.getByRole("button", { name: "确认方案并执行变更前巡检" }).click();
+  await page.getByRole("button", { name: /支付路由灰度巡检/ }).waitFor();
+  assert.equal(
+    await page.getByRole("button", { name: /支付路由灰度巡检/ }).isDisabled(),
+    true,
+    "an active case cannot be silently replaced by another job",
+  );
+
+  await page.getByRole("button", { name: "批准进入 25% 灰度" }).click();
+  await page.getByRole("button", { name: "记录处置" }).click();
+  await page.getByRole("button", { name: "执行复验" }).click();
+  await page.getByRole("button", { name: "继续到 100% 放量" }).click();
+  await page.getByRole("button", { name: "执行变更后验收" }).click();
+  await page.getByTestId("final-report").waitFor();
+
+  await page.getByRole("button", { name: /支付路由灰度巡检/ }).click();
+  await page
+    .getByRole("heading", { name: "payments-router v3.18.0" })
+    .waitFor();
+  assert.equal(
+    await page.locator(".ci-run-item").count(),
+    0,
+    "a completed job starts a new case without carrying old runs",
+  );
+
+  await page.getByRole("button", { name: "新建巡检" }).click();
+  await page.getByRole("heading", { name: "待识别服务 待识别版本" }).waitFor();
+  await assertNoHorizontalOverflow(page, "saved job platform");
+  await context.close();
+}
+
 async function mobileJourney() {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -263,6 +311,7 @@ async function clarificationCheck() {
 }
 
 try {
+  await savedJobJourney();
   await desktopJourney();
   await customServiceJourney();
   await clarificationCheck();

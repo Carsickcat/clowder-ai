@@ -7,6 +7,7 @@ import {
 } from "../../lib/change-inspection.mjs";
 import { ClawPanel } from "./ClawPanel";
 import { DecisionSurface } from "./DecisionSurface";
+import { InspectionJobPlatform } from "./InspectionJobPlatform";
 import { JourneyHeader } from "./JourneyHeader";
 import { RunTimeline } from "./RunTimeline";
 
@@ -31,11 +32,22 @@ export function ChangeInspectionApp() {
     dispatch({ type });
   }
 
+  function handleJobSelect(jobId) {
+    dispatch({ type: "JOB_SELECTED", jobId });
+  }
+
   return (
     <div className="ci-app" data-screen="change-inspection">
       <JourneyHeader state={state} />
       <main className="ci-main">
         <div className="inspection-layout">
+          <div className="inspection-job-column">
+            <InspectionJobPlatform
+              onNew={() => dispatch({ type: "CASE_RESET" })}
+              onSelect={handleJobSelect}
+              state={state}
+            />
+          </div>
           <div className="inspection-decision-column">
             <DecisionSurface state={state} onAction={handlePrimaryAction} />
           </div>

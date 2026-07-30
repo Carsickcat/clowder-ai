@@ -32,7 +32,11 @@ export function JourneyHeader({ state }) {
 
       <section className="ci-case-context" aria-label="变更上下文">
         <div>
-          <span className="ci-eyebrow">当前变更巡检</span>
+          <span className="ci-eyebrow">
+            {state.sourceJob
+              ? `已载入作业 · ${state.sourceJob.name}`
+              : "当前变更巡检"}
+          </span>
           <h1>
             {state.service} <span>{state.version}</span>
           </h1>
