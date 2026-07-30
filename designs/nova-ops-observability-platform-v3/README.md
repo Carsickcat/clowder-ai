@@ -30,6 +30,19 @@ npm run build
 
 完整操作说明见 [USER-GUIDE.md](./USER-GUIDE.md)。
 
+## 单文件电脑演示
+
+直接下载
+[`NOVA-Ops-Intelligence-Standalone.html`](./NOVA-Ops-Intelligence-Standalone.html)
+并双击打开即可。文件内已经包含全部样式、交互代码和固定 Mock 数据，不需要安装
+Node.js，不需要启动进程，也不会访问网络或连接生产系统。
+
+需要从源码重新生成时运行：
+
+```bash
+npm run build:standalone
+```
+
 ## 数据边界
 
 这是固定 Mock 数据的产品原型，不连接生产系统，不执行生产变更。

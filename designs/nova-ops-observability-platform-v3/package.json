@@ -7,15 +7,17 @@
     "dev": "vinext dev -p 5290",
     "build": "npm run build:sites",
     "build:sites": "vite build --config vite.static.config.mjs && node scripts/build-static-worker.mjs",
+    "build:standalone": "npm run build:sites && node scripts/build-standalone.mjs",
     "build:vinext": "vinext build && node scripts/prepare-dist.mjs",
     "start": "vinext start -p 5290",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "node tests/golden-path.browser.mjs",
     "test:browser:evidence": "node tests/golden-path.browser.mjs --record-evidence",
+    "test:standalone:browser": "node tests/standalone.browser.mjs",
     "evidence:video": "node tests/evidence-recording.mjs",
     "format": "prettier --write \"app/**/*.{js,css}\" \"components/**/*.js\" \"lib/**/*.mjs\" \"scripts/**/*.mjs\" \"static/**/*.{html,jsx}\" \"tests/**/*.mjs\" \"*.{md,mjs,json}\"",
     "format:check": "prettier --check \"app/**/*.{js,css}\" \"components/**/*.js\" \"lib/**/*.mjs\" \"scripts/**/*.mjs\" \"static/**/*.{html,jsx}\" \"tests/**/*.mjs\" \"*.{md,mjs,json}\"",
-    "check": "npm run format:check && npm test && npm run build"
+    "check": "npm run format:check && npm run build:sites && npm test && npm run test:standalone:browser"
   },
   "dependencies": {
     "react": "^19.2.6",
