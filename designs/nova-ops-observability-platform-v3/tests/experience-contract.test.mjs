@@ -227,6 +227,7 @@ test("clean Windows checkouts have explicit build and EOL contracts", () => {
     attributes,
     /^NOVA-Ops-Intelligence-Standalone\.html text eol=lf$/m,
   );
+  assert.match(attributes, /^static\/index\.html text eol=lf$/m);
 });
 
 test("all new implementation files stay within the frontend size boundary", () => {

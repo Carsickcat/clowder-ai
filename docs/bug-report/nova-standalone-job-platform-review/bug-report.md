@@ -35,7 +35,8 @@ The three findings are independent failure modes:
 - Derive the Case and every evidence ID from that Case ID.
 - Make `npm test` build its ignored static fixture through an explicit `pretest`.
 - Run the Sites build through one script that fixes production mode before importing Vite.
-- Normalize all standalone builder inputs to LF and mark the checked artifact as LF text.
+- Normalize all standalone builder inputs to LF and mark the static entry plus checked artifact
+  as LF text so Vite's HTML transform is also deterministic.
 - Let Prettier accept the checkout's existing EOL while continuing to check formatting.
 
 No new Store, queue, backend, or production action is introduced.
