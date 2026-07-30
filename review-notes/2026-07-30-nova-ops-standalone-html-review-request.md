@@ -1,8 +1,8 @@
 # NOVA Ops Standalone HTML — Formal Review Request
 
-Review-Target-ID: `feat-aiops-observability-platform-hifi-v3`  
-Branch: `feat/aiops-observability-platform-hifi-v3`  
-Target commit: `b8d8b55a7cdb5773b00715e011aba71ad2522f13`  
+Review-Target-ID: `feat-aiops-observability-platform-hifi-v3`
+Branch: `feat/aiops-observability-platform-hifi-v3`
+Target commit: `b8d8b55a7cdb5773b00715e011aba71ad2522f13`
 Base commit: `d4b1c06102257c8534036dc8208d0d1325d9aff5`
 
 ## What
@@ -49,8 +49,8 @@ rather than reimplementing or redesigning the UI.
 
 ## Architecture Ownership
 
-Architecture cell: design artifact distribution  
-Map delta: none  
+Architecture cell: design artifact distribution
+Map delta: none
 Why: this adds a deterministic compiler from the existing static distribution to one
 portable HTML file. It adds no Store, Queue, Router, Adapter, Dispatcher, Binding, runtime
 API, or production data boundary.
@@ -141,7 +141,7 @@ Please independently verify:
 
 ## Open Questions
 
-Technical: none.  
+Technical: none.
 Value decisions: none.
 
 ## Requested Verdict
