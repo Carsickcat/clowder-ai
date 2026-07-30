@@ -214,8 +214,14 @@ test("clean Windows checkouts have explicit build and EOL contracts", () => {
   const packageJson = JSON.parse(read("package.json"));
   const prettierConfig = JSON.parse(read(".prettierrc.json"));
   const attributes = read(".gitattributes");
+  const buildSites = read("scripts", "build-sites.mjs");
 
   assert.equal(packageJson.scripts.pretest, "npm run build:sites");
+  assert.equal(
+    packageJson.scripts["build:sites"],
+    "node scripts/build-sites.mjs",
+  );
+  assert.match(buildSites, /process\.env\.NODE_ENV\s*=\s*["']production["']/);
   assert.equal(prettierConfig.endOfLine, "auto");
   assert.match(
     attributes,

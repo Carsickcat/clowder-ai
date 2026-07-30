@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vinext dev -p 5290",
     "build": "npm run build:sites",
-    "build:sites": "vite build --config vite.static.config.mjs && node scripts/build-static-worker.mjs",
+    "build:sites": "node scripts/build-sites.mjs",
     "build:standalone": "npm run build:sites && node scripts/build-standalone.mjs",
     "build:vinext": "vinext build && node scripts/prepare-dist.mjs",
     "start": "vinext start -p 5290",
