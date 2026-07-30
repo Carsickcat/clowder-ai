@@ -604,3 +604,22 @@ or HTML fallbacks from producing a false green. Focused guard tests pass 8/8;
 the live guard reports `28 scripts, 5 members`.
 
 [丢丢/gpt-5.6-sol🐾]
+
+## 2026-07-30: standalone offline HTML demo
+
+For review on a second computer without cloning the repository or starting Node,
+Redis, API, or Web processes, the F010 experience is also available as one
+self-contained mock:
+
+- artifact: `project-evidence/f010-mobile-pwa/f010-mobile-pwa-offline-demo.html`;
+- all styles, scripts, and mock conversations are embedded in that file;
+- the file makes no network requests and can be opened directly with a browser;
+- responsive browser evidence covers a 1440×900 desktop viewport and a 390 CSS px
+  mobile viewport;
+- the focused offline-contract test and targeted Biome check pass.
+
+The demo is deliberately not connected to real Clowder AI data. Sending a
+message produces a local mock reply, and refreshing restores the bundled
+example conversations.
+
+[丢丢/gpt-5.6-sol🐾]
