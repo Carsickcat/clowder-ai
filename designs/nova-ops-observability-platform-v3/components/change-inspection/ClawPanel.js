@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { createInspectionExecutionId } from "../../lib/change-inspection-identifiers.mjs";
+
 const EXAMPLE = "请帮我巡检 payments-router v3.18.0 是否可以灰度发布";
 
 export function ClawPanel({ state, dispatch }) {
@@ -8,7 +10,11 @@ export function ClawPanel({ state, dispatch }) {
   function submit(event) {
     event.preventDefault();
     if (!text.trim()) return;
-    dispatch({ type: "INTENT_SUBMITTED", text });
+    dispatch({
+      type: "INTENT_SUBMITTED",
+      executionId: createInspectionExecutionId(),
+      text,
+    });
     setText("");
   }
 

@@ -1,4 +1,5 @@
 import { deepFreeze } from "./change-inspection-immutability.mjs";
+import { createInspectionCaseId } from "./change-inspection-identifiers.mjs";
 
 export const inspectionJobTemplates = deepFreeze([
   {
@@ -64,12 +65,13 @@ export function findInspectionJob(jobId) {
   return inspectionJobTemplates.find((job) => job.id === jobId) ?? null;
 }
 
-export function createCaseFromJob(baseState, jobId, createChecks) {
+export function createCaseFromJob(baseState, jobId, executionId, createChecks) {
   const job = findInspectionJob(jobId);
-  if (!job) return null;
+  const caseId = createInspectionCaseId(jobId, executionId);
+  if (!job || !caseId) return null;
   return {
     ...baseState,
-    id: `CIC-DEMO-${job.id}`,
+    id: caseId,
     sourceJob: {
       id: job.id,
       name: job.name,

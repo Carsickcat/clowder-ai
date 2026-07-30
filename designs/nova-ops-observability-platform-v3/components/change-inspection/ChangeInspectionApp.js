@@ -5,6 +5,7 @@ import {
   changeInspectionReducer,
   createChangeInspectionState,
 } from "../../lib/change-inspection.mjs";
+import { createInspectionExecutionId } from "../../lib/change-inspection-identifiers.mjs";
 import { ClawPanel } from "./ClawPanel";
 import { DecisionSurface } from "./DecisionSurface";
 import { InspectionJobPlatform } from "./InspectionJobPlatform";
@@ -33,7 +34,11 @@ export function ChangeInspectionApp() {
   }
 
   function handleJobSelect(jobId) {
-    dispatch({ type: "JOB_SELECTED", jobId });
+    dispatch({
+      type: "JOB_SELECTED",
+      executionId: createInspectionExecutionId(),
+      jobId,
+    });
   }
 
   return (

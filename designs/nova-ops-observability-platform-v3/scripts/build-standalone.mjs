@@ -10,6 +10,10 @@ const defaultOutputPath = path.join(
   "NOVA-Ops-Intelligence-Standalone.html",
 );
 
+function normalizeEol(value) {
+  return value.replace(/\r\n?/g, "\n");
+}
+
 function findSingleAsset(html, tagName, attributeName) {
   const tags = html.match(new RegExp(`<${tagName}\\b[^>]*>`, "gi")) ?? [];
   const candidates = tags.flatMap((tag) => {
@@ -48,7 +52,9 @@ export async function buildStandalone({
   distDir = defaultDistDir,
   outputPath = defaultOutputPath,
 } = {}) {
-  const sourceHtml = await readFile(path.join(distDir, "index.html"), "utf8");
+  const sourceHtml = normalizeEol(
+    await readFile(path.join(distDir, "index.html"), "utf8"),
+  );
   const scriptAsset = findSingleAsset(sourceHtml, "script", "src");
   const styleAsset = findSingleAsset(sourceHtml, "link", "href");
   const scriptStart = sourceHtml.indexOf(scriptAsset.tag);
@@ -60,10 +66,12 @@ export async function buildStandalone({
     scriptStart,
     scriptEnd + "</script>".length,
   );
-  const [javascript, css] = await Promise.all([
+  const [rawJavascript, rawCss] = await Promise.all([
     readFile(resolveDistAsset(distDir, scriptAsset.reference), "utf8"),
     readFile(resolveDistAsset(distDir, styleAsset.reference), "utf8"),
   ]);
+  const javascript = normalizeEol(rawJavascript);
+  const css = normalizeEol(rawCss);
 
   const withoutAssets = sourceHtml
     .replace(scriptElement, "")

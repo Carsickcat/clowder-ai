@@ -8,8 +8,16 @@ import {
 } from "../lib/change-inspection.mjs";
 import { inspectionJobTemplates } from "../lib/change-inspection-jobs.mjs";
 
+let testExecutionSequence = 0;
 const reduce = (state, type, payload = {}) =>
-  changeInspectionReducer(state, { type, ...payload });
+  changeInspectionReducer(state, {
+    type,
+    ...(["INTENT_SUBMITTED", "JOB_SELECTED"].includes(type) &&
+    !payload.executionId
+      ? { executionId: `TEST-${++testExecutionSequence}` }
+      : {}),
+    ...payload,
+  });
 
 function completeCase() {
   let state = createChangeInspectionState();
@@ -31,6 +39,35 @@ function completeCase() {
     );
   }
   return state;
+}
+
+function completeSavedJob(executionId) {
+  let state = createChangeInspectionState();
+  state = reduce(state, "JOB_SELECTED", {
+    executionId,
+    jobId: "JOB-INVENTORY-RELEASE",
+  });
+  for (const type of [
+    "PLAN_CONFIRMED",
+    "CANARY_APPROVED",
+    "REMEDIATION_RECORDED",
+    "VERIFICATION_RAN",
+    "CANARY_ADVANCED",
+    "POST_CHANGE_RAN",
+  ]) {
+    state = reduce(state, type);
+  }
+  return state;
+}
+
+function persistedIds(state) {
+  return new Set([
+    state.id,
+    ...state.runs.map((item) => item.id),
+    ...state.findings.map((item) => item.id),
+    ...state.decisions.map((item) => item.id),
+    state.reportSnapshot.id,
+  ]);
 }
 
 test("publishes a deeply immutable library of reusable inspection jobs", () => {
@@ -96,6 +133,25 @@ test("saved jobs cannot replace an active case but can start after completion", 
   const reset = reduce(next, "CASE_RESET");
   assert.equal(reset.sourceJob, null);
   assert.equal(reset.plan.status, "empty");
+});
+
+test("repeating one saved job creates disjoint case-owned evidence ids", () => {
+  const first = completeSavedJob("EXECUTION-A");
+  const second = completeSavedJob("EXECUTION-B");
+  const firstIds = persistedIds(first);
+  const secondIds = persistedIds(second);
+
+  assert.notEqual(first.id, second.id);
+  assert.deepEqual(
+    [...firstIds].filter((id) => secondIds.has(id)),
+    [],
+    "two executions must not share Case, Run, Finding, Decision, or Report IDs",
+  );
+  for (const state of [first, second]) {
+    for (const id of [...persistedIds(state)].slice(1)) {
+      assert.match(id, new RegExp(`^${state.id}:`));
+    }
+  }
 });
 
 test("one case completes pre-change, canary verification, and post-change acceptance", () => {

@@ -215,15 +215,30 @@ async function savedJobJourney() {
   await page.getByRole("button", { name: "继续到 100% 放量" }).click();
   await page.getByRole("button", { name: "执行变更后验收" }).click();
   await page.getByTestId("final-report").waitFor();
+  const firstReportId = await page
+    .locator(".ci-report-snapshot strong")
+    .textContent();
+  const firstRunIds = await page.locator(".ci-run-item code").allTextContents();
 
-  await page.getByRole("button", { name: /支付路由灰度巡检/ }).click();
-  await page
-    .getByRole("heading", { name: "payments-router v3.18.0" })
-    .waitFor();
+  await page.getByRole("button", { name: /库存服务发布巡检/ }).click();
+  await page.getByRole("heading", { name: "inventory-service v2.4" }).waitFor();
   assert.equal(
     await page.locator(".ci-run-item").count(),
     0,
-    "a completed job starts a new case without carrying old runs",
+    "repeating a completed job starts a new case without carrying old runs",
+  );
+  await finishJourney(page);
+  const secondReportId = await page
+    .locator(".ci-report-snapshot strong")
+    .textContent();
+  const secondRunIds = await page
+    .locator(".ci-run-item code")
+    .allTextContents();
+  assert.notEqual(firstReportId, secondReportId);
+  assert.deepEqual(
+    firstRunIds.filter((id) => secondRunIds.includes(id)),
+    [],
+    "repeated saved jobs must expose disjoint run IDs in the browser",
   );
 
   await page.getByRole("button", { name: "新建巡检" }).click();

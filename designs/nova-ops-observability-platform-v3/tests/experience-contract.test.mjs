@@ -210,12 +210,27 @@ test("routine browser tests isolate evidence from versioned artifacts", () => {
   );
 });
 
+test("clean Windows checkouts have explicit build and EOL contracts", () => {
+  const packageJson = JSON.parse(read("package.json"));
+  const prettierConfig = JSON.parse(read(".prettierrc.json"));
+  const attributes = read(".gitattributes");
+
+  assert.equal(packageJson.scripts.pretest, "npm run build:sites");
+  assert.equal(prettierConfig.endOfLine, "auto");
+  assert.match(
+    attributes,
+    /^NOVA-Ops-Intelligence-Standalone\.html text eol=lf$/m,
+  );
+});
+
 test("all new implementation files stay within the frontend size boundary", () => {
   const files = [
     ["lib", "change-inspection.mjs"],
     ["lib", "change-inspection-intent.mjs"],
+    ["lib", "change-inspection-identifiers.mjs"],
     ["lib", "change-inspection-immutability.mjs"],
     ["lib", "change-inspection-jobs.mjs"],
+    ["lib", "change-inspection-records.mjs"],
     ["components", "change-inspection", "ChangeInspectionApp.js"],
     ["components", "change-inspection", "InspectionJobPlatform.js"],
     ["components", "change-inspection", "JourneyHeader.js"],

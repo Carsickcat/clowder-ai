@@ -4,6 +4,10 @@ import {
 } from "./change-inspection-fixtures.mjs";
 import { deepFreeze } from "./change-inspection-immutability.mjs";
 import { createCaseFromJob } from "./change-inspection-jobs.mjs";
+import {
+  createReportSnapshot,
+  nextRecordId,
+} from "./change-inspection-records.mjs";
 import { inspectionActionPolicy } from "./change-inspection-actions.mjs";
 import { applyInspectionIntent } from "./change-inspection-intent.mjs";
 
@@ -22,7 +26,7 @@ export const journeyStages = [
 export function createChangeInspectionState() {
   return deepFreeze({
     kind: "ChangeInspectionCase",
-    id: "CIC-2026-0718",
+    id: "CIC-DRAFT",
     sourceJob: null,
     service: "待识别服务",
     version: "待识别版本",
@@ -68,7 +72,7 @@ export function createChangeInspectionState() {
 function nextRun(state, run) {
   return {
     kind: "InspectionRun",
-    id: `RUN-${String(state.runs.length + 1).padStart(3, "0")}`,
+    id: nextRecordId(state, "RUN", state.runs),
     service: state.service,
     version: state.version,
     ...run,
@@ -109,13 +113,19 @@ function reduceInspectionState(state, action) {
         createCaseFromJob(
           createChangeInspectionState(),
           action.jobId,
+          action.executionId,
           createInspectionChecks,
         ) ?? state
       );
     case "REPORT_EXPLANATION_REQUESTED":
       return inspectionActionPolicy.explain(state);
     case "INTENT_SUBMITTED":
-      return applyInspectionIntent(state, action.text, createInspectionChecks);
+      return applyInspectionIntent(
+        state,
+        action.text,
+        action.executionId,
+        createInspectionChecks,
+      );
 
     case "COMPARABILITY_INVALIDATED":
       return blockForComparability({
@@ -177,7 +187,7 @@ function reduceInspectionState(state, action) {
           ...state.decisions,
           {
             kind: "DecisionRecord",
-            id: "DEC-001",
+            id: nextRecordId(state, "DEC", state.decisions),
             result: "准入通过",
             evidenceRunId: run.id,
           },
@@ -199,7 +209,7 @@ function reduceInspectionState(state, action) {
           ...state.findings,
           {
             kind: "Finding",
-            id: "FND-017",
+            id: nextRecordId(state, "FND", state.findings),
             service: state.service,
             version: state.version,
             severity: "risk",
@@ -232,7 +242,7 @@ function reduceInspectionState(state, action) {
           ...state.decisions,
           {
             kind: "DecisionRecord",
-            id: `DEC-${String(state.decisions.length + 1).padStart(3, "0")}`,
+            id: nextRecordId(state, "DEC", state.decisions),
             result: "暂停并处置",
             evidenceRunId: state.runs.at(-1)?.id,
           },
@@ -304,13 +314,11 @@ function reduceInspectionState(state, action) {
         ...state.decisions,
         {
           kind: "DecisionRecord",
-          id: `DEC-${String(state.decisions.length + 1).padStart(3, "0")}`,
+          id: nextRecordId(state, "DEC", state.decisions),
           result: "变更验收通过",
           evidenceRunId: run.id,
         },
       ];
-      const conclusion = "通过";
-      const riskCount = state.findings.length;
       return {
         ...state,
         stage: "completed",
@@ -322,20 +330,7 @@ function reduceInspectionState(state, action) {
           summary: "最终报告已生成，包含全部巡检、风险和决策记录。",
         },
         decisions,
-        reportSnapshot: {
-          kind: "ReportSnapshot",
-          id: `RPT-${state.changeId}-V1`,
-          service: state.service,
-          version: state.version,
-          status: "published",
-          conclusion,
-          title: "本次变更验收通过",
-          summary: `共执行 ${runs.length} 次巡检，发现 ${riskCount} 个风险并完成复验；变更前后关键指标无异常退化。`,
-          explanation: `结论为${conclusion}。25% 灰度曾出现 ${riskCount} 个延迟风险，但风险已完成复验；全量与变更后指标均在阈值内。`,
-          runIds: runs.map((item) => item.id),
-          findingIds: state.findings.map((item) => item.id),
-          decisionIds: decisions.map((item) => item.id),
-        },
+        reportSnapshot: createReportSnapshot(state, runs, decisions),
       };
     }
 

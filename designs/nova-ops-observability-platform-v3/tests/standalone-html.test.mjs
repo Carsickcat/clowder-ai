@@ -19,6 +19,7 @@ async function createFixtureDist(
     styleReference = "/assets/app.css",
     javascript = "document.body.dataset.ready = 'true';",
     css = "body { color: white; }",
+    htmlEol = "",
   } = {},
 ) {
   const distDir = await mkdtemp(
@@ -29,7 +30,12 @@ async function createFixtureDist(
   await Promise.all([
     writeFile(
       path.join(distDir, "index.html"),
-      `<!doctype html><html><head><link rel="stylesheet" href="${styleReference}"></head><body><div id="root"></div><script type="module" src="${scriptReference}"></script></body></html>`,
+      [
+        "<!doctype html><html>",
+        `<head><link rel="stylesheet" href="${styleReference}"></head>`,
+        `<body><div id="root"></div><script type="module" src="${scriptReference}"></script></body>`,
+        "</html>",
+      ].join(htmlEol),
       "utf8",
     ),
     writeFile(path.join(distDir, "assets", "app.js"), javascript, "utf8"),
@@ -73,6 +79,21 @@ test("standalone build inlines the reviewed NOVA runtime into one offline HTML f
     Buffer.byteLength(html, "utf8") > 250_000,
     "standalone artifact should contain the complete reviewed application",
   );
+});
+
+test("standalone build normalizes CRLF inputs to deterministic LF output", async (t) => {
+  const distDir = await createFixtureDist(t, {
+    css: "body {\r\n  color: white;\r\n}",
+    htmlEol: "\r\n",
+    javascript: "document.body.dataset.ready = 'true';\r\n",
+  });
+  const outputPath = path.join(distDir, "standalone.html");
+
+  await buildStandalone({ distDir, outputPath });
+  const html = await readFile(outputPath, "utf8");
+
+  assert.doesNotMatch(html, /\r/);
+  assert.match(html, /<!doctype html><html>\n<head>/);
 });
 
 test("standalone build escapes mixed-case raw-text terminators", async (t) => {

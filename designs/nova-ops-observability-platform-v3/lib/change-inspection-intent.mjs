@@ -15,7 +15,7 @@ export function parseInspectionIntent(text) {
   };
 }
 
-export function applyInspectionIntent(state, text, createChecks) {
+export function applyInspectionIntent(state, text, executionId, createChecks) {
   const intent = parseInspectionIntent(text);
   if (!intent.text) return state;
 
@@ -47,8 +47,11 @@ export function applyInspectionIntent(state, text, createChecks) {
     };
   }
 
+  const caseId = createInspectionCaseId("MANUAL", executionId);
+  if (!caseId) return state;
   return {
     ...state,
+    id: caseId,
     service: intent.service,
     version: intent.version,
     plan: {
@@ -74,3 +77,4 @@ export function applyInspectionIntent(state, text, createChecks) {
     ],
   };
 }
+import { createInspectionCaseId } from "./change-inspection-identifiers.mjs";
