@@ -1,0 +1,40 @@
+{
+  "name": "nova-ops-observability-platform-v3",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vinext dev -p 5290",
+    "build": "npm run build:sites",
+    "build:sites": "node scripts/build-sites.mjs",
+    "build:standalone": "npm run build:sites && node scripts/build-standalone.mjs",
+    "build:vinext": "vinext build && node scripts/prepare-dist.mjs",
+    "start": "vinext start -p 5290",
+    "pretest": "npm run build:sites",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/golden-path.browser.mjs",
+    "test:browser:evidence": "node tests/golden-path.browser.mjs --record-evidence",
+    "test:standalone:browser": "node tests/standalone.browser.mjs && node tests/golden-path.browser.mjs --standalone",
+    "evidence:video": "node tests/evidence-recording.mjs",
+    "format": "prettier --write \"app/**/*.{js,css}\" \"components/**/*.js\" \"lib/**/*.mjs\" \"scripts/**/*.mjs\" \"static/**/*.{html,jsx}\" \"tests/**/*.mjs\" \"*.{md,mjs,json}\"",
+    "format:check": "prettier --check \"app/**/*.{js,css}\" \"components/**/*.js\" \"lib/**/*.mjs\" \"scripts/**/*.mjs\" \"static/**/*.{html,jsx}\" \"tests/**/*.mjs\" \"*.{md,mjs,json}\"",
+    "check": "npm run format:check && npm test && npm run test:standalone:browser"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "overrides": {
+    "postcss": "8.5.23"
+  },
+  "devDependencies": {
+    "@mdx-js/rollup": "^3.1.1",
+    "@vitejs/plugin-react": "^6.0.4",
+    "@vitejs/plugin-rsc": "^0.5.30",
+    "playwright-core": "^1.62.0",
+    "prettier": "^3.6.2",
+    "react-server-dom-webpack": "^19.2.8",
+    "vinext": "^1.0.0-beta.4",
+    "vite": "^8.1.5"
+  }
+}

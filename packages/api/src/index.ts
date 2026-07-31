@@ -129,6 +129,7 @@ import {
   externalProjectRoutes,
   featureDocDetailRoutes,
   governanceStatusRoute,
+  inspectionsRoutes,
   intentCardRoutes,
   invocationsRoutes,
   leaderboardEventsRoutes,
@@ -495,6 +496,61 @@ async function main(): Promise<void> {
   const { createActorResolver } = await import('./infrastructure/scheduler/ActorResolver.js');
   const { getRoster } = await import('./config/cat-config-loader.js');
   const schedulerDb = memoryServices.store.getDb();
+  // NOVA connected inspection sandbox. It shares the durable SQLite lifecycle,
+  // but owns only read-only observability sources and never executes rollout actions.
+  const { SqliteInspectionStore } = await import('./domains/observability/SqliteInspectionStore.js');
+  const { InspectionService } = await import('./domains/observability/InspectionService.js');
+  const { ReplayObservabilitySource } = await import('./domains/observability/adapters/ReplayObservabilitySource.js');
+  const { PrometheusObservabilitySource } = await import(
+    './domains/observability/adapters/PrometheusObservabilitySource.js'
+  );
+  const inspectionStartedAt = new Date().toISOString();
+  const replaySource = new ReplayObservabilitySource({
+    collectedAt: inspectionStartedAt,
+    observations: {
+      availability: { observedAt: inspectionStartedAt, query: 'safe_availability_metric', value: 0.999 },
+      latency: { observedAt: inspectionStartedAt, query: 'safe_metric', value: 184 },
+      'error-rate': { observedAt: inspectionStartedAt, query: 'safe_error_rate_metric', value: 0.002 },
+    },
+    sourceId: 'replay-acceptance',
+  });
+  const inspectionSources: import('./domains/observability/InspectionService.js').RegisteredInspectionSource[] = [
+    {
+      id: replaySource.sourceId,
+      kind: 'replay',
+      label: 'Local acceptance replay',
+      scope: 'acceptance',
+      source: replaySource,
+    },
+  ];
+  const prometheusUrl = process.env.NOVA_INSPECTION_PROMETHEUS_URL?.trim();
+  if (prometheusUrl) {
+    const prometheusScope = process.env.NOVA_INSPECTION_PROMETHEUS_SCOPE?.trim();
+    if (!prometheusScope || !['development', 'acceptance', 'staging'].includes(prometheusScope)) {
+      throw new Error(
+        'NOVA_INSPECTION_PROMETHEUS_SCOPE must be development, acceptance or staging; production telemetry is not allowed',
+      );
+    }
+    const prometheusSource = new PrometheusObservabilitySource({
+      sourceId: 'prometheus-configured',
+      baseUrl: prometheusUrl,
+      ...(process.env.NOVA_INSPECTION_PROMETHEUS_AUTHORIZATION
+        ? { authorization: process.env.NOVA_INSPECTION_PROMETHEUS_AUTHORIZATION }
+        : {}),
+    });
+    inspectionSources.unshift({
+      id: prometheusSource.sourceId,
+      kind: 'prometheus',
+      label: `Prometheus (${prometheusScope})`,
+      scope: prometheusScope,
+      source: prometheusSource,
+    });
+  }
+  const inspectionService = new InspectionService({
+    store: new SqliteInspectionStore(schedulerDb),
+    sources: inspectionSources,
+  });
+  await app.register(inspectionsRoutes, { service: inspectionService });
   const runLedger = new RunLedger(schedulerDb);
   const actorResolver = createActorResolver(getRoster);
   // ── F139 Phase 3B: Governance + Emission stores ──
