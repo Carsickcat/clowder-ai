@@ -6,7 +6,11 @@ Branch: `feat/aiops-observability-platform-hifi-v3`
 
 Behavioral commits: `9bf6206`, `3aa209b`
 
-Review range: `84ab200..3aa209b`
+Behavioral range: `84ab200..3aa209b`
+
+Original handoff HEAD: `19b50a0` (the only delta after `3aa209b` is this review-request document)
+
+Full original handoff range: `84ab200..19b50a0`
 
 ## What
 

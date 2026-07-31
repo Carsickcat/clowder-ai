@@ -57,7 +57,8 @@ export function InspectionOperationsPage() {
   const [workspace, setWorkspace] = useState<InspectionWorkspace | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [commandError, setCommandError] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [service, setService] = useState('');
   const [connectorRef, setConnectorRef] = useState('');
@@ -108,7 +109,7 @@ export function InspectionOperationsPage() {
         }
       } catch {
         if (!active) return;
-        setError('连接中断：无法读取 connected API。已禁止执行，不会回退到演示数据。');
+        setConnectionError('连接中断：无法读取 connected API。已禁止执行，不会回退到演示数据。');
         setSources([]);
         setJobs([]);
         setCases([]);
@@ -129,7 +130,7 @@ export function InspectionOperationsPage() {
   );
   const connectionState = loading
     ? 'booting'
-    : error
+    : connectionError
       ? 'degraded'
       : sources.length === 0
         ? 'misconfigured'
@@ -141,11 +142,11 @@ export function InspectionOperationsPage() {
 
   async function withCommand(operation: () => Promise<void>) {
     setBusy(true);
-    setError(null);
+    setCommandError(null);
     try {
       await operation();
-    } catch (commandError) {
-      setError(commandError instanceof Error ? commandError.message : 'Connected API 请求失败');
+    } catch (error) {
+      setCommandError(error instanceof Error ? error.message : 'Connected API 请求失败');
     } finally {
       setBusy(false);
     }
@@ -287,7 +288,7 @@ export function InspectionOperationsPage() {
     });
   }
 
-  const formDisabled = loading || busy || Boolean(error) || sources.length === 0;
+  const formDisabled = loading || busy || Boolean(connectionError) || sources.length === 0;
   const latestRun = workspace?.runs.at(-1) ?? null;
 
   return (
@@ -325,12 +326,17 @@ export function InspectionOperationsPage() {
         </div>
       </header>
 
-      {error && (
+      {connectionError && (
         <div className={styles.errorBanner} role="alert">
-          {error}
+          {connectionError}
         </div>
       )}
-      {!loading && !error && sources.length === 0 && (
+      {commandError && (
+        <div className={styles.errorBanner} role="alert">
+          {commandError}
+        </div>
+      )}
+      {!loading && !connectionError && sources.length === 0 && (
         <div className={styles.errorBanner} role="alert">
           API 已连接，但没有服务端注册的数据源。执行已禁用。
         </div>

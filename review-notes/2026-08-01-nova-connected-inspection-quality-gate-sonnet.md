@@ -78,7 +78,7 @@ Thanks to 山本 for identifying and closing the report-sealing, latest-pass and
 ### Focused automated gates
 
 - `node --test packages/api/test/observability/*.test.js` — **51/51 pass**, 6 suites.
-- focused Web Vitest (`inspection-api` + `inspection-operations-page`) — **16/16 pass**, 2 files.
+- focused Web Vitest (`inspection-api` + `inspection-operations-page`) — **17/17 pass**, 2 files.
 - `pnpm --filter @cat-cafe/shared lint` — PASS.
 - `pnpm --filter @cat-cafe/api lint` — PASS.
 - `pnpm --filter @cat-cafe/web exec tsc --noEmit` — PASS.
@@ -126,6 +126,28 @@ Ignored local evidence (not staged):
 
 Hub Browser Preview was reopened on the production page after the latest integrity changes.
 
+Reviewer P2 browser retry acceptance injected a valid CORS-enabled `409 Inspection state conflict` for the first revision POST, then allowed the second request through to the real API:
+
+```json
+{
+  "firstResponseStatus": 409,
+  "afterConflict": {
+    "connectionState": "ready",
+    "alerts": ["Inspection state conflict"],
+    "retryEnabled": true
+  },
+  "afterRetry": {
+    "connectionState": "ready",
+    "conflictCleared": true,
+    "revisionTwoVisible": true,
+    "retryEnabled": true
+  },
+  "unexpectedErrors": []
+}
+```
+
+The browser emits its expected resource-load console entry for the deliberately injected 409; no unexpected console or page errors occurred. The conflict screenshot remains ignored at `data/nova-preview/nova-command-conflict-recoverable.png`.
+
 ### Standalone regression
 
 Direct `node tests/standalone.browser.mjs` passed against the `file://` artifact with interaction exercised, network 0 and console 0. Connected source code is not imported by the standalone runtime.
@@ -141,6 +163,7 @@ Direct `node tests/standalone.browser.mjs` passed against the `file://` artifact
 - persisted Jobs now expose owner-scoped current revision detail, so a Job with no Case can still create revision N+1 after a reload;
 - the page identifies replay as “验收回放 / 服务端回放数据” with kind/scope and removes the ambiguous “真实观测” claim;
 - the page now fails closed before Run/Accept rather than relying on hidden buttons or post-click errors.
+- reviewer P2 found that recoverable command conflicts reused the boot-time connection error state and disabled every command; connection failures and command failures are now separate, and a browser-injected 409 can be retried successfully without reload.
 
 ## Architecture review
 

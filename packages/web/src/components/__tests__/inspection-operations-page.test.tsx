@@ -290,6 +290,47 @@ describe('InspectionOperationsPage', () => {
     expect(container.querySelector('[data-testid="case-pill"]')?.textContent).toContain('CHG-42');
   });
 
+  it('keeps the connected page operable after a revision conflict and allows retry', async () => {
+    const revisionTwo = {
+      ...workspace.revision,
+      id: 'revision-2',
+      revision: 2,
+      checks: [{ ...workspace.revision.checks[0], query: 'updated_metric', threshold: 220 }],
+    };
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([]);
+    mocks.reviseInspectionJob.mockRejectedValueOnce(new Error('Inspection state conflict')).mockResolvedValueOnce({
+      job: { ...job, currentRevision: 2 },
+      revision: revisionTwo,
+    });
+
+    await renderPage();
+    const queryInput = container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]');
+    const thresholdInput = container.querySelector<HTMLInputElement>('[data-testid="revision-threshold"]');
+    const submit = container.querySelector<HTMLButtonElement>('[data-testid="revise-job-submit"]');
+    if (!queryInput || !thresholdInput || !submit) throw new Error('expected revision editor fields');
+
+    await changeTextArea(queryInput, 'updated_metric');
+    await changeInput(thresholdInput, '220');
+    await act(async () => {
+      submit.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(container.textContent).toContain('Inspection state conflict');
+    expect(container.textContent).not.toContain('连接中断');
+    expect(submit.disabled).toBe(false);
+
+    await act(async () => {
+      submit.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(mocks.reviseInspectionJob).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain('当前 rev 2');
+    expect(container.textContent).not.toContain('Inspection state conflict');
+  });
+
   it('loads current revision detail so a persisted Job without Cases can be revised', async () => {
     const revisionTwo = {
       ...workspace.revision,
