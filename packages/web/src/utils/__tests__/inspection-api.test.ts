@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createInspectionJob, fetchInspectionCase, listInspectionJobs, startInspectionRun } from '../inspection-api';
+import {
+  createInspectionJob,
+  fetchInspectionCase,
+  fetchInspectionJob,
+  listInspectionJobs,
+  reviseInspectionJob,
+  startInspectionRun,
+} from '../inspection-api';
 
 const mocks = vi.hoisted(() => ({
   apiFetch: vi.fn(),
@@ -74,6 +81,49 @@ describe('inspection-api', () => {
       body: JSON.stringify({ purpose: 'verification' }),
     });
     expect(JSON.stringify(mocks.apiFetch.mock.calls[0])).not.toMatch(/verdict|observation|sourceUrl/);
+  });
+
+  it('creates revision N+1 with optimistic concurrency and exact checks', async () => {
+    const input = {
+      expectedRevision: 1,
+      checks: [
+        {
+          id: 'latency',
+          name: 'p95 latency',
+          query: 'histogram_quantile(0.95, safe_metric)',
+          operator: 'lte' as const,
+          threshold: 220,
+          unit: 'ms',
+          maxAgeMs: 120_000,
+        },
+      ],
+    };
+    mocks.apiFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ job: { id: 'job-1', currentRevision: 2 }, revision: { revision: 2 } }),
+    });
+
+    await reviseInspectionJob('job/with space', input);
+
+    expect(mocks.apiFetch).toHaveBeenCalledWith('/api/observability/inspection-jobs/job%2Fwith%20space/revisions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+  });
+
+  it('loads the current immutable revision detail for a persisted job', async () => {
+    const detail = {
+      job: { id: 'job-1', currentRevision: 2 },
+      revision: { id: 'revision-2', revision: 2 },
+    };
+    mocks.apiFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(detail),
+    });
+
+    await expect(fetchInspectionJob('job/with space')).resolves.toEqual(detail);
+    expect(mocks.apiFetch).toHaveBeenCalledWith('/api/observability/inspection-jobs/job%2Fwith%20space');
   });
 
   it('surfaces API failure and never returns fixture fallback data', async () => {

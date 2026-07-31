@@ -36,6 +36,21 @@ export class InspectionIdempotencyConflictError extends Error {
   }
 }
 
+export class InspectionActiveRunConflictError extends InspectionIdempotencyConflictError {
+  constructor() {
+    super();
+    this.message = 'Inspection case already has an active inspection run';
+    this.name = 'InspectionActiveRunConflictError';
+  }
+}
+
+export class InspectionAcceptanceConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InspectionAcceptanceConflictError';
+  }
+}
+
 export class InspectionImmutableRecordError extends Error {
   constructor(resource: string) {
     super(`${resource} is immutable`);
@@ -264,6 +279,8 @@ export class SqliteInspectionStore {
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? ((kind) => `${kind}-${randomUUID()}`);
     this.db.pragma('foreign_keys = ON');
+    this.db.pragma('busy_timeout = 5000');
+    this.recoverInterruptedRuns();
   }
 
   createJob(input: CreateInspectionJobInput): {
@@ -319,6 +336,18 @@ export class SqliteInspectionStore {
          WHERE r.id = ? AND j.user_id = ?`,
       )
       .get(revisionId, userId) as RevisionRow | undefined;
+    return row ? toRevision(row) : null;
+  }
+
+  getCurrentJobRevision(userId: string, jobId: string): InspectionJobRevision | null {
+    const row = this.db
+      .prepare(
+        `SELECT r.*
+         FROM inspection_job_revisions r
+         JOIN inspection_jobs j ON j.id = r.job_id
+         WHERE j.id = ? AND j.user_id = ? AND r.revision = j.current_revision`,
+      )
+      .get(jobId, userId) as RevisionRow | undefined;
     return row ? toRevision(row) : null;
   }
 
@@ -441,42 +470,69 @@ export class SqliteInspectionStore {
 
   startRun(input: StartInspectionRunInput): InspectionRun {
     const start = this.db.transaction(() => {
-      const existing = this.db
-        .prepare(
-          `SELECT * FROM inspection_runs
-           WHERE user_id = ? AND case_id = ? AND idempotency_key = ?`,
-        )
-        .get(input.userId, input.caseId, input.idempotencyKey) as RunRow | undefined;
-      if (existing) {
-        if (existing.purpose !== input.purpose) {
-          throw new InspectionIdempotencyConflictError();
-        }
-        return this.toRun(existing);
-      }
+      const existing = this.findRunByIdempotencyKey(input.userId, input.caseId, input.idempotencyKey);
+      if (existing) return this.requireMatchingIdempotentRun(existing, input.purpose);
 
-      const inspectionCase = this.getCase(input.userId, input.caseId);
-      if (!inspectionCase) {
-        throw new InspectionNotFoundError('Inspection case');
-      }
-      if (inspectionCase.status === 'completed') {
-        throw new InspectionImmutableRecordError('Completed inspection case');
-      }
+      this.assertCaseCanStartRun(input.userId, input.caseId);
+
       const id = this.idFactory('run');
       const now = this.now();
-      this.db
-        .prepare(
-          `INSERT INTO inspection_runs
-           (id, user_id, case_id, purpose, status, verdict, source_snapshot_json, error_summary,
-            idempotency_key, started_at, finished_at)
-           VALUES (?, ?, ?, ?, 'running', 'unknown', NULL, NULL, ?, ?, NULL)`,
-        )
-        .run(id, input.userId, input.caseId, input.purpose, input.idempotencyKey, now);
+      const winner = this.insertRunningRun(input, id, now);
+      if (winner) return winner;
+
       this.db
         .prepare("UPDATE inspection_cases SET status = 'running', updated_at = ? WHERE id = ? AND user_id = ?")
         .run(now, input.caseId, input.userId);
       return this.requireRun(input.userId, id);
     });
-    return start();
+    return start.immediate();
+  }
+
+  private findRunByIdempotencyKey(userId: string, caseId: string, idempotencyKey: string): RunRow | undefined {
+    return this.db
+      .prepare(
+        `SELECT * FROM inspection_runs
+         WHERE user_id = ? AND case_id = ? AND idempotency_key = ?`,
+      )
+      .get(userId, caseId, idempotencyKey) as RunRow | undefined;
+  }
+
+  private requireMatchingIdempotentRun(row: RunRow, purpose: InspectionRunPurpose): InspectionRun {
+    if (row.purpose !== purpose) throw new InspectionIdempotencyConflictError();
+    return this.toRun(row);
+  }
+
+  private assertCaseCanStartRun(userId: string, caseId: string): void {
+    const inspectionCase = this.getCase(userId, caseId);
+    if (!inspectionCase) throw new InspectionNotFoundError('Inspection case');
+    if (inspectionCase.status === 'completed') {
+      throw new InspectionImmutableRecordError('Completed inspection case');
+    }
+    const active = this.db
+      .prepare(
+        `SELECT id FROM inspection_runs
+         WHERE user_id = ? AND case_id = ? AND status = 'running'
+         LIMIT 1`,
+      )
+      .get(userId, caseId) as { id: string } | undefined;
+    if (active) throw new InspectionActiveRunConflictError();
+  }
+
+  private insertRunningRun(input: StartInspectionRunInput, id: string, startedAt: string): InspectionRun | null {
+    const inserted = this.db
+      .prepare(
+        `INSERT INTO inspection_runs
+         (id, user_id, case_id, purpose, status, verdict, source_snapshot_json, error_summary,
+          idempotency_key, started_at, finished_at)
+         VALUES (?, ?, ?, ?, 'running', 'unknown', NULL, NULL, ?, ?, NULL)
+         ON CONFLICT(user_id, case_id, idempotency_key) DO NOTHING`,
+      )
+      .run(id, input.userId, input.caseId, input.purpose, input.idempotencyKey, startedAt);
+    if (inserted.changes === 1) return null;
+
+    const winner = this.findRunByIdempotencyKey(input.userId, input.caseId, input.idempotencyKey);
+    if (!winner) throw new InspectionIdempotencyConflictError();
+    return this.requireMatchingIdempotentRun(winner, input.purpose);
   }
 
   getRun(userId: string, runId: string): InspectionRun | null {
@@ -566,6 +622,9 @@ export class SqliteInspectionStore {
   }
 
   recordDecision(input: RecordInspectionDecisionInput): InspectionDecisionRecord {
+    if (input.kind === 'accept') {
+      throw new InspectionAcceptanceConflictError('Accept must atomically seal an inspection report');
+    }
     if (!this.getCase(input.userId, input.caseId)) {
       throw new InspectionNotFoundError('Inspection case');
     }
@@ -587,14 +646,58 @@ export class SqliteInspectionStore {
     return this.requireDecision(input.userId, id);
   }
 
-  createReport(input: {
+  acceptLatestPassedRun(input: {
     readonly userId: string;
     readonly caseId: string;
-    readonly verdict: InspectionVerdict;
-  }): InspectionReportSnapshot {
-    const create = this.db.transaction(() => {
+    readonly runId: string;
+    readonly actorId: string;
+    readonly note: string;
+  }): { decision: InspectionDecisionRecord; report: InspectionReportSnapshot } {
+    const accept = this.db.transaction(() => {
       const inspectionCase = this.getCase(input.userId, input.caseId);
       if (!inspectionCase) throw new InspectionNotFoundError('Inspection case');
+      if (this.getReportForCase(input.userId, input.caseId)) {
+        throw new InspectionAcceptanceConflictError('Inspection report already exists');
+      }
+
+      const latestRun = this.db
+        .prepare(
+          `SELECT * FROM inspection_runs
+           WHERE user_id = ? AND case_id = ?
+           ORDER BY rowid DESC LIMIT 1`,
+        )
+        .get(input.userId, input.caseId) as RunRow | undefined;
+      if (
+        !latestRun ||
+        latestRun.id !== input.runId ||
+        latestRun.status !== 'completed' ||
+        latestRun.verdict !== 'passed'
+      ) {
+        throw new InspectionAcceptanceConflictError(
+          'Accept requires the latest completed passed inspection run from this case',
+        );
+      }
+
+      const activeRun = this.db
+        .prepare(
+          `SELECT 1 FROM inspection_runs
+           WHERE user_id = ? AND case_id = ? AND status = 'running'
+           LIMIT 1`,
+        )
+        .get(input.userId, input.caseId);
+      if (activeRun) {
+        throw new InspectionAcceptanceConflictError('Accept cannot seal a case with an active inspection run');
+      }
+
+      const decisionId = this.idFactory('decision');
+      const generatedAt = this.now();
+      this.db
+        .prepare(
+          `INSERT INTO inspection_decisions
+           (id, user_id, case_id, run_id, kind, actor_id, note, created_at)
+           VALUES (?, ?, ?, ?, 'accept', ?, ?, ?)`,
+        )
+        .run(decisionId, input.userId, input.caseId, input.runId, input.actorId, input.note, generatedAt);
 
       const runIds = (
         this.db
@@ -616,7 +719,6 @@ export class SqliteInspectionStore {
       ).map((row) => row.id);
 
       const id = this.idFactory('report');
-      const generatedAt = this.now();
       this.db
         .prepare(
           `INSERT INTO inspection_reports
@@ -630,7 +732,7 @@ export class SqliteInspectionStore {
           inspectionCase.jobRevisionId,
           JSON.stringify(runIds),
           JSON.stringify(decisionIds),
-          input.verdict,
+          latestRun.verdict,
           generatedAt,
         );
       this.db
@@ -640,9 +742,12 @@ export class SqliteInspectionStore {
            WHERE id = ? AND user_id = ?`,
         )
         .run(generatedAt, input.caseId, input.userId);
-      return this.requireReport(input.userId, id);
+      return {
+        decision: this.requireDecision(input.userId, decisionId),
+        report: this.requireReport(input.userId, id),
+      };
     });
-    return create();
+    return accept.immediate();
   }
 
   getReport(userId: string, reportId: string): InspectionReportSnapshot | null {
@@ -664,6 +769,34 @@ export class SqliteInspectionStore {
       .prepare('SELECT * FROM inspection_check_results WHERE run_id = ? ORDER BY rowid')
       .all(runId) as CheckResultRow[];
     return rows.map(toCheckResult);
+  }
+
+  private recoverInterruptedRuns(): void {
+    const recover = this.db.transaction(() => {
+      const interrupted = this.db
+        .prepare("SELECT id, user_id, case_id FROM inspection_runs WHERE status = 'running'")
+        .all() as { id: string; user_id: string; case_id: string }[];
+      if (interrupted.length === 0) return;
+
+      const recoveredAt = this.now();
+      const errorSummary = 'Inspection run interrupted by service restart';
+      this.db
+        .prepare(
+          `UPDATE inspection_runs
+           SET status = 'failed', verdict = 'unknown', error_summary = ?, finished_at = ?
+           WHERE status = 'running'`,
+        )
+        .run(errorSummary, recoveredAt);
+      const blockCase = this.db.prepare(
+        `UPDATE inspection_cases
+         SET status = 'blocked', updated_at = ?
+         WHERE id = ? AND user_id = ? AND status <> 'completed'`,
+      );
+      for (const row of interrupted) {
+        blockCase.run(recoveredAt, row.case_id, row.user_id);
+      }
+    });
+    recover.immediate();
   }
 
   private toRun(row: RunRow): InspectionRun {

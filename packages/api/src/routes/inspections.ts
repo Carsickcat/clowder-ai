@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   InspectionDecisionConflictError,
+  InspectionSourceCapabilityMismatchError,
   InspectionSourceScopeMismatchError,
   InspectionSourceUnavailableError,
 } from '../domains/observability/InspectionService.js';
@@ -76,6 +77,7 @@ const decisionSchema = z
 export interface InspectionRoutesService {
   listSources(): unknown | Promise<unknown>;
   listJobs(userId: string): unknown | Promise<unknown>;
+  getJobDetail(userId: string, jobId: string): unknown | null | Promise<unknown | null>;
   createJob(userId: string, input: z.infer<typeof createJobSchema>): unknown | Promise<unknown>;
   reviseJob(
     userId: string,
@@ -122,35 +124,43 @@ function idempotencyKey(request: FastifyRequest): string | null {
   return normalized.length > 0 && normalized.length <= 200 ? normalized : null;
 }
 
+function inspectionErrorResponse(error: Error & { statusCode?: number }): {
+  readonly message: string;
+  readonly statusCode: number;
+} | null {
+  if (error instanceof InspectionSourceUnavailableError) {
+    return { message: 'Inspection source unavailable', statusCode: 503 };
+  }
+  if (error instanceof InspectionNotFoundError) {
+    return { message: 'Inspection resource not found', statusCode: 404 };
+  }
+  if (error instanceof InspectionSourceCapabilityMismatchError) {
+    return { message: 'Inspection source capability mismatch', statusCode: 409 };
+  }
+  if (error instanceof InspectionSourceScopeMismatchError) {
+    return { message: 'Inspection source scope mismatch', statusCode: 409 };
+  }
+  if (
+    error instanceof InspectionRevisionConflictError ||
+    error instanceof InspectionIdempotencyConflictError ||
+    error instanceof InspectionImmutableRecordError ||
+    error instanceof InspectionDecisionConflictError
+  ) {
+    return { message: 'Inspection state conflict', statusCode: 409 };
+  }
+  if (typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
+    return { message: 'Invalid request', statusCode: error.statusCode };
+  }
+  return null;
+}
+
 export const inspectionsRoutes: FastifyPluginAsync<InspectionsRoutesOptions> = async (app, opts) => {
   const { service } = opts;
 
   app.setErrorHandler((error, request, reply) => {
-    if (error instanceof InspectionSourceUnavailableError) {
-      reply.status(503).send({ error: 'Inspection source unavailable' });
-      return;
-    }
-    if (error instanceof InspectionNotFoundError) {
-      reply.status(404).send({ error: 'Inspection resource not found' });
-      return;
-    }
-    if (
-      error instanceof InspectionRevisionConflictError ||
-      error instanceof InspectionIdempotencyConflictError ||
-      error instanceof InspectionImmutableRecordError ||
-      error instanceof InspectionDecisionConflictError ||
-      error instanceof InspectionSourceScopeMismatchError
-    ) {
-      reply.status(409).send({
-        error:
-          error instanceof InspectionSourceScopeMismatchError
-            ? 'Inspection source scope mismatch'
-            : 'Inspection state conflict',
-      });
-      return;
-    }
-    if (typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
-      reply.status(error.statusCode).send({ error: 'Invalid request' });
+    const response = inspectionErrorResponse(error);
+    if (response) {
+      reply.status(response.statusCode).send({ error: response.message });
       return;
     }
     request.log.error({ err: error }, 'inspection route failed');
@@ -166,6 +176,18 @@ export const inspectionsRoutes: FastifyPluginAsync<InspectionsRoutesOptions> = a
     const userId = requireUserId(request, reply);
     if (!userId) return;
     return service.listJobs(userId);
+  });
+
+  app.get('/api/observability/inspection-jobs/:jobId', async (request, reply) => {
+    const userId = requireUserId(request, reply);
+    if (!userId) return;
+    const { jobId } = request.params as { jobId: string };
+    const detail = await service.getJobDetail(userId, jobId);
+    if (!detail) {
+      reply.status(404);
+      return { error: 'Inspection job not found' };
+    }
+    return detail;
   });
 
   app.post('/api/observability/inspection-jobs', async (request, reply) => {

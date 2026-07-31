@@ -40,6 +40,11 @@ export interface CreateInspectionCaseInput {
   readonly version: string;
 }
 
+export interface ReviseInspectionJobInput {
+  readonly expectedRevision: number;
+  readonly checks: readonly InspectionCheckDefinition[];
+}
+
 interface DecisionResult {
   readonly decision: InspectionDecisionRecord;
   readonly report: InspectionReportSnapshot | null;
@@ -77,10 +82,25 @@ export async function listInspectionJobs(): Promise<readonly InspectionJob[]> {
   return responseJson(await apiFetch('/api/observability/inspection-jobs'));
 }
 
+export async function fetchInspectionJob(
+  jobId: string,
+): Promise<{ job: InspectionJob; revision: InspectionJobRevision }> {
+  return responseJson(await apiFetch(`/api/observability/inspection-jobs/${encodeURIComponent(jobId)}`));
+}
+
 export async function createInspectionJob(
   input: CreateInspectionJobInput,
 ): Promise<{ job: InspectionJob; revision: InspectionJobRevision }> {
   return responseJson(await apiFetch('/api/observability/inspection-jobs', jsonRequest(input)));
+}
+
+export async function reviseInspectionJob(
+  jobId: string,
+  input: ReviseInspectionJobInput,
+): Promise<{ job: InspectionJob; revision: InspectionJobRevision }> {
+  return responseJson(
+    await apiFetch(`/api/observability/inspection-jobs/${encodeURIComponent(jobId)}/revisions`, jsonRequest(input)),
+  );
 }
 
 export async function listInspectionCases(jobId?: string): Promise<readonly InspectionCase[]> {

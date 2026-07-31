@@ -6,10 +6,12 @@ const mocks = vi.hoisted(() => ({
   createInspectionCase: vi.fn(),
   createInspectionJob: vi.fn(),
   fetchInspectionCase: vi.fn(),
+  fetchInspectionJob: vi.fn(),
   listInspectionCases: vi.fn(),
   listInspectionJobs: vi.fn(),
   listInspectionSources: vi.fn(),
   recordInspectionDecision: vi.fn(),
+  reviseInspectionJob: vi.fn(),
   startInspectionRun: vi.fn(),
 }));
 
@@ -130,6 +132,7 @@ describe('InspectionOperationsPage', () => {
     mocks.listInspectionSources.mockResolvedValue([source]);
     mocks.listInspectionJobs.mockResolvedValue([]);
     mocks.listInspectionCases.mockResolvedValue([]);
+    mocks.fetchInspectionJob.mockResolvedValue({ job, revision: workspace.revision });
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -151,6 +154,14 @@ describe('InspectionOperationsPage', () => {
   }
 
   async function changeInput(element: HTMLInputElement, value: string) {
+    await act(async () => {
+      const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
+      descriptor?.set?.call(element, value);
+      element.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  async function changeTextArea(element: HTMLTextAreaElement, value: string) {
     await act(async () => {
       const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
       descriptor?.set?.call(element, value);
@@ -231,6 +242,114 @@ describe('InspectionOperationsPage', () => {
       }),
     );
     expect(container.querySelector<HTMLInputElement>('[name="environment"]')?.readOnly).toBe(true);
+  });
+
+  it('identifies replay sources as server replay data with explicit kind and scope', async () => {
+    await renderPage();
+
+    expect(container.textContent).toContain('验收回放');
+    expect(container.textContent).toContain('服务端回放数据');
+    expect(container.textContent).toContain('kind: replay');
+    expect(container.textContent).toContain('scope: acceptance');
+    expect(container.textContent).not.toContain('真实观测');
+  });
+
+  it('revises the current job to N+1 while preserving the existing Case revision', async () => {
+    const revisionTwo = {
+      ...workspace.revision,
+      id: 'revision-2',
+      revision: 2,
+      checks: [{ ...workspace.revision.checks[0], query: 'updated_metric', threshold: 220 }],
+    };
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce({ ...workspace, report: null });
+    mocks.reviseInspectionJob.mockResolvedValueOnce({
+      job: { ...job, currentRevision: 2 },
+      revision: revisionTwo,
+    });
+
+    await renderPage();
+    const queryInput = container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]');
+    const thresholdInput = container.querySelector<HTMLInputElement>('[data-testid="revision-threshold"]');
+    if (!queryInput || !thresholdInput) throw new Error('expected revision editor fields');
+
+    await changeTextArea(queryInput, 'updated_metric');
+    await changeInput(thresholdInput, '220');
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="revise-job-submit"]')?.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(mocks.reviseInspectionJob).toHaveBeenCalledWith(job.id, {
+      expectedRevision: 1,
+      checks: [{ ...workspace.revision.checks[0], query: 'updated_metric', threshold: 220 }],
+    });
+    expect(container.textContent).toContain('当前 rev 2');
+    expect(container.textContent).toContain('Case 绑定 rev 1');
+    expect(container.querySelector('[data-testid="case-pill"]')?.textContent).toContain('CHG-42');
+  });
+
+  it('loads current revision detail so a persisted Job without Cases can be revised', async () => {
+    const revisionTwo = {
+      ...workspace.revision,
+      id: 'revision-2',
+      revision: 2,
+      checks: [{ ...workspace.revision.checks[0], query: 'current_metric', threshold: 230 }],
+    };
+    const jobAtRevisionTwo = { ...job, currentRevision: 2 };
+    mocks.listInspectionJobs.mockResolvedValueOnce([jobAtRevisionTwo]);
+    mocks.listInspectionCases.mockResolvedValueOnce([]);
+    mocks.fetchInspectionJob.mockResolvedValueOnce({ job: jobAtRevisionTwo, revision: revisionTwo });
+    mocks.reviseInspectionJob.mockResolvedValueOnce({
+      job: { ...jobAtRevisionTwo, currentRevision: 3 },
+      revision: { ...revisionTwo, id: 'revision-3', revision: 3 },
+    });
+
+    await renderPage();
+    const queryInput = container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]');
+    const thresholdInput = container.querySelector<HTMLInputElement>('[data-testid="revision-threshold"]');
+    if (!queryInput || !thresholdInput) throw new Error('expected revision editor fields without a Case');
+    expect(queryInput.value).toBe('current_metric');
+    expect(thresholdInput.value).toBe('230');
+
+    await changeTextArea(queryInput, 'next_metric');
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="revise-job-submit"]')?.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(mocks.reviseInspectionJob).toHaveBeenCalledWith(job.id, {
+      expectedRevision: 2,
+      checks: [{ ...revisionTwo.checks[0], query: 'next_metric' }],
+    });
+    expect(container.textContent).toContain('当前 rev 3');
+  });
+
+  it('edits the current Job revision without replacing an old Case workspace revision', async () => {
+    const revisionTwo = {
+      ...workspace.revision,
+      id: 'revision-2',
+      revision: 2,
+      checks: [{ ...workspace.revision.checks[0], query: 'current_metric', threshold: 230 }],
+    };
+    const jobAtRevisionTwo = { ...job, currentRevision: 2 };
+    mocks.listInspectionJobs.mockResolvedValueOnce([jobAtRevisionTwo]);
+    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
+    mocks.fetchInspectionJob.mockResolvedValueOnce({ job: jobAtRevisionTwo, revision: revisionTwo });
+    mocks.fetchInspectionCase.mockResolvedValueOnce({
+      ...workspace,
+      job: jobAtRevisionTwo,
+      report: null,
+    });
+
+    await renderPage();
+
+    expect(container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]')?.value).toBe(
+      'current_metric',
+    );
+    expect(container.textContent).toContain('当前 rev 2');
+    expect(container.textContent).toContain('Case 绑定 rev 1');
   });
 
   it('renders persisted run provenance verbatim after reload', async () => {

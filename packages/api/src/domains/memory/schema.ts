@@ -66,7 +66,7 @@ END`,
 END`,
 ];
 
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 // Phase C: embedding metadata (model/dim version anchor)
 export const SCHEMA_V2 = `
@@ -352,6 +352,53 @@ BEFORE DELETE ON inspection_reports BEGIN
 END;
 `;
 
+// NOVA inspection integrity hardening: keep accepted evidence immutable and
+// enforce the parent chain that SQLite cannot express with the V10 keys alone.
+export const SCHEMA_V11_INSPECTION_INTEGRITY = `
+CREATE TRIGGER IF NOT EXISTS inspection_check_results_terminal_insert
+BEFORE INSERT ON inspection_check_results
+WHEN (SELECT status FROM inspection_runs WHERE id = NEW.run_id) <> 'running' BEGIN
+  SELECT RAISE(ABORT, 'cannot add evidence to a terminal inspection run');
+END;
+
+CREATE TRIGGER IF NOT EXISTS inspection_cases_revision_job_insert
+BEFORE INSERT ON inspection_cases
+WHEN NOT EXISTS (
+  SELECT 1 FROM inspection_job_revisions
+  WHERE id = NEW.job_revision_id AND job_id = NEW.job_id
+) BEGIN
+  SELECT RAISE(ABORT, 'inspection case revision does not belong to job');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_cases_revision_job_update
+BEFORE UPDATE OF job_id, job_revision_id ON inspection_cases
+WHEN NOT EXISTS (
+  SELECT 1 FROM inspection_job_revisions
+  WHERE id = NEW.job_revision_id AND job_id = NEW.job_id
+) BEGIN
+  SELECT RAISE(ABORT, 'inspection case revision does not belong to job');
+END;
+
+CREATE TRIGGER IF NOT EXISTS inspection_decisions_run_case_insert
+BEFORE INSERT ON inspection_decisions
+WHEN NEW.run_id IS NOT NULL AND NOT EXISTS (
+  SELECT 1 FROM inspection_runs
+  WHERE id = NEW.run_id AND case_id = NEW.case_id AND user_id = NEW.user_id
+) BEGIN
+  SELECT RAISE(ABORT, 'inspection decision run does not belong to case');
+END;
+
+CREATE TRIGGER IF NOT EXISTS inspection_reports_revision_case_insert
+BEFORE INSERT ON inspection_reports
+WHEN NOT EXISTS (
+  SELECT 1 FROM inspection_cases
+  WHERE id = NEW.case_id
+    AND user_id = NEW.user_id
+    AND job_revision_id = NEW.job_revision_id
+) BEGIN
+  SELECT RAISE(ABORT, 'inspection report revision does not belong to case');
+END;
+`;
+
 /**
  * Apply all schema migrations up to CURRENT_SCHEMA_VERSION.
  * Safe to call on empty DB (creates schema_version table first).
@@ -480,6 +527,11 @@ export function applyMigrations(db: Database.Database): void {
   if (currentVersion < 10) {
     db.exec(SCHEMA_V10_INSPECTIONS);
     db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(10, new Date().toISOString());
+  }
+
+  if (currentVersion < 11) {
+    db.exec(SCHEMA_V11_INSPECTION_INTEGRITY);
+    db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(11, new Date().toISOString());
   }
 }
 

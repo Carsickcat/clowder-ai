@@ -158,8 +158,8 @@ function parsePrometheusObservation(check: ObservabilityCheckRequest, payload: u
     throw safeError('malformed_response', 'Prometheus returned a malformed response');
   }
 
-  const timestampSeconds = Number(sample[0]);
-  const value = Number(sample[1]);
+  const timestampSeconds = parseFiniteScalar(sample[0]);
+  const value = parseFiniteScalar(sample[1]);
   if (!Number.isFinite(timestampSeconds) || !Number.isFinite(value)) {
     throw safeError('malformed_response', 'Prometheus returned a malformed response');
   }
@@ -177,6 +177,13 @@ function parsePrometheusObservation(check: ObservabilityCheckRequest, payload: u
     status: 'ok',
     value,
   };
+}
+
+function parseFiniteScalar(value: unknown): number {
+  if (typeof value !== 'string' && typeof value !== 'number') return Number.NaN;
+  if (typeof value === 'string' && value.trim().length === 0) return Number.NaN;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
 export class PrometheusObservabilitySource implements ObservabilitySource {
@@ -213,19 +220,6 @@ export class PrometheusObservabilitySource implements ObservabilitySource {
       throw safeError('invalid_configuration', 'Prometheus source clock is invalid');
     }
 
-    const observations: ObservabilityObservation[] = [];
-    for (const check of request.checks) {
-      observations.push(await this.collectCheck(check, collectedAt));
-    }
-    return {
-      collectedAt: collectedAt.toISOString(),
-      observations,
-      sourceId: this.sourceId,
-      window: request.window,
-    };
-  }
-
-  private async collectCheck(check: ObservabilityCheckRequest, queryTime: Date): Promise<ObservabilityObservation> {
     const abortController = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_resolve, reject) => {
@@ -234,38 +228,20 @@ export class PrometheusObservabilitySource implements ObservabilitySource {
         reject(safeError('timeout', 'Prometheus request timed out'));
       }, this.timeoutMs);
     });
-    const headers: Record<string, string> = {
-      accept: 'application/json',
-      'content-type': 'application/x-www-form-urlencoded',
-    };
-    if (this.authorization) headers.authorization = this.authorization;
-
-    const operation = async (): Promise<ObservabilityObservation> => {
-      const response = await this.fetchImpl(this.endpoint, {
-        body: new URLSearchParams({
-          query: check.query,
-          time: String(queryTime.getTime() / 1_000),
-        }).toString(),
-        headers,
-        method: 'POST',
-        redirect: 'error',
-        signal: abortController.signal,
-      });
-      if (response.redirected) {
-        throw safeError('redirect_error', 'Prometheus redirects are not allowed');
+    const operation = async (): Promise<ObservabilitySnapshot> => {
+      const observations: ObservabilityObservation[] = [];
+      for (const check of request.checks) {
+        if (abortController.signal.aborted) {
+          throw safeError('timeout', 'Prometheus request timed out');
+        }
+        observations.push(await this.collectCheck(check, collectedAt, abortController.signal));
       }
-      if (!response.ok) {
-        throw safeError('http_error', 'Prometheus request returned a non-success status');
-      }
-
-      const body = await readBoundedText(response, this.maxResponseBytes);
-      let payload: unknown;
-      try {
-        payload = JSON.parse(body);
-      } catch {
-        throw safeError('malformed_response', 'Prometheus returned a malformed response');
-      }
-      return parsePrometheusObservation(check, payload);
+      return {
+        collectedAt: collectedAt.toISOString(),
+        observations,
+        sourceId: this.sourceId,
+        window: request.window,
+      };
     };
 
     try {
@@ -279,5 +255,43 @@ export class PrometheusObservabilitySource implements ObservabilitySource {
     } finally {
       if (timeout) clearTimeout(timeout);
     }
+  }
+
+  private async collectCheck(
+    check: ObservabilityCheckRequest,
+    queryTime: Date,
+    signal: AbortSignal,
+  ): Promise<ObservabilityObservation> {
+    const headers: Record<string, string> = {
+      accept: 'application/json',
+      'content-type': 'application/x-www-form-urlencoded',
+    };
+    if (this.authorization) headers.authorization = this.authorization;
+
+    const response = await this.fetchImpl(this.endpoint, {
+      body: new URLSearchParams({
+        query: check.query,
+        time: String(queryTime.getTime() / 1_000),
+      }).toString(),
+      headers,
+      method: 'POST',
+      redirect: 'error',
+      signal,
+    });
+    if (response.redirected) {
+      throw safeError('redirect_error', 'Prometheus redirects are not allowed');
+    }
+    if (!response.ok) {
+      throw safeError('http_error', 'Prometheus request returned a non-success status');
+    }
+
+    const body = await readBoundedText(response, this.maxResponseBytes);
+    let payload: unknown;
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      throw safeError('malformed_response', 'Prometheus returned a malformed response');
+    }
+    return parsePrometheusObservation(check, payload);
   }
 }

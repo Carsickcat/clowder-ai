@@ -1,17 +1,19 @@
 'use client';
 
-import type { InspectionCase, InspectionJob, InspectionRunPurpose } from '@cat-cafe/shared';
+import type { InspectionCase, InspectionJob, InspectionJobRevision, InspectionRunPurpose } from '@cat-cafe/shared';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   createInspectionCase,
   createInspectionJob,
   fetchInspectionCase,
+  fetchInspectionJob,
   type InspectionSourceMetadata,
   type InspectionWorkspace,
   listInspectionCases,
   listInspectionJobs,
   listInspectionSources,
   recordInspectionDecision,
+  reviseInspectionJob,
   startInspectionRun,
 } from '@/utils/inspection-api';
 import styles from './InspectionOperationsPage.module.css';
@@ -42,6 +44,10 @@ function statusLabel(status: string): string {
   return labels[status] ?? status;
 }
 
+function sourceLabel(source: InspectionSourceMetadata): string {
+  return source.kind === 'replay' ? '验收回放 · 服务端回放数据' : source.label;
+}
+
 export function InspectionOperationsPage() {
   const [sources, setSources] = useState<readonly InspectionSourceMetadata[]>([]);
   const [jobs, setJobs] = useState<readonly InspectionJob[]>([]);
@@ -60,6 +66,15 @@ export function InspectionOperationsPage() {
   const [changeId, setChangeId] = useState('');
   const [version, setVersion] = useState('');
   const [purpose, setPurpose] = useState<InspectionRunPurpose>('admission');
+  const [editableRevision, setEditableRevision] = useState<InspectionJobRevision | null>(null);
+  const [revisionQuery, setRevisionQuery] = useState('');
+  const [revisionThreshold, setRevisionThreshold] = useState('');
+
+  function applyRevisionDraft(revision: InspectionJobRevision | null) {
+    setEditableRevision(revision);
+    setRevisionQuery(revision?.checks[0]?.query ?? '');
+    setRevisionThreshold(revision?.checks[0] ? String(revision.checks[0].threshold) : '');
+  }
 
   useEffect(() => {
     let active = true;
@@ -74,13 +89,21 @@ export function InspectionOperationsPage() {
         const firstJob = loadedJobs[0];
         if (firstJob) {
           setSelectedJobId(firstJob.id);
-          const loadedCases = await listInspectionCases(firstJob.id);
+          const [loadedCases, currentJob] = await Promise.all([
+            listInspectionCases(firstJob.id),
+            fetchInspectionJob(firstJob.id),
+          ]);
           if (!active) return;
           setCases(loadedCases);
+          setJobs((current) => current.map((job) => (job.id === currentJob.job.id ? currentJob.job : job)));
+          setEditableRevision(currentJob.revision);
+          setRevisionQuery(currentJob.revision.checks[0]?.query ?? '');
+          setRevisionThreshold(currentJob.revision.checks[0] ? String(currentJob.revision.checks[0].threshold) : '');
           const firstCase = loadedCases[0];
           if (firstCase) {
             setSelectedCaseId(firstCase.id);
-            setWorkspace(await fetchInspectionCase(firstCase.id));
+            const loadedWorkspace = await fetchInspectionCase(firstCase.id);
+            setWorkspace(loadedWorkspace);
           }
         }
       } catch {
@@ -132,13 +155,17 @@ export function InspectionOperationsPage() {
     setSelectedJobId(jobId);
     setSelectedCaseId(null);
     setWorkspace(null);
+    applyRevisionDraft(null);
     await withCommand(async () => {
-      const loadedCases = await listInspectionCases(jobId);
+      const [loadedCases, currentJob] = await Promise.all([listInspectionCases(jobId), fetchInspectionJob(jobId)]);
       setCases(loadedCases);
+      setJobs((current) => current.map((job) => (job.id === currentJob.job.id ? currentJob.job : job)));
+      applyRevisionDraft(currentJob.revision);
       const firstCase = loadedCases[0];
       if (firstCase) {
         setSelectedCaseId(firstCase.id);
-        setWorkspace(await fetchInspectionCase(firstCase.id));
+        const loadedWorkspace = await fetchInspectionCase(firstCase.id);
+        setWorkspace(loadedWorkspace);
       }
     });
   }
@@ -146,7 +173,8 @@ export function InspectionOperationsPage() {
   async function chooseCase(caseId: string) {
     setSelectedCaseId(caseId);
     await withCommand(async () => {
-      setWorkspace(await fetchInspectionCase(caseId));
+      const loadedWorkspace = await fetchInspectionCase(caseId);
+      setWorkspace(loadedWorkspace);
     });
   }
 
@@ -176,6 +204,7 @@ export function InspectionOperationsPage() {
       setCases([]);
       setSelectedCaseId(null);
       setWorkspace(null);
+      applyRevisionDraft(created.revision);
       setName('');
       setService('');
     });
@@ -192,9 +221,41 @@ export function InspectionOperationsPage() {
       });
       setCases((current) => [created, ...current]);
       setSelectedCaseId(created.id);
-      setWorkspace(await fetchInspectionCase(created.id));
+      const loadedWorkspace = await fetchInspectionCase(created.id);
+      setWorkspace(loadedWorkspace);
       setChangeId('');
       setVersion('');
+    });
+  }
+
+  async function handleReviseJob(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (
+      !selectedJob ||
+      !editableRevision ||
+      editableRevision.jobId !== selectedJob.id ||
+      editableRevision.revision !== selectedJob.currentRevision
+    ) {
+      return;
+    }
+    const nextThreshold = Number(revisionThreshold);
+    if (!revisionQuery.trim() || !Number.isFinite(nextThreshold)) return;
+
+    await withCommand(async () => {
+      const revised = await reviseInspectionJob(selectedJob.id, {
+        expectedRevision: selectedJob.currentRevision,
+        checks: editableRevision.checks.map((check, index) =>
+          index === 0
+            ? {
+                ...check,
+                query: revisionQuery.trim(),
+                threshold: nextThreshold,
+              }
+            : check,
+        ),
+      });
+      setJobs((current) => current.map((job) => (job.id === revised.job.id ? revised.job : job)));
+      applyRevisionDraft(revised.revision);
     });
   }
 
@@ -244,7 +305,7 @@ export function InspectionOperationsPage() {
           <div>
             <strong>
               {connectionState === 'booting'
-                ? '正在连接真实 API'
+                ? '正在连接 connected API'
                 : connectionState === 'degraded'
                   ? '连接中断'
                   : connectionState === 'misconfigured'
@@ -255,7 +316,11 @@ export function InspectionOperationsPage() {
                         ? '证据已固化'
                         : '已连接'}
             </strong>
-            <span>{sources.map((source) => source.label).join(' · ') || '无可用 source'}</span>
+            <span>
+              {sources
+                .map((source) => `${sourceLabel(source)} · kind: ${source.kind} · scope: ${source.scope}`)
+                .join(' · ') || '无可用 source'}
+            </span>
           </div>
         </div>
       </header>
@@ -332,7 +397,7 @@ export function InspectionOperationsPage() {
                 <select value={connectorRef} onChange={(event) => setConnectorRef(event.target.value)} required>
                   {sources.map((source) => (
                     <option key={source.id} value={source.id}>
-                      {source.label}
+                      {sourceLabel(source)} · {source.kind} · {source.scope}
                     </option>
                   ))}
                 </select>
@@ -376,6 +441,47 @@ export function InspectionOperationsPage() {
 
           {selectedJob ? (
             <>
+              {editableRevision?.jobId === selectedJob.id &&
+              editableRevision.revision === selectedJob.currentRevision ? (
+                <form className={styles.form} onSubmit={handleReviseJob}>
+                  <h3>创建 revision {selectedJob.currentRevision + 1}</h3>
+                  <p className={styles.muted}>
+                    当前 rev {selectedJob.currentRevision}。更新只会生成新 revision，已有 Case 继续绑定原 revision。
+                  </p>
+                  <label>
+                    Check query
+                    <textarea
+                      data-testid="revision-query"
+                      value={revisionQuery}
+                      onChange={(event) => setRevisionQuery(event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label>
+                    Check threshold
+                    <input
+                      data-testid="revision-threshold"
+                      type="number"
+                      step="0.01"
+                      value={revisionThreshold}
+                      onChange={(event) => setRevisionThreshold(event.target.value)}
+                      required
+                    />
+                  </label>
+                  <button
+                    data-testid="revise-job-submit"
+                    className={styles.secondaryButton}
+                    type="submit"
+                    disabled={formDisabled || !revisionQuery.trim() || !revisionThreshold.trim()}
+                  >
+                    {busy ? '创建中…' : `保存 revision ${selectedJob.currentRevision + 1}`}
+                  </button>
+                </form>
+              ) : (
+                <p className={styles.muted}>
+                  当前 rev {selectedJob.currentRevision}。选择绑定当前 revision 的 Case 后可编辑检查条件。
+                </p>
+              )}
               <form className={styles.caseForm} onSubmit={handleCreateCase}>
                 <label>
                   变更编号
@@ -450,10 +556,14 @@ export function InspectionOperationsPage() {
                   onClick={() => void handleRun()}
                   disabled={formDisabled || workspace.case.status === 'completed'}
                 >
-                  {busy ? '正在读取真实观测…' : '执行只读巡检'}
+                  {busy
+                    ? selectedSource?.kind === 'replay'
+                      ? '正在读取服务端回放数据…'
+                      : '正在读取服务端观测…'
+                    : '执行只读巡检'}
                 </button>
                 <span>
-                  Case {workspace.case.id} · revision {workspace.revision.revision}
+                  Case {workspace.case.id} · Case 绑定 rev {workspace.revision.revision}
                 </span>
               </div>
 

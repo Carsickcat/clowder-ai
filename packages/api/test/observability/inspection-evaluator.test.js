@@ -195,6 +195,7 @@ describe('InspectionEvaluator', () => {
       observations: {
         latency: {
           observedAt: '2026-07-31T07:59:30.000Z',
+          query: 'safe_metric',
           value: 180,
         },
       },
@@ -212,5 +213,28 @@ describe('InspectionEvaluator', () => {
     assert.equal(result.observations[0].value, 180);
     assert.match(result.observations[0].queryDigest, /^sha256:[a-f0-9]{64}$/);
     assert.doesNotMatch(JSON.stringify(result), /production-secrets/);
+  });
+
+  test('ReplayObservabilitySource fails closed when a check reuses an id with a different query', async () => {
+    const source = new ReplayObservabilitySource({
+      collectedAt: NOW.toISOString(),
+      observations: {
+        latency: {
+          observedAt: '2026-07-31T07:59:30.000Z',
+          query: 'trusted_metric',
+          value: 180,
+        },
+      },
+      sourceId: 'replay-acceptance',
+    });
+
+    const result = await source.collect({
+      checks: [{ id: 'latency', query: 'arbitrary_attacker_query' }],
+      window: '5m',
+    });
+
+    assert.equal(result.observations[0].status, 'error');
+    assert.equal(result.observations[0].value, null);
+    assert.equal(result.observations[0].queryDigest, createQueryDigest('trusted_metric'));
   });
 });

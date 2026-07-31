@@ -41,7 +41,7 @@ The runtime boundary is recorded in ADR-013. No new operator decision is require
 
 | AC | Evidence | Result |
 |---|---|---|
-| AC-C1 durable jobs/revisions, TTL=0 | schema V10 and store close/reopen acceptance in `inspection-store.test.js` and `inspection-connected-acceptance.test.js` | PASS |
+| AC-C1 durable jobs/revisions, TTL=0 | schema V10 plus V11 integrity migration and store close/reopen acceptance in `inspection-store.test.js` and `inspection-connected-acceptance.test.js` | PASS |
 | AC-C2 immutable revision binding | optimistic revision and original-case snapshot assertions in `inspection-store.test.js` | PASS |
 | AC-C3 reusable job, disjoint case/run/evidence/report IDs | restart acceptance creates two cases from one job and reopens independent evidence | PASS |
 | AC-C4 browser cannot author observations/verdict/source URL | strict route schemas and adversarial route tests; Run accepts only case, purpose and `Idempotency-Key` | PASS |
@@ -58,11 +58,17 @@ The final implementation includes the following review-driven protections:
 
 - a report-sealed Case rejects any new Run at the store/service boundary;
 - `accept` requires the Case's **latest**, terminal, `passed` Run, preventing an old green Run from bypassing newer risk evidence;
+- latest-pass validation, accept Decision, report snapshot and Case sealing execute in one `BEGIN IMMEDIATE` transaction, so a failed report cannot leave a stray accept Decision;
 - risk and unknown Runs cannot generate an accepted report, and the UI disables the action before the request;
+- a Case permits only one active Run while preserving same-key idempotent replay; first-writer conflicts are resolved under an immediate transaction;
+- startup reconciliation seals crash-left `running` Runs as `failed/unknown`, blocks their Cases and requires a new idempotency key;
 - Job environment must equal the selected server-owned source `scope`; the browser displays it read-only, so an acceptance source cannot be mislabeled as production;
+- source scope is revalidated again at revise/run time, closing server configuration drift after restart;
 - source URLs and authorization remain server-only; safe metadata exposes only ID, kind, label and scope;
-- Prometheus redirects are disabled, response bytes are bounded, deadlines are enforced even for a non-cooperative injected transport, and upstream bodies/secrets are not reflected;
-- terminal Runs, evidence rows and reports are append-only/immutable in SQLite;
+- Prometheus redirects are disabled, response bytes are bounded, one total deadline covers the whole multi-check Run, malformed scalar types fail closed, and upstream bodies/secrets are not reflected;
+- replay observations bind check ID to the configured query; reusing an ID with a different query produces `error/unknown`, not a synthetic pass;
+- relative checks are rejected unless the registered source explicitly declares baseline capability;
+- terminal Runs reject both evidence mutation and new evidence insertion; parent-chain triggers bind Case↔revision, Decision↔Run/Case/owner and Report↔Case/revision;
 - no DELETE route or TTL exists for user-visible inspection state.
 
 Thanks to 山本 for identifying and closing the report-sealing, latest-pass and source-scope integrity paths before the fixed review commit.
@@ -71,8 +77,8 @@ Thanks to 山本 for identifying and closing the report-sealing, latest-pass and
 
 ### Focused automated gates
 
-- `node --test packages/api/test/observability/*.test.js` — **39/39 pass**, 6 suites.
-- focused Web Vitest (`inspection-api` + `inspection-operations-page`) — **10/10 pass**, 2 files.
+- `node --test packages/api/test/observability/*.test.js` — **51/51 pass**, 6 suites.
+- focused Web Vitest (`inspection-api` + `inspection-operations-page`) — **16/16 pass**, 2 files.
 - `pnpm --filter @cat-cafe/shared lint` — PASS.
 - `pnpm --filter @cat-cafe/api lint` — PASS.
 - `pnpm --filter @cat-cafe/web exec tsc --noEmit` — PASS.
@@ -101,7 +107,11 @@ Latest production-browser result:
 {
   "connectedLabel": true,
   "fixtureLabelAbsent": true,
+  "noRealObservationClaim": true,
   "reportVisible": true,
+  "replayTransparent": true,
+  "revisionTwoVisible": true,
+  "runSealed": true,
   "scrollWidth": 960,
   "viewportWidth": 960,
   "errors": []
@@ -126,6 +136,10 @@ Direct `node tests/standalone.browser.mjs` passed against the `file://` artifact
 - report acceptance initially left the Case rail stale until reload; the authoritative Case projection now refreshes immediately;
 - new server environment variables were initially absent from registry/example governance; all three Prometheus settings are registered, server-only and non-runtime-editable, with authorization marked sensitive;
 - report sealing, latest-pass enforcement and environment/source scope binding were added after adversarial review;
+- a fresh-context scan found two false-green paths: coercible malformed Prometheus scalars and replay query-ID spoofing; both now fail closed with regression tests;
+- the same scan found non-atomic accept, terminal evidence append, concurrent Runs, restart-left Runs and durable parent-chain gaps; schema V11 and the atomic store lifecycle close the whole failure mode family;
+- persisted Jobs now expose owner-scoped current revision detail, so a Job with no Case can still create revision N+1 after a reload;
+- the page identifies replay as “验收回放 / 服务端回放数据” with kind/scope and removes the ambiguous “真实观测” claim;
 - the page now fails closed before Run/Accept rather than relying on hidden buttons or post-click errors.
 
 ## Architecture review
@@ -153,6 +167,10 @@ These prevent a truthful claim that the entire repository is green, but do not o
 - `gh` is unavailable in this environment, so PR/cloud status was not claimed.
 
 Scoped Biome emits no error but retains warnings in pre-existing API aggregation/migration functions. It also reports cognitive complexity in the new single-page connected UI. The latter is accepted as P3 refactor debt for a follow-up extraction after behavior/security review; it does not weaken the server-side invariants or test coverage.
+
+The current recovery rule assumes one process-level `SqliteInspectionStore` owner. If multiple long-lived API instances later share the same SQLite file, restart reconciliation must move to a lease/heartbeat model so a new instance cannot classify another live owner's Run as interrupted.
+
+`X-Cat-Cafe-User` remains a trusted local gateway identity header, not end-user authentication. The API is loopback-only in this connected sandbox; strong AuthN/AuthZ remains an explicit production-readiness prerequisite rather than an unclaimed property of this slice.
 
 ## Commit hygiene
 

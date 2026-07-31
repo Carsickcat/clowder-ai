@@ -13,7 +13,11 @@ import type {
 import { evaluateInspection } from './InspectionEvaluator.js';
 import type { ObservabilitySource } from './ports/ObservabilitySource.js';
 import { ObservabilitySourceError } from './ports/ObservabilitySource.js';
-import { InspectionNotFoundError, type SqliteInspectionStore } from './SqliteInspectionStore.js';
+import {
+  InspectionAcceptanceConflictError,
+  InspectionNotFoundError,
+  type SqliteInspectionStore,
+} from './SqliteInspectionStore.js';
 
 const COLLECTION_WINDOW = '5m';
 const COLLECTION_WINDOW_MS = 5 * 60 * 1_000;
@@ -32,6 +36,14 @@ export class InspectionSourceScopeMismatchError extends Error {
   }
 }
 
+export class InspectionSourceCapabilityMismatchError extends InspectionSourceScopeMismatchError {
+  constructor(connectorRef: string) {
+    super(connectorRef, 'baseline-capable');
+    this.message = `Inspection source "${connectorRef}" does not support relative checks`;
+    this.name = 'InspectionSourceCapabilityMismatchError';
+  }
+}
+
 export class InspectionDecisionConflictError extends Error {
   constructor(message: string) {
     super(message);
@@ -44,6 +56,7 @@ export interface RegisteredInspectionSource {
   readonly kind: InspectionSourceSnapshot['sourceKind'];
   readonly label: string;
   readonly scope: string;
+  readonly supportsRelativeChecks?: boolean;
   readonly source: ObservabilitySource;
 }
 
@@ -123,6 +136,13 @@ export class InspectionService {
     return this.store.listJobs(userId);
   }
 
+  getJobDetail(userId: string, jobId: string): { job: InspectionJob; revision: InspectionJobRevision } | null {
+    const job = this.store.getJob(userId, jobId);
+    if (!job) return null;
+    const revision = this.store.getCurrentJobRevision(userId, jobId);
+    return revision ? { job, revision } : null;
+  }
+
   createJob(
     userId: string,
     input: CreateInspectionJobCommand,
@@ -131,6 +151,7 @@ export class InspectionService {
     if (input.environment !== source.scope) {
       throw new InspectionSourceScopeMismatchError(input.connectorRef, source.scope);
     }
+    this.assertChecksSupported(source, input.checks);
     return this.store.createJob({
       ...input,
       userId,
@@ -143,6 +164,13 @@ export class InspectionService {
     jobId: string,
     input: ReviseInspectionJobCommand,
   ): { job: InspectionJob; revision: InspectionJobRevision } {
+    const job = this.store.getJob(userId, jobId);
+    if (!job) throw new InspectionNotFoundError('Inspection job');
+    const source = this.requireSource(job.connectorRef);
+    if (job.environment !== source.scope) {
+      throw new InspectionSourceScopeMismatchError(job.connectorRef, source.scope);
+    }
+    this.assertChecksSupported(source, input.checks);
     return this.store.reviseJob({
       ...input,
       userId,
@@ -185,6 +213,9 @@ export class InspectionService {
     const workspace = this.getCase(userId, caseId);
     if (!workspace) return null;
     const registration = this.requireSource(workspace.job.connectorRef);
+    if (workspace.job.environment !== registration.scope) {
+      throw new InspectionSourceScopeMismatchError(workspace.job.connectorRef, registration.scope);
+    }
     const run = this.store.startRun({
       userId,
       caseId,
@@ -215,21 +246,20 @@ export class InspectionService {
       if (!input.runId) {
         throw new InspectionDecisionConflictError('Accept requires a terminal inspection run');
       }
-      const run = this.store.getRun(userId, input.runId);
-      const latestRun = this.store.listRuns(userId, caseId).at(-1);
-      if (
-        !run ||
-        run.caseId !== caseId ||
-        run.id !== latestRun?.id ||
-        run.status !== 'completed' ||
-        run.verdict !== 'passed'
-      ) {
-        throw new InspectionDecisionConflictError(
-          'Accept requires the latest completed passed inspection run from this case',
-        );
-      }
-      if (this.store.getReportForCase(userId, caseId)) {
-        throw new InspectionDecisionConflictError('Inspection report already exists');
+      try {
+        const accepted = this.store.acceptLatestPassedRun({
+          userId,
+          caseId,
+          runId: input.runId,
+          actorId: userId,
+          note: input.note,
+        });
+        return accepted;
+      } catch (error) {
+        if (error instanceof InspectionAcceptanceConflictError) {
+          throw new InspectionDecisionConflictError(error.message);
+        }
+        throw error;
       }
     }
 
@@ -241,21 +271,25 @@ export class InspectionService {
       actorId: userId,
       note: input.note,
     });
-    const report =
-      input.kind === 'accept' && input.runId
-        ? this.store.createReport({
-            userId,
-            caseId,
-            verdict: this.store.getRun(userId, input.runId)?.verdict ?? 'unknown',
-          })
-        : null;
-    return { decision, report };
+    return { decision, report: null };
   }
 
   private requireSource(connectorRef: string): RegisteredInspectionSource {
     const source = this.sources.get(connectorRef);
     if (!source) throw new InspectionSourceUnavailableError(connectorRef);
     return source;
+  }
+
+  private assertChecksSupported(
+    source: RegisteredInspectionSource,
+    checks: readonly InspectionCheckDefinition[],
+  ): void {
+    const hasRelativeCheck = checks.some(
+      (check) => check.operator === 'relative_lte' || check.operator === 'relative_gte',
+    );
+    if (hasRelativeCheck && source.supportsRelativeChecks !== true) {
+      throw new InspectionSourceCapabilityMismatchError(source.id);
+    }
   }
 
   private async executeRun(

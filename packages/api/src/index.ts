@@ -508,9 +508,9 @@ async function main(): Promise<void> {
   const replaySource = new ReplayObservabilitySource({
     collectedAt: inspectionStartedAt,
     observations: {
-      availability: { observedAt: inspectionStartedAt, value: 0.999 },
-      latency: { observedAt: inspectionStartedAt, value: 184 },
-      'error-rate': { observedAt: inspectionStartedAt, value: 0.002 },
+      availability: { observedAt: inspectionStartedAt, query: 'safe_availability_metric', value: 0.999 },
+      latency: { observedAt: inspectionStartedAt, query: 'safe_metric', value: 184 },
+      'error-rate': { observedAt: inspectionStartedAt, query: 'safe_error_rate_metric', value: 0.002 },
     },
     sourceId: 'replay-acceptance',
   });

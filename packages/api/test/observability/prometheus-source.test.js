@@ -139,6 +139,63 @@ describe('PrometheusObservabilitySource', () => {
     assert.equal(outcome.code, 'timeout');
   });
 
+  test('enforces one total deadline across multiple checks', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    let calls = 0;
+    const source = createSource(
+      async () => {
+        calls += 1;
+        if (calls === 1) {
+          return new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  headers: new Headers(),
+                  ok: true,
+                  status: 200,
+                  text: async () => prometheusVector(),
+                }),
+              30,
+            );
+          });
+        }
+        return new Promise(() => {});
+      },
+      { timeoutMs: 50 },
+    );
+    let outcome;
+    const collection = source
+      .collect({
+        checks: [
+          { id: 'latency', query: 'safe_metric_1' },
+          { id: 'errors', query: 'safe_metric_2' },
+        ],
+        window: '5m',
+      })
+      .then(
+        () => {
+          outcome = 'resolved';
+        },
+        (error) => {
+          outcome = error;
+        },
+      );
+
+    try {
+      t.mock.timers.tick(30);
+      for (let index = 0; index < 10; index += 1) await Promise.resolve();
+      assert.equal(calls, 2);
+
+      t.mock.timers.tick(20);
+      for (let index = 0; index < 10; index += 1) await Promise.resolve();
+      assert.ok(outcome instanceof ObservabilitySourceError);
+      assert.equal(outcome.code, 'timeout');
+    } finally {
+      t.mock.timers.tick(50);
+      await collection;
+    }
+  });
+
   test('rejects malformed Prometheus payloads without echoing their body', async () => {
     const source = createSource(async () => {
       return new Response(`{ "secret": "${SECRET}"`, { status: 200 });
@@ -148,6 +205,26 @@ describe('PrometheusObservabilitySource', () => {
 
     assert.equal(error.code, 'malformed_response');
     assert.doesNotMatch(error.message, new RegExp(SECRET));
+  });
+
+  test('rejects malformed Prometheus scalar values instead of coercing them to zero', async () => {
+    for (const malformedValue of [null, '', false, [], {}]) {
+      const source = createSource(async () => {
+        return new Response(
+          JSON.stringify({
+            data: {
+              result: [{ metric: {}, value: [NOW.getTime() / 1_000, malformedValue] }],
+              resultType: 'vector',
+            },
+            status: 'success',
+          }),
+          { status: 200 },
+        );
+      });
+
+      const error = await captureError(() => source.collect(request));
+      assert.equal(error.code, 'malformed_response');
+    }
   });
 
   test('enforces declared and streamed response byte budgets', async () => {

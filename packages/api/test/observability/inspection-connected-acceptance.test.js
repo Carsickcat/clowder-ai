@@ -30,6 +30,7 @@ describe('connected inspection restart acceptance', () => {
       observations: {
         latency: {
           observedAt: '2026-07-31T07:59:30.000Z',
+          query: 'safe_metric',
           value: 184,
         },
       },
@@ -164,6 +165,84 @@ describe('connected inspection restart acceptance', () => {
     assert.equal(reopenedCase.json().report.id, reportId);
     assert.equal(reopenedCase.json().runs[0].sourceSnapshot.connectorRef, 'replay-acceptance');
     assert.match(reopenedCase.json().runs[0].checkResults[0].queryDigest, /^sha256:/);
+
+    await runtime.app.close();
+    runtime.db.close();
+  });
+
+  test('seals an interrupted run as failed on restart and requires a new idempotency key', async () => {
+    acceptanceDir = mkdtempSync(join(tmpdir(), 'nova-inspection-recovery-'));
+    const databasePath = join(acceptanceDir, 'inspection.sqlite');
+    const initialDb = new Database(databasePath);
+    applyMigrations(initialDb);
+    const initialStore = new SqliteInspectionStore(initialDb, {
+      now: () => '2026-07-31T07:58:00.000Z',
+    });
+    const created = initialStore.createJob({
+      userId: 'acceptance-user',
+      name: 'Restart recovery inspection',
+      service: 'payments-router',
+      environment: 'acceptance',
+      connectorRef: 'replay-acceptance',
+      checks: [
+        {
+          id: 'latency',
+          name: 'p95 latency',
+          query: 'safe_metric',
+          operator: 'lte',
+          threshold: 250,
+          unit: 'ms',
+          maxAgeMs: 120_000,
+        },
+      ],
+      createdBy: 'acceptance-user',
+    });
+    const inspectionCase = initialStore.startCase({
+      userId: 'acceptance-user',
+      jobId: created.job.id,
+      changeId: 'CHG-RESTART',
+      version: 'v3.18.2',
+    });
+    const interrupted = initialStore.startRun({
+      userId: 'acceptance-user',
+      caseId: inspectionCase.id,
+      purpose: 'verification',
+      idempotencyKey: 'before-restart',
+    });
+    initialDb.close();
+
+    const runtime = await createApp(databasePath);
+    const reopened = await runtime.app.inject({
+      method: 'GET',
+      url: `/api/observability/inspection-cases/${inspectionCase.id}`,
+      headers: USER_HEADER,
+    });
+    assert.equal(reopened.statusCode, 200);
+    assert.equal(reopened.json().case.status, 'blocked');
+    assert.equal(reopened.json().runs[0].id, interrupted.id);
+    assert.equal(reopened.json().runs[0].status, 'failed');
+    assert.match(reopened.json().runs[0].errorSummary, /restart/i);
+
+    const sameKey = await runtime.app.inject({
+      method: 'POST',
+      url: `/api/observability/inspection-cases/${inspectionCase.id}/runs`,
+      headers: { ...USER_HEADER, 'idempotency-key': 'before-restart' },
+      payload: { purpose: 'verification' },
+    });
+    assert.equal(sameKey.statusCode, 201);
+    assert.equal(sameKey.json().id, interrupted.id);
+    assert.equal(sameKey.json().status, 'failed');
+
+    const newKey = await runtime.app.inject({
+      method: 'POST',
+      url: `/api/observability/inspection-cases/${inspectionCase.id}/runs`,
+      headers: { ...USER_HEADER, 'idempotency-key': 'after-restart' },
+      payload: { purpose: 'verification' },
+    });
+    assert.equal(newKey.statusCode, 201);
+    assert.notEqual(newKey.json().id, interrupted.id);
+    assert.equal(newKey.json().status, 'completed');
+    assert.equal(newKey.json().verdict, 'passed');
 
     await runtime.app.close();
     runtime.db.close();

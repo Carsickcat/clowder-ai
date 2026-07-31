@@ -139,6 +139,79 @@ describe('InspectionService', () => {
     );
   });
 
+  test('rejects relative checks when the registered source cannot provide baselines', () => {
+    const relativeCheck = { ...CHECKS[0], operator: 'relative_lte', threshold: 1.1 };
+
+    assert.throws(
+      () =>
+        service.createJob('user-a', {
+          name: 'Unsupported relative inspection',
+          service: 'payments-router',
+          environment: 'acceptance',
+          connectorRef: 'replay-acceptance',
+          checks: [relativeCheck],
+        }),
+      /relative checks/i,
+    );
+
+    const created = createJob();
+    assert.throws(
+      () =>
+        service.reviseJob('user-a', created.job.id, {
+          expectedRevision: 1,
+          checks: [relativeCheck],
+        }),
+      /relative checks/i,
+    );
+
+    const baselineCapableService = new InspectionService({
+      now: () => new Date(NOW),
+      sources: [
+        {
+          id: 'replay-acceptance',
+          kind: 'replay',
+          label: 'Baseline-capable replay',
+          scope: 'acceptance',
+          supportsRelativeChecks: true,
+          source,
+        },
+      ],
+      store,
+    });
+    assert.doesNotThrow(() =>
+      baselineCapableService.createJob('user-a', {
+        name: 'Supported relative inspection',
+        service: 'payments-router',
+        environment: 'acceptance',
+        connectorRef: 'replay-acceptance',
+        checks: [relativeCheck],
+      }),
+    );
+  });
+
+  test('revalidates persisted job environment against the current source scope before execution', async () => {
+    const { inspectionCase } = createCase();
+    const changedScopeService = new InspectionService({
+      now: () => new Date(NOW),
+      sources: [
+        {
+          id: 'replay-acceptance',
+          kind: 'replay',
+          label: 'Moved replay',
+          scope: 'production',
+          source,
+        },
+      ],
+      store,
+    });
+
+    await assert.rejects(
+      () => changedScopeService.startRun('user-a', inspectionCase.id, 'request-scope-drift', { purpose: 'admission' }),
+      /scope/i,
+    );
+    assert.deepEqual(store.listRuns('user-a', inspectionCase.id), []);
+  });
+
   test('executes server-owned observations and reuses a completed run by idempotency key', async () => {
     const { inspectionCase } = createCase();
 

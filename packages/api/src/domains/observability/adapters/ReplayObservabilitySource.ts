@@ -11,6 +11,7 @@ export interface ReplayObservation {
   readonly baselineValue?: number | null;
   readonly observedAt?: string | null;
   readonly partial?: boolean;
+  readonly query: string;
   readonly status?: ObservabilityObservationStatus;
   readonly value?: number | null;
 }
@@ -49,12 +50,25 @@ export class ReplayObservabilitySource implements ObservabilitySource {
         };
       }
 
+      const queryDigest = createQueryDigest(configured.query);
+      if (configured.query !== check.query) {
+        return {
+          baselineValue: null,
+          checkId: check.id,
+          observedAt: configured.observedAt ?? null,
+          partial: false,
+          queryDigest,
+          status: 'error',
+          value: null,
+        };
+      }
+
       return {
         baselineValue: configured.baselineValue ?? null,
         checkId: check.id,
         observedAt: configured.observedAt ?? null,
         partial: configured.partial ?? false,
-        queryDigest: createQueryDigest(check.query),
+        queryDigest,
         status: configured.status ?? 'ok',
         value: configured.value ?? null,
       };
