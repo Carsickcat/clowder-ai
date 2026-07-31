@@ -6,14 +6,12 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - 'designs/**'
       - 'assets/**'
   pull_request:
     branches: [main]
     paths-ignore:
       - 'docs/**'
       - '*.md'
-      - 'designs/**'
       - 'assets/**'
 
 concurrency:
@@ -33,6 +31,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - name: Check NOVA prototype
+        working-directory: designs/nova-ops-observability-platform-v3
+        run: npm ci --include=dev && npm run format:check && npm test
 
   build:
     name: Build
