@@ -62,6 +62,7 @@ describe('ChatContainerHeader thread indicator', () => {
   });
 
   beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_BRAND_NAME', '');
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -70,6 +71,7 @@ describe('ChatContainerHeader thread indicator', () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    vi.unstubAllEnvs();
   });
 
   afterAll(() => {
