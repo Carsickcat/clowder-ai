@@ -21,8 +21,8 @@
     "check": "npm run format:check && npm test && npm run test:standalone:browser"
   },
   "dependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "overrides": {
     "postcss": "8.5.23"
@@ -33,7 +33,7 @@
     "@vitejs/plugin-rsc": "^0.5.30",
     "playwright-core": "^1.62.0",
     "prettier": "^3.6.2",
-    "react-server-dom-webpack": "^19.2.6",
+    "react-server-dom-webpack": "^19.2.8",
     "vinext": "^1.0.0-beta.4",
     "vite": "^8.1.5"
   }
