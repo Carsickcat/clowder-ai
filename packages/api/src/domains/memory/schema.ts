@@ -66,7 +66,7 @@ END`,
 END`,
 ];
 
-export const CURRENT_SCHEMA_VERSION = 9;
+export const CURRENT_SCHEMA_VERSION = 10;
 
 // Phase C: embedding metadata (model/dim version anchor)
 export const SCHEMA_V2 = `
@@ -186,6 +186,170 @@ CREATE TABLE IF NOT EXISTS dynamic_task_defs (
   created_by TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+`;
+
+// NOVA connected inspection control plane: durable jobs, immutable revisions,
+// case-owned evidence and report snapshots. User-visible state has no TTL.
+export const SCHEMA_V10_INSPECTIONS = `
+CREATE TABLE IF NOT EXISTS inspection_jobs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  service TEXT NOT NULL,
+  environment TEXT NOT NULL,
+  connector_ref TEXT NOT NULL,
+  current_revision INTEGER NOT NULL CHECK (current_revision > 0),
+  archived_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_inspection_jobs_user
+  ON inspection_jobs(user_id, archived_at, updated_at);
+
+CREATE TABLE IF NOT EXISTS inspection_job_revisions (
+  id TEXT PRIMARY KEY,
+  job_id TEXT NOT NULL,
+  revision INTEGER NOT NULL CHECK (revision > 0),
+  checks_json TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (job_id) REFERENCES inspection_jobs(id),
+  UNIQUE (job_id, revision)
+);
+CREATE INDEX IF NOT EXISTS idx_inspection_job_revisions_job
+  ON inspection_job_revisions(job_id, revision);
+
+CREATE TABLE IF NOT EXISTS inspection_cases (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  job_id TEXT NOT NULL,
+  job_revision_id TEXT NOT NULL,
+  change_id TEXT NOT NULL,
+  version TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ready', 'running', 'blocked', 'completed')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (job_id, user_id) REFERENCES inspection_jobs(id, user_id),
+  FOREIGN KEY (job_revision_id) REFERENCES inspection_job_revisions(id),
+  UNIQUE (id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_inspection_cases_user
+  ON inspection_cases(user_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_inspection_cases_job
+  ON inspection_cases(job_id, job_revision_id);
+
+CREATE TABLE IF NOT EXISTS inspection_runs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  case_id TEXT NOT NULL,
+  purpose TEXT NOT NULL CHECK (purpose IN ('admission', 'canary', 'verification', 'post_change')),
+  status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed')),
+  verdict TEXT NOT NULL CHECK (verdict IN ('passed', 'risk', 'unknown')),
+  source_snapshot_json TEXT,
+  error_summary TEXT,
+  idempotency_key TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  finished_at TEXT,
+  FOREIGN KEY (case_id, user_id) REFERENCES inspection_cases(id, user_id),
+  UNIQUE (user_id, case_id, idempotency_key)
+);
+CREATE INDEX IF NOT EXISTS idx_inspection_runs_case
+  ON inspection_runs(case_id, started_at);
+
+CREATE TABLE IF NOT EXISTS inspection_check_results (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  check_id TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('passed', 'risk', 'unknown')),
+  value REAL,
+  baseline_value REAL,
+  observed_at TEXT,
+  query_digest TEXT NOT NULL,
+  reason TEXT,
+  FOREIGN KEY (run_id) REFERENCES inspection_runs(id),
+  UNIQUE (run_id, check_id)
+);
+CREATE INDEX IF NOT EXISTS idx_inspection_check_results_run
+  ON inspection_check_results(run_id);
+
+CREATE TABLE IF NOT EXISTS inspection_decisions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  case_id TEXT NOT NULL,
+  run_id TEXT,
+  kind TEXT NOT NULL CHECK (kind IN ('approve', 'pause', 'resume', 'accept')),
+  actor_id TEXT NOT NULL,
+  note TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (case_id, user_id) REFERENCES inspection_cases(id, user_id),
+  FOREIGN KEY (run_id) REFERENCES inspection_runs(id)
+);
+CREATE INDEX IF NOT EXISTS idx_inspection_decisions_case
+  ON inspection_decisions(case_id, created_at);
+
+CREATE TABLE IF NOT EXISTS inspection_reports (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  case_id TEXT NOT NULL UNIQUE,
+  job_revision_id TEXT NOT NULL,
+  run_ids_json TEXT NOT NULL,
+  decision_ids_json TEXT NOT NULL,
+  verdict TEXT NOT NULL CHECK (verdict IN ('passed', 'risk', 'unknown')),
+  generated_at TEXT NOT NULL,
+  FOREIGN KEY (case_id, user_id) REFERENCES inspection_cases(id, user_id),
+  FOREIGN KEY (job_revision_id) REFERENCES inspection_job_revisions(id)
+);
+
+CREATE TRIGGER IF NOT EXISTS inspection_jobs_no_delete
+BEFORE DELETE ON inspection_jobs BEGIN
+  SELECT RAISE(ABORT, 'inspection job is immutable; archive it');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_job_revisions_immutable_update
+BEFORE UPDATE ON inspection_job_revisions BEGIN
+  SELECT RAISE(ABORT, 'inspection job revision is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_job_revisions_immutable_delete
+BEFORE DELETE ON inspection_job_revisions BEGIN
+  SELECT RAISE(ABORT, 'inspection job revision is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_cases_no_delete
+BEFORE DELETE ON inspection_cases BEGIN
+  SELECT RAISE(ABORT, 'inspection case is immutable; retain it');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_runs_terminal_immutable
+BEFORE UPDATE ON inspection_runs
+WHEN OLD.status IN ('completed', 'failed') BEGIN
+  SELECT RAISE(ABORT, 'terminal inspection run is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_runs_no_delete
+BEFORE DELETE ON inspection_runs BEGIN
+  SELECT RAISE(ABORT, 'inspection run is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_check_results_immutable_update
+BEFORE UPDATE ON inspection_check_results BEGIN
+  SELECT RAISE(ABORT, 'inspection check result is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_check_results_immutable_delete
+BEFORE DELETE ON inspection_check_results BEGIN
+  SELECT RAISE(ABORT, 'inspection check result is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_decisions_immutable_update
+BEFORE UPDATE ON inspection_decisions BEGIN
+  SELECT RAISE(ABORT, 'inspection decision is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_decisions_immutable_delete
+BEFORE DELETE ON inspection_decisions BEGIN
+  SELECT RAISE(ABORT, 'inspection decision is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_reports_immutable_update
+BEFORE UPDATE ON inspection_reports BEGIN
+  SELECT RAISE(ABORT, 'inspection report is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_reports_immutable_delete
+BEFORE DELETE ON inspection_reports BEGIN
+  SELECT RAISE(ABORT, 'inspection report is immutable');
+END;
 `;
 
 /**
@@ -311,6 +475,11 @@ export function applyMigrations(db: Database.Database): void {
     `);
 
     db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(9, new Date().toISOString());
+  }
+
+  if (currentVersion < 10) {
+    db.exec(SCHEMA_V10_INSPECTIONS);
+    db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(10, new Date().toISOString());
   }
 }
 

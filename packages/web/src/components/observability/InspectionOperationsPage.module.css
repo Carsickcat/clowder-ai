@@ -1,0 +1,456 @@
+.page {
+  min-height: 100vh;
+  padding: 32px;
+  color: var(--cafe-text);
+  background:
+    radial-gradient(circle at top right, var(--color-cocreator-bg), transparent 38%), var(--cafe-surface-sunken);
+}
+
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  max-width: 1480px;
+  padding: 28px;
+  margin: 0 auto 18px;
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 24px;
+  box-shadow: 0 16px 48px color-mix(in srgb, var(--cafe-text) 9%, transparent);
+}
+
+.hero h1,
+.sectionHeading h2,
+.runHeader h3,
+.report h3 {
+  margin: 0;
+  line-height: 1.15;
+}
+
+.hero h1 {
+  font-size: clamp(28px, 4vw, 48px);
+  letter-spacing: -0.04em;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--cafe-text-muted);
+  letter-spacing: 0.14em;
+}
+
+.lead {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: var(--cafe-text-secondary);
+}
+
+.connection {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 240px;
+  padding: 12px 14px;
+  background: var(--cafe-surface-elevated);
+  border: 1px solid var(--cafe-border);
+  border-radius: 14px;
+}
+
+.connection strong,
+.connection span {
+  display: block;
+}
+
+.connection span {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--cafe-text-secondary);
+}
+
+.connectionDot {
+  width: 10px;
+  height: 10px;
+  background: var(--color-codex-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--color-codex-bg);
+}
+
+.connection[data-state="degraded"] .connectionDot,
+.connection[data-state="misconfigured"] .connectionDot {
+  background: var(--cafe-accent);
+  box-shadow: 0 0 0 4px var(--color-cocreator-bg);
+}
+
+.connection[data-state="booting"] .connectionDot,
+.connection[data-state="running"] .connectionDot {
+  background: var(--cafe-crosspost);
+  box-shadow: 0 0 0 4px var(--color-gemini-bg);
+}
+
+.errorBanner {
+  max-width: 1480px;
+  padding: 12px 16px;
+  margin: 0 auto 18px;
+  font-weight: 700;
+  color: var(--color-cocreator-dark);
+  background: var(--color-cocreator-bg);
+  border: 1px solid var(--color-cocreator-light);
+  border-radius: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.6fr);
+  gap: 18px;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.sidebar,
+.workspace {
+  padding: 22px;
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 20px;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--cafe-text) 7%, transparent);
+}
+
+.sectionHeading,
+.runHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.sectionHeading > span,
+.runHeader > span {
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cafe-text-secondary);
+  background: var(--cafe-surface-elevated);
+  border-radius: 999px;
+}
+
+.stack {
+  display: grid;
+  gap: 8px;
+}
+
+.cardButton,
+.selectedCard {
+  width: 100%;
+  padding: 13px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 12px;
+}
+
+.selectedCard {
+  background: var(--color-cocreator-bg);
+  border-color: var(--cafe-accent);
+}
+
+.cardButton strong,
+.selectedCard strong,
+.cardButton span,
+.selectedCard span,
+.cardButton small,
+.selectedCard small {
+  display: block;
+}
+
+.cardButton span,
+.selectedCard span {
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--cafe-text-secondary);
+}
+
+.cardButton small,
+.selectedCard small {
+  margin-top: 7px;
+  color: var(--cafe-text-muted);
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--cafe-border-subtle);
+}
+
+.form h3 {
+  margin: 0;
+}
+
+.form label,
+.caseForm label,
+.commandBar label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cafe-text-secondary);
+}
+
+.form input,
+.form select,
+.form textarea,
+.caseForm input,
+.commandBar select {
+  width: 100%;
+  padding: 10px 11px;
+  font: inherit;
+  color: var(--cafe-text);
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 10px;
+}
+
+.form textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.twoColumns,
+.caseForm {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.caseForm {
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  padding: 14px;
+  background: var(--cafe-surface-elevated);
+  border-radius: 14px;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 42px;
+  padding: 10px 15px;
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.primaryButton {
+  color: var(--color-base-white);
+  background: var(--color-cocreator-dark);
+  border: 1px solid var(--color-cocreator-dark);
+}
+
+.secondaryButton {
+  color: var(--cafe-text);
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.cardButton:disabled,
+.selectedCard:disabled,
+.pill:disabled,
+.activePill:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.caseRail {
+  display: flex;
+  gap: 8px;
+  padding: 14px 0;
+  overflow-x: auto;
+}
+
+.pill,
+.activePill {
+  flex: 0 0 auto;
+  padding: 8px 11px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--cafe-text-secondary);
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 999px;
+}
+
+.activePill {
+  color: var(--color-cocreator-dark);
+  background: var(--color-cocreator-bg);
+  border-color: var(--cafe-accent);
+}
+
+.commandBar {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  padding: 14px 0;
+  border-top: 1px solid var(--cafe-border-subtle);
+  border-bottom: 1px solid var(--cafe-border-subtle);
+}
+
+.commandBar > span {
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--cafe-text-muted);
+}
+
+.runPanel,
+.report {
+  padding: 18px;
+  margin-top: 16px;
+  background: var(--cafe-surface-elevated);
+  border: 1px solid var(--cafe-border);
+  border-radius: 16px;
+}
+
+.provenance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.provenance div {
+  min-width: 0;
+  padding: 10px;
+  background: var(--cafe-surface);
+  border-radius: 10px;
+}
+
+.provenance dt {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--cafe-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.provenance dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.resultList {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.resultCard {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 8px 16px;
+  padding: 12px;
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border-subtle);
+  border-radius: 12px;
+}
+
+.resultCard strong,
+.resultCard span,
+.resultCard small {
+  display: block;
+}
+
+.resultCard span,
+.resultCard small {
+  color: var(--cafe-text-secondary);
+}
+
+.resultCard code {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
+.resultCard small {
+  grid-column: 1 / -1;
+}
+
+.blankSlate,
+.empty,
+.muted {
+  color: var(--cafe-text-secondary);
+}
+
+.blankSlate {
+  display: grid;
+  gap: 6px;
+  padding: 34px 20px;
+  text-align: center;
+  border: 1px dashed var(--cafe-border);
+  border-radius: 14px;
+}
+
+.errorText {
+  color: var(--color-cocreator-dark);
+}
+
+@media (max-width: 980px) {
+  .page {
+    padding: 16px;
+  }
+
+  .hero {
+    display: grid;
+    gap: 18px;
+  }
+
+  .connection {
+    min-width: 0;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .caseForm {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .caseForm button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .page {
+    padding: 0;
+  }
+
+  .hero,
+  .sidebar,
+  .workspace {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  .twoColumns,
+  .caseForm,
+  .provenance,
+  .resultCard {
+    grid-template-columns: 1fr;
+  }
+
+  .commandBar {
+    display: grid;
+  }
+
+  .commandBar > span {
+    margin-left: 0;
+  }
+}

@@ -202,6 +202,26 @@ export {
   generateSessionId,
   generateThreadId,
 } from './ids.js';
+// NOVA connected inspection control plane
+export type {
+  InspectionCase,
+  InspectionCaseStatus,
+  InspectionCheckDefinition,
+  InspectionCheckOperator,
+  InspectionCheckResult,
+  InspectionCheckStatus,
+  InspectionDecisionKind,
+  InspectionDecisionRecord,
+  InspectionJob,
+  InspectionJobRevision,
+  InspectionObservationWindow,
+  InspectionReportSnapshot,
+  InspectionRun,
+  InspectionRunPurpose,
+  InspectionRunStatus,
+  InspectionSourceSnapshot,
+  InspectionVerdict,
+} from './inspection.js';
 // Intent Card + Need Audit types (F076 需求翻译官)
 export type {
   CreateIntentCardInput,

@@ -20,6 +20,7 @@ export { externalProjectRoutes } from './external-projects.js';
 export { featureDocDetailRoutes } from './feature-doc-detail.js';
 export { gameRoutes } from './games.js';
 export { governanceStatusRoute } from './governance-status.js';
+export { inspectionsRoutes } from './inspections.js';
 export { intentCardRoutes } from './intent-card-routes.js';
 export { invocationsRoutes } from './invocations.js';
 export { leaderboardRoutes } from './leaderboard.js';
