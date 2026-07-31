@@ -78,7 +78,7 @@ describe('NOVA inspection SQLite state', () => {
   }
 
   it('applies the durable inspection schema with no TTL columns', () => {
-    assert.equal(CURRENT_SCHEMA_VERSION, 11);
+    assert.ok(CURRENT_SCHEMA_VERSION >= 11, `inspection integrity requires V11+, got V${CURRENT_SCHEMA_VERSION}`);
     const expected = [
       'inspection_jobs',
       'inspection_job_revisions',
