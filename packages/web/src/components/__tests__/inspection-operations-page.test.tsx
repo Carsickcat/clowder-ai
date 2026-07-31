@@ -1,6 +1,7 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InspectionApiError } from '@/utils/inspection-api';
 
 const mocks = vi.hoisted(() => ({
   createInspectionCase: vi.fn(),
@@ -15,7 +16,10 @@ const mocks = vi.hoisted(() => ({
   startInspectionRun: vi.fn(),
 }));
 
-vi.mock('@/utils/inspection-api', () => mocks);
+vi.mock('@/utils/inspection-api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/utils/inspection-api')>()),
+  ...mocks,
+}));
 
 const source = {
   id: 'replay-acceptance',
@@ -299,10 +303,12 @@ describe('InspectionOperationsPage', () => {
     };
     mocks.listInspectionJobs.mockResolvedValueOnce([job]);
     mocks.listInspectionCases.mockResolvedValueOnce([]);
-    mocks.reviseInspectionJob.mockRejectedValueOnce(new Error('Inspection state conflict')).mockResolvedValueOnce({
-      job: { ...job, currentRevision: 2 },
-      revision: revisionTwo,
-    });
+    mocks.reviseInspectionJob
+      .mockRejectedValueOnce(new InspectionApiError('Inspection state conflict', 409))
+      .mockResolvedValueOnce({
+        job: { ...job, currentRevision: 2 },
+        revision: revisionTwo,
+      });
 
     await renderPage();
     const queryInput = container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]');
@@ -329,6 +335,37 @@ describe('InspectionOperationsPage', () => {
     expect(mocks.reviseInspectionJob).toHaveBeenCalledTimes(2);
     expect(container.textContent).toContain('当前 rev 2');
     expect(container.textContent).not.toContain('Inspection state conflict');
+  });
+
+  it.each([
+    ['network failure', new TypeError('Failed to fetch')],
+    ['503 response', new InspectionApiError('Inspection source unavailable', 503)],
+  ])('degrades and disables execution after a ready-state %s', async (_label, failure) => {
+    const readyCase = { ...inspectionCase, status: 'ready' };
+    const readyWorkspace = {
+      ...workspace,
+      case: readyCase,
+      runs: [],
+      report: null,
+    };
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([readyCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce(readyWorkspace);
+    mocks.startInspectionRun.mockRejectedValueOnce(failure);
+
+    await renderPage();
+    const startRun = container.querySelector<HTMLButtonElement>('[data-testid="start-run"]');
+    if (!startRun) throw new Error('expected start Run action');
+    expect(startRun.disabled).toBe(false);
+
+    await act(async () => {
+      startRun.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(container.querySelector('[data-state="degraded"]')).not.toBeNull();
+    expect(container.textContent).toContain('连接中断');
+    expect(startRun.disabled).toBe(true);
   });
 
   it('loads current revision detail so a persisted Job without Cases can be revised', async () => {

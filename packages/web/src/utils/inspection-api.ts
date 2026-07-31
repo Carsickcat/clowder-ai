@@ -50,6 +50,20 @@ interface DecisionResult {
   readonly report: InspectionReportSnapshot | null;
 }
 
+export class InspectionApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = 'InspectionApiError';
+  }
+}
+
+export function isInspectionAvailabilityError(error: unknown): boolean {
+  return error instanceof TypeError || (error instanceof InspectionApiError && error.status >= 500);
+}
+
 async function responseJson<T>(response: Response): Promise<T> {
   if (response.ok) return response.json() as Promise<T>;
 
@@ -60,7 +74,7 @@ async function responseJson<T>(response: Response): Promise<T> {
   } catch {
     // Preserve the bounded fallback; response bodies are not echoed.
   }
-  throw new Error(message);
+  throw new InspectionApiError(message, response.status);
 }
 
 function jsonRequest(body: unknown, headers?: Record<string, string>): RequestInit {

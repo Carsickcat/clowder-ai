@@ -9,6 +9,7 @@ import {
   fetchInspectionJob,
   type InspectionSourceMetadata,
   type InspectionWorkspace,
+  isInspectionAvailabilityError,
   listInspectionCases,
   listInspectionJobs,
   listInspectionSources,
@@ -146,7 +147,9 @@ export function InspectionOperationsPage() {
     try {
       await operation();
     } catch (error) {
-      setCommandError(error instanceof Error ? error.message : 'Connected API 请求失败');
+      const message = error instanceof Error ? error.message : 'Connected API 请求失败';
+      if (isInspectionAvailabilityError(error)) setConnectionError(message);
+      else setCommandError(message);
     } finally {
       setBusy(false);
     }

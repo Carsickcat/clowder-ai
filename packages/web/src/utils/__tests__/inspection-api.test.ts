@@ -133,6 +133,10 @@ describe('inspection-api', () => {
       json: () => Promise.resolve({ error: 'Inspection source unavailable' }),
     });
 
-    await expect(fetchInspectionCase('case-1')).rejects.toThrow('Inspection source unavailable');
+    await expect(fetchInspectionCase('case-1')).rejects.toMatchObject({
+      name: 'InspectionApiError',
+      message: 'Inspection source unavailable',
+      status: 503,
+    });
   });
 });
