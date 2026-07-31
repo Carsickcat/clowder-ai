@@ -184,12 +184,11 @@ describe('PackKnowledgeScope', () => {
     assert.equal(item.title, 'Custom Title');
   });
 
-  test('schema V6 migration adds pack_id column', async () => {
+  test('current schema retains the pack_id column introduced in V6', async () => {
     const { CURRENT_SCHEMA_VERSION } = await import('../dist/domains/memory/schema.js');
-    assert.equal(
-      CURRENT_SCHEMA_VERSION,
-      9,
-      'Current schema version should be 9 (V9: governance + emissions + pack templates)',
+    assert.ok(
+      CURRENT_SCHEMA_VERSION >= 6,
+      `Current schema version ${CURRENT_SCHEMA_VERSION} should include the V6 pack migration`,
     );
 
     // Create a store and check schema via its exposed db
@@ -203,6 +202,6 @@ describe('PackKnowledgeScope', () => {
 
     // Verify migration version
     const version = db.prepare('SELECT MAX(version) as v FROM schema_version').get();
-    assert.equal(version.v, 9, 'Schema version should be 9');
+    assert.equal(version.v, CURRENT_SCHEMA_VERSION, 'Database should migrate to the current schema version');
   });
 });
