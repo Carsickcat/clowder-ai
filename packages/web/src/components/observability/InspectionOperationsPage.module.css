@@ -99,6 +99,326 @@
   border-radius: 14px;
 }
 
+.journey {
+  max-width: 1480px;
+  padding: 22px;
+  margin: 0 auto 18px;
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 20px;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--cafe-text) 7%, transparent);
+}
+
+.journeyHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.journeyHeader h2 {
+  margin: 0;
+  font-size: clamp(22px, 3vw, 32px);
+  letter-spacing: -0.03em;
+}
+
+.stageRail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(100%, 520px);
+  overflow: hidden;
+  background: var(--cafe-surface-elevated);
+  border: 1px solid var(--cafe-border-subtle);
+  border-radius: 12px;
+}
+
+.stageRail span {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--cafe-text-muted);
+  text-align: center;
+  border-right: 1px solid var(--cafe-border-subtle);
+}
+
+.stageRail span:last-child {
+  border-right: 0;
+}
+
+.stageRail span[data-active="true"] {
+  color: var(--color-cocreator-dark);
+  background: var(--color-cocreator-bg);
+}
+
+.atomicGrid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.82fr) minmax(320px, 1.25fr) minmax(270px, 0.93fr);
+  gap: 12px;
+}
+
+.intentPanel,
+.candidatePanel,
+.assessmentPanel {
+  min-width: 0;
+  padding: 16px;
+  background: var(--cafe-surface-elevated);
+  border: 1px solid var(--cafe-border-subtle);
+  border-radius: 15px;
+}
+
+.intentPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.intentPanel label,
+.waiverField {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--cafe-text-secondary);
+}
+
+.intentPanel input,
+.intentPanel textarea,
+.waiverField input {
+  width: 100%;
+  padding: 9px 10px;
+  font: inherit;
+  color: var(--cafe-text);
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border);
+  border-radius: 9px;
+}
+
+.intentPanel textarea {
+  min-height: 78px;
+  resize: vertical;
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.panelTitle span {
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--cafe-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.panelTitle strong {
+  font-size: 13px;
+}
+
+.compactFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.compactFields label:first-child {
+  grid-column: 1 / -1;
+}
+
+.sourceContract {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  font-size: 11px;
+  background: var(--cafe-surface);
+  border-radius: 9px;
+}
+
+.sourceContract span {
+  color: var(--cafe-text-muted);
+}
+
+.sourceContract strong {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.candidateMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.candidateMeta span {
+  padding: 4px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--cafe-text-secondary);
+  background: var(--cafe-surface);
+  border-radius: 999px;
+}
+
+.candidateList {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.candidateCard,
+.omissionCard,
+.assessmentItem {
+  padding: 10px;
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border-subtle);
+  border-radius: 11px;
+}
+
+.candidateCard[data-priority="required"] {
+  border-left: 3px solid var(--cafe-accent);
+}
+
+.candidateChoice {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.candidateChoice input {
+  margin-top: 3px;
+}
+
+.candidateChoice span,
+.candidateChoice strong,
+.candidateChoice small {
+  display: block;
+}
+
+.candidateChoice small {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--cafe-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.candidateCard p,
+.omissionCard p,
+.assessmentItem p {
+  margin: 7px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--cafe-text-secondary);
+}
+
+.candidateCard code,
+.omissionCard small,
+.assessmentItem small {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  color: var(--cafe-text-muted);
+}
+
+.waiverField {
+  margin-top: 9px;
+}
+
+.omissionCard {
+  margin: 10px 0;
+  background: var(--color-cocreator-bg);
+  border-color: var(--color-cocreator-light);
+}
+
+.omissionCard > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+}
+
+.omissionCard > div strong {
+  color: var(--color-cocreator-dark);
+}
+
+.assessmentGate {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.assessmentGate > div {
+  min-width: 0;
+  padding: 9px;
+  background: var(--cafe-surface);
+  border-radius: 9px;
+}
+
+.assessmentGate span,
+.assessmentGate strong {
+  display: block;
+}
+
+.assessmentGate span {
+  font-size: 9px;
+  color: var(--cafe-text-muted);
+}
+
+.assessmentGate strong {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.assessmentItem {
+  margin-top: 7px;
+}
+
+.abReportCard {
+  padding: 10px;
+  margin: 10px 0;
+  background: var(--cafe-surface);
+  border: 1px solid var(--cafe-border-subtle);
+  border-radius: 11px;
+}
+
+.abReportCard > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+}
+
+.abReportCard > div strong {
+  color: var(--color-cocreator-dark);
+}
+
+.abReportCard small {
+  display: block;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+  color: var(--cafe-text-muted);
+}
+
+.abReportCard p {
+  margin: 4px 0;
+  font-size: 11px;
+  color: var(--cafe-text-secondary);
+}
+
+.assessmentItem > strong {
+  font-size: 10px;
+  color: var(--cafe-text-secondary);
+}
+
 .grid {
   display: grid;
   grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.6fr);
@@ -417,6 +737,18 @@
     grid-template-columns: 1fr;
   }
 
+  .journeyHeader {
+    display: grid;
+  }
+
+  .stageRail {
+    min-width: 0;
+  }
+
+  .atomicGrid {
+    grid-template-columns: 1fr;
+  }
+
   .caseForm {
     grid-template-columns: 1fr 1fr;
   }
@@ -432,6 +764,7 @@
   }
 
   .hero,
+  .journey,
   .sidebar,
   .workspace {
     border-right: 0;
@@ -444,6 +777,17 @@
   .provenance,
   .resultCard {
     grid-template-columns: 1fr;
+  }
+
+  .stageRail,
+  .assessmentGate,
+  .compactFields {
+    grid-template-columns: 1fr;
+  }
+
+  .stageRail span {
+    border-right: 0;
+    border-bottom: 1px solid var(--cafe-border-subtle);
   }
 
   .commandBar {

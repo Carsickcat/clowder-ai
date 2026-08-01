@@ -3,7 +3,10 @@ import {
   createInspectionJob,
   fetchInspectionCase,
   fetchInspectionJob,
+  generateInspectionCandidateSet,
+  listInspectionCandidateSets,
   listInspectionJobs,
+  materializeInspectionCandidateSet,
   reviseInspectionJob,
   startInspectionRun,
 } from '../inspection-api';
@@ -30,6 +33,54 @@ describe('inspection-api', () => {
 
     await expect(listInspectionJobs()).resolves.toEqual(jobs);
     expect(mocks.apiFetch).toHaveBeenCalledWith('/api/observability/inspection-jobs');
+  });
+
+  it('generates and reopens persisted candidate sets without browser-authored evidence', async () => {
+    const input = {
+      intent: 'inspect payments-router after CHG-23841',
+      service: 'payments-router',
+      environment: 'acceptance',
+      connectorRef: 'replay-acceptance',
+      changeId: 'CHG-23841',
+      version: 'v3.18.0',
+    };
+    mocks.apiFetch
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'candidates-1' }) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([{ id: 'candidates-1' }]) });
+
+    await generateInspectionCandidateSet(input);
+    await listInspectionCandidateSets();
+
+    expect(mocks.apiFetch).toHaveBeenNthCalledWith(1, '/api/observability/inspection-candidate-sets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    expect(mocks.apiFetch).toHaveBeenNthCalledWith(2, '/api/observability/inspection-candidate-sets');
+    expect(JSON.stringify(mocks.apiFetch.mock.calls[0])).not.toMatch(/observation|verdict|sourceUrl/);
+  });
+
+  it('materializes a candidate selection and explicit required waivers', async () => {
+    const input = {
+      name: 'Payments route verification',
+      selectedCandidateIds: ['latency'],
+      waivers: [{ candidateId: 'availability', reason: 'Covered by external synthetic checks.' }],
+    };
+    mocks.apiFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ job: { id: 'job-1' }, revision: { id: 'revision-1' } }),
+    });
+
+    await materializeInspectionCandidateSet('candidate/set 1', input);
+
+    expect(mocks.apiFetch).toHaveBeenCalledWith(
+      '/api/observability/inspection-candidate-sets/candidate%2Fset%201/materialize',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      },
+    );
   });
 
   it('creates a reusable versioned job with exact checks', async () => {

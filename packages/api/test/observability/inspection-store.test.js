@@ -82,6 +82,7 @@ describe('NOVA inspection SQLite state', () => {
     const expected = [
       'inspection_jobs',
       'inspection_job_revisions',
+      'inspection_candidate_sets',
       'inspection_cases',
       'inspection_runs',
       'inspection_check_results',
@@ -104,7 +105,7 @@ describe('NOVA inspection SQLite state', () => {
     }
   });
 
-  it('upgrades an existing V10 inspection schema with the V11 integrity triggers', () => {
+  it('upgrades an existing V10 inspection schema through the current inspection migrations', () => {
     const legacyDb = new Database(':memory:');
     try {
       legacyDb.exec(`CREATE TABLE schema_version (
@@ -116,7 +117,10 @@ describe('NOVA inspection SQLite state', () => {
 
       applyMigrations(legacyDb);
 
-      assert.equal(legacyDb.prepare('SELECT MAX(version) AS version FROM schema_version').get().version, 11);
+      assert.equal(
+        legacyDb.prepare('SELECT MAX(version) AS version FROM schema_version').get().version,
+        CURRENT_SCHEMA_VERSION,
+      );
       assert.ok(
         legacyDb
           .prepare("SELECT 1 FROM sqlite_master WHERE type = 'trigger' AND name = ?")
