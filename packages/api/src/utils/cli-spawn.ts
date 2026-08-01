@@ -929,7 +929,7 @@ export function isLivenessWarning(value: unknown): value is import('./ProcessLiv
  * script and spawning via `node` directly. Falls back to `shell: true`
  * if shim resolution fails.
  */
-function defaultSpawn(
+export function defaultSpawn(
   command: string,
   args: readonly string[],
   options: {
@@ -937,8 +937,10 @@ function defaultSpawn(
     env?: NodeJS.ProcessEnv | undefined;
     stdio: ['ignore' | 'pipe', 'pipe', 'pipe'];
   },
+  isWindows = IS_WINDOWS,
+  spawnImpl: typeof nodeSpawn = nodeSpawn,
 ): ChildProcessLike {
-  if (IS_WINDOWS) {
+  if (isWindows) {
     const spawnPlan = resolveWindowsSpawnPlan(command, args);
     if (spawnPlan.mode === 'shim') {
       log.debug(
@@ -963,10 +965,11 @@ function defaultSpawn(
         'Windows spawn plan resolved',
       );
     }
-    return nodeSpawn(spawnPlan.command, spawnPlan.args, {
+    return spawnImpl(spawnPlan.command, spawnPlan.args, {
       cwd: options.cwd,
       env: options.env,
       stdio: options.stdio,
+      windowsHide: true,
       ...(spawnPlan.shell !== undefined ? { shell: spawnPlan.shell } : {}),
     });
   }
@@ -984,7 +987,7 @@ function defaultSpawn(
 
   const supervisorArgs = resolveCliSupervisorNodeArgs();
 
-  return nodeSpawn(process.execPath, [...supervisorArgs, '--', command, ...args], {
+  return spawnImpl(process.execPath, [...supervisorArgs, '--', command, ...args], {
     cwd: options.cwd,
     env: {
       ...env,

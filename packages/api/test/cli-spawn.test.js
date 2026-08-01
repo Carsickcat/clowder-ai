@@ -22,6 +22,7 @@ const {
   isLivenessWarning,
   KILL_GRACE_MS,
   SEMANTIC_COMPLETION_GRACE_MS,
+  defaultSpawn,
   resolveCliSupervisorNodeArgs,
 } = await import('../dist/utils/cli-spawn.js');
 const { DEFAULT_CLI_TIMEOUT_MS } = await import('../dist/utils/cli-timeout.js');
@@ -95,6 +96,22 @@ function createMockProcess(opts = {}) {
 function createMockSpawnFn(mockProcess) {
   return mock.fn(() => mockProcess);
 }
+
+test('defaultSpawn hides Windows CLI windows', () => {
+  const proc = createMockProcess();
+  const spawnFn = mock.fn(() => proc);
+
+  defaultSpawn(
+    process.execPath,
+    ['--version'],
+    { stdio: ['ignore', 'pipe', 'pipe'] },
+    true,
+    spawnFn,
+  );
+
+  assert.equal(spawnFn.mock.callCount(), 1);
+  assert.equal(spawnFn.mock.calls[0].arguments[2].windowsHide, true);
+});
 
 test('spawnCli yields parsed JSON events from stdout', async () => {
   const proc = createMockProcess();
