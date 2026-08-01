@@ -1,4 +1,7 @@
 import type {
+  InspectionABReport,
+  InspectionAssessment,
+  InspectionCandidateSet,
   InspectionCase,
   InspectionCheckDefinition,
   InspectionDecisionKind,
@@ -8,6 +11,8 @@ import type {
   InspectionReportSnapshot,
   InspectionRun,
   InspectionRunPurpose,
+  InspectionStageReport,
+  InspectionWaiver,
 } from '@cat-cafe/shared';
 import { apiFetch } from './api-client';
 
@@ -23,7 +28,26 @@ export interface InspectionWorkspace {
   readonly job: InspectionJob;
   readonly revision: InspectionJobRevision;
   readonly runs: readonly InspectionRun[];
+  readonly stageReports: readonly InspectionStageReport[];
+  readonly abReport: InspectionABReport | null;
+  readonly assessment: InspectionAssessment | null;
+  readonly candidateSet: InspectionCandidateSet | null;
   readonly report: InspectionReportSnapshot | null;
+}
+
+export interface GenerateInspectionCandidateSetInput {
+  readonly intent: string;
+  readonly service: string;
+  readonly environment: string;
+  readonly connectorRef: string;
+  readonly changeId: string;
+  readonly version: string;
+}
+
+export interface MaterializeInspectionCandidateSetInput {
+  readonly name: string;
+  readonly selectedCandidateIds: readonly string[];
+  readonly waivers: readonly InspectionWaiver[];
 }
 
 export interface CreateInspectionJobInput {
@@ -94,6 +118,34 @@ export async function listInspectionSources(): Promise<readonly InspectionSource
 
 export async function listInspectionJobs(): Promise<readonly InspectionJob[]> {
   return responseJson(await apiFetch('/api/observability/inspection-jobs'));
+}
+
+export async function listInspectionCandidateSets(): Promise<readonly InspectionCandidateSet[]> {
+  return responseJson(await apiFetch('/api/observability/inspection-candidate-sets'));
+}
+
+export async function fetchInspectionCandidateSet(candidateSetId: string): Promise<InspectionCandidateSet> {
+  return responseJson(
+    await apiFetch(`/api/observability/inspection-candidate-sets/${encodeURIComponent(candidateSetId)}`),
+  );
+}
+
+export async function generateInspectionCandidateSet(
+  input: GenerateInspectionCandidateSetInput,
+): Promise<InspectionCandidateSet> {
+  return responseJson(await apiFetch('/api/observability/inspection-candidate-sets', jsonRequest(input)));
+}
+
+export async function materializeInspectionCandidateSet(
+  candidateSetId: string,
+  input: MaterializeInspectionCandidateSetInput,
+): Promise<{ job: InspectionJob; revision: InspectionJobRevision }> {
+  return responseJson(
+    await apiFetch(
+      `/api/observability/inspection-candidate-sets/${encodeURIComponent(candidateSetId)}/materialize`,
+      jsonRequest(input),
+    ),
+  );
 }
 
 export async function fetchInspectionJob(

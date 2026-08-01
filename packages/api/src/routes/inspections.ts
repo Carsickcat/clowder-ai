@@ -2,6 +2,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   InspectionDecisionConflictError,
+  InspectionSelectionConflictError,
   InspectionSourceCapabilityMismatchError,
   InspectionSourceScopeMismatchError,
   InspectionSourceUnavailableError,
@@ -34,6 +35,34 @@ const checkSchema = z
   .strict();
 
 const checksSchema = z.array(checkSchema).min(1).max(8);
+
+const generateCandidateSetSchema = z
+  .object({
+    intent: z.string().trim().min(1).max(2_000),
+    service: idSchema,
+    environment: idSchema,
+    connectorRef: idSchema,
+    changeId: idSchema,
+    version: z.string().trim().min(1).max(120),
+  })
+  .strict();
+
+const materializeCandidateSetSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    selectedCandidateIds: z.array(idSchema).min(1).max(8),
+    waivers: z
+      .array(
+        z
+          .object({
+            candidateId: idSchema,
+            reason: z.string().trim().min(1).max(1_000),
+          })
+          .strict(),
+      )
+      .max(8),
+  })
+  .strict();
 
 const createJobSchema = z
   .object({
@@ -76,6 +105,14 @@ const decisionSchema = z
 
 export interface InspectionRoutesService {
   listSources(): unknown | Promise<unknown>;
+  listCandidateSets(userId: string): unknown | Promise<unknown>;
+  getCandidateSet(userId: string, candidateSetId: string): unknown | null | Promise<unknown | null>;
+  generateCandidateSet(userId: string, input: z.infer<typeof generateCandidateSetSchema>): unknown | Promise<unknown>;
+  materializeCandidateSet(
+    userId: string,
+    candidateSetId: string,
+    input: z.infer<typeof materializeCandidateSetSchema>,
+  ): unknown | Promise<unknown>;
   listJobs(userId: string): unknown | Promise<unknown>;
   getJobDetail(userId: string, jobId: string): unknown | null | Promise<unknown | null>;
   createJob(userId: string, input: z.infer<typeof createJobSchema>): unknown | Promise<unknown>;
@@ -144,7 +181,8 @@ function inspectionErrorResponse(error: Error & { statusCode?: number }): {
     error instanceof InspectionRevisionConflictError ||
     error instanceof InspectionIdempotencyConflictError ||
     error instanceof InspectionImmutableRecordError ||
-    error instanceof InspectionDecisionConflictError
+    error instanceof InspectionDecisionConflictError ||
+    error instanceof InspectionSelectionConflictError
   ) {
     return { message: 'Inspection state conflict', statusCode: 409 };
   }
@@ -170,6 +208,51 @@ export const inspectionsRoutes: FastifyPluginAsync<InspectionsRoutesOptions> = a
   app.get('/api/observability/sources', async (request, reply) => {
     if (!requireUserId(request, reply)) return;
     return service.listSources();
+  });
+
+  app.get('/api/observability/inspection-candidate-sets', async (request, reply) => {
+    const userId = requireUserId(request, reply);
+    if (!userId) return;
+    return service.listCandidateSets(userId);
+  });
+
+  app.get('/api/observability/inspection-candidate-sets/:id', async (request, reply) => {
+    const userId = requireUserId(request, reply);
+    if (!userId) return;
+    const { id } = request.params as { id: string };
+    const candidateSet = await service.getCandidateSet(userId, id);
+    if (!candidateSet) {
+      reply.status(404);
+      return { error: 'Inspection candidate set not found' };
+    }
+    return candidateSet;
+  });
+
+  app.post('/api/observability/inspection-candidate-sets', async (request, reply) => {
+    const userId = requireUserId(request, reply);
+    if (!userId) return;
+    const input = generateCandidateSetSchema.safeParse(request.body);
+    if (!input.success) {
+      invalidBody(reply, input.error);
+      return;
+    }
+    const candidateSet = await service.generateCandidateSet(userId, input.data);
+    reply.status(201);
+    return candidateSet;
+  });
+
+  app.post('/api/observability/inspection-candidate-sets/:id/materialize', async (request, reply) => {
+    const userId = requireUserId(request, reply);
+    if (!userId) return;
+    const input = materializeCandidateSetSchema.safeParse(request.body);
+    if (!input.success) {
+      invalidBody(reply, input.error);
+      return;
+    }
+    const { id } = request.params as { id: string };
+    const created = await service.materializeCandidateSet(userId, id, input.data);
+    reply.status(201);
+    return created;
   });
 
   app.get('/api/observability/inspection-jobs', async (request, reply) => {
