@@ -1,5 +1,6 @@
 ---
 name: merge-gate
+tips_exempt: internal developer harness; no end-user capability
 description: >
   合入 main 的完整流程：门禁检查 → PR → 云端 review → squash merge → Phase 文档同步 → 清理。
   Use when: reviewer 放行后准备合入、开 PR、触发云端 review、准备 merge。
