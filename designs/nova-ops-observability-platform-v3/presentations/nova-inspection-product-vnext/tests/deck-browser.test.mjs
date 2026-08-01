@@ -29,15 +29,15 @@ test("deck renders and navigates on desktop and mobile", async () => {
     await desktop.waitForSelector(".slide.active");
     await desktop.waitForTimeout(450);
 
-    assert.equal(await desktop.locator(".slide").count(), 12);
-    assert.equal(await desktop.locator("#counter").textContent(), "01 / 12");
+    assert.equal(await desktop.locator(".slide").count(), 10);
+    assert.equal(await desktop.locator("#counter").textContent(), "01 / 10");
 
     await desktop.locator("#next").click();
-    assert.equal(await desktop.locator("#counter").textContent(), "02 / 12");
+    assert.equal(await desktop.locator("#counter").textContent(), "02 / 10");
     await desktop.keyboard.press("End");
-    assert.equal(await desktop.locator("#counter").textContent(), "12 / 12");
+    assert.equal(await desktop.locator("#counter").textContent(), "10 / 10");
 
-    for (let index = 1; index <= 12; index += 1) {
+    for (let index = 1; index <= 10; index += 1) {
       await desktop.evaluate((slideNumber) => {
         location.hash = String(slideNumber);
       }, index);
@@ -85,11 +85,11 @@ test("deck renders and navigates on desktop and mobile", async () => {
     });
 
     for (const [slideNumber, fileName] of [
-      [4, "desktop-why-ai.png"],
-      [6, "desktop-ai-candidates.png"],
-      [7, "desktop-orchestration.png"],
-      [9, "desktop-report-pipeline.png"],
-      [10, "desktop-report-interpretation.png"],
+      [2, "desktop-product-overview.png"],
+      [4, "desktop-ai-candidates.png"],
+      [5, "desktop-orchestration.png"],
+      [7, "desktop-canary-risk.png"],
+      [9, "desktop-report-interpretation.png"],
     ]) {
       await desktop.evaluate((target) => {
         location.hash = String(target);
@@ -111,11 +111,11 @@ test("deck renders and navigates on desktop and mobile", async () => {
       viewport: { width: 390, height: 844 },
     });
     mobile.on("pageerror", (error) => errors.push(error.message));
-    await mobile.goto(deckUrl + "#11");
+    await mobile.goto(deckUrl + "#9");
     await mobile.waitForSelector(".slide.active");
     await mobile.waitForTimeout(450);
 
-    assert.equal(await mobile.locator("#counter").textContent(), "11 / 12");
+    assert.equal(await mobile.locator("#counter").textContent(), "09 / 10");
     const visibleSlides = await mobile
       .locator(".slide")
       .evaluateAll(
@@ -128,7 +128,7 @@ test("deck renders and navigates on desktop and mobile", async () => {
       1,
       "mobile viewport must render exactly one slide",
     );
-    for (let index = 1; index <= 12; index += 1) {
+    for (let index = 1; index <= 10; index += 1) {
       await mobile.evaluate((target) => {
         location.hash = String(target);
       }, index);
@@ -153,10 +153,10 @@ test("deck renders and navigates on desktop and mobile", async () => {
     }
 
     await mobile.evaluate(() => {
-      location.hash = "11";
+      location.hash = "9";
     });
     await mobile.waitForFunction(
-      () => document.querySelector(".slide.active")?.dataset.slide === "11",
+      () => document.querySelector(".slide.active")?.dataset.slide === "9",
     );
     await mobile.waitForTimeout(350);
     await mobile.screenshot({

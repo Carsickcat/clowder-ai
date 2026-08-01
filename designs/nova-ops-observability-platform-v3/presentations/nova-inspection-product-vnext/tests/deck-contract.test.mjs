@@ -6,61 +6,125 @@ import test from "node:test";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const deckPath = resolve(here, "..", "NOVA-Inspection-Product-Next.html");
-const connectedPagePath = resolve(
+const highFidelityAppPath = resolve(
   here,
   "..",
   "..",
   "..",
-  "..",
-  "..",
-  "packages",
-  "web",
-  "src",
   "components",
-  "observability",
-  "InspectionOperationsPage.tsx",
+  "change-inspection",
+  "ChangeInspectionApp.js",
+);
+const highFidelityHeaderPath = resolve(
+  here,
+  "..",
+  "..",
+  "..",
+  "components",
+  "change-inspection",
+  "JourneyHeader.js",
+);
+const highFidelityClawPath = resolve(
+  here,
+  "..",
+  "..",
+  "..",
+  "components",
+  "change-inspection",
+  "ClawPanel.js",
+);
+const highFidelityDecisionPath = resolve(
+  here,
+  "..",
+  "..",
+  "..",
+  "components",
+  "change-inspection",
+  "DecisionSurface.js",
+);
+const highFidelityJobPath = resolve(
+  here,
+  "..",
+  "..",
+  "..",
+  "components",
+  "change-inspection",
+  "InspectionJobPlatform.js",
+);
+const highFidelityTimelinePath = resolve(
+  here,
+  "..",
+  "..",
+  "..",
+  "components",
+  "change-inspection",
+  "RunTimeline.js",
+);
+const highFidelityStatePath = resolve(
+  here,
+  "..",
+  "..",
+  "..",
+  "lib",
+  "change-inspection.mjs",
 );
 
 async function readDeck() {
   return readFile(deckPath, "utf8");
 }
 
-async function readConnectedPage() {
-  return readFile(connectedPagePath, "utf8");
+async function readHighFidelitySources() {
+  return Promise.all([
+    readFile(highFidelityAppPath, "utf8"),
+    readFile(highFidelityHeaderPath, "utf8"),
+    readFile(highFidelityClawPath, "utf8"),
+    readFile(highFidelityDecisionPath, "utf8"),
+    readFile(highFidelityJobPath, "utf8"),
+    readFile(highFidelityTimelinePath, "utf8"),
+    readFile(highFidelityStatePath, "utf8"),
+  ]).then((parts) => parts.join("\n"));
 }
 
-test("deck contains exactly twelve numbered slides", async () => {
+test("deck contains exactly ten numbered slides", async () => {
   const html = await readDeck();
   const slides =
     html.match(
       /<section\b(?=[^>]*\bclass="[^"]*\bslide\b[^"]*")(?=[^>]*\bdata-slide="\d+")[^>]*>/gs,
     ) ?? [];
-  assert.equal(slides.length, 12);
-  for (let index = 1; index <= 12; index += 1) {
+  assert.equal(slides.length, 10);
+  for (let index = 1; index <= 10; index += 1) {
     assert.match(html, new RegExp(`data-slide="${index}"`));
   }
 });
 
-test("deck is a concrete current-to-AI-enhanced product walkthrough", async () => {
+test("deck is a concrete high-fidelity product walkthrough", async () => {
   const html = await readDeck();
   for (const phrase of [
-    "产品功能与操作说明",
+    "产品功能与用户旅程",
     "payments-router",
-    "production",
     "v3.18.0",
-    "CHG-2481",
-    "当前 connected",
+    "CHG-23841",
+    "作业平台",
+    "当前任务",
+    "当前结论",
+    "Claw 对话",
+    "变更前准入",
+    "灰度持续验证",
+    "变更后验收",
+    "执行与决策记录",
     "巡检项生成",
     "巡检项编排",
-    "执行只读巡检",
-    "报告生成与解读",
-    "CLAW 是同屏助手",
-    "+ 添加巡检项",
-    "用户怎么操作",
-    "omissions",
+    "添加巡检项",
+    "删除",
+    "确认方案并执行变更前巡检",
+    "A/B 对比",
+    "记录处置",
+    "执行复验",
+    "最终报告",
+    "请 Claw 解读最终报告",
     "UNKNOWN",
     "只读",
-    "不执行发布、放量或回滚",
+    "不会触发真实生产动作",
   ]) {
     assert.ok(
       html.includes(phrase),
@@ -68,67 +132,67 @@ test("deck is a concrete current-to-AI-enhanced product walkthrough", async () =
     );
   }
 
-  for (let index = 1; index <= 7; index += 1) {
+  for (let index = 1; index <= 8; index += 1) {
     assert.match(html, new RegExp(`data-walkthrough-step="${index}"`));
   }
 
-  assert.doesNotMatch(html, /Phase One|第一期|首期|路线图|roadmap/i);
+  assert.doesNotMatch(
+    html,
+    /Phase One|第一期|首期|路线图|roadmap|当前 connected|AI 增强目标|没有 AI|有 AI|不做多级左树/i,
+  );
 });
 
-test("deck uses the shipped one-screen connected console as its UI contract", async () => {
-  const [html, connectedPage] = await Promise.all([
+test("deck uses the shipped 75d991e one-screen high fidelity as its UI contract", async () => {
+  const [html, highFidelitySources] = await Promise.all([
     readDeck(),
-    readConnectedPage(),
+    readHighFidelitySources(),
   ]);
 
   const shippedLabels = [
-    "可复用巡检控制台",
-    "保存为可复用作业",
-    "新建独立 Case",
-    "执行阶段",
-    "执行只读巡检",
-    "记录人工接受并固化报告",
-    "不可变报告",
+    "作业平台",
+    "当前任务",
+    "当前结论",
+    "Claw 对话",
+    "变更前准入",
+    "灰度持续验证",
+    "变更后验收",
   ];
 
   for (const label of shippedLabels) {
     assert.ok(
-      connectedPage.includes(label),
-      `connected UI label drifted: ${label}`,
+      highFidelitySources.includes(label),
+      `75d991e high-fidelity label drifted: ${label}`,
     );
     assert.ok(
       html.includes(label),
-      `deck no longer mirrors connected UI: ${label}`,
+      `deck no longer mirrors the 75d991e high fidelity: ${label}`,
     );
   }
 
-  assert.match(html, /data-ui-contract="current-connected-console"/);
-  assert.match(html, /当前已具备[\s\S]{0,160}单巡检项/);
-  assert.match(html, /AI 增强目标[\s\S]{0,200}多巡检项/);
+  assert.match(html, /data-ui-contract="nova-75d991e-workbench"/);
+  assert.ok(
+    (html.match(/data-source-screen="75d991e"/g) ?? []).length >= 3,
+    "at least three slides must be visibly bound to the real 75d991e screen",
+  );
   assert.doesNotMatch(html, /class="side-nav"/);
   assert.doesNotMatch(html, /class="nav-item(?:\s|\")/);
 });
 
-test("deck explains why AI is useful without giving it evidence authority", async () => {
+test("AI value is embodied inside inspection design and report interpretation", async () => {
   const html = await readDeck();
 
   for (const phrase of [
-    "没有 AI",
-    "有 AI",
-    "依赖上下文归并",
-    "候选项生成理由",
-    "检查覆盖缺口",
-    "自然语言转检查草稿",
-    "报告事实摘要",
-    "异常关联",
-    "风险解释",
+    "为什么检查",
+    "生成理由",
+    "证据来源",
+    "覆盖缺口",
+    "合并重复项",
+    "跨阶段归纳",
     "治理建议",
-    "不确定性",
+    "复验建议",
     "证据引用",
-    "AI 不生成观测值",
-    "AI 不决定 PASS / FAIL",
-    "规则负责判定",
-    "人负责发布与接受",
+    "规则产生判定",
+    "人确认方案、阶段和治理决定",
   ]) {
     assert.ok(html.includes(phrase), `missing AI product contract: ${phrase}`);
   }
@@ -139,10 +203,9 @@ test("deck explains why AI is useful without giving it evidence authority", asyn
 
 test("deck keeps unknown evidence and immutable reports honest", async () => {
   const html = await readDeck();
-  assert.match(html, /UNKNOWN[\s\S]{0,120}BLOCKED/);
-  assert.match(html, /IMMUTABLE REPORT/);
-  assert.match(html, /不可变报告/);
-  assert.doesNotMatch(html, /UNKNOWN[\s\S]{0,80}class="badge current"/);
+  assert.match(html, /UNKNOWN[\s\S]{0,180}阻断/);
+  assert.match(html, /不可变报告快照/);
+  assert.doesNotMatch(html, /UNKNOWN[\s\S]{0,80}badge-pass/);
 });
 
 test("deck is a standalone offline file", async () => {
@@ -152,6 +215,17 @@ test("deck is a standalone offline file", async () => {
     /<(?:script|link|img)[^>]+(?:src|href)=["']https?:\/\//i,
   );
   assert.doesNotMatch(html, /@import\s+url\(/i);
+  const imageSources = [
+    ...html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi),
+  ].map((match) => match[1]);
+  assert.ok(
+    imageSources.length >= 3,
+    "deck must include high-fidelity visuals",
+  );
+  assert.ok(
+    imageSources.every((source) => source.startsWith("data:image/png;base64,")),
+    "all high-fidelity visuals must be embedded in the single HTML file",
+  );
   assert.match(html, /<style>/);
   assert.match(html, /<script>/);
 });
