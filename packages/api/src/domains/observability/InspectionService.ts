@@ -303,7 +303,7 @@ export class InspectionService {
       runs,
       stageReports: runs.map((run) => projectInspectionStageReport(run, revision)),
       abReport,
-      assessment: latestRun ? projectInspectionAssessment(latestRun, candidateSet, abReport) : null,
+      assessment: latestRun ? projectInspectionAssessment(latestRun, candidateSet, abReport, revision.origin) : null,
       candidateSet,
       report: this.store.getReportForCase(userId, caseId),
     };

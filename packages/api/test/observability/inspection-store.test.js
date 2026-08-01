@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 
 import { applyMigrations, CURRENT_SCHEMA_VERSION, SCHEMA_V10_INSPECTIONS } from '../../dist/domains/memory/schema.js';
 import {
+  InspectionAcceptanceConflictError,
   InspectionImmutableRecordError,
   InspectionRevisionConflictError,
   SqliteInspectionStore,
@@ -405,7 +406,7 @@ describe('NOVA inspection SQLite state', () => {
     const run = store.startRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
-      purpose: 'post_change',
+      purpose: 'admission',
       idempotencyKey: 'request-atomic-accept',
     });
     store.completeRun({
@@ -494,7 +495,7 @@ describe('NOVA inspection SQLite state', () => {
     const run = store.startRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
-      purpose: 'post_change',
+      purpose: 'admission',
       idempotencyKey: 'request-report',
     });
     store.completeRun({
@@ -537,5 +538,46 @@ describe('NOVA inspection SQLite state', () => {
       () => db.prepare('UPDATE inspection_reports SET verdict = ? WHERE id = ?').run('risk', report.id),
       /immutable/i,
     );
+  });
+
+  it('rejects sealing a post-change pass without a comparable admission baseline', () => {
+    const created = createJob();
+    const inspectionCase = startCase(created.job.id);
+    const run = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'post_change',
+      idempotencyKey: 'post-without-baseline',
+    });
+    store.completeRun({
+      userId: 'user-a',
+      runId: run.id,
+      verdict: 'passed',
+      sourceSnapshot: {
+        connectorRef: 'prometheus-default',
+        sourceKind: 'replay',
+        observedAt: '2026-07-31T01:02:00.000Z',
+        window: {
+          from: '2026-07-31T00:52:00.000Z',
+          to: '2026-07-31T01:02:00.000Z',
+        },
+      },
+      checkResults: [],
+    });
+
+    assert.equal(store.getCase('user-a', inspectionCase.id).status, 'blocked');
+
+    assert.throws(
+      () =>
+        store.acceptLatestPassedRun({
+          userId: 'user-a',
+          caseId: inspectionCase.id,
+          runId: run.id,
+          actorId: 'user-a',
+          note: 'Should remain blocked.',
+        }),
+      InspectionAcceptanceConflictError,
+    );
+    assert.equal(store.getReportForCase('user-a', inspectionCase.id), null);
   });
 });
