@@ -85,9 +85,11 @@ test("deck renders and navigates on desktop and mobile", async () => {
     });
 
     for (const [slideNumber, fileName] of [
-      [5, "desktop-candidates.png"],
-      [8, "desktop-comparison.png"],
-      [10, "desktop-final-report.png"],
+      [4, "desktop-why-ai.png"],
+      [6, "desktop-ai-candidates.png"],
+      [7, "desktop-orchestration.png"],
+      [9, "desktop-report-pipeline.png"],
+      [10, "desktop-report-interpretation.png"],
     ]) {
       await desktop.evaluate((target) => {
         location.hash = String(target);

@@ -6,9 +6,27 @@ import test from "node:test";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const deckPath = resolve(here, "..", "NOVA-Inspection-Product-Next.html");
+const connectedPagePath = resolve(
+  here,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "packages",
+  "web",
+  "src",
+  "components",
+  "observability",
+  "InspectionOperationsPage.tsx",
+);
 
 async function readDeck() {
   return readFile(deckPath, "utf8");
+}
+
+async function readConnectedPage() {
+  return readFile(connectedPagePath, "utf8");
 }
 
 test("deck contains exactly twelve numbered slides", async () => {
@@ -23,25 +41,22 @@ test("deck contains exactly twelve numbered slides", async () => {
   }
 });
 
-test("deck is a concrete seven-step product walkthrough", async () => {
+test("deck is a concrete current-to-AI-enhanced product walkthrough", async () => {
   const html = await readDeck();
   for (const phrase of [
     "产品功能与操作说明",
-    "目标体验演示",
     "payments-router",
     "production",
     "v3.18.0",
     "CHG-2481",
-    "选择服务与变更",
-    "生成候选巡检项",
-    "编辑巡检任务",
-    "执行阶段工作流",
-    "阶段报告与 A/B 对比",
-    "风险项、治理建议与复验",
-    "固化最终巡检报告",
-    "CLAW 怎么用",
-    "添加巡检项",
-    "页面确认",
+    "当前 connected",
+    "巡检项生成",
+    "巡检项编排",
+    "执行只读巡检",
+    "报告生成与解读",
+    "CLAW 是同屏助手",
+    "+ 添加巡检项",
+    "用户怎么操作",
     "omissions",
     "UNKNOWN",
     "只读",
@@ -60,16 +75,74 @@ test("deck is a concrete seven-step product walkthrough", async () => {
   assert.doesNotMatch(html, /Phase One|第一期|首期|路线图|roadmap/i);
 });
 
-test("abandoned-before-execution is not presented as a successful state", async () => {
+test("deck uses the shipped one-screen connected console as its UI contract", async () => {
+  const [html, connectedPage] = await Promise.all([
+    readDeck(),
+    readConnectedPage(),
+  ]);
+
+  const shippedLabels = [
+    "可复用巡检控制台",
+    "保存为可复用作业",
+    "新建独立 Case",
+    "执行阶段",
+    "执行只读巡检",
+    "记录人工接受并固化报告",
+    "不可变报告",
+  ];
+
+  for (const label of shippedLabels) {
+    assert.ok(
+      connectedPage.includes(label),
+      `connected UI label drifted: ${label}`,
+    );
+    assert.ok(
+      html.includes(label),
+      `deck no longer mirrors connected UI: ${label}`,
+    );
+  }
+
+  assert.match(html, /data-ui-contract="current-connected-console"/);
+  assert.match(html, /当前已具备[\s\S]{0,160}单巡检项/);
+  assert.match(html, /AI 增强目标[\s\S]{0,200}多巡检项/);
+  assert.doesNotMatch(html, /class="side-nav"/);
+  assert.doesNotMatch(html, /class="nav-item(?:\s|\")/);
+});
+
+test("deck explains why AI is useful without giving it evidence authority", async () => {
   const html = await readDeck();
-  assert.doesNotMatch(
-    html,
-    /class="status-box good"[\s\S]{0,160}ABANDONED_BEFORE_EXECUTION/,
-  );
-  assert.match(
-    html,
-    /class="status-box"[\s\S]{0,160}ABANDONED_BEFORE_EXECUTION/,
-  );
+
+  for (const phrase of [
+    "没有 AI",
+    "有 AI",
+    "依赖上下文归并",
+    "候选项生成理由",
+    "检查覆盖缺口",
+    "自然语言转检查草稿",
+    "报告事实摘要",
+    "异常关联",
+    "风险解释",
+    "治理建议",
+    "不确定性",
+    "证据引用",
+    "AI 不生成观测值",
+    "AI 不决定 PASS / FAIL",
+    "规则负责判定",
+    "人负责发布与接受",
+  ]) {
+    assert.ok(html.includes(phrase), `missing AI product contract: ${phrase}`);
+  }
+
+  assert.match(html, /data-ai-capability="inspection-design"/);
+  assert.match(html, /data-ai-capability="report-interpretation"/);
+});
+
+test("deck keeps unknown evidence and immutable reports honest", async () => {
+  const html = await readDeck();
+  assert.match(html, /UNKNOWN[\s\S]{0,120}BLOCKED/);
+  assert.match(html, /IMMUTABLE REPORT/);
+  assert.match(html, /不可变报告/);
+  assert.doesNotMatch(html, /UNKNOWN[\s\S]{0,80}class="badge current"/);
 });
 
 test("deck is a standalone offline file", async () => {

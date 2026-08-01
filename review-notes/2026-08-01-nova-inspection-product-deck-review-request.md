@@ -1,75 +1,76 @@
-# Review Request: NOVA product walkthrough HTML deck rewrite
+# Review Request: NOVA current-UI AI product deck rewrite
 
 Review-Target-ID: nova-inspection-product-deck
 
-Branch: feat/nova-inspection-product-deck
+Branch: `feat/nova-inspection-product-deck`
 
-Review range: 6b5bf23..HEAD
+Review range: `78573ba..HEAD`
 
 ## What
 
-重写一份 12 页离线 HTML 产品演示稿及低保真蓝图：
+重写 12 页单文件 HTML 产品演示稿、低保真蓝图和合同测试：
 
-- 使用 `payments-router / production / v3.18.0 / CHG-2481` 贯穿完整案例。
-- 以真实产品工作台形式讲解七步：选择对象、生成候选、编辑发布、阶段执行、A/B 报告、风险治理复验、固化最终报告。
-- 单独说明 CLAW 的三个使用场景与“CLAW 建议、页面确认”边界。
-- 强化桌面/手机合同，并为内容方向增加回归测试。
+- 以当前 connected 的“左持久作业 + 右一屏 Case workspace”为界面母版。
+- 删除上一版虚构的多级左树，不改变现有阶段同屏操作。
+- 深化两条 AI 产品能力：巡检项生成/编排、报告生成/解读。
+- 用自动合同绑定实际 React 页面标签，并禁止 side-nav 回归。
 
 ## Why
 
-上一版将产品介绍写成了架构原则与规划宣言，没有回答“产品有什么、用户怎么用”。co-creator 明确退回并要求由主架亲自重写。
+co-creator 指出上一版虽然更像产品介绍，但仍有三处本质问题：材料功能与实际页面不一致；多级左树可能破坏当前好用的一屏阶段操作；AI 价值没有被证明，看起来不用 AI 也没有区别。
 
 ## Original Requirements
 
-> “你作为主架你来写吧，主要介绍下你的产品功能，用户怎么用，不是让你给这喊口号定计划呢”
+> “材料里介绍的产品功能和实际页面是不一样的吧，我建议还是要保持一致。”
+> “当前的页面设计我感觉还可以啊，可以看到阶段可以在一屏内操作，需要做多级左树菜单吗？”
+> “把巡检项生成编排，巡检报告生成解读再详细分析下……没有体现出为啥要用 AI。”
 
-- 来源：thread_mrrzdymcf3z6bx77，co-creator message `0001785564964639-000103-ae844043`
-- 请 reviewer 以此为首要验收标准，而不是只审视觉是否漂亮。
+来源：`thread_mrrzdymcf3z6bx77`，co-creator message `0001785568029836-000108-be3e4492`。
 
 ## Tradeoff
 
-- 选择 12 页 screenshot-like 产品 walkthrough，而非抽象架构/路线图；更具体，但不展开完整领域模型讨论。
-- 使用可选择文字、可重排的单文件 HTML，而不是 raster 幻灯片；保证手机阅读、离线与可访问性。
-- 下一版能力统一标注“目标体验演示”，避免把 proposal 冒充当前已上线 connected 能力。
+- 不创建更“完整”的产品导航壳，而是复用当前页面；牺牲模块化展示，换取真实一致性与一屏操作连续性。
+- AI 只放在语义生成/解释环节，不参与 query 执行、阈值计算和 verdict；智能感更克制，但证据权威清晰。
+- CLAW 明确标记为 AI 增强目标并以内嵌助手呈现；不冒充当前 connected 已上线能力。
 
 ## Architecture Ownership
 
 Architecture cell: presentation artifact  
 Map delta: none  
-Why: 只修改静态演示、低保真稿和合同测试，不改变 runtime、Store、Router、Adapter、connector 或数据边界。
+Why: exact delta 只含演示稿、低保真和合同测试；没有 runtime / Store / Router / Adapter / connector 变化。
 
-## Open Questions
+## Review Focus
 
-### 技术 / 产品 OQ
-
-1. 12 页是否真正以“功能 + 用户操作”为主，而不是换了一层皮的口号。
-2. 产品 UI 是否能让首次接触 NOVA 的发布/SRE 人员理解每一步输入、反馈与下一动作。
-3. `目标体验演示`、只读 connector、UNKNOWN、CLAW 权限边界是否足够清楚，不误导为当前生产能力。
-4. 桌面与 390px 手机是否有裁切、叠页、过密或难以滚动的内容。
-
-### 价值 OQ
-
-无。
+1. 页面是否真的保持“左作业 + 右工作区”，没有以别的形式重新引入多级导航。
+2. 当前单巡检项 connected 能力与目标多巡检项/CLAW 是否清楚区分。
+3. AI 巡检项生成是否说明输入、理由、阈值依据、provenance 和 omissions，而不是泛泛“自动生成”。
+4. AI 报告解读是否把确定性事实、AI 推断、不确定性和证据引用分开。
+5. 是否仍有任何文案暗示 AI 能生成观测、修改 verdict 或推进生产动作。
+6. 桌面与 390px 手机是否有层级、密度或滚动问题。
 
 ## Next Action
 
-请对 exact HEAD 做只读 review，给出 APPROVE 或带 P1/P2/P3 的 REQUEST-CHANGES。重点审产品讲解与使用旅程，其次审视觉层级和移动阅读；不要重做已冻结的产品方向。
+请只读 review exact HEAD，给 APPROVE 或带 P1/P2/P3 的 REQUEST-CHANGES。重点审产品真实性与 AI 价值链，其次审视觉；不要重做已冻结的权威边界。
 
-## 自检证据
+## Self-check Evidence
 
-- Quality gate：`review-notes/2026-08-01-nova-inspection-product-deck-quality-gate.md`
-- deck contract + browser：6/6
-- NOVA tests：53/53
-- NOVA Vinext build：通过
+- quality gate：`review-notes/2026-08-01-nova-inspection-product-deck-quality-gate.md`
+- deck contract：7/7
+- deck browser：1/1（12 页桌面 + 手机）
+- NOVA native tests：53/53
+- NOVA Vinext build：pass
 - npm audit high：0 vulnerabilities
 - root lint/build：exit 0
-- `git diff --check`：通过
-- 根目录媒体工件：无
+- `git diff --check`：pass
+- root media artifact gate：empty
+- root check/test：Windows/main baseline red；exact delta 不含 `packages/**`
 
-### 视觉证据
+### Visual Evidence
 
 - `%TEMP%/nova-inspection-product-deck-evidence/desktop-cover.png`
-- `%TEMP%/nova-inspection-product-deck-evidence/desktop-candidates.png`
-- `%TEMP%/nova-inspection-product-deck-evidence/desktop-comparison.png`
-- `%TEMP%/nova-inspection-product-deck-evidence/desktop-final-report.png`
+- `%TEMP%/nova-inspection-product-deck-evidence/desktop-why-ai.png`
+- `%TEMP%/nova-inspection-product-deck-evidence/desktop-ai-candidates.png`
+- `%TEMP%/nova-inspection-product-deck-evidence/desktop-orchestration.png`
+- `%TEMP%/nova-inspection-product-deck-evidence/desktop-report-pipeline.png`
+- `%TEMP%/nova-inspection-product-deck-evidence/desktop-report-interpretation.png`
 - `%TEMP%/nova-inspection-product-deck-evidence/mobile-workspace.png`

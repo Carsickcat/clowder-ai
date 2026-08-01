@@ -1,74 +1,68 @@
-# NOVA Inspection Product Walkthrough Deck — Quality Gate
+# NOVA Current-UI AI Product Deck — Quality Gate
 
 检查时间：2026-08-01  
-工作树：E:\ClowderAI\cat-cafe-nova-inspection-product-deck  
-基线：origin/main@75d991ee09d2c31edcfcb44b0f13b5586a598f9b
+工作树：`E:\ClowderAI\cat-cafe-nova-inspection-product-deck`
+本轮基点：`78573bab531e912512af43c0089f0dbd6d12e894`
 
 ## 愿景覆盖
 
-| #   | operator 原始需求      | 演示稿覆盖                                                                             | 状态       |
-| --- | ---------------------- | -------------------------------------------------------------------------------------- | ---------- |
-| 1   | 主要介绍产品功能       | 12 页中 9 页为产品工作台/功能实景，覆盖生成、编辑、执行、报告、对比、治理、复验和 CLAW | ✅         |
-| 2   | 讲清用户怎么用         | 用 `payments-router / production / v3.18.0 / CHG-2481` 贯穿七步操作                    | ✅         |
-| 3   | 不能只喊口号和定计划   | 内容合同禁止 Phase、路线图、首期等规划文案；没有路线图页                               | ✅         |
-| 4   | 用 HTML 形式发送       | 单文件 HTML，CSS 与 JavaScript 全部内联，无外部资源                                    | ✅         |
-| 5   | 手机可以实际打开和阅读 | 390×844 对 12 页逐页验证；单页可见、纵向滚动、触控翻页                                 | ✅         |
-| 6   | 不是只给本地路径       | 交付时通过 rich file block 发布真实文件                                                | 待发布动作 |
+| #   | operator 原始需求                        | 本轮实现                                                                                  | 状态 |
+| --- | ---------------------------------------- | ----------------------------------------------------------------------------------------- | ---- |
+| 1   | 材料与实际页面保持一致                   | 演示稿直接复用 connected 页面标签与“左持久作业 + 右一屏 workspace”结构                    | ✅   |
+| 2   | 保留当前阶段一屏操作，不盲目增加多级左树 | 删除旧 `.side-nav/.nav-item`；Revision、Case、阶段、Run、报告仍在同屏                     | ✅   |
+| 3   | 详细分析巡检项生成与编排                 | 展示 Context Pack 输入、候选输出合同、理由/阈值/依赖路径/覆盖缺口，以及 Revision 内增删改 | ✅   |
+| 4   | 详细分析报告生成与解读                   | 展示“权威事实 → AI 解释 → 人工决策”管线，以及五个操作问题与逐条证据引用                   | ✅   |
+| 5   | 说明为什么需要 AI                        | 独立对比“没有 AI / 有 AI”；明确 AI 处理语义归并与证据化解释，规则继续做确定性判定         | ✅   |
+| 6   | 用 HTML 发送，手机能实际打开             | 单文件、无外链；桌面 1440×900 与手机 390×844 全 12 页浏览器合同通过                       | ✅   |
 
 ## 功能验收
 
-| 要求                              | 代码位置                                                                        | 验证                                 |
-| --------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------ |
-| 12 页产品功能与操作叙事           | `presentations/nova-inspection-product-vnext/NOVA-Inspection-Product-Next.html` | `deck-contract.test.mjs`             |
-| 七步 walkthrough 均有稳定语义标识 | HTML `data-walkthrough-step=1..7`                                               | `deck-contract.test.mjs`             |
-| 具体服务/环境/版本/变更单贯穿     | HTML cover 与各工作台页面                                                       | `deck-contract.test.mjs`             |
-| 无规划口号回流                    | HTML 内容合同                                                                   | 禁止 Phase / 路线图 / 首期 / roadmap |
-| 键盘、按钮、触控、全屏、hash 导航 | HTML 内联脚本                                                                   | contract + browser                   |
-| 桌面 12 页不越界                  | HTML 桌面布局                                                                   | 1440×900 逐页 browser test           |
-| 手机 12 页无页面级横向溢出        | HTML 窄屏布局                                                                   | 390×844 逐页 browser test            |
-| 离线零外链                        | 单文件资源合同                                                                  | `deck-contract.test.mjs`             |
+| 要求                | 实现锚点                                                 | 自动验证                                           |
+| ------------------- | -------------------------------------------------------- | -------------------------------------------------- |
+| 真实 UI 标签同源    | `InspectionOperationsPage.tsx` + deck `data-ui-contract` | contract test 从源组件读取 7 个关键标签并比对 deck |
+| 不出现多级侧栏菜单  | deck 使用 `.job-pane/.workspace-pane`                    | contract 禁止 `.side-nav/.nav-item`                |
+| 当前/目标能力不混淆 | “当前已具备：单巡检项” / “AI 增强目标：多巡检项”         | contract 正则                                      |
+| AI 生成能力完整     | `data-ai-capability="inspection-design"`                 | 生成理由、覆盖缺口、自然语言草稿等内容合同         |
+| AI 报告能力完整     | `data-ai-capability="report-interpretation"`             | 摘要、关联、风险、治理、不确定性、证据引用内容合同 |
+| AI 不越权           | “AI 不生成观测值 / 不决定 PASS / FAIL”                   | 内容合同 + 边界页                                  |
+| 单文件与交互        | 内联 CSS/JS，hash、键盘、触控、全屏、打印                | contract + browser                                 |
+| 桌面/手机可读       | 12 页逐页检测                                            | Playwright browser contract                        |
 
 ## Dogfood-Your-Slice
 
 Scope verdict：✅ 必做。
 
-- 真实路径：Chromium 打开 exact worktree 中的单文件 HTML → 桌面逐页导航 → 手机逐页导航与滚动。
-- 截图证据：`%TEMP%/nova-inspection-product-deck-evidence/` 中的 cover、候选生成、A/B、最终报告和手机 CLAW。
-- 当轮发现并修复 2 个 bug：
-  1. 移动端 `.cover` 规则覆盖 inactive 状态，导致两页叠加；收紧为 `.cover.active`。
-  2. 移动端 CLAW 对话容器裁掉最后一条回复；改为随内容展开。
-- Hub Browser Preview 尝试在 8291 启动专用静态服务时被当前主机 `Start-Process` 权限策略拒绝；未将该步骤伪报为成功。实际 Chromium 合同与截图证据均来自当前 worktree 文件。
+- 路径：Chromium 直接打开当前 worktree 的 HTML 文件 → 逐页桌面/手机导航 → 检查 child overflow、页面级横向溢出与运行时异常。
+- 视觉证据：`%TEMP%/nova-inspection-product-deck-evidence/`。
+- 人工检查：封面、Why AI、候选生成、Revision 编排、报告管线、报告解读、手机 CLAW。
+- 当轮发现并修复：全高 console 的首行被 CSS Grid 拉伸，造成空白；补 `grid-template-rows: auto minmax(0, 1fr)`，移动端恢复 auto rows。
 
-## 设计与工件卫生
+## 设计、架构与工件卫生
 
-- `.pen` 匹配：只有无关 `designs/f070-project-setup-card.pen`，本演示稿无对应 `.pen`。
-- 根目录媒体工件：无。
-- 截图：仅系统临时 evidence 目录。
+- `.pen`：无与本演示稿匹配的设计稿；本轮直接以真实 connected React/CSS 为视觉真相。
 - Architecture cell：presentation artifact。
-- Map delta：none；未修改 runtime、Store、Router、Adapter 或 connector。
-- Capability tips：豁免；演示材料不是产品运行时能力或发现入口。
+- Map delta：none；没有修改 runtime、Store、Router、Adapter、connector 或生产边界。
+- Capability tips：豁免；这是 presentation artifact，不是运行时用户发现入口。
+- 根目录媒体工件：工作树与已提交差异均无。
 
 ## 新鲜验证
 
-| 命令                          | 结果                          |
-| ----------------------------- | ----------------------------- |
-| deck contract + browser tests | 6/6 通过                      |
-| Prettier targeted write/check | 通过                          |
-| NOVA tests                    | 53/53 通过                    |
-| NOVA Vinext build             | 通过                          |
-| NOVA npm audit high           | 0 vulnerabilities             |
-| root `pnpm lint`              | exit 0；只有主线既有 warnings |
-| root `pnpm build`             | exit 0                        |
-| `git diff --check`            | 通过                          |
-
-## 规格与边界核对
-
-- `目标体验演示` 在全局顶栏和关键 CLAW 页面持续可见，未把下一版体验冒充为当前已上线能力。
-- connected 权威仍在服务端只读 connector；浏览器/CLAW 不得提交观测与 verdict。
-- `UNKNOWN / BLOCKED` 不会显示为通过。
-- 治理建议只记录与解释，不执行发布、放量或回滚。
-- 报告引用 Revision、Snapshot、Run、Finding、Decision 与 Evidence，不覆盖历史证据。
+| 命令                 | 结果                        |
+| -------------------- | --------------------------- |
+| deck Prettier check  | 通过                        |
+| deck contract        | 7/7 通过                    |
+| deck browser         | 1/1 通过；桌面/手机 12 页   |
+| NOVA native tests    | 53/53 通过                  |
+| NOVA Vinext build    | 通过                        |
+| NOVA npm audit high  | 0 vulnerabilities           |
+| root `pnpm lint`     | exit 0；仅主线既有 warnings |
+| root recursive build | exit 0                      |
+| `git diff --check`   | 通过                        |
 
 ## 基线说明
 
-本次 presentation 路径由根 Biome 排除并由独立 Prettier/合同测试拥有。先前已在 exact `origin/main@75d991e` 复现 root `pnpm check/test` 的 Windows 基线失败；本轮未批量改写无关 CRLF 或 POSIX 脚本。与本次差异直接相关的专项测试、独立 NOVA 全测试、root lint/build 均为绿灯。
+root `pnpm check/test` 在此 Windows checkout 仍为已知基线红灯：Biome 将全仓 CRLF 判为 1880 个格式错误；Web 测试环境出现成批既有失败。本轮 exact delta 仅 4 个 presentation 文件，未改 `packages/**`。相同 main 基线此前已在 `origin/main@75d991e` 独立复现；本轮没有批量改写无关文件来伪造绿灯。
+
+## 交付完整性
+
+这次交付是完整的 HTML deck 修订，不依赖后续重写。未来产品实现可以扩展 deck 中标注的 AI 目标能力，但本材料已经明确区分当前能力、目标能力与权威边界。

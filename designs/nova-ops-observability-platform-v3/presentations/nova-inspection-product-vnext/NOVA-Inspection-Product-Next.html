@@ -2,36 +2,34 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
+      name="description"
+      content="NOVA 智能巡检产品功能与使用说明：基于当前 connected 控制台，展示巡检项生成编排与报告生成解读的 AI 增强体验。"
     />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#060910" />
-    <title>NOVA 智能巡检工作台｜产品功能与操作说明</title>
+    <title>NOVA 智能巡检 · 产品功能与使用说明</title>
     <style>
       :root {
-        --bg: #060910;
-        --panel: #0f1622;
-        --panel-2: #151f2d;
-        --panel-3: #1b2939;
-        --line: #29394d;
-        --line-soft: rgba(148, 163, 184, 0.15);
-        --text: #f7f9fc;
-        --soft: #c6d0dc;
-        --muted: #8796a9;
-        --cyan: #59dfca;
-        --cyan-soft: rgba(89, 223, 202, 0.12);
-        --rose: #ff647c;
-        --rose-soft: rgba(255, 100, 124, 0.12);
-        --amber: #f6be4a;
-        --amber-soft: rgba(246, 190, 74, 0.12);
-        --green: #8be59a;
-        --green-soft: rgba(139, 229, 154, 0.11);
-        --slide-x: clamp(28px, 4.6vw, 76px);
-        --slide-y: clamp(58px, 7.4vh, 78px);
-        font-family:
-          Inter, "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+        --ink: #22201d;
+        --sub: #625e57;
+        --muted: #8b857c;
+        --paper: #f4f0e8;
+        --surface: #fffdf9;
+        --raised: #f8f5ee;
+        --line: #ddd6ca;
+        --line-strong: #c8bfb1;
+        --coral: #dd684d;
+        --coral-soft: #fbe7df;
+        --blue: #386f87;
+        --blue-soft: #e5f0f4;
+        --green: #39745c;
+        --green-soft: #e2f0e8;
+        --amber: #9c691f;
+        --amber-soft: #f7ecd6;
+        --danger: #a44842;
+        --danger-soft: #f7e1df;
+        --shadow: 0 24px 70px rgba(54, 46, 37, 0.12);
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
       }
 
       * {
@@ -44,184 +42,161 @@
         height: 100%;
         margin: 0;
         overflow: hidden;
-        background: var(--bg);
-        color: var(--text);
+        color: var(--ink);
+        background: var(--paper);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei",
+          sans-serif;
       }
 
-      body {
-        background-image:
-          radial-gradient(
-            circle at 12% 0%,
-            rgba(89, 223, 202, 0.08),
-            transparent 28%
-          ),
-          radial-gradient(
-            circle at 96% 96%,
-            rgba(255, 100, 124, 0.08),
-            transparent 30%
-          );
-      }
-
-      button {
-        color: inherit;
+      button,
+      input,
+      select {
         font: inherit;
-      }
-
-      .ambient-grid {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        opacity: 0.18;
-        background-image:
-          linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
-        background-size: 44px 44px;
-        mask-image: linear-gradient(to bottom, black, transparent 86%);
       }
 
       .topbar {
         position: fixed;
-        z-index: 30;
-        inset: 16px 20px auto;
+        z-index: 20;
+        top: 0;
+        left: 0;
         display: flex;
+        width: 100%;
+        height: 58px;
         align-items: center;
         justify-content: space-between;
-        pointer-events: none;
+        padding: 0 24px;
+        border-bottom: 1px solid rgba(155, 143, 127, 0.28);
+        background: rgba(244, 240, 232, 0.92);
+        backdrop-filter: blur(16px);
       }
 
       .brand,
       .controls,
-      .brand-copy {
+      .brand-copy,
+      .row,
+      .badges,
+      .actions,
+      .stage-tabs,
+      .case-rail {
         display: flex;
         align-items: center;
       }
 
       .brand {
-        gap: 12px;
+        gap: 11px;
       }
 
       .brand-mark {
         display: grid;
-        width: 26px;
-        height: 26px;
+        width: 30px;
+        height: 30px;
         place-items: center;
-        border: 1px solid rgba(89, 223, 202, 0.62);
-        color: var(--cyan);
-        font-size: 12px;
+        color: white;
+        background: var(--coral);
+        border-radius: 9px;
         font-weight: 900;
       }
 
       .brand-copy {
         gap: 9px;
-        color: var(--muted);
         font-size: 11px;
-        font-weight: 750;
-        letter-spacing: 0.14em;
+        font-weight: 850;
+        letter-spacing: 0.11em;
       }
 
-      .demo-badge {
-        padding: 5px 9px;
-        border: 1px solid rgba(246, 190, 74, 0.38);
-        background: var(--amber-soft);
-        color: var(--amber);
-        font-size: 10px;
+      .mode-pill,
+      .badge,
+      .phase-tag {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
         font-weight: 800;
-        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .mode-pill {
+        padding: 5px 8px;
+        color: var(--blue);
+        background: var(--blue-soft);
+        font-size: 9px;
+        letter-spacing: 0;
       }
 
       .controls {
         gap: 7px;
-        pointer-events: auto;
       }
 
       .control {
-        display: grid;
         min-width: 34px;
         height: 34px;
-        padding: 0 10px;
-        place-items: center;
-        border: 1px solid rgba(148, 163, 184, 0.25);
-        background: rgba(15, 22, 34, 0.9);
+        padding: 0 9px;
+        color: var(--sub);
         cursor: pointer;
-      }
-
-      .control:hover,
-      .control:focus-visible {
-        border-color: var(--cyan);
-        outline: none;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 9px;
       }
 
       .counter {
-        min-width: 68px;
-        color: var(--muted);
-        font-size: 11px;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.08em;
+        min-width: 62px;
         text-align: center;
+        color: var(--muted);
+        font: 700 11px var(--mono);
       }
 
       .deck {
-        position: relative;
         width: 100%;
         height: 100%;
       }
 
       .slide {
-        position: absolute;
-        inset: 0;
         display: none;
-        flex-direction: column;
-        padding: var(--slide-y) var(--slide-x) 54px;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+        padding: 82px clamp(28px, 5vw, 84px) 58px;
         overflow: hidden;
-        isolation: isolate;
       }
 
       .slide.active {
-        display: flex;
-        animation: slide-in 260ms ease both;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 20px;
+        animation: enter 260ms ease-out;
       }
 
-      @keyframes slide-in {
+      @keyframes enter {
         from {
           opacity: 0;
-          transform: translateY(10px);
+          transform: translateY(5px);
         }
         to {
           opacity: 1;
-          transform: translateY(0);
+          transform: none;
         }
-      }
-
-      .slide::after {
-        content: "";
-        position: absolute;
-        z-index: -1;
-        right: -12vw;
-        bottom: -22vw;
-        width: 42vw;
-        height: 42vw;
-        border: 1px solid rgba(89, 223, 202, 0.055);
-        transform: rotate(24deg);
       }
 
       .slide-head {
         display: flex;
-        flex: 0 0 auto;
-        align-items: flex-end;
+        align-items: end;
         justify-content: space-between;
-        gap: 24px;
-        margin-bottom: clamp(16px, 2.8vh, 28px);
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--line-soft);
+        gap: 28px;
       }
 
       .kicker {
         margin: 0 0 7px;
-        color: var(--cyan);
+        color: var(--coral);
         font-size: 10px;
-        font-weight: 850;
+        font-weight: 900;
         letter-spacing: 0.17em;
-        text-transform: uppercase;
       }
 
       h1,
@@ -232,1171 +207,1016 @@
       }
 
       h1 {
-        max-width: 940px;
-        margin-bottom: 18px;
-        font-size: clamp(40px, 5.8vw, 82px);
-        line-height: 1.06;
-        letter-spacing: -0.045em;
+        max-width: 720px;
+        margin-bottom: 16px;
+        font-size: clamp(44px, 6vw, 82px);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+
+      h1 span {
+        color: var(--coral);
       }
 
       h2 {
         margin-bottom: 0;
-        font-size: clamp(27px, 3.6vw, 48px);
-        line-height: 1.12;
+        font-size: clamp(28px, 3vw, 44px);
+        line-height: 1.06;
         letter-spacing: -0.035em;
       }
 
       h3 {
         margin-bottom: 8px;
-        font-size: clamp(14px, 1.35vw, 19px);
+        font-size: 16px;
+      }
+
+      .lead,
+      .slide-subtitle,
+      .copy,
+      .small-copy {
+        color: var(--sub);
+        line-height: 1.65;
       }
 
       .lead {
-        max-width: 820px;
-        color: var(--soft);
-        font-size: clamp(15px, 1.55vw, 21px);
-        line-height: 1.62;
+        max-width: 670px;
+        font-size: 17px;
       }
 
       .slide-subtitle {
-        max-width: 470px;
-        margin: 0;
-        color: var(--muted);
-        font-size: clamp(11px, 1vw, 14px);
-        line-height: 1.5;
+        max-width: 570px;
+        margin-bottom: 0;
         text-align: right;
-      }
-
-      .accent {
-        color: var(--cyan);
-      }
-
-      .rose {
-        color: var(--rose);
-      }
-
-      .amber {
-        color: var(--amber);
-      }
-
-      .muted {
-        color: var(--muted);
-      }
-
-      .mono {
-        font-family: "Cascadia Code", Consolas, monospace;
-      }
-
-      .tag-row,
-      .action-row,
-      .meta-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        min-height: 25px;
-        padding: 4px 9px;
-        border: 1px solid var(--line);
-        background: var(--panel-2);
-        color: var(--soft);
-        font-size: 10px;
-        font-weight: 780;
-        letter-spacing: 0.02em;
-        white-space: nowrap;
-      }
-
-      .badge.cyan {
-        border-color: rgba(89, 223, 202, 0.35);
-        background: var(--cyan-soft);
-        color: var(--cyan);
-      }
-
-      .badge.rose {
-        border-color: rgba(255, 100, 124, 0.35);
-        background: var(--rose-soft);
-        color: var(--rose);
-      }
-
-      .badge.amber {
-        border-color: rgba(246, 190, 74, 0.38);
-        background: var(--amber-soft);
-        color: var(--amber);
-      }
-
-      .badge.green {
-        border-color: rgba(139, 229, 154, 0.35);
-        background: var(--green-soft);
-        color: var(--green);
+        font-size: 13px;
       }
 
       .cover {
-        display: none;
-        grid-template-columns: minmax(0, 0.92fr) minmax(420px, 1.08fr);
-        gap: clamp(34px, 5vw, 78px);
+        grid-template-columns: minmax(0, 0.86fr) minmax(560px, 1.14fr);
+        grid-template-rows: 1fr !important;
         align-items: center;
+        gap: 44px !important;
       }
 
-      .cover.active {
-        display: grid;
-      }
-
-      .cover-label {
+      .cover-note {
         display: inline-flex;
-        margin-bottom: 22px;
-        padding: 7px 11px;
-        border-left: 3px solid var(--amber);
-        background: var(--amber-soft);
+        margin-bottom: 18px;
+        padding: 7px 10px;
         color: var(--amber);
-        font-size: 11px;
+        background: var(--amber-soft);
+        border-radius: 8px;
+        font-size: 10px;
         font-weight: 850;
       }
 
-      .cover h1 span {
-        color: var(--cyan);
-      }
-
-      .case-strip {
+      .truth-strip {
         display: grid;
-        margin-top: 28px;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 22px;
+      }
+
+      .truth-strip > div,
+      .card,
+      .compare-card,
+      .ai-output,
+      .risk-card,
+      .report-panel,
+      .boundary-card {
+        background: var(--surface);
         border: 1px solid var(--line);
-        background: var(--panel);
+        border-radius: 14px;
       }
 
-      .case-cell {
-        min-width: 0;
-        padding: 13px 14px;
-        border-right: 1px solid var(--line);
+      .truth-strip > div {
+        padding: 12px;
       }
 
-      .case-cell:last-child {
-        border-right: 0;
-      }
-
-      .case-cell small,
+      .truth-strip small,
+      .mini-label,
       .field small,
       .metric small,
-      .kv small {
+      .report-stat small {
         display: block;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
         color: var(--muted);
         font-size: 9px;
-        font-weight: 750;
+        font-weight: 850;
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
 
-      .case-cell strong {
-        display: block;
-        overflow: hidden;
-        color: var(--soft);
-        font-size: 12px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .product-shell {
-        display: grid;
-        min-height: 0;
-        height: 100%;
-        grid-template-columns: 150px minmax(0, 1fr) 260px;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        background: #0a1019;
-        box-shadow: 0 28px 70px rgba(0, 0, 0, 0.3);
-      }
-
-      .cover .product-shell {
-        height: min(570px, 68vh);
-        grid-template-columns: 116px minmax(0, 1fr);
-        transform: perspective(1300px) rotateY(-3deg) rotateX(1deg);
-      }
-
-      .side-nav {
-        padding: 18px 12px;
-        border-right: 1px solid var(--line);
-        background: #090e16;
-      }
-
-      .nav-logo {
-        margin-bottom: 22px;
-        color: var(--cyan);
+      .truth-strip strong {
         font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.15em;
       }
 
-      .nav-item {
-        margin-bottom: 6px;
-        padding: 9px 10px;
-        border-left: 2px solid transparent;
-        color: var(--muted);
-        font-size: 10px;
-      }
-
-      .nav-item.active {
-        border-left-color: var(--rose);
-        background: var(--rose-soft);
-        color: var(--text);
-      }
-
-      .product-main,
-      .claw-pane {
+      .console {
+        display: grid;
         min-width: 0;
-        padding: 18px;
+        min-height: 0;
+        grid-template-columns: minmax(210px, 0.74fr) minmax(0, 1.6fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+        background: var(--paper);
+        border: 1px solid var(--line-strong);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
       }
 
-      .claw-pane {
-        border-left: 1px solid var(--line);
-        background: #0c121c;
+      .console.compact {
+        max-height: 560px;
       }
 
-      .screen-top {
+      .console-hero {
+        grid-column: 1 / -1;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-      }
-
-      .screen-top strong {
-        font-size: 13px;
-      }
-
-      .screen-top span {
-        color: var(--muted);
-        font-size: 9px;
-      }
-
-      .panel,
-      .summary-card,
-      .metric,
-      .risk-card,
-      .report-card,
-      .chat-bubble {
-        border: 1px solid var(--line);
-        background: var(--panel);
-      }
-
-      .panel {
-        padding: 15px;
-      }
-
-      .summary-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .summary-card {
-        min-height: 92px;
-        padding: 13px;
-      }
-
-      .summary-card small {
-        display: block;
-        margin-bottom: 9px;
-        color: var(--muted);
-        font-size: 9px;
-      }
-
-      .summary-card strong {
-        display: block;
-        margin-bottom: 6px;
-        font-size: 14px;
-        line-height: 1.3;
-      }
-
-      .summary-card p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 9px;
-        line-height: 1.4;
-      }
-
-      .timeline-mini {
-        display: grid;
-        margin-top: 12px;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-      }
-
-      .timeline-mini div {
-        position: relative;
-        padding: 10px 7px 8px;
-        border-top: 2px solid var(--line);
-        color: var(--muted);
-        font-size: 8px;
-      }
-
-      .timeline-mini div.done {
-        border-top-color: var(--cyan);
-        color: var(--soft);
-      }
-
-      .timeline-mini div.now {
-        border-top-color: var(--rose);
-        color: var(--text);
-      }
-
-      .signal-list {
-        display: grid;
-        margin-top: 12px;
-        gap: 7px;
-      }
-
-      .signal-row,
-      .candidate-row,
-      .compare-row,
-      .report-row {
-        display: grid;
-        align-items: center;
-        border-bottom: 1px solid var(--line-soft);
-      }
-
-      .signal-row {
-        grid-template-columns: minmax(0, 1fr) auto;
-        padding: 9px 0;
-        gap: 8px;
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .screen-caption {
-        display: grid;
-        flex: 0 0 auto;
-        margin-top: 12px;
-        grid-template-columns: 84px minmax(0, 1fr) 84px minmax(0, 1fr);
-        gap: 8px;
-      }
-
-      .caption-label {
-        color: var(--muted);
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-      }
-
-      .caption-value {
-        color: var(--soft);
-        font-size: 11px;
-        line-height: 1.45;
-      }
-
-      .walkthrough {
-        display: grid;
-        min-height: 0;
-        flex: 1;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
-        gap: clamp(16px, 2vw, 28px);
-      }
-
-      .explainer {
-        display: flex;
-        min-width: 0;
-        flex-direction: column;
-        justify-content: center;
-      }
-
-      .step-number {
-        display: inline-grid;
-        width: 42px;
-        height: 42px;
-        margin-bottom: 18px;
-        place-items: center;
-        border: 1px solid rgba(255, 100, 124, 0.52);
-        background: var(--rose-soft);
-        color: var(--rose);
-        font-size: 16px;
-        font-weight: 900;
-      }
-
-      .explainer h3 {
-        margin-bottom: 13px;
-        font-size: clamp(24px, 2.8vw, 38px);
-        line-height: 1.16;
-      }
-
-      .explainer > p {
-        max-width: 510px;
-        color: var(--soft);
-        font-size: clamp(12px, 1.15vw, 16px);
-        line-height: 1.6;
-      }
-
-      .outcome-list {
-        display: grid;
-        margin-top: 14px;
-        gap: 8px;
-      }
-
-      .outcome {
-        display: grid;
-        grid-template-columns: 18px 1fr;
-        gap: 9px;
-        color: var(--muted);
-        font-size: 11px;
-        line-height: 1.4;
-      }
-
-      .outcome::before {
-        content: "✓";
-        color: var(--cyan);
-        font-weight: 900;
-      }
-
-      .product-screen {
-        display: flex;
-        min-width: 0;
-        min-height: 0;
-        flex-direction: column;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        background: #0a1019;
-        box-shadow: 0 24px 56px rgba(0, 0, 0, 0.26);
-      }
-
-      .screen-chrome {
-        display: flex;
-        flex: 0 0 auto;
-        align-items: center;
-        justify-content: space-between;
-        min-height: 39px;
-        padding: 0 13px;
+        gap: 20px;
+        padding: 16px 18px;
+        background: var(--surface);
         border-bottom: 1px solid var(--line);
-        background: #0c131e;
       }
 
-      .screen-dots {
+      .console-hero h3 {
+        margin: 0;
+        font-size: 17px;
+      }
+
+      .console-hero p {
+        margin: 5px 0 0;
+        color: var(--sub);
+        font-size: 10px;
+      }
+
+      .connection {
         display: flex;
-        gap: 5px;
-      }
-
-      .screen-dots i {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--line);
-      }
-
-      .screen-context {
-        color: var(--muted);
+        align-items: center;
+        gap: 7px;
+        padding: 8px 10px;
+        color: var(--sub);
+        background: var(--raised);
+        border: 1px solid var(--line);
+        border-radius: 10px;
         font-size: 9px;
+        font-weight: 800;
       }
 
-      .screen-body {
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: var(--green);
+        border-radius: 50%;
+        box-shadow: 0 0 0 3px var(--green-soft);
+      }
+
+      .job-pane,
+      .workspace-pane {
+        min-width: 0;
         min-height: 0;
         padding: 16px;
         overflow: hidden;
+      }
+
+      .job-pane {
+        background: var(--surface);
+        border-right: 1px solid var(--line);
+      }
+
+      .pane-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .pane-head h3,
+      .pane-head p {
+        margin: 0;
+      }
+
+      .count {
+        padding: 4px 8px;
+        color: var(--sub);
+        background: var(--raised);
+        border-radius: 999px;
+        font-size: 9px;
+        font-weight: 850;
+      }
+
+      .job-card,
+      .case-pill,
+      .field,
+      .run-result,
+      .candidate,
+      .stage-box {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+
+      .job-card {
+        padding: 10px;
+        margin-bottom: 8px;
+        background: var(--surface);
+      }
+
+      .job-card.selected {
+        background: var(--coral-soft);
+        border-color: #e7a08d;
+      }
+
+      .job-card strong,
+      .job-card span,
+      .job-card small {
+        display: block;
+      }
+
+      .job-card strong {
+        font-size: 10px;
+      }
+
+      .job-card span,
+      .job-card small {
+        margin-top: 3px;
+        color: var(--sub);
+        font-size: 8px;
+      }
+
+      .mini-form {
+        display: grid;
+        gap: 7px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line);
+      }
+
+      .field {
+        padding: 8px 9px;
+        background: white;
+      }
+
+      .field strong,
+      .field span {
+        display: block;
+        overflow: hidden;
+        font-size: 9px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .field-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .field {
-        min-width: 0;
-        padding: 11px 12px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-      }
-
-      .field strong {
-        display: block;
-        overflow: hidden;
-        color: var(--soft);
-        font-size: 11px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .scope-preview {
-        display: grid;
-        margin-top: 11px;
-        grid-template-columns: 1fr 1.2fr;
-        gap: 10px;
-      }
-
-      .service-node {
-        display: grid;
-        min-height: 104px;
-        padding: 13px;
-        place-items: center;
-        border: 1px solid rgba(89, 223, 202, 0.35);
-        background: var(--cyan-soft);
-        text-align: center;
-      }
-
-      .service-node strong {
-        color: var(--cyan);
-        font-size: 12px;
-      }
-
-      .service-node span {
-        color: var(--muted);
-        font-size: 9px;
-      }
-
-      .dependency-mini {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
         gap: 7px;
       }
 
-      .dependency-mini div {
-        display: grid;
-        min-height: 48px;
-        place-items: center;
-        border: 1px solid var(--line);
-        background: var(--panel);
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .primary-btn,
-      .secondary-btn,
-      .ghost-btn {
+      .button {
         display: inline-flex;
         min-height: 31px;
-        padding: 7px 11px;
         align-items: center;
         justify-content: center;
-        border: 1px solid transparent;
+        padding: 7px 10px;
+        color: white;
+        background: var(--coral);
+        border: 0;
+        border-radius: 9px;
         font-size: 9px;
         font-weight: 850;
       }
 
-      .primary-btn {
-        background: var(--rose);
-        color: #18070b;
+      .button.secondary {
+        color: var(--ink);
+        background: white;
+        border: 1px solid var(--line-strong);
       }
 
-      .secondary-btn {
-        border-color: rgba(89, 223, 202, 0.42);
-        background: var(--cyan-soft);
-        color: var(--cyan);
+      .button.ai {
+        color: var(--blue);
+        background: var(--blue-soft);
       }
 
-      .ghost-btn {
-        border-color: var(--line);
-        background: var(--panel);
-        color: var(--soft);
-      }
-
-      .dependency-header {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-        margin-bottom: 10px;
-      }
-
-      .kv {
-        min-width: 0;
-        padding: 9px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-      }
-
-      .kv strong {
-        display: block;
-        overflow: hidden;
-        color: var(--soft);
-        font-size: 9px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .coverage-warning {
-        margin-bottom: 10px;
-        padding: 9px 11px;
-        border-left: 3px solid var(--amber);
-        background: var(--amber-soft);
-        color: var(--amber);
-        font-size: 9px;
-        line-height: 1.4;
-      }
-
-      .candidate-table,
-      .compare-table {
-        border: 1px solid var(--line);
-        background: var(--panel);
-      }
-
-      .candidate-row {
-        grid-template-columns:
-          24px minmax(130px, 1.3fr) minmax(90px, 0.8fr)
-          70px 70px;
-        min-height: 42px;
-        padding: 0 10px;
-        gap: 8px;
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .candidate-row.header,
-      .compare-row.header {
-        min-height: 31px;
-        color: var(--muted);
-        font-size: 8px;
-        font-weight: 800;
-        text-transform: uppercase;
-      }
-
-      .check {
-        display: grid;
-        width: 15px;
-        height: 15px;
-        place-items: center;
-        border: 1px solid rgba(89, 223, 202, 0.55);
-        background: var(--cyan-soft);
-        color: var(--cyan);
-        font-size: 9px;
-      }
-
-      .row-actions {
-        color: var(--muted);
-        white-space: nowrap;
-      }
-
-      .editor-layout {
-        display: grid;
-        grid-template-columns: 128px minmax(0, 1fr);
-        gap: 10px;
-      }
-
-      .stage-list {
-        padding: 10px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-      }
-
-      .stage-item {
-        margin-bottom: 6px;
-        padding: 9px;
-        border-left: 2px solid var(--line);
-        color: var(--muted);
-        font-size: 9px;
-      }
-
-      .stage-item.active {
-        border-left-color: var(--rose);
-        background: var(--rose-soft);
-        color: var(--text);
-      }
-
-      .check-editor {
-        display: grid;
-        gap: 8px;
-      }
-
-      .check-card {
-        display: grid;
-        padding: 10px;
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) auto;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .revision-bar {
-        display: flex;
-        margin-top: 10px;
-        padding: 10px;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        border: 1px solid rgba(89, 223, 202, 0.3);
-        background: var(--cyan-soft);
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .workflow-rail {
-        display: grid;
-        margin-bottom: 14px;
-        grid-template-columns: repeat(4, 1fr);
+      .actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
         gap: 7px;
       }
 
-      .stage-node {
-        min-height: 60px;
-        padding: 10px;
-        border-top: 3px solid var(--line);
-        background: var(--panel);
-        color: var(--muted);
-        font-size: 9px;
-        line-height: 1.4;
-      }
-
-      .stage-node.done {
-        border-top-color: var(--cyan);
-        color: var(--soft);
-      }
-
-      .stage-node.running {
-        border-top-color: var(--rose);
-        background: var(--rose-soft);
-        color: var(--text);
-      }
-
-      .run-grid {
+      .workspace-stack {
         display: grid;
-        grid-template-columns: 0.9fr 1.1fr;
-        gap: 10px;
+        gap: 9px;
       }
 
-      .run-status {
-        display: grid;
-        min-height: 160px;
-        padding: 16px;
-        place-items: center;
-        border: 1px solid rgba(246, 190, 74, 0.38);
-        background: var(--amber-soft);
-        text-align: center;
-      }
-
-      .run-status strong {
-        display: block;
-        margin-bottom: 6px;
-        color: var(--amber);
-        font-size: 23px;
-      }
-
-      .run-status span {
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .evidence-list {
-        padding: 12px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-      }
-
-      .evidence-row {
-        display: grid;
-        padding: 8px 0;
-        grid-template-columns: 1fr auto;
-        gap: 8px;
-        border-bottom: 1px solid var(--line-soft);
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .evidence-row:last-child {
-        border-bottom: 0;
-      }
-
-      .metrics {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        margin-bottom: 10px;
-      }
-
-      .metric {
+      .revision-box,
+      .command-box,
+      .run-box,
+      .report-box,
+      .ai-draft-box {
         padding: 11px;
-      }
-
-      .metric strong {
-        display: block;
-        margin-bottom: 4px;
-        font-size: 17px;
-      }
-
-      .metric .delta-up {
-        color: var(--rose);
-        font-size: 9px;
-      }
-
-      .metric .delta-down {
-        color: var(--green);
-        font-size: 9px;
-      }
-
-      .chart {
-        position: relative;
-        height: 94px;
-        margin-bottom: 10px;
-        overflow: hidden;
+        background: var(--surface);
         border: 1px solid var(--line);
-        background:
-          linear-gradient(
-            90deg,
-            transparent 49.8%,
-            rgba(255, 100, 124, 0.22) 50%,
-            transparent 50.2%
-          ),
-          repeating-linear-gradient(
-            to bottom,
-            transparent 0 23px,
-            var(--line-soft) 24px
-          );
+        border-radius: 12px;
       }
 
-      .chart::before,
-      .chart::after {
-        content: "";
-        position: absolute;
-        left: 4%;
-        right: 4%;
-        height: 2px;
-        transform-origin: left center;
-      }
-
-      .chart::before {
-        top: 57%;
-        background: var(--muted);
-        box-shadow:
-          70px -8px 0 var(--muted),
-          140px 3px 0 var(--muted),
-          210px -4px 0 var(--muted);
-        transform: rotate(-1deg);
-      }
-
-      .chart::after {
-        top: 43%;
-        background: var(--rose);
-        box-shadow:
-          70px -12px 0 var(--rose),
-          140px 8px 0 var(--rose),
-          210px -6px 0 var(--rose);
-        transform: rotate(2deg);
-      }
-
-      .compare-row {
-        grid-template-columns: minmax(120px, 1fr) repeat(
-            3,
-            minmax(64px, 0.62fr)
-          );
-        min-height: 35px;
-        padding: 0 10px;
-        gap: 8px;
-        color: var(--soft);
+      .revision-box p,
+      .command-box p,
+      .run-box p,
+      .report-box p {
+        margin: 5px 0 0;
+        color: var(--sub);
         font-size: 9px;
-      }
-
-      .risk-layout {
-        display: grid;
-        grid-template-columns: 1.1fr 0.9fr;
-        gap: 10px;
-      }
-
-      .risk-card,
-      .report-card {
-        padding: 14px;
-      }
-
-      .risk-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-
-      .risk-head strong {
-        font-size: 13px;
-      }
-
-      .risk-copy {
-        margin-bottom: 12px;
-        color: var(--soft);
-        font-size: 10px;
-        line-height: 1.55;
-      }
-
-      .governance-step {
-        display: grid;
-        padding: 9px 0;
-        grid-template-columns: 20px 1fr;
-        gap: 8px;
-        border-bottom: 1px solid var(--line-soft);
-        color: var(--soft);
-        font-size: 9px;
-        line-height: 1.4;
-      }
-
-      .governance-step b {
-        color: var(--cyan);
-      }
-
-      .report-summary {
-        display: grid;
-        grid-template-columns: 1.1fr repeat(3, 0.6fr);
-        gap: 8px;
-        margin-bottom: 11px;
-      }
-
-      .report-hero {
-        padding: 13px;
-        border: 1px solid rgba(246, 190, 74, 0.4);
-        background: var(--amber-soft);
-      }
-
-      .report-hero small {
-        display: block;
-        margin-bottom: 6px;
-        color: var(--muted);
-        font-size: 8px;
-      }
-
-      .report-hero strong {
-        color: var(--amber);
-        font-size: 16px;
-      }
-
-      .report-stat {
-        display: grid;
-        padding: 9px;
-        place-items: center;
-        border: 1px solid var(--line);
-        background: var(--panel);
-        text-align: center;
-      }
-
-      .report-stat strong {
-        font-size: 17px;
-      }
-
-      .report-stat small {
-        color: var(--muted);
-        font-size: 8px;
-      }
-
-      .report-row {
-        grid-template-columns: 78px minmax(0, 1fr) 84px;
-        min-height: 36px;
-        gap: 8px;
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .status-box {
-        min-height: 44px;
-        margin-top: 8px;
-        padding: 9px 11px;
-        border: 1px solid rgba(148, 163, 184, 0.28);
-        background: var(--panel-2);
-        color: var(--soft);
-        font-size: 8px;
-        line-height: 1.4;
-      }
-
-      .claw-layout {
-        display: grid;
-        min-height: 0;
-        flex: 1;
-        grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr);
-        gap: 20px;
-      }
-
-      .chat-demo {
-        min-height: 0;
-        padding: 16px;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        background: #0a1019;
-      }
-
-      .chat-bubble {
-        max-width: 88%;
-        margin-bottom: 10px;
-        padding: 11px 12px;
-        color: var(--soft);
-        font-size: 10px;
         line-height: 1.5;
       }
 
-      .chat-bubble.user {
-        margin-left: auto;
-        border-color: rgba(255, 100, 124, 0.35);
-        background: var(--rose-soft);
+      .case-rail,
+      .stage-tabs,
+      .badges {
+        flex-wrap: wrap;
+        gap: 6px;
       }
 
-      .chat-bubble.claw {
-        border-color: rgba(89, 223, 202, 0.32);
-        background: var(--cyan-soft);
-      }
-
-      .prompt-list {
-        display: grid;
-        gap: 10px;
-      }
-
-      .prompt-card {
-        padding: 13px;
-        border-left: 3px solid var(--cyan);
-        background: var(--panel);
-      }
-
-      .prompt-card small {
-        display: block;
-        margin-bottom: 6px;
-        color: var(--cyan);
+      .case-pill {
+        padding: 6px 8px;
+        color: var(--sub);
+        background: white;
         font-size: 8px;
-        font-weight: 850;
-        letter-spacing: 0.08em;
       }
 
-      .prompt-card strong {
-        font-size: 11px;
-        line-height: 1.45;
+      .case-pill.active {
+        color: var(--coral);
+        background: var(--coral-soft);
+        border-color: #e8a38f;
       }
 
-      .journey-grid {
+      .command-box {
+        display: grid;
+        grid-template-columns: minmax(120px, 0.7fr) auto minmax(150px, 1fr);
+        align-items: end;
+        gap: 8px;
+      }
+
+      .select-like {
+        padding: 8px 9px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .run-results {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 9px;
+      }
+
+      .run-result {
+        padding: 8px;
+        background: var(--raised);
+      }
+
+      .run-result strong,
+      .run-result code,
+      .run-result small {
+        display: block;
+      }
+
+      .run-result strong {
+        font-size: 9px;
+      }
+
+      .run-result code,
+      .run-result small {
+        margin-top: 4px;
+        color: var(--muted);
+        font: 7px var(--mono);
+      }
+
+      .badge {
+        padding: 4px 7px;
+        color: var(--sub);
+        background: var(--raised);
+        border: 1px solid var(--line);
+        font-size: 8px;
+      }
+
+      .badge.current {
+        color: var(--green);
+        background: var(--green-soft);
+        border-color: #b9d7c8;
+      }
+
+      .badge.target {
+        color: var(--blue);
+        background: var(--blue-soft);
+        border-color: #b9d4df;
+      }
+
+      .badge.warn {
+        color: var(--amber);
+        background: var(--amber-soft);
+        border-color: #e7cea2;
+      }
+
+      .badge.risk {
+        color: var(--danger);
+        background: var(--danger-soft);
+        border-color: #e4b6b1;
+      }
+
+      .content-grid,
+      .two-up,
+      .three-up,
+      .ai-flow,
+      .report-layout {
         display: grid;
         min-height: 0;
-        flex: 1;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .content-grid {
+        grid-template-columns: minmax(260px, 0.62fr) minmax(0, 1.38fr);
+      }
+
+      .two-up {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .three-up {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card,
+      .compare-card,
+      .ai-output,
+      .risk-card,
+      .report-panel,
+      .boundary-card {
+        min-width: 0;
+        padding: 18px;
+      }
+
+      .card.accent,
+      .ai-output {
+        background: var(--blue-soft);
+        border-color: #b8d4df;
+      }
+
+      .card p,
+      .compare-card p,
+      .ai-output p,
+      .risk-card p,
+      .boundary-card p {
+        margin-bottom: 0;
+        color: var(--sub);
+        font-size: 11px;
+        line-height: 1.65;
+      }
+
+      .number {
+        display: inline-grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        margin-bottom: 12px;
+        color: white;
+        background: var(--coral);
+        border-radius: 9px;
+        font: 850 11px var(--mono);
+      }
+
+      .decision {
+        padding: 15px;
+        color: var(--green);
+        background: var(--green-soft);
+        border: 1px solid #b9d7c8;
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .decision strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .process {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 8px;
         align-items: stretch;
       }
 
-      .journey-card {
+      .process-step {
         position: relative;
-        display: flex;
-        min-width: 0;
-        padding: 18px 13px;
-        flex-direction: column;
+        padding: 13px 11px;
+        background: var(--surface);
         border: 1px solid var(--line);
-        background: var(--panel);
+        border-radius: 12px;
       }
 
-      .journey-card::after {
-        content: "→";
+      .process-step:not(:last-child)::after {
         position: absolute;
         z-index: 2;
-        top: 28px;
-        right: -13px;
+        top: 50%;
+        right: -10px;
+        width: 12px;
+        height: 12px;
         color: var(--muted);
-      }
-
-      .journey-card:last-child::after {
-        display: none;
-      }
-
-      .journey-card b {
-        display: grid;
-        width: 28px;
-        height: 28px;
-        margin-bottom: 20px;
-        place-items: center;
-        border: 1px solid rgba(255, 100, 124, 0.45);
-        color: var(--rose);
-        font-size: 10px;
-      }
-
-      .journey-card strong {
-        min-height: 48px;
-        margin-bottom: 12px;
-        font-size: clamp(11px, 1vw, 14px);
-        line-height: 1.35;
-      }
-
-      .journey-card span {
-        color: var(--muted);
-        font-size: clamp(8px, 0.72vw, 10px);
-        line-height: 1.45;
-      }
-
-      .feature-grid {
-        display: grid;
-        min-height: 0;
-        flex: 1;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .feature-card {
-        display: grid;
-        min-height: 0;
-        padding: 15px;
-        grid-template-rows: auto auto 1fr auto;
-        border: 1px solid var(--line);
-        background: var(--panel);
-      }
-
-      .feature-card b {
-        color: var(--cyan);
-        font-size: 9px;
-        letter-spacing: 0.08em;
-      }
-
-      .feature-card strong {
-        margin: 9px 0 8px;
-        font-size: clamp(12px, 1.15vw, 16px);
-      }
-
-      .feature-card p {
-        margin-bottom: 10px;
-        color: var(--muted);
-        font-size: clamp(8px, 0.75vw, 10px);
-        line-height: 1.5;
-      }
-
-      .feature-card span {
-        color: var(--soft);
-        font-size: 9px;
-      }
-
-      .product-promise {
-        display: grid;
-        margin-top: 11px;
-        padding: 12px 15px;
-        grid-template-columns: auto 1fr auto;
-        gap: 14px;
-        align-items: center;
-        border: 1px solid rgba(89, 223, 202, 0.36);
-        background: var(--cyan-soft);
-        color: var(--soft);
+        content: "→";
         font-size: 11px;
       }
 
-      .product-promise strong {
-        color: var(--cyan);
+      .process-step b,
+      .process-step span {
+        display: block;
+      }
+
+      .process-step b {
+        margin-bottom: 7px;
+        color: var(--coral);
+        font: 850 10px var(--mono);
+      }
+
+      .process-step span {
+        font-size: 10px;
+        line-height: 1.45;
+      }
+
+      .capability-split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .capability-split > div {
+        padding: 13px;
+        border-radius: 12px;
+      }
+
+      .capability-split .current-capability {
+        background: var(--green-soft);
+        border: 1px solid #b9d7c8;
+      }
+
+      .capability-split .target-capability {
+        background: var(--blue-soft);
+        border: 1px solid #b8d4df;
+      }
+
+      .capability-split strong,
+      .capability-split span {
+        display: block;
+      }
+
+      .capability-split strong {
+        margin-bottom: 5px;
+        font-size: 11px;
+      }
+
+      .capability-split span {
+        color: var(--sub);
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .without-ai {
+        border-top: 5px solid var(--muted);
+      }
+
+      .with-ai {
+        border-top: 5px solid var(--blue);
+      }
+
+      .work-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 13px;
+      }
+
+      .work-item {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        gap: 9px;
+        align-items: start;
+        padding: 9px;
+        background: var(--raised);
+        border-radius: 9px;
+      }
+
+      .work-item b {
+        color: var(--coral);
+        font: 850 10px var(--mono);
+      }
+
+      .work-item span {
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .principle {
+        grid-column: 1 / -1;
+        padding: 15px;
+        text-align: center;
+        color: white;
+        background: var(--ink);
+        border-radius: 13px;
+        font-size: 16px;
+        font-weight: 850;
+        letter-spacing: -0.01em;
+      }
+
+      .context-map {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+      }
+
+      .source-card {
+        padding: 13px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+
+      .source-card strong,
+      .source-card span {
+        display: block;
+      }
+
+      .source-card strong {
+        margin-bottom: 5px;
+        font-size: 11px;
+      }
+
+      .source-card span {
+        color: var(--sub);
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .context-pack {
+        display: grid;
+        place-items: center;
+        padding: 19px;
+        text-align: center;
+        color: var(--blue);
+        background: var(--blue-soft);
+        border: 1px solid #b8d4df;
+        border-radius: 14px;
+      }
+
+      .context-pack strong {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 16px;
+      }
+
+      .context-pack span {
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .candidate-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .candidate {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1.25fr) minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+        padding: 10px;
+        background: var(--surface);
+      }
+
+      .check-mark {
+        display: grid;
+        width: 22px;
+        height: 22px;
+        place-items: center;
+        color: white;
+        background: var(--green);
+        border-radius: 7px;
+        font-size: 10px;
+      }
+
+      .candidate strong,
+      .candidate span {
+        display: block;
+      }
+
+      .candidate strong {
+        font-size: 10px;
+      }
+
+      .candidate span {
+        margin-top: 3px;
+        color: var(--sub);
+        font-size: 8px;
+        line-height: 1.4;
+      }
+
+      .reason {
+        padding-left: 9px;
+        border-left: 2px solid #a8cbd9;
+      }
+
+      .coverage {
+        padding: 11px;
+        color: var(--amber);
+        background: var(--amber-soft);
+        border: 1px solid #e6cd9f;
+        border-radius: 11px;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .draft-grid {
+        display: grid;
+        grid-template-columns: 130px minmax(0, 1fr);
+        gap: 9px;
+      }
+
+      .stage-list {
+        display: grid;
+        align-content: start;
+        gap: 6px;
+      }
+
+      .stage-box {
+        padding: 9px;
+        background: white;
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .stage-box.active {
+        color: var(--coral);
+        background: var(--coral-soft);
+        border-color: #e8a38f;
+      }
+
+      .check-table {
+        display: grid;
+        gap: 6px;
+      }
+
+      .check-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 72px auto;
+        gap: 7px;
+        align-items: center;
+        padding: 8px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        font-size: 8px;
+      }
+
+      .check-row strong {
+        font-size: 9px;
+      }
+
+      .stage-tabs {
+        margin-bottom: 10px;
+      }
+
+      .stage-tab {
+        padding: 7px 9px;
+        color: var(--sub);
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        font-size: 8px;
+        font-weight: 800;
+      }
+
+      .stage-tab.done {
+        color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .stage-tab.active {
+        color: var(--coral);
+        background: var(--coral-soft);
+        border-color: #e8a38f;
+      }
+
+      .ai-flow {
+        grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr) 48px minmax(
+            0,
+            1fr
+          );
+        align-items: center;
+      }
+
+      .flow-arrow {
+        text-align: center;
+        color: var(--coral);
+        font-size: 24px;
+        font-weight: 300;
+      }
+
+      .fact-list,
+      .interpret-list {
+        display: grid;
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      .fact,
+      .interpret-item {
+        padding: 9px;
+        background: var(--raised);
+        border-radius: 9px;
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      .report-layout {
+        grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+      }
+
+      .report-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .report-head h3 {
+        font-size: 18px;
+      }
+
+      .report-section {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .report-section:last-child {
+        border-bottom: 0;
+      }
+
+      .report-section h3 {
+        margin-bottom: 6px;
+        font-size: 11px;
+      }
+
+      .report-section p {
+        margin: 0;
+        color: var(--sub);
+        font-size: 10px;
+        line-height: 1.6;
+      }
+
+      .evidence-link {
+        display: inline-flex;
+        margin: 4px 3px 0 0;
+        padding: 3px 6px;
+        color: var(--blue);
+        background: var(--blue-soft);
+        border-radius: 6px;
+        font: 7px var(--mono);
+      }
+
+      .risk-card.high {
+        background: var(--danger-soft);
+        border-color: #e4b6b1;
+      }
+
+      .risk-card.unknown {
+        background: var(--amber-soft);
+        border-color: #e6cd9f;
+      }
+
+      .risk-card + .risk-card {
+        margin-top: 9px;
+      }
+
+      .chat-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(290px, 0.85fr);
+        gap: 16px;
+        min-height: 0;
+      }
+
+      .chat-panel {
+        padding: 16px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+      }
+
+      .message {
+        max-width: 86%;
+        margin: 9px 0;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 10px;
+        line-height: 1.55;
+      }
+
+      .message.user {
+        margin-left: auto;
+        background: var(--coral-soft);
+      }
+
+      .message.ai {
+        color: #285568;
+        background: var(--blue-soft);
+      }
+
+      .diff-preview {
+        margin-top: 9px;
+        padding: 10px;
+        background: var(--raised);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font: 8px/1.6 var(--mono);
+      }
+
+      .matrix {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .matrix .card {
+        padding: 16px;
+      }
+
+      .matrix b {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--coral);
+        font: 850 10px var(--mono);
+      }
+
+      .authority {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .authority > div {
+        padding: 13px;
+        text-align: center;
+        border-radius: 11px;
+        font-size: 11px;
+        font-weight: 850;
+      }
+
+      .authority .rule {
+        color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .authority .ai-role {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .authority .human {
+        color: var(--coral);
+        background: var(--coral-soft);
       }
 
       .progress {
         position: fixed;
-        z-index: 25;
-        right: 22px;
-        bottom: 16px;
-        left: 22px;
+        z-index: 20;
+        right: 24px;
+        bottom: 20px;
+        left: 24px;
         display: flex;
-        gap: 12px;
         align-items: center;
+        gap: 12px;
+        pointer-events: none;
       }
 
       .progress-line {
-        height: 2px;
+        height: 3px;
         flex: 1;
         overflow: hidden;
-        background: rgba(148, 163, 184, 0.16);
+        background: rgba(99, 89, 76, 0.14);
+        border-radius: 999px;
       }
 
       .progress-fill {
-        width: 0;
+        width: 8.333%;
         height: 100%;
-        background: linear-gradient(90deg, var(--cyan), var(--rose));
-        transition: width 220ms ease;
+        background: var(--coral);
+        transition: width 180ms ease;
       }
 
       .progress-label {
         color: var(--muted);
-        font-size: 9px;
-        letter-spacing: 0.12em;
+        font: 750 8px var(--mono);
+        letter-spacing: 0.09em;
       }
 
       .sr-only {
@@ -1411,292 +1231,168 @@
         border: 0;
       }
 
-      @media (max-width: 980px) {
+      @media (max-width: 1000px) {
         .cover {
-          grid-template-columns: 0.92fr 1.08fr;
-          gap: 24px;
+          grid-template-columns: 0.75fr 1.25fr;
         }
 
-        .product-shell {
-          grid-template-columns: 116px minmax(0, 1fr);
+        .slide {
+          padding-right: 36px;
+          padding-left: 36px;
         }
 
-        .claw-pane {
-          display: none;
-        }
-
-        .journey-grid {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .journey-card:nth-child(4)::after {
-          display: none;
-        }
-
-        .feature-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+        .process {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
       @media (max-width: 720px) {
-        :root {
-          --slide-x: 16px;
-          --slide-y: 64px;
+        html,
+        body {
+          overflow: hidden;
         }
 
         .topbar {
-          inset: 12px 12px auto;
+          height: 52px;
+          padding: 0 12px;
         }
 
         .brand-copy > span:first-child,
-        .control#fullscreen,
         .progress-label,
-        .slide-subtitle {
+        #fullscreen {
           display: none;
-        }
-
-        .controls {
-          gap: 4px;
-        }
-
-        .control {
-          min-width: 31px;
-          height: 31px;
-          padding: 0 7px;
-        }
-
-        .counter {
-          min-width: 58px;
-          font-size: 10px;
         }
 
         .slide,
-        .slide.active {
+        .slide.active,
+        .cover {
+          display: none;
+          width: 100%;
+          height: calc(100vh - 52px);
+          padding: 70px 16px 58px;
           overflow-x: hidden;
           overflow-y: auto;
-          -webkit-overflow-scrolling: touch;
         }
 
-        .slide {
-          padding-bottom: 50px;
-        }
-
-        .slide-head {
-          margin-bottom: 16px;
-          align-items: flex-start;
-        }
-
-        h1 {
-          font-size: clamp(35px, 12vw, 54px);
-        }
-
-        h2 {
-          font-size: clamp(25px, 8vw, 34px);
-        }
-
+        .slide.active,
         .cover.active {
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .cover:not(.active) {
-          display: none;
-        }
-
-        .cover .product-shell {
-          width: 100%;
-          min-height: 410px;
-          height: auto;
-          grid-template-columns: 82px minmax(0, 1fr);
-          transform: none;
-        }
-
-        .case-strip {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .case-cell:nth-child(2) {
-          border-right: 0;
-        }
-
-        .case-cell:nth-child(-n + 2) {
-          border-bottom: 1px solid var(--line);
-        }
-
-        .side-nav {
-          padding: 12px 8px;
-        }
-
-        .nav-item {
-          padding: 8px 6px;
-          font-size: 8px;
-        }
-
-        .product-main {
-          padding: 12px;
-        }
-
-        .summary-grid,
-        .metrics {
-          grid-template-columns: 1fr;
-        }
-
-        .summary-card {
-          min-height: 72px;
-        }
-
-        .screen-caption,
-        .walkthrough,
-        .claw-layout,
-        .scope-preview,
-        .run-grid,
-        .risk-layout,
-        .report-summary {
-          grid-template-columns: 1fr;
-        }
-
-        .walkthrough {
-          flex: none;
-        }
-
-        .claw-layout {
-          flex: none;
-        }
-
-        .chat-demo {
-          min-height: 650px;
-          overflow: visible;
-        }
-
-        .explainer {
-          min-height: 250px;
-          justify-content: flex-start;
-        }
-
-        .explainer h3 {
-          font-size: 26px;
-        }
-
-        .product-screen {
-          min-height: 490px;
-          overflow: visible;
-        }
-
-        .screen-body {
-          overflow: visible;
-        }
-
-        .field-grid,
-        .dependency-header {
-          grid-template-columns: 1fr 1fr;
-        }
-
-        .candidate-table,
-        .compare-table {
-          overflow-x: auto;
-        }
-
-        .candidate-row {
-          width: 620px;
-        }
-
-        .compare-row {
-          width: 520px;
-        }
-
-        .editor-layout {
-          grid-template-columns: 1fr;
-        }
-
-        .stage-list {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-        }
-
-        .workflow-rail {
-          grid-template-columns: repeat(2, 1fr);
-        }
-
-        .journey-grid,
-        .feature-grid {
-          flex: none;
-          grid-template-columns: 1fr;
-        }
-
-        .journey-card {
-          min-height: 138px;
-        }
-
-        .journey-card::after {
-          top: auto;
-          right: 50%;
-          bottom: -15px;
-          transform: rotate(90deg);
-        }
-
-        .journey-card:nth-child(4)::after {
           display: block;
         }
 
-        .journey-card:last-child::after {
+        .slide-head {
+          display: block;
+          margin-bottom: 18px;
+        }
+
+        .slide-subtitle {
+          margin-top: 9px;
+          text-align: left;
+        }
+
+        .cover > div + div {
+          margin-top: 20px;
+        }
+
+        h1 {
+          font-size: 45px;
+        }
+
+        h2 {
+          font-size: 29px;
+        }
+
+        .truth-strip,
+        .console,
+        .content-grid,
+        .two-up,
+        .three-up,
+        .capability-split,
+        .context-map,
+        .report-layout,
+        .chat-layout,
+        .matrix,
+        .authority,
+        .ai-flow {
+          grid-template-columns: 1fr;
+        }
+
+        .console {
+          overflow: visible;
+          grid-template-rows: auto;
+        }
+
+        .console-hero {
+          grid-column: auto;
+        }
+
+        .job-pane {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .job-pane,
+        .workspace-pane {
+          overflow: visible;
+        }
+
+        .command-box,
+        .candidate,
+        .check-row,
+        .draft-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .run-results,
+        .field-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .process {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .process-step::after,
+        .flow-arrow {
           display: none;
         }
 
-        .feature-card {
-          min-height: 145px;
-        }
-
-        .product-promise {
-          grid-template-columns: 1fr;
+        .card,
+        .compare-card,
+        .ai-output,
+        .risk-card,
+        .report-panel,
+        .boundary-card {
+          margin-bottom: 10px;
         }
 
         .progress {
           right: 12px;
-          bottom: 10px;
+          bottom: 12px;
           left: 12px;
         }
       }
 
       @media print {
-        @page {
-          size: 16in 9in;
-          margin: 0;
-        }
-
         html,
         body {
-          width: auto;
           height: auto;
           overflow: visible;
-          background: var(--bg);
-          print-color-adjust: exact;
-          -webkit-print-color-adjust: exact;
+          background: white;
         }
 
         .topbar,
-        .progress,
-        .ambient-grid {
-          display: none !important;
-        }
-
-        .deck {
-          height: auto;
+        .progress {
+          display: none;
         }
 
         .slide,
         .slide.active {
-          position: relative;
-          display: flex !important;
-          width: 16in;
-          height: 9in;
-          page-break-after: always;
-          animation: none;
-        }
-
-        .cover,
-        .cover.active {
           display: grid !important;
+          width: 297mm;
+          height: 167mm;
+          padding: 12mm;
+          break-after: page;
+          animation: none;
         }
       }
 
@@ -1711,14 +1407,12 @@
     </style>
   </head>
   <body>
-    <div class="ambient-grid" aria-hidden="true"></div>
-
     <header class="topbar" aria-label="演示控制">
       <div class="brand">
         <span class="brand-mark">N</span>
         <span class="brand-copy">
-          <span>NOVA / INSPECTION WORKBENCH</span>
-          <span class="demo-badge">目标体验演示</span>
+          <span>NOVA / INSPECTION CONTROL PLANE</span>
+          <span class="mode-pill">当前 UI 对齐 · AI 增强目标</span>
         </span>
       </div>
       <div class="controls">
@@ -1747,280 +1441,357 @@
         aria-labelledby="title-1"
       >
         <div>
-          <div class="cover-label">目标体验演示 · 非当前生产能力声明</div>
-          <p class="kicker">NOVA INSPECTION WORKBENCH</p>
-          <h1 id="title-1">NOVA<br /><span>智能巡检工作台</span></h1>
+          <div class="cover-note">
+            产品功能与操作说明 · 不改变当前一屏工作台
+          </div>
+          <p class="kicker">NOVA INTELLIGENT INSPECTION</p>
+          <h1 id="title-1">从巡检控制台<br /><span>到 AI 巡检协作</span></h1>
           <p class="lead">
-            产品功能与操作说明：从选择一次变更，到生成巡检项、执行、对比、处置风险，再固化一份可追溯报告。
+            保留当前好用的阶段式一屏操作，只增强两段最耗认知的工作：把服务上下文变成可审阅的巡检项，把权威证据变成可追溯的报告解释。
           </p>
-          <div class="case-strip" aria-label="贯穿演示的巡检案例">
-            <div class="case-cell">
-              <small>服务</small><strong>payments-router</strong>
+          <div class="truth-strip">
+            <div>
+              <small>当前基座</small
+              ><strong>Job → Revision → Case → Run → Report</strong>
             </div>
-            <div class="case-cell">
-              <small>环境</small><strong>production</strong>
-            </div>
-            <div class="case-cell">
-              <small>目标版本</small><strong>v3.18.0</strong>
-            </div>
-            <div class="case-cell">
-              <small>变更单</small><strong>CHG-2481</strong>
-            </div>
+            <div><small>AI 增强一</small><strong>巡检项生成与编排</strong></div>
+            <div><small>AI 增强二</small><strong>报告生成与解读</strong></div>
           </div>
         </div>
-        <div class="product-shell" aria-label="NOVA 巡检工作台首页示意">
-          <aside class="side-nav">
-            <div class="nav-logo">NOVA</div>
-            <div class="nav-item active">巡检执行台</div>
-            <div class="nav-item">巡检任务库</div>
-            <div class="nav-item">阶段报告</div>
-            <div class="nav-item">风险与治理</div>
-          </aside>
-          <div class="product-main">
-            <div class="screen-top">
-              <strong>payments-router · CHG-2481</strong
-              ><span>CASE-20260801-018</span>
+        <div
+          class="console compact"
+          data-ui-contract="current-connected-console"
+        >
+          <div class="console-hero">
+            <div>
+              <span class="mini-label">NOVA · CONNECTED SANDBOX</span>
+              <h3>可复用巡检控制台</h3>
+              <p>这里只读观测，不执行发布、放量或回滚。</p>
             </div>
-            <div class="summary-grid">
-              <article class="summary-card">
-                <small>当前任务</small><strong>灰度 10% 巡检</strong>
-                <p>8 个巡检项 · 6 已完成</p>
-              </article>
-              <article class="summary-card">
-                <small>当前结论</small
-                ><strong class="amber">WARN · 1 项风险</strong>
-                <p>P99 延迟较基线上升 18.4%</p>
-              </article>
-              <article class="summary-card">
-                <small>建议下一步</small><strong>记录治理措施并复验</strong>
-                <p>页面确认后才能进入下一阶段</p>
-              </article>
-            </div>
-            <div class="timeline-mini">
-              <div class="done">变更前基线<br />PASS</div>
-              <div class="now">灰度 10%<br />WARN</div>
-              <div>灰度 50%<br />待执行</div>
-              <div>变更后<br />待执行</div>
-            </div>
-            <div class="signal-list">
-              <div class="signal-row">
-                <span>支付成功率</span
-                ><span class="badge green">99.96% · PASS</span>
-              </div>
-              <div class="signal-row">
-                <span>P99 延迟</span
-                ><span class="badge rose">384ms · WARN</span>
-              </div>
-              <div class="signal-row">
-                <span>下游依赖错误率</span
-                ><span class="badge cyan">0.08% · PASS</span>
-              </div>
+            <div class="connection">
+              <span class="dot"></span>已连接 · replay · production
             </div>
           </div>
+          <aside class="job-pane">
+            <div class="pane-head">
+              <div>
+                <span class="mini-label">JOB LIBRARY</span>
+                <h3>持久作业</h3>
+              </div>
+              <span class="count">2</span>
+            </div>
+            <div class="job-card selected">
+              <strong>payments-router 灰度巡检</strong
+              ><span>payments-router · production</span
+              ><small>rev 1 · prod-replay</small>
+            </div>
+            <div class="job-card">
+              <strong>checkout-api 变更巡检</strong
+              ><span>checkout-api · production</span
+              ><small>rev 3 · prod-replay</small>
+            </div>
+            <div class="mini-form">
+              <h3>保存为可复用作业</h3>
+              <div class="field">
+                <small>作业名</small><strong>payments-router 灰度巡检</strong>
+              </div>
+              <span class="button">保存作业与 revision 1</span>
+            </div>
+          </aside>
+          <section class="workspace-pane">
+            <div class="workspace-stack">
+              <div class="pane-head">
+                <div>
+                  <span class="mini-label">EXECUTION CASES</span>
+                  <h3>payments-router 灰度巡检</h3>
+                </div>
+                <span class="count">rev 1</span>
+              </div>
+              <div class="revision-box">
+                <strong>创建 revision 2</strong>
+                <p>更新只生成新 revision，已有 Case 继续绑定原 revision。</p>
+              </div>
+              <div class="actions">
+                <span class="button secondary">新建独立 Case</span>
+              </div>
+              <div class="case-rail">
+                <span class="case-pill active">CHG-2481 · v3.18.0 · 运行中</span
+                ><span class="case-pill">CHG-2472 · v3.17.8 · 已完成</span>
+              </div>
+              <div class="command-box">
+                <div>
+                  <span class="mini-label">执行阶段</span>
+                  <div class="select-like">灰度巡检⌄</div>
+                </div>
+                <span class="button">执行只读巡检</span>
+                <p>Case 018 · Case 绑定 rev 1</p>
+              </div>
+              <div class="run-box">
+                <span class="mini-label">AUTHORITATIVE RUN</span
+                ><strong>通过 · 已完成</strong>
+                <div class="run-results">
+                  <div class="run-result">
+                    <strong>P95 延迟</strong><code>query 7d91…</code
+                    ><small>14:15–14:30</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </section>
 
       <section class="slide" data-slide="2" aria-labelledby="title-2">
         <div class="slide-head">
           <div>
-            <p class="kicker">PRODUCT HOME</p>
-            <h2 id="title-2">打开工作台，先回答三个问题</h2>
+            <p class="kicker">CURRENT PRODUCT TRUTH</p>
+            <h2 id="title-2">当前页面就是母版，不做多级左树</h2>
           </div>
           <p class="slide-subtitle">
-            用户不需要先理解数据模型；首页直接告诉他正在做什么、结果怎样、接下来该做什么。
+            一次巡检围绕一个作业、一个 Case
+            连续推进。阶段、证据和报告放在同一屏，比在菜单间跳转更符合操作心智。
           </p>
         </div>
-        <div class="product-shell">
-          <aside class="side-nav">
-            <div class="nav-logo">NOVA</div>
-            <div class="nav-item active">巡检执行台</div>
-            <div class="nav-item">巡检任务库</div>
-            <div class="nav-item">阶段报告</div>
-            <div class="nav-item">风险与治理</div>
-          </aside>
-          <div class="product-main">
-            <div class="screen-top">
-              <strong>变更巡检 / payments-router</strong
-              ><span>最后更新 14:32:08</span>
-            </div>
-            <div class="summary-grid">
-              <article class="summary-card">
-                <small>01 · 正在做什么</small><strong>灰度 10% 风险验证</strong>
-                <p>目标版本 v3.18.0 · production</p>
-              </article>
-              <article class="summary-card">
-                <small>02 · 结果怎么样</small
-                ><strong class="amber">机器判定 WARN</strong>
-                <p>7 PASS · 1 WARN · 0 UNKNOWN</p>
-              </article>
-              <article class="summary-card">
-                <small>03 · 下一步做什么</small><strong>先处置延迟风险</strong>
-                <p>记录措施 → 重新执行验证</p>
-              </article>
-            </div>
-            <div class="panel" style="margin-top: 12px">
-              <div class="screen-top">
-                <strong>阶段进度</strong
-                ><span>所有观测由服务端只读连接器采集</span>
+        <div class="content-grid">
+          <div class="card">
+            <span class="number">01</span>
+            <h3>保留当前交互</h3>
+            <div class="work-list">
+              <div class="work-item">
+                <b>A</b
+                ><span
+                  >左侧是持久作业与保存表单，承担上下文选择，不是功能导航。</span
+                >
               </div>
-              <div class="timeline-mini">
-                <div class="done">变更前基线<br />已固化</div>
-                <div class="now">灰度 10%<br />等待决策</div>
-                <div>灰度 50%<br />已阻断</div>
-                <div>变更后<br />未开始</div>
+              <div class="work-item">
+                <b>B</b
+                ><span
+                  >右侧在一屏内完成 Revision、Case、执行阶段、Run 与报告。</span
+                >
               </div>
+              <div class="work-item">
+                <b>C</b
+                ><span
+                  >规模增长先加搜索、筛选和折叠，不在 Case 内增加多级树。</span
+                >
+              </div>
+            </div>
+            <div class="decision">
+              <strong>产品决定</strong>不引入多级左树。AI
+              能力以内嵌草稿区、报告解释区和可收起助手呈现。
             </div>
           </div>
-          <aside class="claw-pane">
-            <div class="screen-top">
-              <strong>CLAW</strong><span>解释与建议</span>
+          <div class="console" data-ui-contract="current-connected-console">
+            <div class="console-hero">
+              <div>
+                <span class="mini-label">NOVA · CONNECTED SANDBOX</span>
+                <h3>可复用巡检控制台</h3>
+                <p>作业、版本、执行证据与报告持久化到服务端。</p>
+              </div>
+              <div class="connection"><span class="dot"></span>证据已固化</div>
             </div>
-            <div class="chat-bubble claw">
-              P99 延迟相较变更前上升 18.4%，超过 15%
-              阈值。我已整理证据与建议，等待你在页面确认。
-            </div>
-            <div class="chat-bubble user">先告诉我受影响的是哪个下游。</div>
-            <div class="chat-bubble claw">
-              checkout-api
-              的调用延迟贡献最大；当前结论不自动触发发布、放量或回滚。
-            </div>
-          </aside>
-        </div>
-        <div class="screen-caption">
-          <span class="caption-label">用户动作</span
-          ><span class="caption-value">进入某个 Case 的执行台</span
-          ><span class="caption-label">系统反馈</span
-          ><span class="caption-value"
-            >任务、结论、阻塞原因与下一步集中呈现</span
-          >
+            <aside class="job-pane">
+              <div class="pane-head">
+                <div>
+                  <span class="mini-label">JOB LIBRARY</span>
+                  <h3>持久作业</h3>
+                </div>
+                <span class="count">3</span>
+              </div>
+              <div class="job-card selected">
+                <strong>payments-router 灰度巡检</strong
+                ><span>production · rev 1</span>
+              </div>
+              <div class="mini-form">
+                <h3>保存为可复用作业</h3>
+                <div class="field">
+                  <small>服务标识</small><strong>payments-router</strong>
+                </div>
+                <div class="field">
+                  <small>精确只读查询</small
+                  ><strong>histogram_quantile(...)</strong>
+                </div>
+                <span class="button">保存作业与 revision 1</span>
+              </div>
+            </aside>
+            <section class="workspace-pane">
+              <div class="workspace-stack">
+                <div class="pane-head">
+                  <div>
+                    <span class="mini-label">EXECUTION CASES</span>
+                    <h3>payments-router 灰度巡检</h3>
+                  </div>
+                  <span class="count">rev 1</span>
+                </div>
+                <div class="revision-box">
+                  <strong>创建 revision 2</strong>
+                  <p>当前 rev 1。保存新条件不会修改历史 Case。</p>
+                </div>
+                <div class="field-grid">
+                  <div class="field">
+                    <small>变更编号</small><strong>CHG-2481</strong>
+                  </div>
+                  <div class="field">
+                    <small>版本</small><strong>v3.18.0</strong>
+                  </div>
+                </div>
+                <div class="actions">
+                  <span class="button secondary">新建独立 Case</span>
+                </div>
+                <div class="command-box">
+                  <div>
+                    <span class="mini-label">执行阶段</span>
+                    <div class="select-like">准入巡检⌄</div>
+                  </div>
+                  <span class="button">执行只读巡检</span>
+                  <p>观测、时间与结论均由服务端生成。</p>
+                </div>
+                <div class="report-box">
+                  <span class="mini-label">IMMUTABLE REPORT</span
+                  ><strong>不可变报告 · 通过</strong>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 
-      <section class="slide" data-slide="3" aria-labelledby="title-3">
+      <section
+        class="slide"
+        data-slide="3"
+        data-walkthrough-step="1"
+        aria-labelledby="title-3"
+      >
         <div class="slide-head">
           <div>
-            <p class="kicker">COMPLETE JOURNEY</p>
-            <h2 id="title-3">七步完成一次变更巡检</h2>
+            <p class="kicker">HOW USERS WORK TODAY</p>
+            <h2 id="title-3">当前 connected：六个动作完成可审计闭环</h2>
           </div>
           <p class="slide-subtitle">
-            从“需要查什么”开始，到一份可用于复盘与治理的最终报告结束。
+            先把已经能用的产品讲清楚，再说明 AI
+            往哪里增强；不把目标体验包装成现状。
           </p>
         </div>
-        <div class="journey-grid" aria-label="七步产品流程">
-          <article class="journey-card">
-            <b>01</b><strong>选择服务与变更</strong
-            ><span>确定服务、环境、目标版本和变更单。</span>
-          </article>
-          <article class="journey-card">
-            <b>02</b><strong>生成候选巡检项</strong
-            ><span>根据新鲜依赖快照建议需要检查的内容。</span>
-          </article>
-          <article class="journey-card">
-            <b>03</b><strong>编辑巡检任务</strong
-            ><span>增删改巡检项，确认阶段和阈值后发布版本。</span>
-          </article>
-          <article class="journey-card">
-            <b>04</b><strong>执行阶段工作流</strong
-            ><span>变更前、灰度、变更后逐阶段只读采证。</span>
-          </article>
-          <article class="journey-card">
-            <b>05</b><strong>阶段报告与 A/B 对比</strong
-            ><span>看单项结果、证据质量与相对基线变化。</span>
-          </article>
-          <article class="journey-card">
-            <b>06</b><strong>风险项、治理建议与复验</strong
-            ><span>记录处置，重新验证，不覆盖原始风险。</span>
-          </article>
-          <article class="journey-card">
-            <b>07</b><strong>固化最终巡检报告</strong
-            ><span>保留版本、运行、决策与证据完整谱系。</span>
-          </article>
-        </div>
-        <div class="product-promise">
-          <strong>输入</strong><span>一次明确的服务变更</span
-          ><strong>输出：可解释、可复验、可追溯的风险结论</strong>
+        <div class="card">
+          <div class="process">
+            <div class="process-step">
+              <b>01</b><span>填写作业、服务、只读查询和阈值</span>
+            </div>
+            <div class="process-step">
+              <b>02</b><span>保存作业与 revision 1</span>
+            </div>
+            <div class="process-step">
+              <b>03</b><span>填写变更编号/版本，新建独立 Case</span>
+            </div>
+            <div class="process-step">
+              <b>04</b><span>选择执行阶段，执行只读巡检</span>
+            </div>
+            <div class="process-step">
+              <b>05</b><span>查看 AUTHORITATIVE RUN 与来源</span>
+            </div>
+            <div class="process-step">
+              <b>06</b><span>记录人工接受并固化报告</span>
+            </div>
+          </div>
+          <div class="capability-split">
+            <div class="current-capability">
+              <strong>当前已具备：单巡检项闭环</strong
+              ><span
+                >手工填写 query / threshold；持久化
+                Job、Revision、Case、Run、Decision、不可变报告；connected
+                页面暂无 CLAW。</span
+              >
+            </div>
+            <div class="target-capability">
+              <strong>AI 增强目标：多巡检项生成与解读</strong
+              ><span
+                >在同一工作区内增加候选生成、多巡检项编排、阶段对比与报告解释，不改变当前服务端权威边界。</span
+              >
+            </div>
+          </div>
+          <div class="decision" style="margin-top: 12px">
+            <strong>页面关系</strong>AI
+            不是另一套产品，也不是另一条导航；它服务于现有 Revision 草稿和
+            Report 阅读。
+          </div>
         </div>
       </section>
 
       <section
         class="slide"
         data-slide="4"
-        data-walkthrough-step="1"
+        data-walkthrough-step="2"
         aria-labelledby="title-4"
       >
         <div class="slide-head">
           <div>
-            <p class="kicker">STEP 01</p>
-            <h2 id="title-4">选择服务与变更</h2>
+            <p class="kicker">WHY AI</p>
+            <h2 id="title-4">AI 的价值，不在替规则打分</h2>
           </div>
           <p class="slide-subtitle">
-            先把巡检对象说清楚，后续依赖、基线和证据才不会串环境。
+            查询与阈值判断本来就应该确定性执行。AI
+            的独特价值，是处理散落在依赖、文档、历史和多阶段证据里的语义劳动。
           </p>
         </div>
-        <div class="walkthrough">
-          <div class="explainer">
-            <span class="step-number">01</span>
-            <h3>为一次真实变更<br />创建巡检 Case</h3>
+        <div class="two-up">
+          <article class="compare-card without-ai">
+            <span class="badge">没有 AI</span>
+            <h3>专家手工完成两次“翻译”</h3>
+            <div class="work-list">
+              <div class="work-item">
+                <b>1</b
+                ><span
+                  >读服务依赖、SLO、runbook、变更说明和历史事故，判断需要查什么。</span
+                >
+              </div>
+              <div class="work-item">
+                <b>2</b
+                ><span>把业务风险手工翻译成 query、阈值、窗口与阶段。</span>
+              </div>
+              <div class="work-item">
+                <b>3</b
+                ><span
+                  >逐条读多阶段结果，再手工关联依赖影响、写报告与治理建议。</span
+                >
+              </div>
+            </div>
             <p>
-              用户选择服务、环境、目标版本和变更单。系统据此锁定数据范围，并提示当前能看到的依赖覆盖。
+              产品仍能工作，但质量依赖个人经验，设计和解读成本会随服务复杂度快速上升。
             </p>
-            <div class="outcome-list">
-              <div class="outcome">避免把测试环境基线拿去判断生产</div>
-              <div class="outcome">每个 Case 都绑定自己的快照与基线</div>
-              <div class="outcome">字段不完整时不能进入下一步</div>
-            </div>
-          </div>
-          <div class="product-screen" data-role="product-screen">
-            <div class="screen-chrome">
-              <span class="screen-dots"><i></i><i></i><i></i></span
-              ><span class="screen-context">新建变更巡检</span>
-            </div>
-            <div class="screen-body">
-              <div class="screen-top">
-                <strong>巡检范围</strong><span>必填项 4 / 4</span>
+          </article>
+          <article class="compare-card with-ai">
+            <span class="badge target">有 AI</span>
+            <h3>上下文归并 + 证据化解释</h3>
+            <div class="work-list">
+              <div class="work-item">
+                <b>1</b
+                ><span
+                  ><strong>依赖上下文归并</strong
+                  >：把拓扑、SLO、runbook、变更和历史统一成带来源的上下文包。</span
+                >
               </div>
-              <div class="field-grid">
-                <div class="field">
-                  <small>服务</small><strong>payments-router</strong>
-                </div>
-                <div class="field">
-                  <small>环境</small><strong>production</strong>
-                </div>
-                <div class="field">
-                  <small>目标版本</small><strong>v3.18.0</strong>
-                </div>
-                <div class="field">
-                  <small>变更单</small><strong>CHG-2481</strong>
-                </div>
+              <div class="work-item">
+                <b>2</b
+                ><span
+                  ><strong>自然语言转检查草稿</strong
+                  >：生成检查定义、阶段、阈值依据与候选项生成理由。</span
+                >
               </div>
-              <div class="scope-preview">
-                <div class="service-node">
-                  <strong>payments-router</strong
-                  ><span>owner · payment-platform</span>
-                </div>
-                <div class="dependency-mini">
-                  <div>
-                    checkout-api<br /><span class="muted">同步下游</span>
-                  </div>
-                  <div>
-                    risk-engine<br /><span class="muted">同步下游</span>
-                  </div>
-                  <div>
-                    order-events<br /><span class="muted">异步主题</span>
-                  </div>
-                  <div>
-                    redis-payment<br /><span class="muted">数据依赖</span>
-                  </div>
-                </div>
-              </div>
-              <div
-                class="action-row"
-                style="margin-top: 12px; justify-content: flex-end"
-              >
-                <span class="ghost-btn">保存草稿</span
-                ><span class="primary-btn">获取依赖并生成候选项 →</span>
+              <div class="work-item">
+                <b>3</b
+                ><span
+                  >对权威结果做报告事实摘要、异常关联、风险解释、治理建议和不确定性披露。</span
+                >
               </div>
             </div>
+            <p>
+              AI
+              降低设计与阅读成本，但每个输出都必须有证据引用，不能成为权威结果。
+            </p>
+          </article>
+          <div class="principle">
+            规则负责判定 · AI 负责把上下文变成候选、把证据变成解释 ·
+            人负责发布与接受
           </div>
         </div>
       </section>
@@ -2028,92 +1799,67 @@
       <section
         class="slide"
         data-slide="5"
-        data-walkthrough-step="2"
+        data-walkthrough-step="3"
+        data-ai-capability="inspection-design"
         aria-labelledby="title-5"
       >
         <div class="slide-head">
           <div>
-            <p class="kicker">STEP 02</p>
-            <h2 id="title-5">生成候选巡检项</h2>
+            <p class="kicker">AI CAPABILITY 01 · INPUT</p>
+            <h2 id="title-5">巡检项生成：先构建“为什么要查”的上下文</h2>
           </div>
           <p class="slide-subtitle">
-            依赖图只负责提出建议，不替用户发布任务；没覆盖到什么必须在首屏说明。
+            AI 不是看到依赖名就猜指标，而是把多源材料归并成一个带
+            provenance、时效和缺口的 Inspection Context Pack。
           </p>
         </div>
-        <div class="walkthrough">
-          <div class="explainer">
-            <span class="step-number">02</span>
-            <h3>系统解释“为什么查”<br />用户决定“要不要查”</h3>
+        <div class="content-grid">
+          <div class="card accent">
+            <span class="number">A</span>
+            <h3>用户动作</h3>
             <p>
-              服务端读取一份有来源的单跳依赖快照，再根据依赖类型生成候选项。用户可以添加巡检项、删除不适用项或编辑检查方式。
+              在现有作业区选择服务、环境与变更；点击“生成巡检项草稿”，或用自然语言补充这次变更的意图。
             </p>
-            <div class="outcome-list">
-              <div class="outcome">候选项带依赖方向、来源与生成理由</div>
-              <div class="outcome">快照缺失或过期时停止自动生成</div>
-              <div class="outcome">单跳覆盖不被包装成完整拓扑</div>
+            <div class="coverage">
+              <strong>输入不完整时：</strong>停止自动生成，并在首屏展示
+              omissions；允许手工继续，但标记“拓扑覆盖未知”。
             </div>
           </div>
-          <div class="product-screen" data-role="product-screen">
-            <div class="screen-chrome">
-              <span class="screen-dots"><i></i><i></i><i></i></span
-              ><span class="screen-context">候选巡检项 · 8 项</span>
+          <div class="card">
+            <div class="context-map">
+              <div class="source-card">
+                <strong>服务与依赖快照</strong
+                ><span
+                  >单跳调用、方向、关键度、capturedAt、scope、omissions</span
+                >
+              </div>
+              <div class="source-card">
+                <strong>SLO 与指标目录</strong
+                ><span>成功率、延迟、饱和度、容量、数据质量契约</span>
+              </div>
+              <div class="source-card">
+                <strong>Runbook 与告警规则</strong
+                ><span>已知故障征兆、排查顺序、指标含义、团队约定</span>
+              </div>
+              <div class="source-card">
+                <strong>变更上下文</strong
+                ><span>版本说明、变更范围、组件差异、期望影响</span>
+              </div>
+              <div class="source-card">
+                <strong>历史巡检与事故</strong
+                ><span>曾经失败的检查、重复风险、已验证治理措施</span>
+              </div>
+              <div class="source-card">
+                <strong>连接器能力</strong
+                ><span>当前可查询的数据源、只读 scope、freshness 与限制</span>
+              </div>
             </div>
-            <div class="screen-body">
-              <div class="dependency-header">
-                <div class="kv">
-                  <small>snapshotId</small
-                  ><strong class="mono">dep_7F2A91</strong>
-                </div>
-                <div class="kv">
-                  <small>capturedAt</small><strong>14:05:31</strong>
-                </div>
-                <div class="kv">
-                  <small>scope</small><strong>production · 单跳</strong>
-                </div>
-                <div class="kv">
-                  <small>omissions</small
-                  ><strong class="amber">跨域异步链路</strong>
-                </div>
-              </div>
-              <div class="coverage-warning">
-                <strong>覆盖说明：</strong
-                >当前仅包含单跳同步调用、已登记事件主题与数据依赖，不代表完整拓扑。
-              </div>
-              <div class="candidate-table">
-                <div class="candidate-row header">
-                  <span></span><span>候选巡检项</span><span>生成理由</span
-                  ><span>阈值</span><span>操作</span>
-                </div>
-                <div class="candidate-row">
-                  <span class="check">✓</span><strong>支付成功率</strong
-                  ><span>核心服务 SLO</span><span>≥99.90%</span
-                  ><span class="row-actions">编辑 · 删除</span>
-                </div>
-                <div class="candidate-row">
-                  <span class="check">✓</span><strong>P99 请求延迟</strong
-                  ><span>同步入口</span><span>≤+15%</span
-                  ><span class="row-actions">编辑 · 删除</span>
-                </div>
-                <div class="candidate-row">
-                  <span class="check">✓</span
-                  ><strong>checkout-api 错误率</strong><span>关键下游</span
-                  ><span>≤0.5%</span
-                  ><span class="row-actions">编辑 · 删除</span>
-                </div>
-                <div class="candidate-row">
-                  <span class="check">✓</span
-                  ><strong>order-events 消费积压</strong><span>异步主题</span
-                  ><span>≤2,000</span
-                  ><span class="row-actions">编辑 · 删除</span>
-                </div>
-              </div>
-              <div
-                class="action-row"
-                style="margin-top: 10px; justify-content: space-between"
+            <div class="context-pack" style="margin-top: 10px">
+              <strong>Inspection Context Pack</strong
+              ><span
+                >输入事实 + 来源引用 + 快照时间 + 覆盖范围 +
+                未覆盖项；作为候选生成的唯一上下文。</span
               >
-                <span class="secondary-btn">＋ 添加巡检项</span
-                ><span class="primary-btn">确认候选项 →</span>
-              </div>
             </div>
           </div>
         </div>
@@ -2122,75 +1868,101 @@
       <section
         class="slide"
         data-slide="6"
-        data-walkthrough-step="3"
+        data-walkthrough-step="4"
         aria-labelledby="title-6"
       >
         <div class="slide-head">
           <div>
-            <p class="kicker">STEP 03</p>
-            <h2 id="title-6">编辑巡检任务并发布版本</h2>
+            <p class="kicker">AI CAPABILITY 01 · OUTPUT</p>
+            <h2 id="title-6">
+              候选巡检项必须告诉用户：查什么、为什么、没覆盖什么
+            </h2>
           </div>
           <p class="slide-subtitle">
-            编辑发生在草稿中；一旦发布，巡检项、阶段和阈值一起冻结。
+            AI 产物不是一串指标名，而是一组可审阅的检查草稿。只有用户纳入
+            Revision 并发布后，它才进入执行真相。
           </p>
         </div>
-        <div class="walkthrough">
-          <div class="explainer">
-            <span class="step-number">03</span>
-            <h3>把检查项编排成<br />可复用的巡检 Playbook</h3>
-            <p>
-              首屏采用线性阶段，不使用自由
-              DAG。用户按阶段配置检查项、时间窗、阈值和基线比较规则，校验通过后发布
-              PlaybookRevision。
-            </p>
-            <div class="outcome-list">
-              <div class="outcome">草稿内可以增删改巡检项</div>
-              <div class="outcome">发布后修改会产生新版本</div>
-              <div class="outcome">已开始执行的 Case 不会静默换版本</div>
-            </div>
-          </div>
-          <div class="product-screen" data-role="product-screen">
-            <div class="screen-chrome">
-              <span class="screen-dots"><i></i><i></i><i></i></span
-              ><span class="screen-context"
-                >Playbook 草稿 · payments-router</span
-              >
-            </div>
-            <div class="screen-body">
-              <div class="screen-top">
-                <strong>巡检任务编辑器</strong
-                ><span class="badge amber">草稿 · 可编辑</span>
+        <div class="content-grid">
+          <div class="card">
+            <span class="number">B</span>
+            <h3>AI 输出合同</h3>
+            <div class="work-list">
+              <div class="work-item">
+                <b>1</b><span>检查对象 + 推荐阶段 + query 草稿 + 窗口</span>
               </div>
-              <div class="editor-layout">
-                <div class="stage-list">
-                  <div class="stage-item active">变更前基线 · 4 项</div>
-                  <div class="stage-item">灰度 10% · 8 项</div>
-                  <div class="stage-item">灰度 50% · 8 项</div>
-                  <div class="stage-item">变更后 · 8 项</div>
+              <div class="work-item">
+                <b>2</b><span>阈值依据 + 候选项生成理由 + 依赖路径</span>
+              </div>
+              <div class="work-item">
+                <b>3</b><span>证据来源 + 置信度 + 检查覆盖缺口</span>
+              </div>
+            </div>
+            <p>
+              用户可添加、删除、编辑或拒绝候选；拒绝理由可沉淀为后续生成上下文，但不会修改历史
+              Revision。
+            </p>
+          </div>
+          <div class="card">
+            <div class="pane-head">
+              <div>
+                <span class="mini-label">AI INSPECTION DRAFT</span>
+                <h3>生成 6 个候选 · 已选 4</h3>
+              </div>
+              <span class="badge target">AI 增强目标</span>
+            </div>
+            <div class="candidate-list">
+              <div class="candidate">
+                <span class="check-mark">✓</span>
+                <div>
+                  <strong>payments-router · P95 延迟</strong
+                  ><span>阶段：变更前 / 灰度 / 变更后 · 阈值：+15%</span>
                 </div>
-                <div class="check-editor">
-                  <div class="check-card">
-                    <strong>支付成功率</strong><span>窗口 15m · ≥99.90%</span
-                    ><span class="row-actions">编辑 · 删除</span>
-                  </div>
-                  <div class="check-card">
-                    <strong>P99 请求延迟</strong><span>对比基线 · ≤+15%</span
-                    ><span class="row-actions">编辑 · 删除</span>
-                  </div>
-                  <div class="check-card">
-                    <strong>checkout-api 错误率</strong
-                    ><span>窗口 15m · ≤0.5%</span
-                    ><span class="row-actions">编辑 · 删除</span>
-                  </div>
-                  <span class="secondary-btn" style="justify-self: start"
-                    >＋ 添加巡检项</span
+                <div class="reason">
+                  <strong>为什么生成</strong
+                  ><span
+                    >变更增加 checkout-api 同步调用；历史事故 INC-731
+                    曾出现连接池等待。</span
                   >
                 </div>
+                <span class="badge">92%</span>
               </div>
-              <div class="revision-bar">
-                <span>校验通过 · 4 个阶段 · 8 个巡检项 · 基线契约已配置</span
-                ><span class="primary-btn">发布 Revision R7</span>
+              <div class="candidate">
+                <span class="check-mark">✓</span>
+                <div>
+                  <strong>checkout-api · 错误率</strong
+                  ><span>阶段：灰度 / 复验 · 阈值：1%</span>
+                </div>
+                <div class="reason">
+                  <strong>为什么生成</strong
+                  ><span
+                    >关键同步下游；SLO 和 runbook 均将错误率列为准入条件。</span
+                  >
+                </div>
+                <span class="badge">88%</span>
               </div>
+              <div class="candidate">
+                <span class="check-mark">✓</span>
+                <div>
+                  <strong>order-events · 消费积压</strong
+                  ><span>阶段：变更后 · 窗口：15m</span>
+                </div>
+                <div class="reason">
+                  <strong>为什么生成</strong
+                  ><span
+                    >变更写入异步主题；仅能看到生产者，消费者拓扑未覆盖。</span
+                  >
+                </div>
+                <span class="badge warn">64%</span>
+              </div>
+            </div>
+            <div class="coverage" style="margin-top: 9px">
+              <strong>检查覆盖缺口：</strong
+              >当前是单跳快照；跨域异步消费者、区域间依赖与未注册数据源不在覆盖范围内。
+            </div>
+            <div class="actions" style="margin-top: 9px">
+              <span class="button secondary">拒绝并说明理由</span
+              ><span class="button ai">加入 Revision 草稿</span>
             </div>
           </div>
         </div>
@@ -2199,169 +1971,190 @@
       <section
         class="slide"
         data-slide="7"
-        data-walkthrough-step="4"
+        data-walkthrough-step="5"
         aria-labelledby="title-7"
       >
         <div class="slide-head">
           <div>
-            <p class="kicker">STEP 04</p>
-            <h2 id="title-7">执行阶段工作流</h2>
+            <p class="kicker">ORCHESTRATION IN THE CURRENT WORKSPACE</p>
+            <h2 id="title-7">编排不另开菜单：就在 Revision 区完成增删改</h2>
           </div>
           <p class="slide-subtitle">
-            NOVA
-            只采集、评估和记录证据；用户在外部完成变更后，回到页面推进下一阶段。
+            沿用当前“左作业、右工作区”。AI
+            候选进入右侧草稿，用户按阶段审阅、编辑并发布不可变 Revision。
           </p>
         </div>
-        <div class="walkthrough">
-          <div class="explainer">
-            <span class="step-number">04</span>
-            <h3>每个阶段都有门禁<br />失败时诚实停住</h3>
-            <p>
-              点击“执行只读巡检”后，服务端使用已登记的只读连接器采集观测。缺失、过期或连接失败会显示
-              UNKNOWN / BLOCKED，不会变成绿灯。
-            </p>
-            <div class="outcome-list">
-              <div class="outcome">
-                变更前基线 → 灰度 10% → 灰度 50% → 变更后
-              </div>
-              <div class="outcome">机器判定与人工决定分开展示</div>
-              <div class="outcome">不执行发布、放量或回滚</div>
+        <div class="console" data-ui-contract="current-connected-console">
+          <div class="console-hero">
+            <div>
+              <span class="mini-label">NOVA · CONNECTED SANDBOX</span>
+              <h3>可复用巡检控制台</h3>
+              <p>同一个页面完成作业选择、编排、Case 与执行。</p>
+            </div>
+            <div class="connection">
+              <span class="dot"></span>已连接 · production
             </div>
           </div>
-          <div class="product-screen" data-role="product-screen">
-            <div class="screen-chrome">
-              <span class="screen-dots"><i></i><i></i><i></i></span
-              ><span class="screen-context">InspectionCase · CASE-018</span>
+          <aside class="job-pane">
+            <div class="pane-head">
+              <div>
+                <span class="mini-label">JOB LIBRARY</span>
+                <h3>持久作业</h3>
+              </div>
+              <span class="count">3</span>
             </div>
-            <div class="screen-body">
-              <div class="workflow-rail">
-                <div class="stage-node done">
-                  <strong>变更前基线</strong><br />PASS · 已固化
-                </div>
-                <div class="stage-node running">
-                  <strong>灰度 10%</strong><br />正在评估
-                </div>
-                <div class="stage-node">
-                  <strong>灰度 50%</strong><br />等待门禁
-                </div>
-                <div class="stage-node">
-                  <strong>变更后</strong><br />未开始
-                </div>
-              </div>
-              <div class="run-grid">
-                <div class="run-status">
-                  <div>
-                    <strong>6 / 8</strong
-                    ><span>巡检项已完成<br />RUN-20260801-042</span>
-                  </div>
-                </div>
-                <div class="evidence-list">
-                  <div class="screen-top">
-                    <strong>实时执行明细</strong><span>只读 connector</span>
-                  </div>
-                  <div class="evidence-row">
-                    <span>支付成功率</span><span class="badge green">PASS</span>
-                  </div>
-                  <div class="evidence-row">
-                    <span>P99 请求延迟</span
-                    ><span class="badge amber">EVALUATING</span>
-                  </div>
-                  <div class="evidence-row">
-                    <span>checkout-api 错误率</span
-                    ><span class="badge green">PASS</span>
-                  </div>
-                  <div class="evidence-row">
-                    <span>order-events 消费积压</span
-                    ><span class="badge cyan">COLLECTING</span>
-                  </div>
-                </div>
-              </div>
-              <div
-                class="action-row"
-                style="margin-top: 10px; justify-content: flex-end"
-              >
-                <span class="ghost-btn">查看采集日志</span
-                ><span class="secondary-btn">执行只读巡检</span>
-              </div>
+            <div class="job-card selected">
+              <strong>payments-router 灰度巡检</strong
+              ><span>payments-router · production</span
+              ><small>rev 1 · prod-replay</small>
             </div>
-          </div>
+            <div class="job-card">
+              <strong>checkout-api 日常巡检</strong
+              ><span>checkout-api · production</span
+              ><small>rev 3 · prometheus</small>
+            </div>
+            <div class="decision" style="font-size: 9px">
+              <strong>左侧职责不变</strong>选择/保存作业，不承担阶段导航。
+            </div>
+          </aside>
+          <section class="workspace-pane">
+            <div class="workspace-stack">
+              <div class="pane-head">
+                <div>
+                  <span class="mini-label">CREATE REVISION 2</span>
+                  <h3>巡检项编排草稿</h3>
+                </div>
+                <span class="badge target">AI 候选 6 · 已选 4</span>
+              </div>
+              <div class="draft-grid">
+                <div class="stage-list">
+                  <div class="stage-box active">变更前 · 2</div>
+                  <div class="stage-box">灰度巡检 · 3</div>
+                  <div class="stage-box">验证巡检 · 3</div>
+                  <div class="stage-box">变更后 · 2</div>
+                </div>
+                <div class="check-table">
+                  <div class="check-row">
+                    <strong>P95 请求延迟</strong
+                    ><span>histogram_quantile(...)</span><span>+15%</span
+                    ><span class="badge target">AI 候选</span>
+                  </div>
+                  <div class="check-row">
+                    <strong>支付成功率</strong><span>sum(rate(success...))</span
+                    ><span>≥99.9%</span
+                    ><span class="badge current">人工保留</span>
+                  </div>
+                  <div class="check-row">
+                    <strong>checkout 错误率</strong
+                    ><span>sum(rate(errors...))</span><span>≤1%</span
+                    ><span class="badge target">AI 候选</span>
+                  </div>
+                </div>
+              </div>
+              <div class="actions">
+                <span class="button secondary">+ 添加巡检项</span
+                ><span class="button secondary">编辑 / 删除</span
+                ><span class="button">保存 revision 2</span>
+              </div>
+              <p class="small-copy">
+                发布后不可原地修改。新 Case 创建时重新绑定新鲜
+                ServiceDependencySnapshot 与 baseline；关键依赖漂移会
+                BLOCKED_REVIEW_REQUIRED。
+              </p>
+            </div>
+          </section>
         </div>
       </section>
 
       <section
         class="slide"
         data-slide="8"
-        data-walkthrough-step="5"
+        data-walkthrough-step="6"
         aria-labelledby="title-8"
       >
         <div class="slide-head">
           <div>
-            <p class="kicker">STEP 05</p>
-            <h2 id="title-8">阶段报告与 A/B 对比</h2>
+            <p class="kicker">RUN IN ONE SCREEN</p>
+            <h2 id="title-8">执行阶段继续在一屏推进，AI 不替用户点下一步</h2>
           </div>
           <p class="slide-subtitle">
-            先验证两组证据是否可比，再解释变化；“两个时间点”不自动等于有效 A/B。
+            阶段切换、Run、证据与报告保持当前交互。系统失败时
+            fail-closed，不回退 demo 数据，也不让 AI 把 UNKNOWN 解释成绿色。
           </p>
         </div>
-        <div class="walkthrough">
-          <div class="explainer">
-            <span class="step-number">05</span>
-            <h3>看结果，更要看<br />结果为什么可信</h3>
-            <p>
-              阶段报告按巡检项展示基线值、当前值、变化幅度、阈值和证据质量。环境、查询、范围或时间窗不一致时，比较结果为
-              UNKNOWN。
-            </p>
-            <div class="outcome-list">
-              <div class="outcome">每个阶段都可独立查看报告</div>
-              <div class="outcome">异常项置顶，并能下钻到证据</div>
-              <div class="outcome">可比性不成立时禁止降级风险</div>
+        <div class="content-grid">
+          <div class="card">
+            <span class="number">C</span>
+            <h3>用户怎么操作</h3>
+            <div class="work-list">
+              <div class="work-item">
+                <b>1</b><span>选择绑定不可变 Revision 的 Case。</span>
+              </div>
+              <div class="work-item">
+                <b>2</b><span>在“执行阶段”选择准入、灰度、验证或变更后。</span>
+              </div>
+              <div class="work-item">
+                <b>3</b
+                ><span>点击“执行只读巡检”，等待服务端生成权威结果。</span>
+              </div>
+              <div class="work-item">
+                <b>4</b
+                ><span
+                  >查看来源、窗口、queryDigest
+                  和每项状态，再记录人工决定。</span
+                >
+              </div>
+            </div>
+            <div class="coverage">
+              <strong>AI 不推进状态机：</strong>连接中断、证据过期、scope
+              漂移或不可比时只能 UNKNOWN / BLOCKED。
             </div>
           </div>
-          <div class="product-screen" data-role="product-screen">
-            <div class="screen-chrome">
-              <span class="screen-dots"><i></i><i></i><i></i></span
-              ><span class="screen-context">灰度 10% · 阶段报告</span>
+          <div class="card">
+            <div class="stage-tabs">
+              <span class="stage-tab done">准入巡检 · PASS</span
+              ><span class="stage-tab active">灰度巡检 · RUNNING</span
+              ><span class="stage-tab">验证巡检 · 待执行</span
+              ><span class="stage-tab">变更后巡检 · 待执行</span>
             </div>
-            <div class="screen-body">
-              <div class="screen-top">
-                <strong>A/B 对比</strong
-                ><span class="badge green">可比性检查通过</span>
+            <div class="command-box">
+              <div>
+                <span class="mini-label">执行阶段</span>
+                <div class="select-like">灰度巡检⌄</div>
               </div>
-              <div class="metrics">
-                <div class="metric">
-                  <small>支付成功率</small><strong>99.96%</strong
-                  ><span class="delta-down">+0.01% · PASS</span>
+              <span class="button">执行只读巡检</span>
+              <p>Case CASE-018 · 绑定 rev 2</p>
+            </div>
+            <div class="run-box" style="margin-top: 9px">
+              <div class="pane-head">
+                <div>
+                  <span class="mini-label">AUTHORITATIVE RUN</span>
+                  <h3>警告 · 已完成</h3>
                 </div>
-                <div class="metric">
-                  <small>P99 延迟</small><strong>384ms</strong
-                  ><span class="delta-up">+18.4% · WARN</span>
+                <span class="badge warn">canary</span>
+              </div>
+              <div class="badges">
+                <span class="badge">connectorRef prod-prom</span
+                ><span class="badge">observedAt 14:30</span
+                ><span class="badge">window 15m</span>
+              </div>
+              <div class="run-results">
+                <div class="run-result">
+                  <strong>P95 延迟 · WARN</strong><code>query 7d91…</code
+                  ><small>384ms · +18.4%</small>
                 </div>
-                <div class="metric">
-                  <small>错误率</small><strong>0.08%</strong
-                  ><span class="delta-down">-0.02% · PASS</span>
+                <div class="run-result">
+                  <strong>支付成功率 · PASS</strong><code>query a28f…</code
+                  ><small>99.96%</small>
+                </div>
+                <div class="run-result">
+                  <strong>checkout 错误率 · PASS</strong><code>query c817…</code
+                  ><small>0.08%</small>
                 </div>
               </div>
-              <div class="chart" aria-label="基线与当前窗口趋势示意"></div>
-              <div class="compare-table">
-                <div class="compare-row header">
-                  <span>巡检项</span><span>变更前 A</span><span>当前 B</span
-                  ><span>判定</span>
-                </div>
-                <div class="compare-row">
-                  <strong>P99 请求延迟</strong><span>324ms</span
-                  ><span class="rose">384ms</span
-                  ><span class="badge rose">WARN</span>
-                </div>
-                <div class="compare-row">
-                  <strong>支付成功率</strong><span>99.95%</span
-                  ><span>99.96%</span><span class="badge green">PASS</span>
-                </div>
-              </div>
-              <div class="meta-row" style="margin-top: 9px">
-                <span class="badge">同环境</span
-                ><span class="badge">同查询</span
-                ><span class="badge">同范围</span
-                ><span class="badge">同窗口长度</span>
+              <div class="actions" style="margin-top: 9px">
+                <span class="button secondary">查看阶段证据</span
+                ><span class="button secondary">记录人工决定</span>
               </div>
             </div>
           </div>
@@ -2371,168 +2164,153 @@
       <section
         class="slide"
         data-slide="9"
-        data-walkthrough-step="6"
+        data-walkthrough-step="7"
+        data-ai-capability="report-interpretation"
         aria-labelledby="title-9"
       >
         <div class="slide-head">
           <div>
-            <p class="kicker">STEP 06</p>
-            <h2 id="title-9">风险项、治理建议与复验</h2>
+            <p class="kicker">AI CAPABILITY 02 · PIPELINE</p>
+            <h2 id="title-9">报告生成：先冻结事实，再让 AI 组织解释</h2>
           </div>
           <p class="slide-subtitle">
-            风险不会被一条“已处理”覆盖；处置记录与复验结果沿同一证据链追加。
+            AI 只能读取服务端产生的 Run、CheckResult、Evidence 与
+            Comparison。任何摘要、关联和建议都引用原始证据，且不能覆盖机器
+            verdict。
           </p>
         </div>
-        <div class="walkthrough">
-          <div class="explainer">
-            <span class="step-number">06</span>
-            <h3>从“发现异常”走到<br />“验证治理是否有效”</h3>
-            <p>
-              NOVA 把异常整理成
-              Finding，给出证据支持的治理建议。用户记录负责人、处置说明和关联工单后，创建新的验证
-              Run。
-            </p>
-            <div class="outcome-list">
-              <div class="outcome">风险项明确影响、证据和优先级</div>
-              <div class="outcome">治理建议是建议，不是生产操作按钮</div>
-              <div class="outcome">复验追加新证据，原始风险永远保留</div>
-            </div>
-          </div>
-          <div class="product-screen" data-role="product-screen">
-            <div class="screen-chrome">
-              <span class="screen-dots"><i></i><i></i><i></i></span
-              ><span class="screen-context">Finding · F-019</span>
-            </div>
-            <div class="screen-body">
-              <div class="risk-layout">
-                <article class="risk-card">
-                  <div class="risk-head">
-                    <strong>P99 延迟超过灰度阈值</strong
-                    ><span class="badge rose">高风险</span>
-                  </div>
-                  <p class="risk-copy">
-                    灰度 10% 窗口为 384ms，较同范围变更前基线 324ms 上升
-                    18.4%，超过 15% 门限。主要贡献来自 checkout-api。
-                  </p>
-                  <div class="meta-row">
-                    <span class="badge">RUN-042</span
-                    ><span class="badge">query 7d91…</span
-                    ><span class="badge">14:15–14:30</span>
-                  </div>
-                </article>
-                <article class="risk-card">
-                  <div class="screen-top">
-                    <strong>治理建议</strong><span>CLAW 草拟</span>
-                  </div>
-                  <div class="governance-step">
-                    <b>1</b><span>检查 checkout-api 连接池等待时间</span>
-                  </div>
-                  <div class="governance-step">
-                    <b>2</b><span>确认 v3.18.0 新增远程调用是否命中超时</span>
-                  </div>
-                  <div class="governance-step">
-                    <b>3</b><span>处置后保持同流量范围重新验证 15 分钟</span>
-                  </div>
-                </article>
-              </div>
-              <div class="revision-bar">
-                <span>负责人：李明 · 工单：OPS-932 · 处置已记录，等待复验</span
-                ><span class="secondary-btn">重新执行验证</span>
-              </div>
-              <div class="action-row" style="margin-top: 9px">
-                <span class="ghost-btn">记录处置</span
-                ><span class="ghost-btn">接受风险并说明原因</span
-                ><span class="badge amber">不会执行生产变更</span>
+        <div class="ai-flow">
+          <article class="card">
+            <span class="badge current">确定性事实层</span>
+            <h3>服务端权威证据</h3>
+            <div class="fact-list">
+              <div class="fact">Run / CheckResult / observedAt / window</div>
+              <div class="fact">queryDigest / source snapshot / freshness</div>
+              <div class="fact">
+                ComparabilityContract / PASS-WARN-FAIL-UNKNOWN
               </div>
             </div>
+          </article>
+          <div class="flow-arrow">→</div>
+          <article class="ai-output">
+            <span class="badge target">AI 解释层</span>
+            <h3>报告事实摘要与关联</h3>
+            <div class="interpret-list">
+              <div class="interpret-item">
+                报告事实摘要：哪些指标、哪些阶段发生变化
+              </div>
+              <div class="interpret-item">
+                异常关联：异常与服务依赖/变更组件的可能联系
+              </div>
+              <div class="interpret-item">
+                风险解释、治理建议、不确定性与证据引用
+              </div>
+            </div>
+          </article>
+          <div class="flow-arrow">→</div>
+          <article class="card">
+            <span class="badge">用户决策层</span>
+            <h3>审阅并固化</h3>
+            <div class="fact-list">
+              <div class="fact">区分“确定性事实”与“AI 推断”</div>
+              <div class="fact">确认接受、阻断、豁免或复验</div>
+              <div class="fact">记录人工接受并固化报告</div>
+            </div>
+          </article>
+          <div class="principle">
+            AI 不生成观测值 · AI 不决定 PASS / FAIL · AI 不覆盖证据 ·
+            人负责发布与接受
           </div>
         </div>
       </section>
 
-      <section
-        class="slide"
-        data-slide="10"
-        data-walkthrough-step="7"
-        aria-labelledby="title-10"
-      >
+      <section class="slide" data-slide="10" aria-labelledby="title-10">
         <div class="slide-head">
           <div>
-            <p class="kicker">STEP 07</p>
-            <h2 id="title-10">固化最终巡检报告</h2>
+            <p class="kicker">AI REPORT EXPERIENCE</p>
+            <h2 id="title-10">
+              报告解读不是“写一段总结”，而是回答五个操作问题
+            </h2>
           </div>
           <p class="slide-subtitle">
-            最终报告不是一张“绿灯截图”，而是一份能回到每次运行、每条证据和每次人工决定的审计快照。
+            发生了什么、影响谁、为什么重要、先做什么、还有什么不知道。每个答案都能点回
+            Run 和证据。
           </p>
         </div>
-        <div class="walkthrough">
-          <div class="explainer">
-            <span class="step-number">07</span>
-            <h3>一次巡检结束后<br />留下完整的解释链</h3>
-            <p>
-              用户确认人工决策后固化报告。报告汇总阶段结论、前后变化、风险处置与复验，并永久引用实际执行的
-              Revision、Run、Finding 和 Decision。
-            </p>
-            <div class="outcome-list">
-              <div class="outcome">每个阶段报告都能单独打开</div>
-              <div class="outcome">机器判定与人工接受不会混在一起</div>
-              <div class="outcome">报告固化后不可覆盖，只能创建后继 Case</div>
+        <div class="report-layout">
+          <article class="report-panel">
+            <div class="report-head">
+              <div>
+                <span class="mini-label"
+                  >IMMUTABLE REPORT · AI EXPLANATION</span
+                >
+                <h3>CHG-2481 · 灰度巡检报告</h3>
+              </div>
+              <span class="badge warn">机器判定 WARN</span>
             </div>
-          </div>
-          <div class="product-screen" data-role="product-screen">
-            <div class="screen-chrome">
-              <span class="screen-dots"><i></i><i></i><i></i></span
-              ><span class="screen-context"
-                >FinalReport · REP-20260801-018</span
-              >
-            </div>
-            <div class="screen-body">
-              <div class="report-summary">
-                <div class="report-hero">
-                  <small>人工最终决定</small><strong>有条件接受</strong>
-                </div>
-                <div class="report-stat">
-                  <strong>4</strong><small>阶段报告</small>
-                </div>
-                <div class="report-stat">
-                  <strong>9</strong><small>运行记录</small>
-                </div>
-                <div class="report-stat">
-                  <strong>1</strong><small>已复验风险</small>
-                </div>
+            <section class="report-section">
+              <h3>1 · 发生了什么</h3>
+              <p>
+                P95 延迟从变更前 324ms 上升至灰度阶段 384ms，增幅 18.4%，超过
+                Revision 2 固化的 15% 阈值。
+              </p>
+              <span class="evidence-link">RUN-042 / CHECK-latency</span
+              ><span class="evidence-link">queryDigest 7d91…</span>
+            </section>
+            <section class="report-section">
+              <h3>2 · 影响哪些依赖，为什么重要</h3>
+              <p>
+                异常集中在 payments-router → checkout-api
+                的同步调用路径；支付成功率仍稳定，因此当前风险更像性能退化，而非全面可用性故障。
+              </p>
+              <span class="evidence-link">snapshot dep_7F2A91</span
+              ><span class="evidence-link">RUN-042 / CHECK-checkout</span>
+            </section>
+            <section class="report-section">
+              <h3>3 · 建议先做什么</h3>
+              <p>
+                先核对 checkout-api 连接池等待时间与 v3.18.0
+                新增远程调用；处置后在相同流量范围、相同查询和 15 分钟窗口复验。
+              </p>
+              <span class="evidence-link">runbook payment-latency#4</span
+              ><span class="evidence-link">INC-731</span>
+            </section>
+            <section class="report-section">
+              <h3>4 · 不确定性</h3>
+              <p>
+                跨域异步消费者不在本次单跳依赖快照覆盖范围；无法据此断言异步链路没有风险。
+              </p>
+              <span class="evidence-link">omissions / dep_7F2A91</span>
+            </section>
+          </article>
+          <div>
+            <article class="risk-card high">
+              <span class="badge risk">风险 01 · 高</span>
+              <h3>P95 延迟退化</h3>
+              <p>
+                <strong>确定性事实：</strong>超过阈值，机器判定 WARN。<br /><strong
+                  >AI 推断：</strong
+                >checkout-api 调用可能是主要贡献，需按建议复验。
+              </p>
+            </article>
+            <article class="risk-card unknown">
+              <span class="badge warn">覆盖未知</span>
+              <h3>异步链路未完整观测</h3>
+              <p>
+                这是检查覆盖缺口，不是通过项。报告保留 UNKNOWN，不做风险降级。
+              </p>
+            </article>
+            <article class="boundary-card">
+              <h3>治理建议</h3>
+              <p>
+                建议可转为 Finding、负责人和工单草稿；NOVA 不执行
+                deploy、rollout 或 rollback。
+              </p>
+              <div class="actions" style="margin-top: 10px">
+                <span class="button ai">生成治理草稿</span
+                ><span class="button secondary">查看全部证据</span>
               </div>
-              <article class="report-card">
-                <div class="report-row">
-                  <span>变更前</span><strong>基线已固化 · 8 项可用</strong
-                  ><span class="badge green">PASS</span>
-                </div>
-                <div class="report-row">
-                  <span>灰度 10%</span><strong>P99 延迟风险 · 已记录处置</strong
-                  ><span class="badge amber">WARN</span>
-                </div>
-                <div class="report-row">
-                  <span>复验</span><strong>P99 恢复至 331ms</strong
-                  ><span class="badge green">PASS</span>
-                </div>
-                <div class="report-row">
-                  <span>变更后</span><strong>与基线可比 · 无新增风险</strong
-                  ><span class="badge green">PASS</span>
-                </div>
-              </article>
-              <div class="meta-row" style="margin-top: 9px">
-                <span class="badge cyan">Revision R7</span
-                ><span class="badge">Snapshot dep_7F2A91</span
-                ><span class="badge">Decision D-018</span
-                ><span class="badge">Evidence 32 refs</span>
-              </div>
-              <div class="status-box">
-                <strong>ABANDONED_BEFORE_EXECUTION</strong> 仅适用于尚未产生
-                StageRun、证据或 DecisionRecord 的旧 Case。
-              </div>
-              <div class="status-box">
-                <strong>BLOCKED_WITH_PARTIAL_EVIDENCE</strong> 已开始采证的 Case
-                被阻断时，保留部分阶段报告并创建 successor。
-              </div>
-            </div>
+            </article>
           </div>
         </div>
       </section>
@@ -2540,57 +2318,75 @@
       <section class="slide" data-slide="11" aria-labelledby="title-11">
         <div class="slide-head">
           <div>
-            <p class="kicker">CLAW ASSISTANT</p>
-            <h2 id="title-11">CLAW 怎么用</h2>
+            <p class="kicker">CLAW · INLINE ASSISTANT</p>
+            <h2 id="title-11">CLAW 是同屏助手，不是另一套工作流</h2>
           </div>
           <p class="slide-subtitle">
-            CLAW
-            负责理解意图、解释结果和起草建议；页面负责确认、发布、执行与固化。
+            当前 connected 页面没有 CLAW；这里是 AI
+            增强目标。它负责问答、生成草稿和解释证据，所有权威动作仍回到页面确认。
           </p>
         </div>
-        <div class="claw-layout">
-          <div class="chat-demo">
-            <div class="screen-top">
-              <strong>CLAW · 巡检协作</strong
-              ><span class="badge amber">目标体验演示</span>
+        <div class="chat-layout">
+          <div class="chat-panel">
+            <div class="pane-head">
+              <div>
+                <span class="mini-label">CLAW · 当前 Case 上下文</span>
+                <h3>payments-router · CHG-2481</h3>
+              </div>
+              <span class="badge target">AI 增强目标</span>
             </div>
-            <div class="chat-bubble user">
-              帮我给 payments-router v3.18.0 生成一份生产变更巡检。
+            <div class="message user">为什么建议检查 checkout-api？</div>
+            <div class="message ai">
+              因为新鲜依赖快照显示 `payments-router → checkout-api`
+              是关键同步下游，且变更说明新增一次远程调用；runbook 与 INC-731
+              都把连接池等待列为风险。<br /><span class="evidence-link"
+                >dep_7F2A91</span
+              ><span class="evidence-link">CHG-2481</span
+              ><span class="evidence-link">INC-731</span>
             </div>
-            <div class="chat-bubble claw">
-              已基于 dep_7F2A91 生成 8
-              个候选巡检项。当前只覆盖单跳依赖，omissions
-              包含跨域异步链路。请在页面确认增删改后再发布。
+            <div class="message user">
+              把它加入灰度和复验阶段，阈值先按历史基线 +15%。
             </div>
-            <div class="chat-bubble user">灰度报告里最需要关注什么？</div>
-            <div class="chat-bubble claw">
-              P99 延迟较基线上升 18.4%，超过 15% 阈值；其余 7 项通过。我已把
-              checkout-api 贡献和治理建议放入 Finding。
+            <div class="message ai">
+              已生成 Revision 草稿 diff。请在右侧工作区检查
+              query、阈值依据和覆盖缺口，再点击保存。
             </div>
-            <div class="chat-bubble user">
-              记录 OPS-932 已处理，然后帮我复验。
-            </div>
-            <div class="chat-bubble claw">
-              处置记录草稿已填写。请先在页面确认负责人、说明和范围，再点击“重新执行验证”。
+            <div class="diff-preview">
+              + check: checkout-api P95 latency<br />+ stages: canary,
+              reverification<br />+ threshold: baseline +15%<br />! omission:
+              cross-region dependency unknown
             </div>
           </div>
-          <div class="prompt-list">
-            <article class="prompt-card">
-              <small>01 · 生成</small
-              ><strong>“给 payments-router v3.18.0 生成生产变更巡检。”</strong>
+          <div>
+            <article class="card accent">
+              <h3>CLAW 可以做</h3>
+              <div class="work-list">
+                <div class="work-item">
+                  <b>✓</b
+                  ><span>把自然语言意图转成检查草稿与 Revision diff</span>
+                </div>
+                <div class="work-item">
+                  <b>✓</b><span>解释候选项生成理由、覆盖缺口和报告风险</span>
+                </div>
+                <div class="work-item">
+                  <b>✓</b><span>草拟 Finding、治理措施、负责人和复验条件</span>
+                </div>
+              </div>
             </article>
-            <article class="prompt-card">
-              <small>02 · 解读</small
-              ><strong>“这份灰度报告和变更前相比，风险在哪里？”</strong>
+            <article class="card">
+              <h3>CLAW 不可以做</h3>
+              <div class="work-list">
+                <div class="work-item">
+                  <b>×</b><span>伪造观测、修改机器判定或隐藏 UNKNOWN</span>
+                </div>
+                <div class="work-item">
+                  <b>×</b><span>直接发布 Revision、推进阶段或固化人工决定</span>
+                </div>
+                <div class="work-item">
+                  <b>×</b><span>执行发布、放量、回滚或任何生产变更</span>
+                </div>
+              </div>
             </article>
-            <article class="prompt-card">
-              <small>03 · 治理</small
-              ><strong>“把风险按优先级列出，并给我可执行的排查建议。”</strong>
-            </article>
-            <div class="coverage-warning">
-              <strong>权限边界：</strong>CLAW
-              不能伪造观测、修改机器判定或直接推进阶段。所有权威动作都需要页面确认；系统保持只读，不执行发布、放量或回滚。
-            </div>
           </div>
         </div>
       </section>
@@ -2598,61 +2394,71 @@
       <section class="slide" data-slide="12" aria-labelledby="title-12">
         <div class="slide-head">
           <div>
-            <p class="kicker">PRODUCT VALUE</p>
-            <h2 id="title-12">这就是用户实际得到的产品</h2>
+            <p class="kicker">PRODUCT CAPABILITY MAP</p>
+            <h2 id="title-12">用户最终得到：一套控制台，两段 AI 增强</h2>
           </div>
           <p class="slide-subtitle">
-            不是一组孤立按钮，而是一条从“查什么”到“如何证明风险已经被治理”的完整工作路径。
+            NOVA 的底座仍是可审计的只读巡检控制平面；AI
+            让“设计巡检”和“读懂报告”不再完全依赖专家手工劳动。
           </p>
         </div>
-        <div class="feature-grid">
-          <article class="feature-card">
-            <b>01</b><strong>依赖感知生成</strong>
-            <p>基于有来源的服务依赖快照生成候选巡检项，并公开覆盖缺口。</p>
-            <span>用户得到：更少漏检</span>
-          </article>
-          <article class="feature-card">
-            <b>02</b><strong>巡检项编辑</strong>
-            <p>在草稿中添加、删除、编辑检查项、阈值与窗口。</p>
-            <span>用户得到：可控的检查范围</span>
-          </article>
-          <article class="feature-card">
-            <b>03</b><strong>版本化任务</strong>
-            <p>将阶段和巡检项发布为不可变 Revision，历史执行不漂移。</p>
-            <span>用户得到：可复用、可审计</span>
-          </article>
-          <article class="feature-card">
-            <b>04</b><strong>阶段工作流</strong>
-            <p>按变更前、灰度、变更后逐阶段采证并执行门禁。</p>
-            <span>用户得到：清楚的下一步</span>
-          </article>
-          <article class="feature-card">
-            <b>05</b><strong>阶段报告</strong>
-            <p>每阶段都能查看单项结果、证据来源、缺失数据和判定。</p>
-            <span>用户得到：过程可见</span>
-          </article>
-          <article class="feature-card">
-            <b>06</b><strong>A/B 对比</strong>
-            <p>先验证可比性，再展示相对基线的变化与风险。</p>
-            <span>用户得到：可信的前后结论</span>
-          </article>
-          <article class="feature-card">
-            <b>07</b><strong>风险治理与复验</strong>
-            <p>记录风险、建议、负责人和处置，再用新 Run 验证效果。</p>
-            <span>用户得到：问题真正闭环</span>
-          </article>
-          <article class="feature-card">
-            <b>08</b><strong>CLAW 协作</strong>
-            <p>
-              用自然语言生成候选、解释报告和起草治理建议，页面确认权威动作。
-            </p>
-            <span>用户得到：更低使用门槛</span>
-          </article>
-        </div>
-        <div class="product-promise">
-          <strong>从</strong><span>“我应该检查什么？”</span><strong>到</strong
-          ><span>“风险是什么、怎么处理、处理后是否真的恢复？”</span
-          ><span class="badge cyan">全链路可追溯</span>
+        <div>
+          <div class="matrix">
+            <article class="card">
+              <b>01 · 当前</b>
+              <h3>可复用巡检控制台</h3>
+              <p>
+                保存为可复用作业、版本化 Revision、新建独立 Case、同屏执行阶段。
+              </p>
+            </article>
+            <article class="card">
+              <b>02 · AI 增强</b>
+              <h3>巡检项生成</h3>
+              <p>
+                归并依赖、SLO、runbook、变更与历史，生成有理由、有来源、有缺口的候选。
+              </p>
+            </article>
+            <article class="card">
+              <b>03 · AI 增强</b>
+              <h3>巡检项编排</h3>
+              <p>
+                在现有 Revision
+                区增删改多巡检项、阶段、query、阈值和窗口，发布后冻结。
+              </p>
+            </article>
+            <article class="card">
+              <b>04 · 当前</b>
+              <h3>只读权威执行</h3>
+              <p>
+                执行只读巡检，服务端生成观测、时间、queryDigest、verdict
+                与不可变证据。
+              </p>
+            </article>
+            <article class="card">
+              <b>05 · AI 增强</b>
+              <h3>报告生成与解读</h3>
+              <p>
+                对多阶段事实做摘要、异常关联、风险解释、治理建议、不确定性和证据引用。
+              </p>
+            </article>
+            <article class="card">
+              <b>06 · 当前 + 增强</b>
+              <h3>人工治理闭环</h3>
+              <p>
+                人审阅候选、发布 Revision、记录决定、创建复验并固化不可变报告。
+              </p>
+            </article>
+          </div>
+          <div class="authority">
+            <div class="rule">规则负责判定</div>
+            <div class="ai-role">AI 负责候选与解释</div>
+            <div class="human">人负责发布与接受</div>
+          </div>
+          <div class="decision" style="margin-top: 10px">
+            <strong>一句话使用路径</strong>在当前控制台选择服务和变更 → AI
+            生成可审阅巡检项 → 用户编排并发布 Revision → 同屏分阶段执行 → AI
+            解读权威证据 → 用户治理、复验并固化报告。
+          </div>
         </div>
       </section>
     </main>
@@ -2661,14 +2467,15 @@
       <div class="progress-line">
         <div class="progress-fill" id="progressFill"></div>
       </div>
-      <span class="progress-label">NOVA PRODUCT WALKTHROUGH</span>
+      <span class="progress-label"
+        >NOVA · PRODUCT FUNCTIONS &amp; AI VALUE</span
+      >
     </div>
     <div class="sr-only" id="announcer" aria-live="polite"></div>
 
     <script>
       (function () {
         "use strict";
-
         var slides = Array.from(document.querySelectorAll(".slide"));
         var counter = document.getElementById("counter");
         var progressFill = document.getElementById("progressFill");
@@ -2682,16 +2489,14 @@
         }
 
         function readHash() {
-          var value = Number.parseInt(location.hash.replace("#", ""), 10);
-          return Number.isFinite(value) ? clamp(value - 1) : 0;
+          var parsed = Number.parseInt(location.hash.replace("#", ""), 10);
+          return Number.isFinite(parsed) ? clamp(parsed - 1) : 0;
         }
 
-        function showSlide(nextIndex, updateHash) {
-          current = clamp(nextIndex);
+        function render(next, updateHash) {
+          current = clamp(next);
           slides.forEach(function (slide, index) {
-            var active = index === current;
-            slide.classList.toggle("active", active);
-            slide.setAttribute("aria-hidden", active ? "false" : "true");
+            slide.classList.toggle("active", index === current);
           });
           counter.textContent =
             String(current + 1).padStart(2, "0") +
@@ -2700,86 +2505,69 @@
           progressFill.style.width =
             ((current + 1) / slides.length) * 100 + "%";
           announcer.textContent =
-            "第 " +
-            (current + 1) +
-            " 页，共 " +
-            slides.length +
-            " 页：" +
-            (slides[current].querySelector("h1, h2") || {}).textContent;
-          if (updateHash !== false) {
-            history.replaceState(null, "", "#" + (current + 1));
-          }
+            "第 " + (current + 1) + " 页，共 " + slides.length + " 页";
+          if (updateHash) history.replaceState(null, "", "#" + (current + 1));
+          slides[current].scrollTop = 0;
         }
 
-        function toggleFullscreen() {
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(function () {});
-          } else {
-            document.exitFullscreen().catch(function () {});
-          }
-        }
-
-        document.getElementById("next").addEventListener("click", function () {
-          showSlide(current + 1);
-        });
         document.getElementById("prev").addEventListener("click", function () {
-          showSlide(current - 1);
+          render(current - 1, true);
+        });
+        document.getElementById("next").addEventListener("click", function () {
+          render(current + 1, true);
         });
         document
           .getElementById("fullscreen")
-          .addEventListener("click", toggleFullscreen);
+          .addEventListener("click", function () {
+            if (!document.fullscreenElement)
+              document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+          });
 
-        document.addEventListener("keydown", function (event) {
-          if (
-            ["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)
-          ) {
+        window.addEventListener("hashchange", function () {
+          render(readHash(), false);
+        });
+        window.addEventListener("keydown", function (event) {
+          if (["ArrowRight", "PageDown", " "].includes(event.key)) {
             event.preventDefault();
-            showSlide(current + 1);
-          } else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+            render(current + 1, true);
+          }
+          if (["ArrowLeft", "PageUp"].includes(event.key)) {
             event.preventDefault();
-            showSlide(current - 1);
-          } else if (event.key.toLowerCase() === "f") {
-            toggleFullscreen();
-          } else if (event.key === "Home") {
-            showSlide(0);
-          } else if (event.key === "End") {
-            showSlide(slides.length - 1);
+            render(current - 1, true);
+          }
+          if (event.key === "Home") {
+            event.preventDefault();
+            render(0, true);
+          }
+          if (event.key === "End") {
+            event.preventDefault();
+            render(slides.length - 1, true);
           }
         });
-
-        document.addEventListener(
+        window.addEventListener(
           "touchstart",
           function (event) {
-            var touch = event.changedTouches[0];
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
+            touchStartX = event.changedTouches[0].clientX;
+            touchStartY = event.changedTouches[0].clientY;
           },
           { passive: true },
         );
-
-        document.addEventListener(
+        window.addEventListener(
           "touchend",
           function (event) {
             if (touchStartX === null || touchStartY === null) return;
-            var touch = event.changedTouches[0];
-            var deltaX = touch.clientX - touchStartX;
-            var deltaY = touch.clientY - touchStartY;
-            if (
-              Math.abs(deltaX) > 52 &&
-              Math.abs(deltaX) > Math.abs(deltaY) * 1.25
-            ) {
-              showSlide(current + (deltaX < 0 ? 1 : -1));
-            }
+            var dx = event.changedTouches[0].clientX - touchStartX;
+            var dy = event.changedTouches[0].clientY - touchStartY;
+            if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.35)
+              render(current + (dx < 0 ? 1 : -1), true);
             touchStartX = null;
             touchStartY = null;
           },
           { passive: true },
         );
 
-        window.addEventListener("hashchange", function () {
-          showSlide(readHash(), false);
-        });
-        showSlide(readHash(), false);
+        render(readHash(), false);
       })();
     </script>
   </body>
