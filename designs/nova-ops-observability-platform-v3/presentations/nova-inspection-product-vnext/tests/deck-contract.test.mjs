@@ -42,6 +42,18 @@ test("deck captures the agreed product model and audit boundaries", async () => 
   }
 });
 
+test("abandoned-before-execution is not presented as a successful state", async () => {
+  const html = await readDeck();
+  assert.doesNotMatch(
+    html,
+    /class="status-box good"[\s\S]{0,160}ABANDONED_BEFORE_EXECUTION/,
+  );
+  assert.match(
+    html,
+    /class="status-box"[\s\S]{0,160}ABANDONED_BEFORE_EXECUTION/,
+  );
+});
+
 test("deck is a standalone offline file", async () => {
   const html = await readDeck();
   assert.doesNotMatch(
