@@ -354,6 +354,13 @@ export function InspectionOperationsPage() {
     if (!selectedCaseId || !workspace) return;
     const latestRun = workspace.runs.at(-1);
     if (!latestRun || latestRun.status === 'running') return;
+    if (
+      latestRun.purpose === 'post_change' &&
+      workspace.assessment?.decisionReadiness !== 'ready' &&
+      workspace.assessment?.decisionReadiness !== 'review_required'
+    ) {
+      return;
+    }
     await withCommand(async () => {
       await recordInspectionDecision(selectedCaseId, {
         runId: latestRun.id,
@@ -370,6 +377,10 @@ export function InspectionOperationsPage() {
 
   const formDisabled = loading || busy || Boolean(connectionError) || sources.length === 0;
   const latestRun = workspace?.runs.at(-1) ?? null;
+  const postChangeAcceptanceBlocked =
+    latestRun?.purpose === 'post_change' &&
+    workspace?.assessment?.decisionReadiness !== 'ready' &&
+    workspace?.assessment?.decisionReadiness !== 'review_required';
   const missingRequiredWaiver =
     candidateSet?.candidates.some(
       (candidate) =>
@@ -594,8 +605,10 @@ export function InspectionOperationsPage() {
                   <span>{workspace.abReport.comparability}</span>
                 </div>
                 <small>
-                  {workspace.abReport.baselineRunId} → {workspace.abReport.currentRunId}
+                  {workspace.abReport.baselineRunId ?? '未生成 admission'} →{' '}
+                  {workspace.abReport.currentRunId ?? '未生成 post_change'}
                 </small>
+                {workspace.abReport.reason && <p>不可用原因 · {workspace.abReport.reason}</p>}
                 {workspace.abReport.checks.map((check) => (
                   <p key={check.checkId}>
                     <b>{check.checkId}</b>{' '}
@@ -624,6 +637,7 @@ export function InspectionOperationsPage() {
                 </div>
                 {[
                   ...workspace.assessment.facts,
+                  ...workspace.assessment.hypotheses,
                   ...workspace.assessment.unknowns,
                   ...workspace.assessment.recommendations,
                 ].map((item) => (
@@ -929,11 +943,18 @@ export function InspectionOperationsPage() {
                       className={styles.secondaryButton}
                       type="button"
                       onClick={() => void handleAccept()}
-                      disabled={formDisabled || latestRun.status !== 'completed' || latestRun.verdict !== 'passed'}
+                      disabled={
+                        formDisabled ||
+                        latestRun.status !== 'completed' ||
+                        latestRun.verdict !== 'passed' ||
+                        postChangeAcceptanceBlocked
+                      }
                       title={
                         latestRun.status !== 'completed' || latestRun.verdict !== 'passed'
                           ? '只有最新的已完成通过 Run 可以接受。'
-                          : undefined
+                          : postChangeAcceptanceBlocked
+                            ? '变更后 Run 缺少可比的 admission 基线，不能接受。'
+                            : undefined
                       }
                     >
                       记录人工接受并固化报告

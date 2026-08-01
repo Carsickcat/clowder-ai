@@ -176,15 +176,22 @@ export interface InspectionABCheckComparison {
     | 'missing_current_result'
     | 'query_digest_mismatch'
     | 'source_mismatch'
+    | 'run_order_mismatch'
     | 'unusable_evidence'
     | null;
   readonly evidenceRefs: readonly InspectionEvidenceRef[];
 }
 
 export interface InspectionABReport {
-  readonly baselineRunId: string;
-  readonly currentRunId: string;
+  readonly baselineRunId: string | null;
+  readonly currentRunId: string | null;
   readonly comparability: InspectionABComparability;
+  readonly reason:
+    | 'missing_baseline_run'
+    | 'missing_current_run'
+    | 'missing_both_runs'
+    | 'baseline_not_before_current'
+    | null;
   readonly checks: readonly InspectionABCheckComparison[];
   readonly generatedAt: string;
 }

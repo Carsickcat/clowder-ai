@@ -20,6 +20,7 @@ import type {
   InspectionVerdict,
 } from '@cat-cafe/shared';
 import type Database from 'better-sqlite3';
+import { projectInspectionABReport } from './InspectionAssessment.js';
 
 export class InspectionNotFoundError extends Error {
   constructor(resource: string) {
@@ -687,8 +688,18 @@ export class SqliteInspectionStore {
         )
         .run(input.verdict, JSON.stringify(input.sourceSnapshot), finishedAt, input.runId, input.userId);
 
+      const postChangeReady =
+        current.purpose === 'post_change' &&
+        input.verdict === 'passed' &&
+        projectInspectionABReport(this.listRuns(input.userId, current.caseId))?.comparability === 'valid';
       const nextCaseStatus =
-        input.verdict === 'unknown' ? 'blocked' : current.purpose === 'post_change' ? 'completed' : 'running';
+        current.purpose === 'post_change'
+          ? postChangeReady
+            ? 'completed'
+            : 'blocked'
+          : input.verdict === 'unknown'
+            ? 'blocked'
+            : 'running';
       this.db
         .prepare('UPDATE inspection_cases SET status = ?, updated_at = ? WHERE id = ? AND user_id = ?')
         .run(nextCaseStatus, finishedAt, current.caseId, input.userId);
@@ -775,6 +786,14 @@ export class SqliteInspectionStore {
         throw new InspectionAcceptanceConflictError(
           'Accept requires the latest completed passed inspection run from this case',
         );
+      }
+      if (latestRun.purpose === 'post_change') {
+        const abReport = projectInspectionABReport(this.listRuns(input.userId, input.caseId));
+        if (abReport?.comparability !== 'valid') {
+          throw new InspectionAcceptanceConflictError(
+            'Accept requires a comparable admission baseline for a post-change run',
+          );
+        }
       }
 
       const activeRun = this.db

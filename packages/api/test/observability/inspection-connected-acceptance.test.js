@@ -126,7 +126,7 @@ describe('connected inspection restart acceptance', () => {
             ...USER_HEADER,
             'idempotency-key': `acceptance-run-${index}`,
           },
-          payload: { purpose: 'post_change' },
+          payload: { purpose: 'admission' },
         }),
       );
     }

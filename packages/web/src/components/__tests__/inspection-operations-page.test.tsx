@@ -191,6 +191,7 @@ const workspace = {
     baselineRunId: 'run-before',
     currentRunId: 'run-1',
     comparability: 'valid',
+    reason: null,
     generatedAt: '2026-07-31T08:02:00.000Z',
     checks: [
       {
@@ -204,6 +205,17 @@ const workspace = {
         evidenceRefs: [],
       },
     ],
+  },
+  assessment: {
+    runId: 'run-1',
+    generatedAt: '2026-07-31T08:02:00.000Z',
+    machineVerdict: 'passed',
+    coverageStatus: 'complete',
+    decisionReadiness: 'ready',
+    facts: [],
+    hypotheses: [],
+    unknowns: [],
+    recommendations: [],
   },
   report: {
     id: 'report-1',
@@ -637,5 +649,43 @@ describe('InspectionOperationsPage', () => {
     expect(container.querySelector<HTMLButtonElement>('[data-testid="accept-report"]')?.title).toBe(
       '只有最新的已完成通过 Run 可以接受。',
     );
+  });
+
+  it('renders grounded hypotheses and blocks post-change acceptance when A/B is unavailable', async () => {
+    const blockedWorkspace = {
+      ...workspace,
+      report: null,
+      abReport: {
+        ...workspace.abReport,
+        baselineRunId: null,
+        comparability: 'unavailable',
+        reason: 'missing_baseline_run',
+      },
+      assessment: {
+        runId: 'run-1',
+        generatedAt: '2026-07-31T08:02:00.000Z',
+        machineVerdict: 'passed',
+        coverageStatus: 'complete',
+        decisionReadiness: 'blocked',
+        facts: [],
+        hypotheses: [
+          {
+            code: 'CHANGE_CONTENTION_HYPOTHESIS',
+            statement: 'Latency may reflect change-related downstream contention.',
+            evidenceRefs: [],
+          },
+        ],
+        unknowns: [],
+        recommendations: [],
+      },
+    };
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce(blockedWorkspace);
+
+    await renderPage();
+
+    expect(container.textContent).toContain('Latency may reflect change-related downstream contention.');
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="accept-report"]')?.disabled).toBe(true);
   });
 });
