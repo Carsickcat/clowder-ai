@@ -600,6 +600,73 @@ describe('NOVA inspection SQLite state', () => {
     );
   });
 
+  it('keeps a passed post-change case open for verification until accept seals the report', () => {
+    const created = createJob();
+    const inspectionCase = startCase(created.job.id);
+    const completePassedRun = (runId, value) =>
+      store.completeRun({
+        userId: 'user-a',
+        runId,
+        verdict: 'passed',
+        sourceSnapshot: {
+          connectorRef: 'prometheus-default',
+          sourceKind: 'replay',
+          observedAt: '2026-07-31T01:02:00.000Z',
+          window: {
+            from: '2026-07-31T00:52:00.000Z',
+            to: '2026-07-31T01:02:00.000Z',
+          },
+        },
+        checkResults: [
+          {
+            checkId: 'latency',
+            status: 'passed',
+            value,
+            baselineValue: null,
+            observedAt: '2026-07-31T01:02:00.000Z',
+            queryDigest: 'sha256:latency',
+            reason: null,
+          },
+        ],
+      });
+
+    const admission = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'admission',
+      idempotencyKey: 'request-before-change',
+    });
+    completePassedRun(admission.id, 188);
+    const postChange = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'post_change',
+      idempotencyKey: 'request-after-change',
+    });
+    completePassedRun(postChange.id, 184);
+
+    assert.equal(store.getCase('user-a', inspectionCase.id).status, 'running');
+    assert.equal(store.getReportForCase('user-a', inspectionCase.id), null);
+
+    const verification = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'verification',
+      idempotencyKey: 'request-before-accept',
+    });
+    completePassedRun(verification.id, 183);
+    const accepted = store.acceptLatestPassedRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      runId: verification.id,
+      actorId: 'user-a',
+      note: 'Seal only after the final verification.',
+    });
+
+    assert.equal(store.getCase('user-a', inspectionCase.id).status, 'completed');
+    assert.deepEqual(accepted.report.runIds, [admission.id, postChange.id, verification.id]);
+  });
+
   it('rejects sealing a post-change pass without a comparable admission baseline', () => {
     const created = createJob();
     const inspectionCase = startCase(created.job.id);

@@ -720,7 +720,7 @@ export class SqliteInspectionStore {
       const nextCaseStatus =
         current.purpose === 'post_change'
           ? postChangeReady
-            ? 'completed'
+            ? 'running'
             : 'blocked'
           : input.verdict === 'unknown'
             ? 'blocked'
