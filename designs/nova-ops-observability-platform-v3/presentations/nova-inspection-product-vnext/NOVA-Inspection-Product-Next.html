@@ -429,8 +429,8 @@
             <div class="candidate-row"><strong>下游失败率</strong><span>checkout-api 是关键同步依赖</span><span class="mono">topology + CHG-23841</span><span><i class="badge badge-ai">灰 / 复验</i></span></div>
           </div>
           <div class="coverage-strip">
-            <div><strong>已覆盖</strong><span>服务自身、同步下游、业务成功率与变更前后对比。</span></div>
-            <div><strong>覆盖缺口</strong><span>跨域异步消费者未纳入本次单跳快照，不能据此判定健康。</span></div>
+            <div><strong>范围内已配置</strong><span>服务自身、同步下游、业务成功率与变更前后对比。</span></div>
+            <div><strong>范围外拓扑遗漏</strong><span>跨域异步消费者未纳入单跳快照，记录为 COVERAGE_OMISSION；不参与机器判定，也不计为健康覆盖。</span></div>
             <div><strong>用户可追问</strong><span>“为什么检查 checkout-api？”会返回依赖路径与证据引用。</span></div>
           </div>
         </div>
@@ -453,7 +453,7 @@
             <div class="decision"><strong>责任边界</strong>AI 只生成和调整草稿；用户确认后才发布 Revision。</div>
           </div>
           <div class="panel">
-            <div class="row" style="justify-content:space-between;margin-bottom:10px"><div><span class="eyebrow">巡检方案 V2 · 草稿</span><h3 style="margin:4px 0 0">系统准备检查什么</h3></div><span class="badge badge-pass">5/5 风险面已覆盖</span></div>
+            <div class="row" style="justify-content:space-between;margin-bottom:10px"><div><span class="eyebrow">巡检方案 V2 · 草稿</span><h3 style="margin:4px 0 0">系统准备检查什么</h3></div><span class="badge badge-pass">范围内检查已配置</span></div>
             <div class="editor-table">
               <div class="editor-row head"><span>巡检项</span><span>执行阶段</span><span>阈值 / 窗口</span><span>操作</span></div>
               <div class="editor-row"><strong>请求 P95 延迟</strong><span class="stage-chips"><i class="stage-chip">变更前</i><i class="stage-chip">灰度</i><i class="stage-chip">变更后</i></span><span>相对稳定版本 ≤10% · 10m</span><span>编辑 · 删除</span></div>
@@ -461,7 +461,7 @@
               <div class="editor-row"><strong>下游失败率</strong><span class="stage-chips"><i class="stage-chip">灰度</i><i class="stage-chip">复验</i></span><span>无新增失败依赖 · 10m</span><span>编辑 · 删除</span></div>
             </div>
             <div class="action-row"><span class="button secondary">＋ 添加巡检项</span><span class="button">确认方案并执行变更前巡检</span></div>
-            <p class="small" style="margin:10px 0 0">确认后方案锁定；历史 Run、阈值与报告不被后续编辑覆盖。</p>
+            <p class="small" style="margin:10px 0 0">确认后方案锁定；历史 Run、阈值与报告不被后续编辑覆盖。范围外遗漏须经人工确认后作为未关闭风险随报告归档。</p>
           </div>
         </div>
       </section>
@@ -469,7 +469,7 @@
       <section class="slide" data-slide="6" data-walkthrough-step="4" aria-labelledby="title-6">
         <div class="slide-head">
           <div><p class="kicker">PRE-CHANGE ADMISSION</p><h2 id="title-6">第四步：变更前先建立可比基线</h2></div>
-          <p class="slide-subtitle">系统先验证比较条件，再通过服务端连接器执行只读巡检。数据缺失、证据过期或基线不可比时保持 UNKNOWN，并阻断进入灰度。</p>
+          <p class="slide-subtitle">系统先验证比较条件，再通过服务端连接器执行只读巡检。范围内必检项 UNKNOWN 代表数据缺失、证据过期或基线不可比，并阻断进入灰度。</p>
         </div>
         <div class="stage-work">
           <div class="card">
@@ -478,7 +478,7 @@
               <div class="gate good"><strong>基线可比</strong><span>流量结构、地区和依赖版本一致。</span></div>
               <div class="gate good"><strong>5/5 检查通过</strong><span>延迟、错误率、可用性、依赖与业务成功率。</span></div>
               <div class="gate good"><strong>阶段报告已生成</strong><span>本次 baseline snapshot 绑定当前 Revision。</span></div>
-              <div class="gate unknown"><strong>UNKNOWN → 阻断</strong><span>缺数据、不可比或过期时不允许显示为通过。</span></div>
+              <div class="gate unknown"><strong>范围内必检项 UNKNOWN → 阻断</strong><span>缺数据、不可比或过期时不允许显示为通过。</span></div>
             </div>
             <div class="decision"><strong>当前结论</strong>可以进入 25% 灰度；下一步由发布负责人确认。</div>
           </div>
@@ -553,16 +553,16 @@
               <div class="answer"><strong>发生了什么</strong><span>P95 延迟在灰度阶段上升 17.8%。</span></div>
               <div class="answer"><strong>为什么重要</strong><span>异常位于关键支付同步路径。</span></div>
               <div class="answer"><strong>如何处理</strong><span>连接池调整后新 Run 复验通过。</span></div>
-              <div class="answer"><strong>仍有什么未知</strong><span>跨域异步消费者不在快照覆盖内。</span></div>
+              <div class="answer"><strong>仍有哪些覆盖遗漏</strong><span>跨域异步消费者不在快照覆盖内。</span></div>
             </div>
             <div><span class="evidence-link">RUN-002</span><span class="evidence-link">RUN-003</span><span class="evidence-link">FND-001</span><span class="evidence-link">RPT-001</span></div>
           </div>
           <div class="report-card">
-            <div class="report-head"><div><span class="eyebrow">最终报告解读</span><h3 style="margin:5px 0 0">从事实到下一步治理</h3></div><span class="badge badge-pass">机器判定 PASS</span></div>
+            <div class="report-head"><div><span class="eyebrow">最终报告解读</span><h3 style="margin:5px 0 0">从事实到下一步治理</h3></div><span class="badge badge-pass">范围内机器判定 PASS</span></div>
             <section class="report-section"><h3>1 · 跨阶段归纳</h3><p>变更前稳定；灰度阶段出现延迟；治理后复验恢复；全量和变更后未再退化。</p><span class="evidence-link">RUN-001…005</span></section>
             <section class="report-section"><h3>2 · 风险解释</h3><p>连接池排队是当前证据支持的风险位置，不把相关性包装成已确认根因。</p><span class="evidence-link">FND-001</span></section>
             <section class="report-section"><h3>3 · 治理建议</h3><p>保留连接池容量治理项，并在下次相似变更复用该检查；建议只记录，不会触发真实生产动作。</p></section>
-            <section class="report-section"><h3>4 · 复验建议与覆盖缺口</h3><p>异步链路保持 UNKNOWN；需要补充观测后才可关闭对应风险。</p><span class="evidence-link">coverage omission</span></section>
+            <section class="report-section"><h3>4 · 复验建议与覆盖缺口</h3><p>异步链路记录为 COVERAGE_OMISSION，经人工确认后作为未关闭风险归档；它不是 UNKNOWN 检查结果，不改变范围内机器判定。</p><span class="evidence-link">coverage omission</span></section>
           </div>
         </div>
       </section>
@@ -577,7 +577,7 @@
             <div class="journey-step"><b>01</b><strong>选择作业 / 描述需求</strong><span>服务、版本与变更意图进入当前 Case。</span></div>
             <div class="journey-step"><b>02</b><strong>生成巡检项</strong><span>候选项带生成理由、证据来源和覆盖缺口。</span></div>
             <div class="journey-step"><b>03</b><strong>编排并冻结</strong><span>增删改检查项、阶段、阈值、窗口和基线。</span></div>
-            <div class="journey-step"><b>04</b><strong>变更前准入</strong><span>建立可比 baseline；UNKNOWN 直接阻断。</span></div>
+            <div class="journey-step"><b>04</b><strong>变更前准入</strong><span>建立可比 baseline；范围内必检项 UNKNOWN 直接阻断。</span></div>
             <div class="journey-step"><b>05</b><strong>灰度 A/B</strong><span>风险暂停、记录处置、产生新 Run 复验。</span></div>
             <div class="journey-step"><b>06</b><strong>变更后验收</strong><span>固化阶段证据、风险、处置和人工决策。</span></div>
             <div class="journey-step"><b>07</b><strong>报告解读</strong><span>CLAW 解释风险、未知项、治理与复验建议。</span></div>

@@ -203,7 +203,11 @@ test("AI value is embodied inside inspection design and report interpretation", 
 
 test("deck keeps unknown evidence and immutable reports honest", async () => {
   const html = await readDeck();
-  assert.match(html, /UNKNOWN[\s\S]{0,180}阻断/);
+  assert.match(html, /范围内必检项 UNKNOWN[\s\S]{0,180}阻断/);
+  assert.match(html, /范围外拓扑遗漏[\s\S]{0,180}COVERAGE_OMISSION/);
+  assert.match(html, /COVERAGE_OMISSION[\s\S]{0,240}不参与机器判定/);
+  assert.match(html, /经人工确认[\s\S]{0,180}未关闭风险[\s\S]{0,120}归档/);
+  assert.doesNotMatch(html, /风险面已覆盖/);
   assert.match(html, /不可变报告快照/);
   assert.doesNotMatch(html, /UNKNOWN[\s\S]{0,80}badge-pass/);
 });
