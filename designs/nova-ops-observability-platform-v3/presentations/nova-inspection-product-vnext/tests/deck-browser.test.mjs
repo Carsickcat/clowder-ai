@@ -29,15 +29,15 @@ test("deck renders and navigates on desktop and mobile", async () => {
     await desktop.waitForSelector(".slide.active");
     await desktop.waitForTimeout(450);
 
-    assert.equal(await desktop.locator(".slide").count(), 10);
-    assert.equal(await desktop.locator("#counter").textContent(), "01 / 10");
+    assert.equal(await desktop.locator(".slide").count(), 12);
+    assert.equal(await desktop.locator("#counter").textContent(), "01 / 12");
 
     await desktop.locator("#next").click();
-    assert.equal(await desktop.locator("#counter").textContent(), "02 / 10");
+    assert.equal(await desktop.locator("#counter").textContent(), "02 / 12");
     await desktop.keyboard.press("End");
-    assert.equal(await desktop.locator("#counter").textContent(), "10 / 10");
+    assert.equal(await desktop.locator("#counter").textContent(), "12 / 12");
 
-    for (let index = 1; index <= 10; index += 1) {
+    for (let index = 1; index <= 12; index += 1) {
       await desktop.evaluate((slideNumber) => {
         location.hash = String(slideNumber);
       }, index);
@@ -84,15 +84,36 @@ test("deck renders and navigates on desktop and mobile", async () => {
       fullPage: true,
     });
 
+    for (const [slideNumber, fileName] of [
+      [5, "desktop-candidates.png"],
+      [8, "desktop-comparison.png"],
+      [10, "desktop-final-report.png"],
+    ]) {
+      await desktop.evaluate((target) => {
+        location.hash = String(target);
+      }, slideNumber);
+      await desktop.waitForFunction(
+        (expected) =>
+          document.querySelector(".slide.active")?.dataset.slide ===
+          String(expected),
+        slideNumber,
+      );
+      await desktop.waitForTimeout(350);
+      await desktop.screenshot({
+        path: join(evidenceDir, fileName),
+        fullPage: true,
+      });
+    }
+
     const mobile = await browser.newPage({
       viewport: { width: 390, height: 844 },
     });
     mobile.on("pageerror", (error) => errors.push(error.message));
-    await mobile.goto(deckUrl + "#7");
+    await mobile.goto(deckUrl + "#11");
     await mobile.waitForSelector(".slide.active");
     await mobile.waitForTimeout(450);
 
-    assert.equal(await mobile.locator("#counter").textContent(), "07 / 10");
+    assert.equal(await mobile.locator("#counter").textContent(), "11 / 12");
     const visibleSlides = await mobile
       .locator(".slide")
       .evaluateAll(
@@ -105,14 +126,37 @@ test("deck renders and navigates on desktop and mobile", async () => {
       1,
       "mobile viewport must render exactly one slide",
     );
-    const mobileOverflow = await mobile.evaluate(() => ({
-      horizontal: document.documentElement.scrollWidth > window.innerWidth,
-      activeSlideScrollable:
-        document.querySelector(".slide.active").scrollHeight >=
-        document.querySelector(".slide.active").clientHeight,
-    }));
-    assert.equal(mobileOverflow.horizontal, false);
-    assert.equal(mobileOverflow.activeSlideScrollable, true);
+    for (let index = 1; index <= 12; index += 1) {
+      await mobile.evaluate((target) => {
+        location.hash = String(target);
+      }, index);
+      await mobile.waitForFunction(
+        (expected) =>
+          document.querySelector(".slide.active")?.dataset.slide ===
+          String(expected),
+        index,
+      );
+      const mobileOverflow = await mobile.evaluate(() => ({
+        horizontal: document.documentElement.scrollWidth > window.innerWidth,
+        activeSlideScrollable:
+          document.querySelector(".slide.active").scrollHeight >=
+          document.querySelector(".slide.active").clientHeight,
+      }));
+      assert.equal(
+        mobileOverflow.horizontal,
+        false,
+        "mobile slide " + index + " must not overflow horizontally",
+      );
+      assert.equal(mobileOverflow.activeSlideScrollable, true);
+    }
+
+    await mobile.evaluate(() => {
+      location.hash = "11";
+    });
+    await mobile.waitForFunction(
+      () => document.querySelector(".slide.active")?.dataset.slide === "11",
+    );
+    await mobile.waitForTimeout(350);
     await mobile.screenshot({
       path: join(evidenceDir, "mobile-workspace.png"),
       fullPage: true,
