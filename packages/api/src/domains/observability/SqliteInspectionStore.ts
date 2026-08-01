@@ -65,6 +65,18 @@ export class InspectionImmutableRecordError extends Error {
   }
 }
 
+function preservesCandidateSelection(
+  checks: readonly InspectionCheckDefinition[],
+  origin: InspectionRevisionOrigin,
+): boolean {
+  const checkIds = checks.map((check) => check.id);
+  if (checkIds.length !== origin.selectedCandidateIds.length || new Set(checkIds).size !== checkIds.length) {
+    return false;
+  }
+  const selectedIds = new Set(origin.selectedCandidateIds);
+  return checkIds.every((checkId) => selectedIds.has(checkId));
+}
+
 export interface SqliteInspectionStoreOptions {
   readonly now?: () => string;
   readonly idFactory?: (kind: string) => string;
@@ -474,6 +486,11 @@ export class SqliteInspectionStore {
       if (job.currentRevision !== input.expectedRevision) {
         throw new InspectionRevisionConflictError();
       }
+      const currentRevision = this.getCurrentJobRevision(input.userId, input.jobId);
+      if (!currentRevision) throw new InspectionNotFoundError('Inspection job revision');
+      if (currentRevision.origin && !preservesCandidateSelection(input.checks, currentRevision.origin)) {
+        throw new InspectionRevisionConflictError();
+      }
 
       const now = this.now();
       const nextRevision = input.expectedRevision + 1;
@@ -482,9 +499,17 @@ export class SqliteInspectionStore {
         .prepare(
           `INSERT INTO inspection_job_revisions
            (id, job_id, revision, checks_json, origin_json, created_by, created_at)
-           VALUES (?, ?, ?, ?, NULL, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(revisionId, input.jobId, nextRevision, JSON.stringify(input.checks), input.createdBy, now);
+        .run(
+          revisionId,
+          input.jobId,
+          nextRevision,
+          JSON.stringify(input.checks),
+          currentRevision.origin ? JSON.stringify(currentRevision.origin) : null,
+          input.createdBy,
+          now,
+        );
       const updated = this.db
         .prepare(
           `UPDATE inspection_jobs

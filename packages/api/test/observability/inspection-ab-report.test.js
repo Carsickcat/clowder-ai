@@ -13,6 +13,7 @@ function createRun({
   purpose,
   value,
   queryDigest = QUERY_DIGEST,
+  sourceKind = 'replay',
   verdict = 'passed',
   startedAt = purpose === 'admission' ? '2026-08-02T00:56:00.000Z' : '2026-08-02T00:59:00.000Z',
   finishedAt = purpose === 'admission' ? '2026-08-02T00:57:00.000Z' : '2026-08-02T01:00:00.000Z',
@@ -25,7 +26,7 @@ function createRun({
     verdict,
     sourceSnapshot: {
       connectorRef: 'replay-acceptance',
-      sourceKind: 'replay',
+      sourceKind,
       observedAt: '2026-08-02T01:00:00.000Z',
       window: {
         from: '2026-08-02T00:55:00.000Z',
@@ -86,6 +87,18 @@ describe('NOVA A/B report projection', () => {
     assert.equal(report.comparability, 'unavailable');
     assert.equal(report.checks[0].comparable, false);
     assert.equal(report.checks[0].reason, 'query_digest_mismatch');
+    assert.equal(report.checks[0].absoluteDelta, null);
+  });
+
+  test('fails comparability closed when the persisted source kind changes', () => {
+    const report = projectInspectionABReport([
+      createRun({ id: 'run-before', purpose: 'admission', value: 200, sourceKind: 'replay' }),
+      createRun({ id: 'run-after', purpose: 'post_change', value: 180, sourceKind: 'prometheus' }),
+    ]);
+
+    assert.equal(report.comparability, 'unavailable');
+    assert.equal(report.checks[0].comparable, false);
+    assert.equal(report.checks[0].reason, 'source_mismatch');
     assert.equal(report.checks[0].absoluteDelta, null);
   });
 

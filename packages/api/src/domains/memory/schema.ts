@@ -420,8 +420,6 @@ CREATE TABLE IF NOT EXISTS inspection_candidate_sets (
 CREATE INDEX IF NOT EXISTS idx_inspection_candidate_sets_user
   ON inspection_candidate_sets(user_id, generated_at DESC, id DESC);
 
-ALTER TABLE inspection_job_revisions ADD COLUMN origin_json TEXT;
-
 CREATE TRIGGER IF NOT EXISTS inspection_candidate_sets_immutable_update
 BEFORE UPDATE ON inspection_candidate_sets BEGIN
   SELECT RAISE(ABORT, 'inspection candidate set is immutable');
@@ -568,8 +566,17 @@ export function applyMigrations(db: Database.Database): void {
   }
 
   if (currentVersion < 12) {
-    db.exec(SCHEMA_V12_INSPECTION_CANDIDATES);
-    db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(12, new Date().toISOString());
+    const applyV12 = db.transaction(() => {
+      db.exec(SCHEMA_V12_INSPECTION_CANDIDATES);
+      const revisionColumns = db.prepare('PRAGMA table_info(inspection_job_revisions)').all() as {
+        name: string;
+      }[];
+      if (!revisionColumns.some((column) => column.name === 'origin_json')) {
+        db.exec('ALTER TABLE inspection_job_revisions ADD COLUMN origin_json TEXT');
+      }
+      db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(12, new Date().toISOString());
+    });
+    applyV12();
   }
 }
 

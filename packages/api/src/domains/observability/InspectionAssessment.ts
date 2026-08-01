@@ -80,7 +80,10 @@ function compareCheckResults(
   if (!current) return unavailable('missing_current_result');
   if (!baselineRun || !currentRun)
     return unavailable(!baselineRun ? 'missing_baseline_result' : 'missing_current_result');
-  if (baselineRun.sourceSnapshot?.connectorRef !== currentRun.sourceSnapshot?.connectorRef) {
+  if (
+    baselineRun.sourceSnapshot?.connectorRef !== currentRun.sourceSnapshot?.connectorRef ||
+    baselineRun.sourceSnapshot?.sourceKind !== currentRun.sourceSnapshot?.sourceKind
+  ) {
     return unavailable('source_mismatch');
   }
   if (baseline.queryDigest !== current.queryDigest) return unavailable('query_digest_mismatch');

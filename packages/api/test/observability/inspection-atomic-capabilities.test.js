@@ -111,6 +111,24 @@ describe('NOVA atomic inspection capabilities', () => {
     );
   });
 
+  test('preserves candidate origin when a revision tunes checks without changing the selected candidates', () => {
+    const candidateSet = service.generateCandidateSet('user-a', CONTEXT);
+    const created = service.materializeCandidateSet('user-a', candidateSet.id, {
+      name: 'Payments route verification',
+      selectedCandidateIds: ['availability', 'latency', 'error-rate'],
+      waivers: [],
+    });
+
+    const revised = service.reviseJob('user-a', created.job.id, {
+      expectedRevision: 1,
+      checks: created.revision.checks.map((check) => (check.id === 'latency' ? { ...check, threshold: 225 } : check)),
+    });
+
+    assert.equal(revised.revision.revision, 2);
+    assert.equal(revised.revision.checks.find((check) => check.id === 'latency').threshold, 225);
+    assert.deepEqual(revised.revision.origin, created.revision.origin);
+  });
+
   test('projects an evidence report and assessment without letting coverage omissions rewrite the machine verdict', async () => {
     const candidateSet = service.generateCandidateSet('user-a', CONTEXT);
     const created = service.materializeCandidateSet('user-a', candidateSet.id, {

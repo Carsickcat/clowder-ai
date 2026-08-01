@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import Database from 'better-sqlite3';
 
-import { applyMigrations, CURRENT_SCHEMA_VERSION, SCHEMA_V10_INSPECTIONS } from '../../dist/domains/memory/schema.js';
+import {
+  applyMigrations,
+  CURRENT_SCHEMA_VERSION,
+  SCHEMA_V10_INSPECTIONS,
+  SCHEMA_V11_INSPECTION_INTEGRITY,
+} from '../../dist/domains/memory/schema.js';
 import {
   InspectionAcceptanceConflictError,
   InspectionImmutableRecordError,
@@ -129,6 +134,61 @@ describe('NOVA inspection SQLite state', () => {
       );
     } finally {
       legacyDb.close();
+    }
+  });
+
+  it('recovers V12 when origin_json exists but the schema version was not recorded', () => {
+    const partialDb = new Database(':memory:');
+    try {
+      partialDb.exec(`CREATE TABLE schema_version (
+        version INTEGER PRIMARY KEY,
+        applied_at TEXT NOT NULL
+      )`);
+      partialDb.exec(SCHEMA_V10_INSPECTIONS);
+      partialDb.exec(SCHEMA_V11_INSPECTION_INTEGRITY);
+      partialDb.prepare('INSERT INTO schema_version (version, applied_at) VALUES (10, ?)').run('2026-07-31T00:00:00Z');
+      partialDb.prepare('INSERT INTO schema_version (version, applied_at) VALUES (11, ?)').run('2026-07-31T00:01:00Z');
+      partialDb.exec(`
+        CREATE TABLE inspection_candidate_sets (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          intent TEXT NOT NULL,
+          service TEXT NOT NULL,
+          environment TEXT NOT NULL,
+          connector_ref TEXT NOT NULL,
+          change_id TEXT NOT NULL,
+          version TEXT NOT NULL,
+          topology_json TEXT NOT NULL,
+          candidates_json TEXT NOT NULL,
+          omissions_json TEXT NOT NULL,
+          generated_at TEXT NOT NULL,
+          UNIQUE (id, user_id)
+        );
+        CREATE INDEX idx_inspection_candidate_sets_user
+          ON inspection_candidate_sets(user_id, generated_at DESC, id DESC);
+        ALTER TABLE inspection_job_revisions ADD COLUMN origin_json TEXT;
+      `);
+
+      applyMigrations(partialDb);
+
+      assert.equal(
+        partialDb.prepare('SELECT MAX(version) AS version FROM schema_version').get().version,
+        CURRENT_SCHEMA_VERSION,
+      );
+      assert.equal(
+        partialDb
+          .prepare('PRAGMA table_info(inspection_job_revisions)')
+          .all()
+          .filter((column) => column.name === 'origin_json').length,
+        1,
+      );
+      assert.ok(
+        partialDb
+          .prepare("SELECT 1 FROM sqlite_master WHERE type = 'trigger' AND name = ?")
+          .get('inspection_candidate_sets_immutable_update'),
+      );
+    } finally {
+      partialDb.close();
     }
   });
 
