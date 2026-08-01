@@ -1,0 +1,2039 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070b12" />
+    <title>NOVA 巡检产品下一版方案</title>
+    <style>
+      :root {
+        --bg: #070b12;
+        --surface: #101722;
+        --surface-2: #151f2d;
+        --surface-3: #1b2738;
+        --line: #2a3a4f;
+        --text: #f4f7fb;
+        --muted: #94a3b8;
+        --soft: #cbd5e1;
+        --accent: #ff5c72;
+        --accent-soft: #4a1d29;
+        --evidence: #56d6c2;
+        --evidence-soft: #123f3c;
+        --warning: #f5b942;
+        --warning-soft: #493813;
+        --danger: #ff786e;
+        --good: #83db8b;
+        --slide-pad-x: clamp(34px, 5vw, 88px);
+        --slide-pad-y: clamp(54px, 7vh, 88px);
+        font-family:
+          Inter, "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      body {
+        background-image:
+          radial-gradient(
+            circle at 10% 0%,
+            rgba(86, 214, 194, 0.08),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 95% 100%,
+            rgba(255, 92, 114, 0.09),
+            transparent 30%
+          );
+      }
+
+      button {
+        color: inherit;
+        font: inherit;
+      }
+
+      .ambient-grid {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.22;
+        background-image:
+          linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+        background-size: 42px 42px;
+        mask-image: linear-gradient(to bottom, black, transparent 85%);
+      }
+
+      .topbar {
+        position: fixed;
+        inset: 18px 22px auto;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        pointer-events: none;
+      }
+
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .brand-mark {
+        display: inline-grid;
+        width: 24px;
+        height: 24px;
+        place-items: center;
+        border: 1px solid rgba(86, 214, 194, 0.55);
+        color: var(--evidence);
+        font-weight: 800;
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        pointer-events: auto;
+      }
+
+      .control {
+        display: grid;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 11px;
+        place-items: center;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background: rgba(16, 23, 34, 0.88);
+        color: var(--soft);
+        cursor: pointer;
+        transition:
+          border-color 160ms ease,
+          background 160ms ease,
+          color 160ms ease;
+      }
+
+      .control:hover,
+      .control:focus-visible {
+        border-color: var(--evidence);
+        background: var(--surface-2);
+        color: var(--text);
+        outline: none;
+      }
+
+      .counter {
+        min-width: 66px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-align: center;
+      }
+
+      .deck {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: none;
+        flex-direction: column;
+        padding: var(--slide-pad-y) var(--slide-pad-x) 58px;
+        overflow: hidden;
+        isolation: isolate;
+      }
+
+      .slide.active {
+        display: flex;
+        animation: slide-in 320ms ease both;
+      }
+
+      @keyframes slide-in {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .slide::after {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        right: -8vw;
+        bottom: -18vw;
+        width: 36vw;
+        height: 36vw;
+        border: 1px solid rgba(86, 214, 194, 0.07);
+        transform: rotate(28deg);
+      }
+
+      .slide-head {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: clamp(22px, 4vh, 42px);
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .kicker {
+        margin: 0 0 8px;
+        color: var(--evidence);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 980px;
+        margin-bottom: 20px;
+        font-size: clamp(42px, 5.8vw, 84px);
+        line-height: 1.04;
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin: 0;
+        font-size: clamp(28px, 3.4vw, 48px);
+        line-height: 1.12;
+        letter-spacing: -0.03em;
+      }
+
+      h3 {
+        margin-bottom: 10px;
+        font-size: clamp(16px, 1.6vw, 23px);
+        line-height: 1.24;
+      }
+
+      .headline-accent {
+        color: var(--accent);
+      }
+
+      .evidence-text {
+        color: var(--evidence);
+      }
+
+      .slide-index {
+        color: rgba(148, 163, 184, 0.6);
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.14em;
+      }
+
+      .lead {
+        max-width: 880px;
+        color: var(--soft);
+        font-size: clamp(17px, 1.7vw, 24px);
+        line-height: 1.62;
+      }
+
+      .slide-body {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .grid-2,
+      .grid-3,
+      .grid-4 {
+        display: grid;
+        gap: clamp(14px, 1.8vw, 24px);
+        align-items: stretch;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .card {
+        position: relative;
+        padding: clamp(18px, 2vw, 28px);
+        border: 1px solid var(--line);
+        background: rgba(16, 23, 34, 0.86);
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        width: 44px;
+        height: 3px;
+        background: var(--evidence);
+      }
+
+      .card.accent::before {
+        background: var(--accent);
+      }
+
+      .card.warning::before {
+        background: var(--warning);
+      }
+
+      .card p,
+      .card li {
+        color: var(--muted);
+        font-size: clamp(12px, 1.15vw, 16px);
+        line-height: 1.55;
+      }
+
+      .card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .eyebrow {
+        margin-bottom: 12px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .badge {
+        display: inline-flex;
+        min-height: 27px;
+        padding: 5px 9px;
+        align-items: center;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--soft);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .badge.evidence {
+        border-color: rgba(86, 214, 194, 0.35);
+        background: var(--evidence-soft);
+        color: var(--evidence);
+      }
+
+      .badge.risk {
+        border-color: rgba(255, 92, 114, 0.38);
+        background: var(--accent-soft);
+        color: #ff98a7;
+      }
+
+      .badge.warning {
+        border-color: rgba(245, 185, 66, 0.38);
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .summary-bar {
+        margin-top: clamp(18px, 3vh, 30px);
+        padding: 14px 18px;
+        border-left: 3px solid var(--accent);
+        background: rgba(255, 92, 114, 0.09);
+        color: var(--text);
+        font-size: clamp(14px, 1.4vw, 19px);
+        line-height: 1.5;
+      }
+
+      .progress {
+        position: fixed;
+        z-index: 20;
+        right: 22px;
+        bottom: 20px;
+        left: 22px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        pointer-events: none;
+      }
+
+      .progress-line {
+        position: relative;
+        height: 2px;
+        flex: 1;
+        overflow: hidden;
+        background: rgba(148, 163, 184, 0.22);
+      }
+
+      .progress-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 10%;
+        background: var(--accent);
+        transition: width 240ms ease;
+      }
+
+      .progress-label {
+        min-width: 118px;
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-align: right;
+        text-transform: uppercase;
+      }
+
+      .cover {
+        justify-content: center;
+        padding-right: clamp(34px, 47vw, 760px);
+      }
+
+      .cover .lead {
+        max-width: 720px;
+      }
+
+      .cover-visual {
+        position: absolute;
+        top: 50%;
+        right: clamp(34px, 7vw, 118px);
+        width: min(38vw, 580px);
+        aspect-ratio: 1;
+        transform: translateY(-50%);
+      }
+
+      .orbit {
+        position: absolute;
+        inset: 8%;
+        border: 1px solid rgba(86, 214, 194, 0.24);
+        border-radius: 50%;
+      }
+
+      .orbit:nth-child(2) {
+        inset: 23%;
+        border-color: rgba(255, 92, 114, 0.25);
+      }
+
+      .core-node,
+      .satellite {
+        position: absolute;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        text-align: center;
+      }
+
+      .core-node {
+        top: 50%;
+        left: 50%;
+        width: 32%;
+        aspect-ratio: 1;
+        padding: 12px;
+        border-color: rgba(255, 92, 114, 0.55);
+        background: #24131b;
+        transform: translate(-50%, -50%) rotate(45deg);
+      }
+
+      .core-node span {
+        transform: rotate(-45deg);
+        font-size: clamp(11px, 1.3vw, 18px);
+        font-weight: 800;
+        line-height: 1.35;
+      }
+
+      .satellite {
+        width: 24%;
+        min-height: 56px;
+        padding: 8px;
+        color: var(--soft);
+        font-size: clamp(9px, 0.9vw, 13px);
+      }
+
+      .satellite.a {
+        top: 4%;
+        left: 38%;
+      }
+      .satellite.b {
+        top: 34%;
+        right: 1%;
+      }
+      .satellite.c {
+        right: 12%;
+        bottom: 7%;
+      }
+      .satellite.d {
+        bottom: 4%;
+        left: 20%;
+      }
+      .satellite.e {
+        top: 34%;
+        left: 0;
+      }
+
+      .pulse {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--evidence);
+        box-shadow: 0 0 0 7px rgba(86, 214, 194, 0.09);
+      }
+
+      .pulse.p1 {
+        top: 21%;
+        left: 22%;
+      }
+      .pulse.p2 {
+        top: 68%;
+        right: 19%;
+        background: var(--accent);
+      }
+      .pulse.p3 {
+        right: 25%;
+        bottom: 18%;
+      }
+
+      .big-number {
+        color: var(--accent);
+        font-size: clamp(36px, 5vw, 74px);
+        font-weight: 850;
+        line-height: 0.95;
+        letter-spacing: -0.05em;
+      }
+
+      .compare-card {
+        min-height: 310px;
+      }
+
+      .compare-card ul,
+      .clean-list {
+        display: grid;
+        margin: 18px 0 0;
+        padding: 0;
+        gap: 12px;
+        list-style: none;
+      }
+
+      .compare-card li,
+      .clean-list li {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 8px;
+        align-items: start;
+      }
+
+      .compare-card li::before,
+      .clean-list li::before {
+        content: "·";
+        color: var(--evidence);
+        font-size: 22px;
+        line-height: 0.7;
+      }
+
+      .compare-card.gaps li::before {
+        color: var(--accent);
+      }
+
+      .principle {
+        min-height: 198px;
+      }
+
+      .principle .wrong {
+        display: block;
+        margin-bottom: 12px;
+        color: #ff9aa8;
+        font-size: 13px;
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
+      }
+
+      .principle .right {
+        display: block;
+        color: var(--text);
+        font-size: clamp(18px, 2vw, 28px);
+        font-weight: 760;
+        line-height: 1.28;
+      }
+
+      .capability-map {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .capability {
+        position: relative;
+        min-height: 128px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: rgba(16, 23, 34, 0.84);
+      }
+
+      .capability:nth-child(n + 6) {
+        direction: rtl;
+      }
+
+      .capability > * {
+        direction: ltr;
+      }
+
+      .capability::after {
+        content: "→";
+        position: absolute;
+        top: 50%;
+        right: -12px;
+        z-index: 2;
+        color: var(--muted);
+        transform: translate(50%, -50%);
+      }
+
+      .capability:nth-child(5)::after {
+        content: "↓";
+        top: auto;
+        right: 50%;
+        bottom: -12px;
+        transform: translate(50%, 50%);
+      }
+
+      .capability:nth-child(6)::after,
+      .capability:nth-child(10)::after {
+        display: none;
+      }
+
+      .cap-number {
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 850;
+        letter-spacing: 0.12em;
+      }
+
+      .capability h3 {
+        margin: 14px 0 7px;
+        font-size: clamp(14px, 1.3vw, 19px);
+      }
+
+      .capability p {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(10px, 0.95vw, 13px);
+        line-height: 1.45;
+      }
+
+      .model-grid {
+        display: grid;
+        grid-template-columns: 1fr 70px 1.2fr 70px 1.1fr;
+        gap: 0;
+        align-items: stretch;
+      }
+
+      .model-node {
+        display: flex;
+        min-height: 190px;
+        padding: 22px;
+        flex-direction: column;
+        justify-content: space-between;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .model-node.case {
+        border-color: rgba(255, 92, 114, 0.55);
+        background: #21131a;
+      }
+
+      .model-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-size: 28px;
+      }
+
+      .model-rule {
+        display: grid;
+        margin-top: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .mini-rule {
+        padding: 13px 15px;
+        border-left: 2px solid var(--evidence);
+        background: rgba(86, 214, 194, 0.06);
+        color: var(--soft);
+        font-size: clamp(10px, 0.9vw, 13px);
+        line-height: 1.45;
+      }
+
+      .journey {
+        display: grid;
+        gap: 14px;
+      }
+
+      .lane {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        border: 1px solid var(--line);
+        background: rgba(16, 23, 34, 0.75);
+      }
+
+      .lane-label {
+        display: grid;
+        padding: 16px;
+        place-items: center;
+        border-right: 1px solid var(--line);
+        color: var(--evidence);
+        font-size: 12px;
+        font-weight: 850;
+        letter-spacing: 0.12em;
+      }
+
+      .lane:nth-child(2) .lane-label {
+        color: var(--warning);
+      }
+
+      .lane:nth-child(3) .lane-label {
+        color: var(--accent);
+      }
+
+      .lane-steps {
+        display: flex;
+        padding: 12px;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .journey-step {
+        display: grid;
+        min-height: 72px;
+        padding: 10px 12px;
+        flex: 1;
+        place-items: center;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: var(--surface-2);
+        color: var(--soft);
+        font-size: clamp(10px, 0.95vw, 13px);
+        line-height: 1.35;
+        text-align: center;
+      }
+
+      .journey-arrow {
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .workspace {
+        display: grid;
+        min-height: 390px;
+        grid-template-columns: 0.82fr 2fr 0.95fr;
+        border: 1px solid var(--line);
+        background: #0b111a;
+      }
+
+      .workspace-pane {
+        display: flex;
+        min-width: 0;
+        padding: 16px;
+        flex-direction: column;
+        gap: 12px;
+        border-right: 1px solid var(--line);
+      }
+
+      .workspace-pane:last-child {
+        border-right: 0;
+      }
+
+      .workspace-title {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 850;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .mock-row,
+      .mock-chart,
+      .mock-message {
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: var(--surface);
+      }
+
+      .mock-row {
+        padding: 10px;
+        color: var(--soft);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      .mock-row.active {
+        border-color: rgba(86, 214, 194, 0.48);
+        background: var(--evidence-soft);
+      }
+
+      .mock-chart {
+        position: relative;
+        min-height: 118px;
+        overflow: hidden;
+        background-image:
+          linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+        background-size: 32px 24px;
+      }
+
+      .mock-chart::before,
+      .mock-chart::after {
+        content: "";
+        position: absolute;
+        right: 4%;
+        left: 4%;
+        height: 2px;
+        transform-origin: left;
+      }
+
+      .mock-chart::before {
+        top: 62%;
+        background: var(--evidence);
+        transform: rotate(-4deg);
+        box-shadow:
+          55px -13px 0 var(--evidence),
+          110px 2px 0 var(--evidence),
+          180px -21px 0 var(--evidence);
+      }
+
+      .mock-chart::after {
+        top: 46%;
+        background: var(--accent);
+        transform: rotate(3deg);
+        box-shadow:
+          70px 17px 0 var(--accent),
+          145px -10px 0 var(--accent);
+        opacity: 0.78;
+      }
+
+      .mock-message {
+        padding: 11px;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.48;
+      }
+
+      .mock-message.claw {
+        border-color: rgba(255, 92, 114, 0.3);
+        color: var(--soft);
+      }
+
+      .mock-actions {
+        display: grid;
+        margin-top: auto;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .mock-action {
+        padding: 9px 5px;
+        border: 1px solid var(--line);
+        background: var(--surface-2);
+        color: var(--muted);
+        font-size: 9px;
+        text-align: center;
+      }
+
+      .mock-action.primary {
+        border-color: var(--accent);
+        color: #ffb1bc;
+      }
+
+      .mobile-flow {
+        display: flex;
+        margin-top: 14px;
+        padding: 11px 14px;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .mobile-flow strong {
+        color: var(--text);
+      }
+
+      .split-status {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+
+      .status-column {
+        padding: 22px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .status-pair {
+        display: grid;
+        margin-top: 14px;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .status-box {
+        min-height: 72px;
+        padding: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: var(--surface-2);
+        color: var(--soft);
+        font-size: clamp(10px, 0.95vw, 13px);
+        line-height: 1.4;
+      }
+
+      .status-box.good {
+        border-color: rgba(86, 214, 194, 0.38);
+      }
+
+      .status-box.risk {
+        border-color: rgba(255, 92, 114, 0.42);
+      }
+
+      .status-arrow {
+        color: var(--muted);
+      }
+
+      .scope-grid {
+        display: grid;
+        grid-template-columns: 1.12fr 0.88fr;
+        gap: 20px;
+      }
+
+      .scope-panel {
+        min-height: 370px;
+        padding: 24px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .scope-panel.in {
+        border-color: rgba(86, 214, 194, 0.4);
+      }
+
+      .scope-panel.out {
+        border-color: rgba(255, 92, 114, 0.34);
+      }
+
+      .scope-item {
+        display: grid;
+        padding: 11px 0;
+        grid-template-columns: 24px 1fr;
+        gap: 10px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+        color: var(--soft);
+        font-size: clamp(11px, 1vw, 14px);
+        line-height: 1.4;
+      }
+
+      .scope-item:last-child {
+        border-bottom: 0;
+      }
+
+      .scope-icon {
+        color: var(--evidence);
+        font-weight: 900;
+      }
+
+      .out .scope-icon {
+        color: var(--accent);
+      }
+
+      .roadmap {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .phase {
+        position: relative;
+        min-height: 350px;
+        padding: 24px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .phase.focus {
+        border-color: rgba(255, 92, 114, 0.52);
+        background: #21131a;
+      }
+
+      .phase-number {
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 850;
+        letter-spacing: 0.15em;
+      }
+
+      .phase h3 {
+        margin: 14px 0 18px;
+        font-size: clamp(20px, 2.1vw, 30px);
+      }
+
+      .phase ul {
+        display: grid;
+        margin: 0;
+        padding: 0;
+        gap: 12px;
+        list-style: none;
+      }
+
+      .phase li {
+        color: var(--muted);
+        font-size: clamp(11px, 1vw, 14px);
+        line-height: 1.42;
+      }
+
+      .phase li::before {
+        content: "— ";
+        color: var(--evidence);
+      }
+
+      .phase.focus li::before {
+        color: var(--accent);
+      }
+
+      .success-statement {
+        display: grid;
+        margin-top: 18px;
+        padding: 17px 20px;
+        grid-template-columns: auto 1fr;
+        gap: 18px;
+        align-items: center;
+        border: 1px solid rgba(86, 214, 194, 0.36);
+        background: var(--evidence-soft);
+      }
+
+      .success-statement strong {
+        color: var(--evidence);
+        font-size: clamp(22px, 2.6vw, 38px);
+        white-space: nowrap;
+      }
+
+      .success-statement span {
+        color: var(--soft);
+        font-size: clamp(13px, 1.25vw, 17px);
+        line-height: 1.46;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      @media (max-height: 700px) and (min-width: 721px) {
+        :root {
+          --slide-pad-y: 48px;
+        }
+
+        .slide-head {
+          margin-bottom: 20px;
+        }
+
+        .card {
+          padding: 16px;
+        }
+
+        .workspace,
+        .scope-panel,
+        .phase {
+          min-height: 300px;
+        }
+
+        .capability {
+          min-height: 108px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        html,
+        body {
+          overflow: hidden;
+        }
+
+        .ambient-grid {
+          opacity: 0.12;
+        }
+
+        .topbar {
+          inset: 10px 10px auto;
+        }
+
+        .brand span:last-child {
+          display: none;
+        }
+
+        .controls {
+          gap: 4px;
+        }
+
+        .control {
+          min-width: 34px;
+          height: 34px;
+          padding: 0 8px;
+        }
+
+        .counter {
+          min-width: 50px;
+        }
+
+        .slide {
+          padding: 58px 18px 54px;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+
+        .slide::after {
+          display: none;
+        }
+
+        .slide-head {
+          align-items: flex-start;
+          margin-bottom: 22px;
+        }
+
+        .slide-index {
+          margin-left: 10px;
+        }
+
+        h1 {
+          font-size: clamp(36px, 12vw, 54px);
+        }
+
+        h2 {
+          font-size: clamp(27px, 8vw, 38px);
+        }
+
+        .lead {
+          font-size: 16px;
+        }
+
+        .slide-body {
+          display: block;
+          flex: 0 0 auto;
+        }
+
+        .slide.cover.active {
+          display: block;
+          padding-right: 18px;
+        }
+
+        .cover-visual {
+          position: relative;
+          top: auto;
+          right: auto;
+          width: 100%;
+          max-width: 430px;
+          margin: 30px auto 16px;
+          transform: none;
+        }
+
+        .grid-2,
+        .grid-3,
+        .grid-4,
+        .model-rule,
+        .split-status,
+        .scope-grid,
+        .roadmap {
+          grid-template-columns: 1fr;
+        }
+
+        .capability-map {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .capability {
+          min-height: 118px;
+        }
+
+        .capability::after {
+          display: none;
+        }
+
+        .model-grid {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .model-node {
+          min-height: 142px;
+        }
+
+        .model-arrow {
+          min-height: 30px;
+          transform: rotate(90deg);
+        }
+
+        .lane {
+          grid-template-columns: 1fr;
+        }
+
+        .lane-label {
+          padding: 9px 12px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .lane-steps {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .journey-arrow {
+          transform: rotate(90deg);
+          text-align: center;
+        }
+
+        .workspace {
+          min-height: 0;
+          grid-template-columns: 1fr;
+        }
+
+        .workspace-pane {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .workspace-pane:last-child {
+          border-bottom: 0;
+        }
+
+        .scope-panel,
+        .phase {
+          min-height: 0;
+        }
+
+        .success-statement {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+
+        .progress {
+          right: 10px;
+          bottom: 10px;
+          left: 10px;
+        }
+
+        .progress-label {
+          display: none;
+        }
+      }
+
+      @media print {
+        @page {
+          size: 16in 9in;
+          margin: 0;
+        }
+
+        html,
+        body {
+          width: auto;
+          height: auto;
+          overflow: visible;
+          background: var(--bg);
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+
+        .topbar,
+        .progress,
+        .ambient-grid {
+          display: none !important;
+        }
+
+        .deck {
+          height: auto;
+        }
+
+        .slide,
+        .slide.active {
+          position: relative;
+          display: flex !important;
+          width: 16in;
+          height: 9in;
+          page-break-after: always;
+          animation: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ambient-grid" aria-hidden="true"></div>
+
+    <header class="topbar" aria-label="演示控制">
+      <div class="brand">
+        <span class="brand-mark">N</span>
+        <span>NOVA / INSPECTION PRODUCT NEXT</span>
+      </div>
+      <div class="controls">
+        <button class="control" id="prev" type="button" aria-label="上一页">
+          ←
+        </button>
+        <span class="counter" id="counter">01 / 10</span>
+        <button class="control" id="next" type="button" aria-label="下一页">
+          →
+        </button>
+        <button
+          class="control"
+          id="fullscreen"
+          type="button"
+          aria-label="进入全屏"
+        >
+          ⛶
+        </button>
+      </div>
+    </header>
+
+    <main class="deck" id="deck">
+      <section
+        class="slide active cover"
+        data-slide="1"
+        aria-labelledby="title-1"
+      >
+        <div>
+          <p class="kicker">NOVA · INSPECTION PRODUCT NEXT</p>
+          <h1 id="title-1">
+            从检查按钮，升级为一条<span class="headline-accent"
+              >可审计的风险验证闭环</span
+            >
+          </h1>
+          <p class="lead">
+            依赖感知生成、版本化编排、分阶段执行、受控前后对比、风险治理与不可变报告。
+          </p>
+          <div class="tag-row">
+            <span class="badge evidence">只读连接</span>
+            <span class="badge evidence">证据不可变</span>
+            <span class="badge risk">人工决策</span>
+          </div>
+        </div>
+        <div class="cover-visual" aria-label="服务依赖到风险验证的拓扑示意">
+          <div class="orbit"></div>
+          <div class="orbit"></div>
+          <div class="core-node">
+            <span>Inspection<br />Case</span>
+          </div>
+          <div class="satellite a">依赖快照</div>
+          <div class="satellite b">候选巡检项</div>
+          <div class="satellite c">阶段报告</div>
+          <div class="satellite d">风险治理</div>
+          <div class="satellite e">前后对比</div>
+          <span class="pulse p1"></span>
+          <span class="pulse p2"></span>
+          <span class="pulse p3"></span>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="2" aria-labelledby="title-2">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">01 / WHY NOW</p>
+            <h2 id="title-2">
+              已有执行骨架，但产品闭环仍缺<span class="headline-accent"
+                >五层能力</span
+              >
+            </h2>
+          </div>
+          <span class="slide-index">02</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-2">
+            <article class="card compare-card">
+              <p class="eyebrow">CURRENT · 已具备</p>
+              <div class="big-number">6</div>
+              <h3>执行与证据骨架</h3>
+              <ul>
+                <li>Job / Revision</li>
+                <li>Case / Run</li>
+                <li>Decision / Report</li>
+                <li>服务端只读 connector</li>
+              </ul>
+            </article>
+            <article class="card accent compare-card gaps">
+              <p class="eyebrow">NEXT · 必须补齐</p>
+              <div class="big-number">5</div>
+              <h3>真正的产品闭环</h3>
+              <ul>
+                <li>依赖感知与候选生成</li>
+                <li>草稿编排与方案发布</li>
+                <li>分阶段 workflow</li>
+                <li>阶段报告与前后对比</li>
+                <li>风险、治理与复验</li>
+              </ul>
+            </article>
+          </div>
+          <div class="summary-bar">
+            当前能力是“能执行一次检查”；下一版要回答“能否治理一次变更风险”。
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="3" aria-labelledby="title-3">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">02 / PRODUCT PRINCIPLES</p>
+            <h2 id="title-3">
+              四条原则决定产品是<span class="evidence-text">可信系统</span
+              >还是顺滑幻觉
+            </h2>
+          </div>
+          <span class="slide-index">03</span>
+        </div>
+        <div class="slide-body">
+          <div class="grid-4">
+            <article class="card accent principle">
+              <span class="wrong">依赖图自动成为任务</span>
+              <span class="right">依赖只生成候选项</span>
+              <p>快照可能过期、缺边或过宽；必须人工审阅。</p>
+            </article>
+            <article class="card principle">
+              <span class="wrong">任务随时可以修改</span>
+              <span class="right">草稿可改，发布即冻结</span>
+              <p>编辑产生新 Revision，历史执行永不漂移。</p>
+            </article>
+            <article class="card warning principle">
+              <span class="wrong">两个时间点就是 A/B</span>
+              <span class="right">先验证可比性</span>
+              <p>不满足 ComparabilityContract 就显示 UNKNOWN。</p>
+            </article>
+            <article class="card accent principle">
+              <span class="wrong">Claw 直接判定与执行</span>
+              <span class="right">Claw 建议，页面确认</span>
+              <p>解释可以智能，verdict 必须来自规则与证据。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="4" aria-labelledby="title-4">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">03 / ATOMIC CAPABILITIES</p>
+            <h2 id="title-4">十个原子能力，组成一条可恢复的巡检闭环</h2>
+          </div>
+          <span class="slide-index">04</span>
+        </div>
+        <div class="slide-body">
+          <div class="capability-map" aria-label="巡检产品原子能力流程">
+            <article class="capability">
+              <span class="cap-number">01</span>
+              <h3>范围识别</h3>
+              <p>服务、环境、变更意图</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">02</span>
+              <h3>依赖快照</h3>
+              <p>来源、时效、覆盖与遗漏</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">03</span>
+              <h3>候选生成</h3>
+              <p>理由、路径、关键度</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">04</span>
+              <h3>草稿编排</h3>
+              <p>增删改、排序、阶段</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">05</span>
+              <h3>方案发布</h3>
+              <p>校验并冻结 Revision</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">06</span>
+              <h3>工作流执行</h3>
+              <p>阶段运行与门禁</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">07</span>
+              <h3>阶段报告</h3>
+              <p>证据、判定与阻塞</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">08</span>
+              <h3>前后对比</h3>
+              <p>基线、灰度、变更后</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">09</span>
+              <h3>风险治理</h3>
+              <p>Finding、措施、复验</p>
+            </article>
+            <article class="capability">
+              <span class="cap-number">10</span>
+              <h3>最终报告</h3>
+              <p>不可变证据快照</p>
+            </article>
+          </div>
+          <div class="summary-bar">
+            每一步都必须产生持久对象；不以 toast 或对话文本冒充产品结果。
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="5" aria-labelledby="title-5">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">04 / DOMAIN MODEL</p>
+            <h2 id="title-5">
+              Playbook 可复用，Case 从创建起就是一次<span
+                class="headline-accent"
+                >不可换绑的承诺</span
+              >
+            </h2>
+          </div>
+          <span class="slide-index">05</span>
+        </div>
+        <div class="slide-body">
+          <div class="model-grid">
+            <article class="model-node">
+              <div>
+                <p class="eyebrow">REUSABLE STRATEGY</p>
+                <h3>PlaybookRevision</h3>
+                <p>
+                  固化巡检选择策略、阶段、检查定义、阈值与
+                  ComparabilityContract。
+                </p>
+              </div>
+              <span class="badge">不是实际依赖快照</span>
+            </article>
+            <div class="model-arrow" aria-hidden="true">＋</div>
+            <article class="model-node">
+              <div>
+                <p class="eyebrow">FRESH EXECUTION CONTEXT</p>
+                <h3>ServiceDependencySnapshot</h3>
+                <p>
+                  每个 Case 重新采集并绑定 capturedAt、scope、omissions 与
+                  topology hash。
+                </p>
+              </div>
+              <span class="badge evidence">必须新鲜</span>
+            </article>
+            <div class="model-arrow" aria-hidden="true">→</div>
+            <article class="model-node case">
+              <div>
+                <p class="eyebrow">ONE RISK VERIFICATION</p>
+                <h3>InspectionCase</h3>
+                <p>
+                  revisionId、dependencySnapshotId、baselineContract
+                  创建后永久不变。
+                </p>
+              </div>
+              <span class="badge risk">追加式谱系</span>
+            </article>
+          </div>
+          <div class="model-rule">
+            <div class="mini-rule">
+              <strong>Drift gate</strong><br />关键依赖变化 →
+              BLOCKED_REVIEW_REQUIRED
+            </div>
+            <div class="mini-rule">
+              <strong>Before execution</strong><br />方案变化 → 放弃旧
+              Case，创建 successor
+            </div>
+            <div class="mini-rule">
+              <strong>After evidence</strong
+              ><br />冻结部分报告，绝不伪装“未执行”
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="6" aria-labelledby="title-6">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">05 / PRIMARY JOURNEY</p>
+            <h2 id="title-6">一次变更贯穿计划、执行、比较、治理和归档</h2>
+          </div>
+          <span class="slide-index">06</span>
+        </div>
+        <div class="slide-body">
+          <div class="journey">
+            <div class="lane">
+              <div class="lane-label">计划</div>
+              <div class="lane-steps">
+                <div class="journey-step">选择服务<br />描述意图</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">获取依赖<br />快照</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">审阅候选<br />巡检项</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">草稿 CRUD<br />与编排</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">发布<br />Revision</div>
+              </div>
+            </div>
+            <div class="lane">
+              <div class="lane-label">执行</div>
+              <div class="lane-steps">
+                <div class="journey-step">创建<br />Case</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">变更前<br />基线</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">灰度 /<br />验证</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">风险处置<br />与复验</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">变更后<br />验收</div>
+              </div>
+            </div>
+            <div class="lane">
+              <div class="lane-label">决策</div>
+              <div class="lane-steps">
+                <div class="journey-step">阶段报告</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">可比性<br />校验</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">前后对比</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">Finding 与<br />治理建议</div>
+                <span class="journey-arrow">→</span>
+                <div class="journey-step">FinalReport</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="7" aria-labelledby="title-7">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">06 / EXPERIENCE</p>
+            <h2 id="title-7">页面与 Claw 共用一份草稿，但权威动作只有一处</h2>
+          </div>
+          <span class="slide-index">07</span>
+        </div>
+        <div class="slide-body">
+          <div class="workspace" aria-label="巡检任务工作区线框图">
+            <div class="workspace-pane">
+              <span class="workspace-title">范围与版本</span>
+              <div class="mock-row active">
+                payments-api<br /><small>prod / v3.18.0</small>
+              </div>
+              <div class="mock-row">
+                Snapshot 08:42<br /><small>单跳 · 4 dependencies</small>
+              </div>
+              <div class="mock-row">
+                <strong>Omissions</strong><br /><small>异步事件链未覆盖</small>
+              </div>
+              <div class="mock-row">
+                Revision 7<br /><small>published</small>
+              </div>
+            </div>
+            <div class="workspace-pane">
+              <span class="workspace-title"
+                >当前阶段 · Canary Verification</span
+              >
+              <div class="tag-row">
+                <span class="badge evidence">Comparable</span>
+                <span class="badge warning">1 Warning</span>
+                <span class="badge">Evidence fresh</span>
+              </div>
+              <div class="mock-chart" aria-label="变更前与灰度指标对比图"></div>
+              <div class="grid-2">
+                <div class="mock-row">
+                  P95 latency<br /><strong>+4.8%</strong>
+                </div>
+                <div class="mock-row">
+                  Error rate<br /><strong>+0.03pp</strong>
+                </div>
+              </div>
+              <div class="mock-actions">
+                <div class="mock-action">阻断</div>
+                <div class="mock-action">要求整改</div>
+                <div class="mock-action primary">进入复验</div>
+              </div>
+            </div>
+            <div class="workspace-pane">
+              <span class="workspace-title">Claw · 解释与建议</span>
+              <div class="mock-message">“为什么把订单服务加入候选项？”</div>
+              <div class="mock-message claw">
+                来自同步调用路径 payments → orders，关键度
+                high；候选项尚未发布。
+              </div>
+              <div class="mock-message">“解释当前 warning”</div>
+              <div class="mock-message claw">
+                延迟上升仍在阈值内，但窗口只有 8 分钟，建议延长观测后再决策。
+              </div>
+            </div>
+          </div>
+          <div class="mobile-flow">
+            <strong>Mobile</strong>　范围 → 方案 → 执行 → 对比 → 报告　·　Claw
+            为底部抽屉
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="8" aria-labelledby="title-8">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">07 / EVIDENCE INVARIANTS</p>
+            <h2 id="title-8">缺失证据必须被诚实地显示，不能包装成绿色报告</h2>
+          </div>
+          <span class="slide-index">08</span>
+        </div>
+        <div class="slide-body">
+          <div class="split-status">
+            <article class="status-column">
+              <p class="eyebrow">MACHINE EVALUATION</p>
+              <h3>事实判定</h3>
+              <div class="tag-row">
+                <span class="badge evidence">PASS</span>
+                <span class="badge warning">WARN</span>
+                <span class="badge risk">FAIL</span>
+                <span class="badge">UNKNOWN</span>
+                <span class="badge">ERROR</span>
+              </div>
+              <p class="lead" style="font-size: 15px; margin-top: 20px">
+                由服务端 connector、查询、规则与 freshness 共同产生；浏览器与
+                Claw 都不能提交 observation 或 verdict。
+              </p>
+            </article>
+            <article class="status-column">
+              <p class="eyebrow">HUMAN DECISION</p>
+              <h3>治理决策</h3>
+              <div class="tag-row">
+                <span class="badge evidence">ACCEPT</span>
+                <span class="badge warning">HOLD</span>
+                <span class="badge risk">WAIVE</span>
+              </div>
+              <p class="lead" style="font-size: 15px; margin-top: 20px">
+                人工可以接受风险、暂停或豁免，但不能反写机器证据；所有选择形成
+                DecisionRecord。
+              </p>
+            </article>
+          </div>
+          <div class="status-pair">
+            <div class="status-box good">
+              <strong>无任何采证</strong><br />ABANDONED_BEFORE_EXECUTION
+            </div>
+            <div class="status-arrow">→</div>
+            <div class="status-box">
+              保留原因与 replacementCaseId，创建 successor Case
+            </div>
+          </div>
+          <div class="status-pair">
+            <div class="status-box risk">
+              <strong>已有 Run / Evidence / Decision</strong
+              ><br />BLOCKED_WITH_PARTIAL_EVIDENCE
+            </div>
+            <div class="status-arrow">→</div>
+            <div class="status-box">
+              冻结部分阶段报告，再创建 successor；不伪装“未执行”
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="9" aria-labelledby="title-9">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">08 / PHASE ONE</p>
+            <h2 id="title-9">
+              第一期追求<span class="headline-accent">小而完整</span
+              >，不追求功能数量
+            </h2>
+          </div>
+          <span class="slide-index">09</span>
+        </div>
+        <div class="slide-body">
+          <div class="scope-grid">
+            <article class="scope-panel in">
+              <p class="eyebrow evidence-text">IN SCOPE · 完整纵切</p>
+              <h3>受控依赖感知闭环</h3>
+              <div class="scope-item">
+                <span class="scope-icon">✓</span
+                ><span>单跳 replay / 只读 sandbox 依赖快照</span>
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">✓</span
+                ><span
+                  >候选项携带 snapshotId / capturedAt / scope / omissions</span
+                >
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">✓</span
+                ><span>草稿增删改、编排与不可变 PlaybookRevision</span>
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">✓</span
+                ><span>变更前、灰度、变更后三阶段执行与报告</span>
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">✓</span
+                ><span>可比性校验、风险治理、复验与 FinalReport</span>
+              </div>
+            </article>
+            <article class="scope-panel out">
+              <p class="eyebrow headline-accent">OUT OF SCOPE · 不假装具备</p>
+              <h3>生产执行能力</h3>
+              <div class="scope-item">
+                <span class="scope-icon">×</span
+                ><span>生产环境自动拓扑发现</span>
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">×</span><span>自由 DAG 编排器</span>
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">×</span><span>自动调度与事件触发</span>
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">×</span
+                ><span>自动发布、扩缩容或回滚</span>
+              </div>
+              <div class="scope-item">
+                <span class="scope-icon">×</span
+                ><span>Claw 未经确认直接执行 connected 操作</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-slide="10" aria-labelledby="title-10">
+        <div class="slide-head">
+          <div>
+            <p class="kicker">09 / ROADMAP &amp; SUCCESS</p>
+            <h2 id="title-10">先把证据链做对，再扩大连接与治理</h2>
+          </div>
+          <span class="slide-index">10</span>
+        </div>
+        <div class="slide-body">
+          <div class="roadmap">
+            <article class="phase focus">
+              <span class="phase-number">PHASE 01</span>
+              <h3>受控闭环</h3>
+              <ul>
+                <li>单跳依赖候选生成</li>
+                <li>版本化编排与三阶段执行</li>
+                <li>阶段报告与前后对比</li>
+                <li>风险、复验、最终报告</li>
+              </ul>
+            </article>
+            <article class="phase">
+              <span class="phase-number">PHASE 02</span>
+              <h3>真实只读连接</h3>
+              <ul>
+                <li>Service Catalog / CMDB / 拓扑连接器</li>
+                <li>影响半径与关键度策略</li>
+                <li>Revision diff 与历史趋势</li>
+                <li>风险复发分析</li>
+              </ul>
+            </article>
+            <article class="phase">
+              <span class="phase-number">PHASE 03</span>
+              <h3>治理运营</h3>
+              <ul>
+                <li>审批、责任人与到期治理</li>
+                <li>受限调度与事件触发</li>
+                <li>外部工单只读链接</li>
+                <li>跨任务治理洞察</li>
+              </ul>
+            </article>
+          </div>
+          <div class="success-statement">
+            <strong>10 秒</strong>
+            <span
+              >用户能说清：为什么查、查了什么、是否可比、风险是什么、下一步该做什么。</span
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="progress" aria-hidden="true">
+      <div class="progress-line">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-label">NOVA PRODUCT PROPOSAL</span>
+    </div>
+    <div class="sr-only" id="announcer" aria-live="polite"></div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var slides = Array.from(document.querySelectorAll(".slide"));
+        var counter = document.getElementById("counter");
+        var progressFill = document.getElementById("progressFill");
+        var announcer = document.getElementById("announcer");
+        var current = 0;
+        var touchStartX = null;
+        var touchStartY = null;
+
+        function clamp(value) {
+          return Math.max(0, Math.min(slides.length - 1, value));
+        }
+
+        function readHash() {
+          var value = Number.parseInt(location.hash.replace("#", ""), 10);
+          return Number.isFinite(value) ? clamp(value - 1) : 0;
+        }
+
+        function showSlide(nextIndex, updateHash) {
+          current = clamp(nextIndex);
+          slides.forEach(function (slide, index) {
+            var active = index === current;
+            slide.classList.toggle("active", active);
+            slide.setAttribute("aria-hidden", active ? "false" : "true");
+          });
+          counter.textContent =
+            String(current + 1).padStart(2, "0") +
+            " / " +
+            String(slides.length).padStart(2, "0");
+          progressFill.style.width =
+            ((current + 1) / slides.length) * 100 + "%";
+          announcer.textContent =
+            "第 " +
+            (current + 1) +
+            " 页，共 " +
+            slides.length +
+            " 页：" +
+            (slides[current].querySelector("h1, h2") || {}).textContent;
+          if (updateHash !== false) {
+            history.replaceState(null, "", "#" + (current + 1));
+          }
+        }
+
+        function nextSlide() {
+          showSlide(current + 1);
+        }
+
+        function prevSlide() {
+          showSlide(current - 1);
+        }
+
+        function toggleFullscreen() {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(function () {});
+          } else {
+            document.exitFullscreen().catch(function () {});
+          }
+        }
+
+        document.getElementById("next").addEventListener("click", nextSlide);
+        document.getElementById("prev").addEventListener("click", prevSlide);
+        document
+          .getElementById("fullscreen")
+          .addEventListener("click", toggleFullscreen);
+
+        document.addEventListener("keydown", function (event) {
+          if (
+            ["ArrowRight", "ArrowDown", "PageDown", " "].includes(event.key)
+          ) {
+            event.preventDefault();
+            nextSlide();
+          } else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key)) {
+            event.preventDefault();
+            prevSlide();
+          } else if (event.key.toLowerCase() === "f") {
+            toggleFullscreen();
+          } else if (event.key === "Home") {
+            showSlide(0);
+          } else if (event.key === "End") {
+            showSlide(slides.length - 1);
+          }
+        });
+
+        document.addEventListener(
+          "touchstart",
+          function (event) {
+            var touch = event.changedTouches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+          },
+          { passive: true },
+        );
+
+        document.addEventListener(
+          "touchend",
+          function (event) {
+            if (touchStartX === null || touchStartY === null) {
+              return;
+            }
+            var touch = event.changedTouches[0];
+            var deltaX = touch.clientX - touchStartX;
+            var deltaY = touch.clientY - touchStartY;
+            if (
+              Math.abs(deltaX) > 54 &&
+              Math.abs(deltaX) > Math.abs(deltaY) * 1.3
+            ) {
+              if (deltaX < 0) {
+                nextSlide();
+              } else {
+                prevSlide();
+              }
+            }
+            touchStartX = null;
+            touchStartY = null;
+          },
+          { passive: true },
+        );
+
+        window.addEventListener("hashchange", function () {
+          showSlide(readHash(), false);
+        });
+
+        showSlide(readHash(), false);
+      })();
+    </script>
+  </body>
+</html>
