@@ -75,6 +75,19 @@ function candidateLabel(candidate: InspectionCandidate): string {
   return labels[candidate.id] ?? labels[candidate.check.id] ?? candidate.name;
 }
 
+function metricLabel(checkId: string): string {
+  const labels: Record<string, string> = {
+    availability: '服务可用性',
+    latency: '请求延迟',
+    'error-rate': '服务错误率',
+    error_rate: '服务错误率',
+    server_error_rate: '服务错误率',
+    payment_success_rate: '支付成功率',
+    downstream_failure_rate: '下游依赖失败率',
+  };
+  return labels[checkId] ?? checkId;
+}
+
 function candidateReason(candidate: InspectionCandidate): string {
   const reasons: Record<string, string> = {
     availability: '确认成功请求的可用性没有下降。',
@@ -829,7 +842,7 @@ export function InspectionOperationsPage() {
                   <div className={styles.metricGrid}>
                     {latestRun.checkResults.map((result) => (
                       <div key={result.id} data-tone={result.status}>
-                        <span>{result.checkId}</span>
+                        <span>{metricLabel(result.checkId)}</span>
                         <strong>{result.value ?? '无数据'}</strong>
                         <small>{statusLabel(result.status)}</small>
                       </div>
@@ -927,7 +940,7 @@ export function InspectionOperationsPage() {
                   {workspace.abReport.reason && <p>不可用原因 · {workspace.abReport.reason}</p>}
                   {workspace.abReport.checks.map((check) => (
                     <div key={check.checkId}>
-                      <strong>{check.checkId}</strong>
+                      <strong>{metricLabel(check.checkId)}</strong>
                       <span>
                         {check.comparable
                           ? String(check.baselineValue) + ' → ' + String(check.currentValue)

@@ -627,6 +627,8 @@ describe('InspectionOperationsPage', () => {
     expect(container.textContent).toContain('2026-07-31T08:01:30.000Z');
     expect(container.textContent).toContain(`sha256:${'a'.repeat(64)}`);
     expect(container.querySelector('[data-testid="inspection-ab-report"]')?.textContent).toContain('180 → 184');
+    expect(container.querySelector('[data-testid="inspection-ab-report"]')?.textContent).toContain('请求延迟');
+    expect(container.querySelector('[data-testid="inspection-ab-report"]')?.textContent).not.toContain('latency');
     expect(container.textContent).toContain('不可变报告');
   });
 
