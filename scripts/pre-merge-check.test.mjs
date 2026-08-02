@@ -10,6 +10,10 @@ const GATE_SCRIPT_PATH = resolve(ROOT, 'scripts/pre-merge-check.sh');
 const CI_WORKFLOW_PATH = resolve(ROOT, '.github/workflows/ci.yml');
 const WINDOWS_WORKFLOW_PATH = resolve(ROOT, '.github/workflows/windows-smoke.yml');
 
+function readGateScript() {
+  return readFileSync(GATE_SCRIPT_PATH, 'utf8').replace(/\r\n?/g, '\n');
+}
+
 function assertPublicGateContract(script) {
   assert.match(script, /^#!\/usr\/bin\/env bash\nset -euo pipefail\n/);
 
@@ -81,7 +85,7 @@ describe('public pre-merge gate', () => {
 
   it('runs the latest-main public verification in fail-fast order', () => {
     assert.equal(PACKAGE_JSON.scripts['test:startup'], 'node scripts/public-startup-acceptance.mjs');
-    assertPublicGateContract(readFileSync(GATE_SCRIPT_PATH, 'utf8'));
+    assertPublicGateContract(readGateScript());
   });
 
   it('binds the platform branches to the checked-in remote and Windows workflows', () => {
@@ -90,7 +94,7 @@ describe('public pre-merge gate', () => {
   });
 
   it('detects a gate implementation that silently skips either platform test phase', () => {
-    const script = readFileSync(GATE_SCRIPT_PATH, 'utf8');
+    const script = readGateScript();
     const withoutLinuxSuite = script.replace('pnpm --filter @cat-cafe/api run test:public', 'pnpm --version');
     const withoutWindowsSuite = script.replace('node --test packages/api/test/cli-spawn-win.test.js', 'pnpm --version');
     assert.throws(() => assertPublicGateContract(withoutLinuxSuite), /test:public/);
@@ -98,7 +102,7 @@ describe('public pre-merge gate', () => {
   });
 
   it('detects removal of the final HEAD invariant', () => {
-    const script = readFileSync(GATE_SCRIPT_PATH, 'utf8');
+    const script = readGateScript();
     const withoutFinalHeadGuard = script.replace(
       /\nif \[\[ "\$\(git rev-parse HEAD\)" != "\$GATE_HEAD" \]\]; then\n[\s\S]*?\nfi\n/,
       '\n',
@@ -108,7 +112,7 @@ describe('public pre-merge gate', () => {
   });
 
   it('detects removal or premature execution of the final cleanliness invariant', () => {
-    const script = readFileSync(GATE_SCRIPT_PATH, 'utf8');
+    const script = readGateScript();
     const cleanlinessGuard =
       /\nif \[\[ -n "\$\(git status --porcelain\)" \]\]; then\n  echo "Pre-merge gate left the worktree dirty\." >&2\n  git status --short >&2\n  exit 1\nfi\n/;
     const guardMatch = script.match(cleanlinessGuard);
