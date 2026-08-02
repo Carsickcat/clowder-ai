@@ -99,7 +99,7 @@ Not building: a cross-platform rewrite of every Linux-oriented API test, a secon
 - Modify: `docs/bug-report/public-pre-merge-gate-missing/bug-report.md`
 - Modify: `feature-specs/2026-08-02-public-pre-merge-gate-repair.md`
 
-1. Record the two-layer root cause: missing exported entrypoint plus a source-gate command copied into a public target whose platform contract is split across Ubuntu CI and Windows smoke.
+1. Record the three-layer root cause: missing exported entrypoint, a source-gate command copied into a public target whose platform contract is split across Ubuntu CI and Windows smoke, and a fixed-LF formatter default that rejected the Windows checkout.
 2. Record Red evidence: root `pnpm test` is not the public contract; an isolated Windows `test:public` still fails Linux-semantic tests, while current `origin/main` Ubuntu `Test (Public)` is green.
 3. Run targeted tests, `pnpm check`, `pnpm lint`, `pnpm build`, real startup acceptance, and finally `pnpm gate` from a clean exact commit.
 4. Request independent review of the gate delta before push/PR; after push, require Ubuntu `Test (Public)` and Windows Smoke success before merge.

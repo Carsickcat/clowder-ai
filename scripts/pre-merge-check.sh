@@ -15,10 +15,22 @@ git rebase origin/main
 
 GATE_HEAD="$(git rev-parse HEAD)"
 
-pnpm build
-pnpm test
-pnpm lint
 pnpm check
+pnpm lint
+pnpm build
+
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    node --test packages/api/test/cli-spawn-win.test.js
+    node --test packages/api/test/process-liveness-probe.test.js
+    printf 'Local platform tests: Windows Smoke\nRemote required: Test (Public)\n'
+    ;;
+  *)
+    pnpm --filter @cat-cafe/api run test:public
+    ;;
+esac
+
+pnpm test:startup
 
 if [[ "$(git rev-parse HEAD)" != "$GATE_HEAD" ]]; then
   echo "HEAD changed while the pre-merge gate was running." >&2

@@ -7,17 +7,19 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PACKAGE_JSON = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8'));
 const GATE_SCRIPT_PATH = resolve(ROOT, 'scripts/pre-merge-check.sh');
+const CI_WORKFLOW_PATH = resolve(ROOT, '.github/workflows/ci.yml');
+const WINDOWS_WORKFLOW_PATH = resolve(ROOT, '.github/workflows/windows-smoke.yml');
 
-function assertFullGateContract(script) {
+function assertPublicGateContract(script) {
   assert.match(script, /^#!\/usr\/bin\/env bash\nset -euo pipefail\n/);
 
   const phases = [
     'git fetch origin main',
     'git rebase origin/main',
-    'pnpm build',
-    'pnpm test',
-    'pnpm lint',
     'pnpm check',
+    'pnpm lint',
+    'pnpm build',
+    'pnpm test:startup',
   ];
   let previousIndex = -1;
   for (const phase of phases) {
@@ -31,7 +33,24 @@ function assertFullGateContract(script) {
     2,
     'the gate must fail closed on dirty state both before and after verification',
   );
+  assert.match(script, /MINGW\*\|MSYS\*\|CYGWIN\*/);
+  assert.match(script, /node --test packages\/api\/test\/cli-spawn-win\.test\.js/);
+  assert.match(script, /node --test packages\/api\/test\/process-liveness-probe\.test\.js/);
+  assert.match(script, /pnpm --filter @cat-cafe\/api run test:public/);
+  assert.match(script, /Remote required: Test \(Public\)/);
   assert.match(script, /Command: pnpm gate\\nHEAD: %s\\nBase: origin\/main\\nStatus: passed/);
+}
+
+function assertRemotePublicTestContract(ciWorkflow) {
+  assert.match(ciWorkflow, /name: Test \(Public\)/);
+  assert.match(ciWorkflow, /runs-on: ubuntu-latest/);
+  assert.match(ciWorkflow, /pnpm --filter @cat-cafe\/api run test:public/);
+}
+
+function assertWindowsSmokeContract(windowsWorkflow) {
+  assert.match(windowsWorkflow, /runs-on: windows-latest/);
+  assert.match(windowsWorkflow, /node --test packages\/api\/test\/cli-spawn-win\.test\.js/);
+  assert.match(windowsWorkflow, /node --test packages\/api\/test\/process-liveness-probe\.test\.js/);
 }
 
 describe('public pre-merge gate', () => {
@@ -44,12 +63,21 @@ describe('public pre-merge gate', () => {
     );
   });
 
-  it('runs the latest-main full verification in fail-fast order', () => {
-    assertFullGateContract(readFileSync(GATE_SCRIPT_PATH, 'utf8'));
+  it('runs the latest-main public verification in fail-fast order', () => {
+    assert.equal(PACKAGE_JSON.scripts['test:startup'], 'node scripts/public-startup-acceptance.mjs');
+    assertPublicGateContract(readFileSync(GATE_SCRIPT_PATH, 'utf8'));
   });
 
-  it('detects a gate implementation that silently skips the test phase', () => {
-    const weakenedGate = readFileSync(GATE_SCRIPT_PATH, 'utf8').replace('pnpm test', 'pnpm --version');
-    assert.throws(() => assertFullGateContract(weakenedGate), /pnpm test/);
+  it('binds the platform branches to the checked-in remote and Windows workflows', () => {
+    assertRemotePublicTestContract(readFileSync(CI_WORKFLOW_PATH, 'utf8'));
+    assertWindowsSmokeContract(readFileSync(WINDOWS_WORKFLOW_PATH, 'utf8'));
+  });
+
+  it('detects a gate implementation that silently skips either platform test phase', () => {
+    const script = readFileSync(GATE_SCRIPT_PATH, 'utf8');
+    const withoutLinuxSuite = script.replace('pnpm --filter @cat-cafe/api run test:public', 'pnpm --version');
+    const withoutWindowsSuite = script.replace('node --test packages/api/test/cli-spawn-win.test.js', 'pnpm --version');
+    assert.throws(() => assertPublicGateContract(withoutLinuxSuite), /test:public/);
+    assert.throws(() => assertPublicGateContract(withoutWindowsSuite), /cli-spawn-win/);
   });
 });
