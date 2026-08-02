@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "nova.inspection.demo.v1",
+  "disclaimer": {
+    "mockOnly": true,
+    "label": "合成验收数据，仅用于演示，不代表生产环境",
+    "provenance": "字段结构来自隔离 acceptance SQLite 的真实完整链路，业务值为演示样例"
+  },
+  "change": {
+    "intent": "巡检 payments-router v3.18.3 的支付路由配置变更",
+    "service": "payments-router",
+    "environment": "acceptance",
+    "changeId": "CHG-NOVA-DEMO-0318",
+    "version": "v3.18.3",
+    "connectorRef": "replay-acceptance"
+  },
+  "topology": {
+    "catalogVersion": "nova-mvp-1",
+    "rootService": "payments-router",
+    "dependencies": [
+      {
+        "ref": "baas:payments-connection-pool",
+        "kind": "baas",
+        "direction": "downstream",
+        "criticality": "critical",
+        "signalMapped": false
+      }
+    ]
+  },
+  "job": {
+    "id": "job-nova-payments-demo",
+    "name": "支付路由变更巡检",
+    "revision": 1,
+    "reusable": true
+  },
+  "case": {
+    "id": "case-nova-payments-0318",
+    "status": "completed",
+    "jobRevisionId": "revision-nova-payments-1",
+    "createdAt": "2026-08-02T16:04:30.832Z",
+    "updatedAt": "2026-08-02T16:04:30.852Z"
+  },
+  "candidates": [
+    {
+      "id": "availability",
+      "label": "服务可用性",
+      "priority": "required",
+      "operator": "gte",
+      "threshold": 0.995,
+      "unit": "ratio",
+      "reason": "路由或配置变更必须保持成功请求可用性。"
+    },
+    {
+      "id": "latency",
+      "label": "请求延迟",
+      "priority": "required",
+      "operator": "lte",
+      "threshold": 250,
+      "unit": "ms",
+      "reason": "路由变更可能先引入下游跳数或争用，再表现为错误率变化。"
+    },
+    {
+      "id": "error-rate",
+      "label": "服务错误率",
+      "priority": "recommended",
+      "operator": "lte",
+      "threshold": 0.005,
+      "unit": "ratio",
+      "reason": "进程健康不等于业务请求没有失败。"
+    }
+  ],
+  "coverageOmissions": [
+    {
+      "id": "coverage-baas-payments-connection-pool",
+      "dependencyRef": "baas:payments-connection-pool",
+      "reason": "当前规则目录没有该依赖的已批准只读信号映射。",
+      "risk": "连接池饱和可能处于机器判定覆盖范围之外。",
+      "disposition": "人工复核后接受，缺口保留在最终报告。"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "availability",
+      "label": "服务可用性",
+      "unit": "%",
+      "threshold": "≥ 99.50%",
+      "baseline": 99.88,
+      "admission": 99.9,
+      "canary": 99.91,
+      "postChange": 99.9,
+      "status": "passed"
+    },
+    {
+      "id": "latency",
+      "label": "请求延迟",
+      "unit": "ms",
+      "threshold": "≤ 250ms",
+      "baseline": 180,
+      "admission": 184,
+      "canary": 188,
+      "postChange": 184,
+      "status": "passed"
+    },
+    {
+      "id": "error-rate",
+      "label": "服务错误率",
+      "unit": "%",
+      "threshold": "≤ 0.50%",
+      "baseline": 0.18,
+      "admission": 0.2,
+      "canary": 0.22,
+      "postChange": 0.2,
+      "status": "passed"
+    }
+  ],
+  "runs": [
+    {
+      "id": "run-nova-admission",
+      "purpose": "admission",
+      "label": "变更前准入",
+      "status": "completed",
+      "verdict": "passed",
+      "observedAt": "2026-08-02T16:04:06.220Z",
+      "queryDigests": [
+        "sha256:a8a7912dd9680f7d079c789e0fbc82348414b0496e19ebfb77426f02a97f535b",
+        "sha256:aaad7d9008048127cb78805db5fabe7bbcbf2f68d01a6486a6224e7c60d7ceb3",
+        "sha256:300cc28de3e662b511dff10caed0da37e21ca80f1ee0bef4d5e8f458263b1ae5"
+      ]
+    },
+    {
+      "id": "run-nova-canary",
+      "purpose": "canary",
+      "label": "灰度持续验证",
+      "status": "completed",
+      "verdict": "passed",
+      "observedAt": "2026-08-02T16:04:06.220Z",
+      "queryDigests": [
+        "sha256:a8a7912dd9680f7d079c789e0fbc82348414b0496e19ebfb77426f02a97f535b",
+        "sha256:aaad7d9008048127cb78805db5fabe7bbcbf2f68d01a6486a6224e7c60d7ceb3",
+        "sha256:300cc28de3e662b511dff10caed0da37e21ca80f1ee0bef4d5e8f458263b1ae5"
+      ]
+    },
+    {
+      "id": "run-nova-post-change",
+      "purpose": "post_change",
+      "label": "变更后验收",
+      "status": "completed",
+      "verdict": "passed",
+      "observedAt": "2026-08-02T16:04:06.220Z",
+      "queryDigests": [
+        "sha256:a8a7912dd9680f7d079c789e0fbc82348414b0496e19ebfb77426f02a97f535b",
+        "sha256:aaad7d9008048127cb78805db5fabe7bbcbf2f68d01a6486a6224e7c60d7ceb3",
+        "sha256:300cc28de3e662b511dff10caed0da37e21ca80f1ee0bef4d5e8f458263b1ae5"
+      ]
+    }
+  ],
+  "assessment": {
+    "machineVerdict": "passed",
+    "coverageStatus": "partial",
+    "decisionReadiness": "ready_with_review",
+    "facts": [
+      "三阶段的服务可用性、请求延迟和服务错误率均满足阈值。",
+      "所有观测来自同一个只读 replay source snapshot。"
+    ],
+    "hypotheses": ["当前变更没有造成可观测的服务退化。"],
+    "unknowns": ["payments-connection-pool 尚无已批准信号映射。"],
+    "recommendations": ["人工确认连接池覆盖缺口后，可固化当前报告。"]
+  },
+  "decision": {
+    "id": "decision-nova-accept",
+    "kind": "accept",
+    "actor": "SRE 值班负责人",
+    "note": "已复核覆盖缺口，接受当前巡检证据。",
+    "createdAt": "2026-08-02T16:04:30.852Z"
+  },
+  "report": {
+    "id": "report-nova-payments-0318",
+    "verdict": "passed",
+    "immutable": true,
+    "runIds": ["run-nova-admission", "run-nova-canary", "run-nova-post-change"],
+    "decisionIds": ["decision-nova-accept"],
+    "generatedAt": "2026-08-02T16:04:30.852Z"
+  }
+}
