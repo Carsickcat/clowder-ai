@@ -79,6 +79,7 @@ The first independent pass requested two changes:
 
 1. P1: replace the incomplete inherited-environment denylist. The acceptance child now receives only five case-insensitive OS execution keys; writable home/temp/XDG state is redirected under its owned temporary root. Hostile coverage includes IMAP user/pass, `GITHUB_MCP_PAT`, `NODE_OPTIONS`, a proxy and an unrelated runtime flag.
 2. P2: mutation-lock the terminal invariants. The contract now enforces `startup < final HEAD < final cleanliness < success evidence`, and fails when either guard is removed or cleanliness is moved early.
+3. P2 re-review: wire hostile coverage into the real gate. `check:pre-merge-gate` now executes both test files, and the package contract prevents either suite from being silently disconnected.
 
 The final clean exact-HEAD `pnpm gate` is intentionally run after committing this archived packet; its SHA and exit evidence are supplied in the routed re-review message.
 

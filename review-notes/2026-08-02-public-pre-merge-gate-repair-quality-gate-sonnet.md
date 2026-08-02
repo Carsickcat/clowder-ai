@@ -92,8 +92,9 @@ Dogfood bugs found and fixed:
 |---|---|---|
 | P1: ambient IMAP/PAT credentials reached the startup child | hostile-env test observed `GITHUB_REVIEW_IMAP_USER` in `buildAcceptanceEnv()` | the child env now begins empty; IMAP user/pass, `GITHUB_MCP_PAT`, proxies, `NODE_OPTIONS` and unknown flags are absent, while home/temp/XDG paths are owned by the acceptance root |
 | P2: final gate invariants were not mutation-locked | removing the HEAD guard and moving cleanliness before startup left the old checker green | explicit order assertions plus removal/reordering mutations pass |
+| P2: hostile-env regression was not in `pnpm gate` | package inspection showed `check:pre-merge-gate` referenced only the orchestration test | the package command now runs both test files, and its contract fails if the hostile suite is disconnected |
 
-Failure-mode audit: P1 and P2 are distinct mechanisms but share an unproven-boundary shape. The full startup environment boundary and every terminal success guard were scanned. The generalized defenses are allowlist construction and ordered mutation tests, not additional denylist entries or point assertions. No fallback layer was added; the repository's fallback checker remains absent as documented below.
+Failure-mode audit: the findings are distinct mechanisms but share an unproven-boundary shape. The full startup environment boundary, every terminal success guard and the root-to-suite invocation chain were scanned. The generalized defenses are allowlist construction, ordered mutation tests and a package-level wiring contract, not additional denylist entries or duplicate shell commands. No fallback layer was added; the repository's fallback checker remains absent as documented below.
 
 ## Applicable limitations, stated rather than hidden
 

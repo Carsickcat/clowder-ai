@@ -50,7 +50,7 @@ A same-family audit found additional package commands whose source-only scripts 
 - Red: the real entrypoint, `pnpm gate`, failed with exit 127 because `./scripts/pre-merge-check.sh` did not exist.
 - Red 2: the source-style root test command failed under Windows and an isolated `test:public` still exposed Linux-only semantics; this disproved a local mass-fix/exclusion approach.
 - Review Red: a hostile environment proved that `GITHUB_REVIEW_IMAP_USER`, `GITHUB_REVIEW_IMAP_PASS` and `GITHUB_MCP_PAT` reached the child under the original denylist; removing the final HEAD guard or moving the final cleanliness guard before startup also escaped the original contract tests.
-- Regression: the gate and startup suites pass 10/10. Hostile-env coverage proves credentials and unknown configuration are absent, while mutation assertions reject platform-test removal, final-HEAD removal, final-cleanliness removal and final-cleanliness reordering.
+- Regression: `check:pre-merge-gate` continuously runs both gate and startup suites, which pass 10/10. Hostile-env coverage proves credentials and unknown configuration are absent, while mutation assertions reject platform-test removal, final-HEAD removal, final-cleanliness removal and final-cleanliness reordering.
 - Startup: `pnpm test:startup` passes against the real built API without Redis or runtime data.
 - Cross-platform formatting: `pnpm check` passes from the CRLF Windows checkout; `origin/main`'s LF Ubuntu check remains the remote authority before merge.
 - Local platform verification: `pnpm lint` and `pnpm build` pass; the two Windows workflow commands pass 31 tests with 9 platform-declared skips and no failures.

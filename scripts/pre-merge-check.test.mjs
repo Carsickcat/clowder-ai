@@ -68,6 +68,11 @@ describe('public pre-merge gate', () => {
   it('keeps the package gate entry backed by a repository script', () => {
     assert.equal(PACKAGE_JSON.scripts.gate, 'bash ./scripts/pre-merge-check.sh');
     assert.equal(
+      PACKAGE_JSON.scripts['check:pre-merge-gate'],
+      'node --test scripts/pre-merge-check.test.mjs scripts/public-startup-acceptance.test.mjs',
+      'pnpm gate must continuously enforce both orchestration and hostile startup regressions',
+    );
+    assert.equal(
       existsSync(GATE_SCRIPT_PATH),
       true,
       'package.json must not expose a gate command whose script is absent',

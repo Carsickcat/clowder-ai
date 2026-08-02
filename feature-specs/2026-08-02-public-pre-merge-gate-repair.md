@@ -110,4 +110,5 @@ Independent review found two unproven boundaries in the first version: the envir
 
 1. Environment construction starts empty and copies only `PATH`, `PATHEXT`, `SYSTEMROOT`, `WINDIR` and `COMSPEC` case-insensitively; all home/temp/XDG roots are explicit children of the owned `mkdtemp` root.
 2. The contract checker requires `startup < final HEAD < final cleanliness < success evidence`, with mutation tests for guard removal and reordering.
-3. Run the hostile-env and mutation suite, real built startup, check, lint, build, then one clean exact-HEAD `pnpm gate` before requesting re-review.
+3. `check:pre-merge-gate` must invoke both the orchestration contract and hostile startup suite; the package contract test locks that wiring.
+4. Run the wired hostile-env and mutation suite, real built startup, check, lint, build, then one clean exact-HEAD `pnpm gate` before requesting re-review.
