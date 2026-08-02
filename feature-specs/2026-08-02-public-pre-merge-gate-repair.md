@@ -41,7 +41,7 @@ Not building: a cross-platform rewrite of every Linux-oriented API test, a secon
 - **INV-2:** The HEAD captured after rebase is identical at completion.
 - **INV-3:** Windows local verification cannot claim that `test:public` ran; it must name the required Ubuntu check.
 - **INV-4:** Non-Windows local verification runs the same API public command as Ubuntu CI.
-- **INV-5:** Startup acceptance deletes inherited `REDIS_URL` and uses `MEMORY_STORE=1` plus a unique temporary data/config root.
+- **INV-5:** Startup acceptance passes through only the OS keys needed to execute the child, uses `MEMORY_STORE=1`, and redirects home/cache/temp/data/config state into one unique temporary root.
 - **INV-6:** Startup cleanup never searches for or terminates unrelated processes.
 - **INV-7:** The repair adds no test-file exclusion beyond the existing `test:public` contract.
 
@@ -49,7 +49,7 @@ Not building: a cross-platform rewrite of every Linux-oriented API test, a secon
 
 | Scenario | Expected evidence |
 |---|---|
-| Parent shell exports production/runtime variables | startup child environment replaces data/config roots and omits Redis |
+| Parent shell exports credentials, proxies or production/runtime variables | startup child receives none of them; only the OS execution allowlist survives and all writable roots are temporary |
 | API never becomes healthy | probe times out, prints child output tail, stops exact child, exits non-zero |
 | API exits before health | probe reports exit code/output and fails |
 | Windows checkout runs Linux-only tests | local gate selects the checked-in Windows smoke commands and states remote Linux requirement |
@@ -103,3 +103,11 @@ Not building: a cross-platform rewrite of every Linux-oriented API test, a secon
 2. Record Red evidence: root `pnpm test` is not the public contract; an isolated Windows `test:public` still fails Linux-semantic tests, while current `origin/main` Ubuntu `Test (Public)` is green.
 3. Run targeted tests, `pnpm check`, `pnpm lint`, `pnpm build`, real startup acceptance, and finally `pnpm gate` from a clean exact commit.
 4. Request independent review of the gate delta before push/PR; after push, require Ubuntu `Test (Public)` and Windows Smoke success before merge.
+
+## Review closure: ambient environment and terminal gate guards
+
+Independent review found two unproven boundaries in the first version: the environment denylist missed IMAP/PAT variables, and contract tests did not reject deletion of the final HEAD guard or premature cleanliness verification. The repair changes the coordinate system rather than extending either list:
+
+1. Environment construction starts empty and copies only `PATH`, `PATHEXT`, `SYSTEMROOT`, `WINDIR` and `COMSPEC` case-insensitively; all home/temp/XDG roots are explicit children of the owned `mkdtemp` root.
+2. The contract checker requires `startup < final HEAD < final cleanliness < success evidence`, with mutation tests for guard removal and reordering.
+3. Run the hostile-env and mutation suite, real built startup, check, lint, build, then one clean exact-HEAD `pnpm gate` before requesting re-review.

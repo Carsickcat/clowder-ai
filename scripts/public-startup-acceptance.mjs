@@ -9,50 +9,31 @@ const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const DEFAULT_ROOT = resolve(dirname(SCRIPT_PATH), '..');
 const OUTPUT_LIMIT = 16_000;
 
-const REPLACED_ENV_KEYS = new Set([
-  'API_SERVER_HOST',
-  'API_SERVER_PORT',
-  'AUDIT_LOG_DIR',
-  'CAT_TEMPLATE_PATH',
-  'CHARACTER_VOICE_DIR',
-  'CLI_RAW_ARCHIVE_DIR',
-  'CONNECTOR_MEDIA_DIR',
-  'DOCS_ROOT',
-  'EVIDENCE_DB',
-  'GENSHIN_VOICE_DIR',
-  'LOG_DIR',
-  'MEMORY_STORE',
-  'NODE_ENV',
-  'PROJECT_ALLOWED_ROOTS',
-  'PROJECT_ALLOWED_ROOTS_APPEND',
-  'PROJECT_DENIED_ROOTS',
-  'REDIS_URL',
-  'RUNTIME_REPO_PATH',
-  'SIGNALS_ROOT_DIR',
-  'TRANSCRIPT_DATA_DIR',
-  'TTS_CACHE_DIR',
-  'UPLOAD_DIR',
-  'WEB_PUBLIC_DIR',
-  'WORKSPACE_LINKED_ROOTS',
-]);
-
-function shouldRemoveInheritedKey(key) {
-  return (
-    REPLACED_ENV_KEYS.has(key) ||
-    /^(ANTHROPIC|CAT_CAFE|DARE|GEMINI|OPENAI)_/.test(key) ||
-    /(?:_API_KEY|_TOKEN|_SECRET)$/.test(key)
-  );
-}
+const ACCEPTANCE_ENV_PASSTHROUGH = new Set(['COMSPEC', 'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR']);
 
 export function buildAcceptanceEnv({ baseEnv = process.env, repoRoot, tempRoot, port }) {
   const env = {};
   for (const [key, value] of Object.entries(baseEnv)) {
-    if (value !== undefined && !shouldRemoveInheritedKey(key)) env[key] = value;
+    if (value !== undefined && ACCEPTANCE_ENV_PASSTHROUGH.has(key.toUpperCase())) env[key] = value;
   }
 
   const configRoot = join(tempRoot, 'config');
   const dataRoot = join(tempRoot, 'data');
+  const homeRoot = join(tempRoot, 'home');
+  const appDataRoot = join(tempRoot, 'appdata');
+  const tempDir = join(tempRoot, 'tmp');
+  const xdgRoot = join(tempRoot, 'xdg');
   Object.assign(env, {
+    HOME: homeRoot,
+    USERPROFILE: homeRoot,
+    APPDATA: join(appDataRoot, 'roaming'),
+    LOCALAPPDATA: join(appDataRoot, 'local'),
+    TEMP: tempDir,
+    TMP: tempDir,
+    TMPDIR: tempDir,
+    XDG_CACHE_HOME: join(xdgRoot, 'cache'),
+    XDG_CONFIG_HOME: join(xdgRoot, 'config'),
+    XDG_DATA_HOME: join(xdgRoot, 'data'),
     NODE_ENV: 'test',
     MEMORY_STORE: '1',
     API_SERVER_HOST: '127.0.0.1',
@@ -110,6 +91,13 @@ async function allocateLoopbackPort() {
 
 async function prepareTempRoot(repoRoot, tempRoot) {
   const directories = [
+    'home',
+    'appdata/roaming',
+    'appdata/local',
+    'tmp',
+    'xdg/cache',
+    'xdg/config',
+    'xdg/data',
     'config',
     'global',
     'runtime',

@@ -4,7 +4,7 @@ Review-Target-ID: `nova-inspection-atomic-mvp`
 
 Branch: `feat/nova-inspection-atomic-mvp`
 
-Scoped range: `e916cbf..e998bf6` plus this review-note commit
+Scoped range: `e916cbf..HEAD`; review-fix delta: `d5536b5..HEAD`
 
 ## What
 
@@ -65,13 +65,22 @@ Value OQ for operator: none. The co-creator already selected the invariant-prese
 - Quality report: `review-notes/2026-08-02-public-pre-merge-gate-repair-quality-gate-sonnet.md`
 - Plan: `feature-specs/2026-08-02-public-pre-merge-gate-repair.md`
 - Root cause: `docs/bug-report/public-pre-merge-gate-missing/bug-report.md`
-- targeted gate/startup tests: **7/7 pass**
+- targeted gate/startup tests: **10/10 pass**, including hostile ambient IMAP/PAT/proxy variables and final-guard removal/reordering mutations
 - `pnpm check`, `pnpm lint`, `pnpm build`: exit 0
 - Windows workflow commands: **31 pass, 9 declared skips, 0 fail**
 - real built API startup: pass with memory/temp state
 - clean `pnpm gate` on `e998bf6`: exit 0 in 61 seconds
 - root media/design artifact scan: empty; no UI/`.pen` delta
 - `pnpm check:skills` remains unavailable because the public snapshot omits its referenced source-only script; manual T0/frontmatter audit passed and the limitation is explicit in the quality report
+
+## Review-fix confirmation
+
+The first independent pass requested two changes:
+
+1. P1: replace the incomplete inherited-environment denylist. The acceptance child now receives only five case-insensitive OS execution keys; writable home/temp/XDG state is redirected under its owned temporary root. Hostile coverage includes IMAP user/pass, `GITHUB_MCP_PAT`, `NODE_OPTIONS`, a proxy and an unrelated runtime flag.
+2. P2: mutation-lock the terminal invariants. The contract now enforces `startup < final HEAD < final cleanliness < success evidence`, and fails when either guard is removed or cleanliness is moved early.
+
+The final clean exact-HEAD `pnpm gate` is intentionally run after committing this archived packet; its SHA and exit evidence are supplied in the routed re-review message.
 
 ## Requested review scope
 

@@ -39,11 +39,11 @@ All six are covered by the plan, implementation, contract tests and real `pnpm g
 
 | Invariant | Implementation | Evidence | Result |
 |---|---|---|---|
-| dirty input/output fails | two `git status --porcelain` guards | mutation-resistant gate contract + real clean gate | PASS |
-| HEAD cannot move during verification | capture and compare `GATE_HEAD` | contract assertion + real clean gate | PASS |
+| dirty input/output fails | two `git status --porcelain` guards; final guard ordered after startup and HEAD comparison | removal/reordering mutations + real clean gate | PASS |
+| HEAD cannot move during verification | capture and compare `GATE_HEAD` after startup | removal mutation + real clean gate | PASS |
 | Windows cannot claim Linux public coverage | OS branch runs workflow-owned smoke tests and prints `Remote required: Test (Public)` | script/workflow contract test | PASS |
 | non-Windows matches Ubuntu command | `pnpm --filter @cat-cafe/api run test:public` | CI workflow contract test | PASS |
-| startup cannot inherit persistent/runtime state | credential/runtime env removal, `MEMORY_STORE=1`, unique temp roots | hostile-env test + real built API startup | PASS |
+| startup cannot inherit persistent/runtime state | empty-by-default env, minimal OS allowlist, `MEMORY_STORE=1`, unique temp roots | hostile-env IMAP/PAT/proxy/unknown-var test + real built API startup | PASS |
 | cleanup only targets owned resources | exact child handle and `mkdtemp` return are retained; no process search | healthy/early-exit process-boundary tests | PASS |
 | no new test exclusion | platform split reuses the two checked-in workflows | diff and failure-mode audit | PASS |
 
@@ -74,7 +74,7 @@ Dogfood bugs found and fixed:
 
 - Red 1: `pnpm gate` exited 127 because `scripts/pre-merge-check.sh` was absent.
 - Red 2: source-style root tests failed on Windows; environment-isolated `test:public` still failed Linux path/mode/tmux/SQLite-WAL semantics, confirming the checked-in platform split rather than a new exclusion list.
-- gate/startup regression: **7/7 passed**.
+- gate/startup regression: **10/10 passed**.
 - `pnpm check`: exit 0; 1,891 Biome-scanned files plus feature/env/profile/gate checks.
 - `pnpm lint`: exit 0 across shared/API/MCP/Web; existing Web warnings only.
 - `pnpm build`: exit 0 across shared/API/MCP/Web.
@@ -85,6 +85,15 @@ Dogfood bugs found and fixed:
 - skill frontmatter/T0 description contract: parse passed; Common Mistakes now names the Windows-Smoke/Public-Suite confusion.
 - root media/design artifact scan: empty.
 - `.pen` match: none; no UI files changed in the gate-repair range.
+
+## Independent review closure
+
+| Finding | Red | Green |
+|---|---|---|
+| P1: ambient IMAP/PAT credentials reached the startup child | hostile-env test observed `GITHUB_REVIEW_IMAP_USER` in `buildAcceptanceEnv()` | the child env now begins empty; IMAP user/pass, `GITHUB_MCP_PAT`, proxies, `NODE_OPTIONS` and unknown flags are absent, while home/temp/XDG paths are owned by the acceptance root |
+| P2: final gate invariants were not mutation-locked | removing the HEAD guard and moving cleanliness before startup left the old checker green | explicit order assertions plus removal/reordering mutations pass |
+
+Failure-mode audit: P1 and P2 are distinct mechanisms but share an unproven-boundary shape. The full startup environment boundary and every terminal success guard were scanned. The generalized defenses are allowlist construction and ordered mutation tests, not additional denylist entries or point assertions. No fallback layer was added; the repository's fallback checker remains absent as documented below.
 
 ## Applicable limitations, stated rather than hidden
 

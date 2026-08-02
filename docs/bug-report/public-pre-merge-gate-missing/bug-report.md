@@ -35,7 +35,7 @@ Add a public `scripts/pre-merge-check.sh` that implements the documented latest-
 - Windows: the two commands owned by `.github/workflows/windows-smoke.yml`, with an explicit `Remote required: Test (Public)` handoff;
 - non-Windows: the same `@cat-cafe/api test:public` command owned by the Ubuntu workflow.
 
-Add `scripts/public-startup-acceptance.mjs` to start one exact built API child on a loopback ephemeral port with `MEMORY_STORE=1`, copied temporary cat config, temporary data/log roots and inherited credentials/Redis removed. It polls `/health`, stops only the child it spawned, and removes only its `mkdtemp` directory.
+Add `scripts/public-startup-acceptance.mjs` to start one exact built API child on a loopback ephemeral port with `MEMORY_STORE=1`, copied temporary cat config, and temporary data/log/home/cache roots. The child receives only a minimal OS execution allowlist from the parent environment; credentials, proxies, runtime flags, `NODE_OPTIONS`, Redis and all unknown ambient variables are absent by construction. It polls `/health`, stops only the child it spawned, and removes only its `mkdtemp` directory.
 
 The contract test is wired into `pnpm check` and fails whenever the package entrypoint is missing, either platform test branch disappears, the Ubuntu workflow loses `test:public`, startup acceptance disappears, or fetch/rebase/HEAD/worktree hygiene weakens.
 
@@ -49,7 +49,8 @@ A same-family audit found additional package commands whose source-only scripts 
 
 - Red: the real entrypoint, `pnpm gate`, failed with exit 127 because `./scripts/pre-merge-check.sh` did not exist.
 - Red 2: the source-style root test command failed under Windows and an isolated `test:public` still exposed Linux-only semantics; this disproved a local mass-fix/exclusion approach.
-- Regression: the gate and startup suites pass 7/7. Mutation assertions prove that removing either Linux or Windows test coverage is rejected.
+- Review Red: a hostile environment proved that `GITHUB_REVIEW_IMAP_USER`, `GITHUB_REVIEW_IMAP_PASS` and `GITHUB_MCP_PAT` reached the child under the original denylist; removing the final HEAD guard or moving the final cleanliness guard before startup also escaped the original contract tests.
+- Regression: the gate and startup suites pass 10/10. Hostile-env coverage proves credentials and unknown configuration are absent, while mutation assertions reject platform-test removal, final-HEAD removal, final-cleanliness removal and final-cleanliness reordering.
 - Startup: `pnpm test:startup` passes against the real built API without Redis or runtime data.
 - Cross-platform formatting: `pnpm check` passes from the CRLF Windows checkout; `origin/main`'s LF Ubuntu check remains the remote authority before merge.
 - Local platform verification: `pnpm lint` and `pnpm build` pass; the two Windows workflow commands pass 31 tests with 9 platform-declared skips and no failures.

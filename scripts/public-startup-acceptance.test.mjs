@@ -45,6 +45,42 @@ describe('public startup acceptance', () => {
     assert.equal(env.EVIDENCE_DB, join(tempRoot, 'data', 'evidence.sqlite'));
   });
 
+  it('does not pass ambient credentials or unapproved configuration to the child', () => {
+    const tempRoot = resolve(tmpdir(), 'public-startup-hostile-env-test');
+    const env = buildAcceptanceEnv({
+      baseEnv: {
+        PATH: process.env.PATH,
+        SystemRoot: process.env.SystemRoot,
+        COMSPEC: process.env.COMSPEC,
+        PATHEXT: process.env.PATHEXT,
+        GITHUB_REVIEW_IMAP_USER: 'production@example.invalid',
+        GITHUB_REVIEW_IMAP_PASS: 'production-password',
+        GITHUB_MCP_PAT: 'github-pat',
+        NODE_OPTIONS: '--require=C:/operator/hook.cjs',
+        HTTPS_PROXY: 'http://production-proxy.invalid:8080',
+        UNRELATED_RUNTIME_FLAG: 'must-not-reach-child',
+        HOME: 'C:/operator/home',
+        USERPROFILE: 'C:/operator/profile',
+        APPDATA: 'C:/operator/appdata',
+        LOCALAPPDATA: 'C:/operator/local-appdata',
+      },
+      repoRoot: ROOT,
+      tempRoot,
+      port: 43123,
+    });
+
+    assert.equal(env.GITHUB_REVIEW_IMAP_USER, undefined);
+    assert.equal(env.GITHUB_REVIEW_IMAP_PASS, undefined);
+    assert.equal(env.GITHUB_MCP_PAT, undefined);
+    assert.equal(env.NODE_OPTIONS, undefined);
+    assert.equal(env.HTTPS_PROXY, undefined);
+    assert.equal(env.UNRELATED_RUNTIME_FLAG, undefined);
+    assert.equal(env.HOME, join(tempRoot, 'home'));
+    assert.equal(env.USERPROFILE, join(tempRoot, 'home'));
+    assert.equal(env.APPDATA, join(tempRoot, 'appdata', 'roaming'));
+    assert.equal(env.LOCALAPPDATA, join(tempRoot, 'appdata', 'local'));
+  });
+
   it('probes a real child health endpoint and stops that exact child', async (testContext) => {
     const fixture = writeFixture(
       testContext,
