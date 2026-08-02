@@ -1,6 +1,8 @@
 'use client';
 
 import type {
+  InspectionAssessmentItem,
+  InspectionCandidate,
   InspectionCandidateSet,
   InspectionCase,
   InspectionJob,
@@ -28,13 +30,6 @@ import {
 } from '@/utils/inspection-api';
 import styles from './InspectionOperationsPage.module.css';
 
-const PURPOSES: readonly { value: InspectionRunPurpose; label: string }[] = [
-  { value: 'admission', label: '准入巡检' },
-  { value: 'canary', label: '灰度巡检' },
-  { value: 'verification', label: '验证巡检' },
-  { value: 'post_change', label: '变更后巡检' },
-];
-
 function runKey(): string {
   const random = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
   return `inspection-${Date.now()}-${random}`;
@@ -56,6 +51,156 @@ function statusLabel(status: string): string {
 
 function sourceLabel(source: InspectionSourceMetadata): string {
   return source.kind === 'replay' ? '验收回放 · 服务端回放数据' : source.label;
+}
+
+function environmentLabel(environment: string): string {
+  const labels: Record<string, string> = {
+    acceptance: '验收环境',
+    development: '开发环境',
+    staging: '预发布环境',
+  };
+  return labels[environment] ?? environment;
+}
+
+function candidateLabel(candidate: InspectionCandidate): string {
+  const labels: Record<string, string> = {
+    availability: '服务可用性',
+    latency: '请求延迟',
+    error_rate: '服务错误率',
+    'error-rate': '服务错误率',
+    server_error_rate: '服务错误率',
+    payment_success_rate: '支付成功率',
+    downstream_failure_rate: '下游依赖失败率',
+  };
+  return labels[candidate.id] ?? labels[candidate.check.id] ?? candidate.name;
+}
+
+function candidateReason(candidate: InspectionCandidate): string {
+  const reasons: Record<string, string> = {
+    availability: '确认成功请求的可用性没有下降。',
+    latency: '确认路由变化没有引入下游争用或额外跳转。',
+    error_rate: '确认变更后服务端错误没有增加。',
+    'error-rate': '确认变更后服务端错误没有增加。',
+    server_error_rate: '确认变更后服务端错误没有增加。',
+    payment_success_rate: '确认支付成功率保持稳定。',
+    downstream_failure_rate: '确认下游依赖没有出现新增失败。',
+  };
+  return reasons[candidate.id] ?? reasons[candidate.check.id] ?? '根据变更上下文与服务拓扑生成。';
+}
+
+function operatorLabel(operator: InspectionCandidate['check']['operator']): string {
+  return operator.startsWith('lt') || operator === 'relative_lte' ? '≤' : '≥';
+}
+
+function jobLabel(jobItem: InspectionJob): string {
+  return /[\u3400-\u9fff]/u.test(jobItem.name) ? jobItem.name : jobItem.service + ' 变更巡检';
+}
+
+function assessmentLabel(item: InspectionAssessmentItem): string {
+  const labels: Record<string, string> = {
+    CHANGE_CONTENTION_HYPOTHESIS: '延迟变化可能来自本次变更引发的下游资源争用。',
+    COVERAGE_OMISSION: '存在尚未接入机器检查的依赖，需要人工复核。',
+    REVIEW_COVERAGE_OMISSION: '接受范围内的通过结论前，请将未覆盖依赖确认为一项未关闭风险。',
+    RESTORE_EVIDENCE: '请恢复完整、时效合格的证据，再执行一次巡检后作出变更决策。',
+  };
+  if (labels[item.code]) return labels[item.code];
+  const metricLabels: Record<string, string> = {
+    availability: '服务可用性',
+    latency: '请求延迟',
+    'error-rate': '服务错误率',
+  };
+  const metric = Object.keys(metricLabels).find((name) => item.statement.startsWith(name));
+  if (item.code === 'CHECK_PASSED' && metric) {
+    const value = item.statement.match(/ at ([^.]*)\.?$/u)?.[1] ?? '已记录';
+    return metricLabels[metric] + '保持在配置阈值内，观测值为 ' + value + '。';
+  }
+  if (item.code === 'EVIDENCE_UNKNOWN' && metric) {
+    return metricLabels[metric] + '的证据不满足时效或完整性要求，当前不可判定。';
+  }
+  return item.statement;
+}
+
+const PURPOSE_LABELS: Readonly<Record<InspectionRunPurpose, string>> = {
+  admission: '变更前准入',
+  canary: '灰度持续验证',
+  verification: '风险复验',
+  post_change: '变更后验收',
+};
+
+function journeyStage(workspace: InspectionWorkspace | null): number {
+  if (!workspace || workspace.runs.length === 0) return 0;
+  const latestPurpose = workspace.runs.at(-1)?.purpose;
+  if (workspace.case.status === 'completed' || latestPurpose === 'post_change') return 2;
+  if (latestPurpose === 'canary' || latestPurpose === 'verification') return 1;
+  return 0;
+}
+
+function suggestedPurpose(workspace: InspectionWorkspace | null): InspectionRunPurpose {
+  const latest = workspace?.runs.at(-1);
+  if (!latest) return 'admission';
+  if (latest.verdict !== 'passed') return 'verification';
+  if (latest.purpose === 'admission') return 'canary';
+  if (latest.purpose === 'canary' || latest.purpose === 'verification') return 'post_change';
+  return 'post_change';
+}
+
+function decisionCopy(
+  workspace: InspectionWorkspace | null,
+  candidateSet: InspectionCandidateSet | null,
+): { readonly title: string; readonly summary: string; readonly tone: string } {
+  if (!workspace) {
+    return candidateSet
+      ? {
+          title: '巡检方案等待确认',
+          summary: '请审阅检查范围、阈值和覆盖缺口；确认后才会创建独立巡检记录。',
+          tone: 'ready',
+        }
+      : {
+          title: '从一句变更意图开始',
+          summary: 'CLAW 会结合变更上下文和拓扑生成候选巡检项，先解释、再由你确认。',
+          tone: 'neutral',
+        };
+  }
+  if (workspace.report) {
+    return {
+      title: workspace.report.verdict === 'passed' ? '本次变更未发现异常退化' : '最终报告保留风险结论',
+      summary: '最终报告已经固化，关联的运行证据与人工决策不可原地修改。',
+      tone: workspace.report.verdict,
+    };
+  }
+  const latest = workspace.runs.at(-1);
+  if (!latest) {
+    return {
+      title: '方案已固化，等待首次巡检',
+      summary: '执行后由服务端采集只读证据并生成机器判定，浏览器不会填写观测值。',
+      tone: 'ready',
+    };
+  }
+  if (latest.status === 'running') {
+    return { title: '正在采集巡检证据', summary: '请等待服务端完成本阶段观测。', tone: 'running' };
+  }
+  if (latest.verdict === 'risk') {
+    return {
+      title: '发现风险，暂停推进',
+      summary: '风险证据不会被平均分掩盖；处理后需要产生新的复验记录。',
+      tone: 'risk',
+    };
+  }
+  if (latest.verdict === 'unknown') {
+    return {
+      title: '当前证据不足，暂不可判定',
+      summary: '请先恢复数据源或补齐缺失证据，再重新执行本阶段巡检。',
+      tone: 'unknown',
+    };
+  }
+  return {
+    title: latest.purpose === 'post_change' ? '变更后指标未发现异常退化' : '当前阶段检查通过',
+    summary:
+      workspace.assessment?.coverageStatus === 'omission'
+        ? '机器检查通过，但仍有未覆盖依赖，需要人工复核。'
+        : '证据完整，可进入下一阶段或固化本次报告。',
+    tone: 'passed',
+  };
 }
 
 export function InspectionOperationsPage() {
@@ -135,6 +280,7 @@ export function InspectionOperationsPage() {
             setSelectedCaseId(firstCase.id);
             const loadedWorkspace = await fetchInspectionCase(firstCase.id);
             setWorkspace(loadedWorkspace);
+            setPurpose(suggestedPurpose(loadedWorkspace));
           }
         }
       } catch {
@@ -199,8 +345,24 @@ export function InspectionOperationsPage() {
         setSelectedCaseId(firstCase.id);
         const loadedWorkspace = await fetchInspectionCase(firstCase.id);
         setWorkspace(loadedWorkspace);
+        setPurpose(suggestedPurpose(loadedWorkspace));
       }
     });
+  }
+
+  function startNewInspection() {
+    setSelectedJobId(null);
+    setSelectedCaseId(null);
+    setWorkspace(null);
+    setCandidateSet(null);
+    setSelectedCandidateIds([]);
+    setCandidateWaivers({});
+    setIntent('');
+    setCandidateService('');
+    setCandidateChangeId('');
+    setCandidateVersion('');
+    setPurpose('admission');
+    setCommandError(null);
   }
 
   async function chooseCase(caseId: string) {
@@ -208,6 +370,7 @@ export function InspectionOperationsPage() {
     await withCommand(async () => {
       const loadedWorkspace = await fetchInspectionCase(caseId);
       setWorkspace(loadedWorkspace);
+      setPurpose(suggestedPurpose(loadedWorkspace));
     });
   }
 
@@ -255,7 +418,9 @@ export function InspectionOperationsPage() {
       setCases([createdCase]);
       setSelectedCaseId(createdCase.id);
       applyRevisionDraft(created.revision);
-      setWorkspace(await fetchInspectionCase(createdCase.id));
+      const loadedWorkspace = await fetchInspectionCase(createdCase.id);
+      setWorkspace(loadedWorkspace);
+      setPurpose(suggestedPurpose(loadedWorkspace));
     });
   }
 
@@ -304,6 +469,7 @@ export function InspectionOperationsPage() {
       setSelectedCaseId(created.id);
       const loadedWorkspace = await fetchInspectionCase(created.id);
       setWorkspace(loadedWorkspace);
+      setPurpose(suggestedPurpose(loadedWorkspace));
       setChangeId('');
       setVersion('');
     });
@@ -344,7 +510,9 @@ export function InspectionOperationsPage() {
     if (!selectedCaseId) return;
     await withCommand(async () => {
       await startInspectionRun(selectedCaseId, purpose, runKey());
-      setWorkspace(await fetchInspectionCase(selectedCaseId));
+      const refreshedWorkspace = await fetchInspectionCase(selectedCaseId);
+      setWorkspace(refreshedWorkspace);
+      setPurpose(suggestedPurpose(refreshedWorkspace));
       const refreshedCases = await listInspectionCases(selectedJobId ?? undefined);
       setCases(refreshedCases);
     });
@@ -388,39 +556,50 @@ export function InspectionOperationsPage() {
         !selectedCandidateIds.includes(candidate.id) &&
         !candidateWaivers[candidate.id]?.trim(),
     ) ?? false;
+  const activeJourneyStage = journeyStage(workspace);
+  const decision = decisionCopy(workspace, candidateSet);
+  const changeContext = candidateSet?.changeContext;
+  const displayedService = (workspace?.job.service ?? changeContext?.service ?? candidateService) || '等待识别服务';
+  const displayedVersion = (workspace?.case.version ?? changeContext?.version ?? candidateVersion) || '—';
+  const displayedChangeId = (workspace?.case.changeId ?? changeContext?.changeId ?? candidateChangeId) || '—';
+  const displayedEnvironment = environmentLabel(
+    workspace?.job.environment ?? changeContext?.environment ?? selectedSource?.scope ?? '—',
+  );
+  const visibleJobs = jobs.slice(0, 3);
+  const taskSummary = workspace
+    ? `巡检 ${workspace.job.service} ${workspace.case.version} 是否具备当前阶段推进条件`
+    : (changeContext?.intent ?? '创建一份变更巡检方案');
 
   return (
-    <main className={styles.page}>
-      <header className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>NOVA · CONNECTED SANDBOX</p>
-          <h1>变更巡检决策工作台</h1>
-          <p className={styles.lead}>
-            作业、版本、执行证据与报告持久化到服务端。这里只读观测，不执行发布、放量或回滚。
-          </p>
+    <main className={styles.page} data-theme="dark">
+      <header className={styles.topbar}>
+        <div className={styles.brand}>
+          <span className={styles.brandMark} aria-hidden="true">
+            N
+          </span>
+          <span>
+            <strong>NOVA · 变更巡检</strong>
+            <small>从风险问题到可追溯结论</small>
+          </span>
         </div>
         <div className={styles.connection} data-state={connectionState}>
           <span className={styles.connectionDot} aria-hidden="true" />
-          <div>
+          <span>
             <strong>
               {connectionState === 'booting'
-                ? '正在连接 connected API'
+                ? '正在连接巡检服务'
                 : connectionState === 'degraded'
                   ? '连接中断'
                   : connectionState === 'misconfigured'
-                    ? '未配置数据源'
+                    ? '数据源未配置'
                     : connectionState === 'running'
-                      ? '命令执行中'
+                      ? '正在执行'
                       : connectionState === 'completed'
-                        ? '证据已固化'
-                        : '已连接'}
+                        ? '报告已固化'
+                        : '证据服务已连接'}
             </strong>
-            <span>
-              {sources
-                .map((source) => `${sourceLabel(source)} · kind: ${source.kind} · scope: ${source.scope}`)
-                .join(' · ') || '无可用 source'}
-            </span>
-          </div>
+            <small>只读观测，不会执行发布、放量或回滚</small>
+          </span>
         </div>
       </header>
 
@@ -440,36 +619,442 @@ export function InspectionOperationsPage() {
         </div>
       )}
 
-      <section className={styles.journey} aria-label="变更巡检时序">
-        <div className={styles.journeyHeader}>
-          <div>
-            <p className={styles.eyebrow}>CHANGE INSPECTION JOURNEY</p>
-            <h2>从变更意图到可审计决策</h2>
-          </div>
-          <div className={styles.stageRail}>
-            <span data-active={!workspace || purpose === 'admission'}>01 变更前 · 准入</span>
-            <span data-active={purpose === 'canary' || purpose === 'verification'}>02 变更中 · 灰度</span>
-            <span data-active={purpose === 'post_change'}>03 变更后 · 对比</span>
-          </div>
+      <section className={styles.caseContext} data-testid="inspection-context">
+        <div>
+          <p className={styles.eyebrow}>当前变更巡检</p>
+          <h1>
+            {displayedService} <span>{displayedVersion}</span>
+          </h1>
         </div>
+        <dl>
+          <div>
+            <dt>变更编号</dt>
+            <dd>{displayedChangeId}</dd>
+          </div>
+          <div>
+            <dt>环境</dt>
+            <dd>{displayedEnvironment}</dd>
+          </div>
+          <div>
+            <dt>当前状态</dt>
+            <dd>{workspace ? statusLabel(workspace.case.status) : candidateSet ? '方案待确认' : '等待描述'}</dd>
+          </div>
+          <div>
+            <dt>证据范围</dt>
+            <dd>{candidateSet ? candidateSet.candidates.length + ' 项检查' : '尚未生成'}</dd>
+          </div>
+        </dl>
+      </section>
 
-        <div className={styles.atomicGrid}>
-          <form className={styles.intentPanel} onSubmit={handleGenerateCandidates}>
-            <div className={styles.panelTitle}>
-              <span>原子能力 01</span>
-              <strong>巡检项生成</strong>
+      <nav className={styles.journey} aria-label="变更巡检阶段" data-testid="inspection-journey">
+        {[
+          ['变更前准入', '确认是否具备灰度条件'],
+          ['灰度持续验证', '逐阶段比较灰度与稳定版本'],
+          ['变更后验收', '对比基线并形成最终结论'],
+        ].map(([label, hint], index) => (
+          <div
+            key={label}
+            className={styles.journeyStage}
+            data-state={index < activeJourneyStage ? 'completed' : index === activeJourneyStage ? 'active' : 'upcoming'}
+          >
+            <span>{index < activeJourneyStage ? '✓' : index + 1}</span>
+            <span>
+              <strong>{label}</strong>
+              <small>{hint}</small>
+            </span>
+          </div>
+        ))}
+      </nav>
+
+      <section className={styles.workspaceGrid}>
+        <aside className={styles.jobPlatform} data-testid="inspection-job-platform">
+          <header>
+            <span>
+              <p className={styles.eyebrow}>可复用巡检作业</p>
+              <h2>作业平台</h2>
+            </span>
+            <button type="button" onClick={startNewInspection} disabled={busy}>
+              ＋ 新建巡检
+            </button>
+          </header>
+          <p className={styles.sectionIntro}>复用已验证的检查范围和门槛；每次执行仍会生成独立证据。</p>
+          {loading ? (
+            <p className={styles.muted}>正在读取服务端作业…</p>
+          ) : jobs.length === 0 ? (
+            <p className={styles.empty}>还没有已固化作业，可从右侧描述一次变更。</p>
+          ) : (
+            <div className={styles.jobList}>
+              {visibleJobs.map((jobItem) => (
+                <button
+                  key={jobItem.id}
+                  type="button"
+                  className={jobItem.id === selectedJobId ? styles.selectedJob : styles.jobCard}
+                  onClick={() => void chooseJob(jobItem.id)}
+                  disabled={busy || Boolean(workspace && !['ready', 'completed'].includes(workspace.case.status))}
+                >
+                  <span>
+                    <em>{jobItem.id === selectedJobId ? '当前作业' : '已固化'}</em>
+                    <small>版本 {jobItem.currentRevision}</small>
+                  </span>
+                  <strong>{jobLabel(jobItem)}</strong>
+                  <span>
+                    {jobItem.service} · {environmentLabel(jobItem.environment)}
+                  </span>
+                </button>
+              ))}
             </div>
+          )}
+          {cases.length > 0 && (
+            <div className={styles.caseList}>
+              <p className={styles.eyebrow}>本作业的巡检记录</p>
+              {cases.map((inspectionCase) => (
+                <button
+                  key={inspectionCase.id}
+                  type="button"
+                  data-testid="case-pill"
+                  data-case-id={inspectionCase.id}
+                  data-active={inspectionCase.id === selectedCaseId}
+                  onClick={() => void chooseCase(inspectionCase.id)}
+                  disabled={busy}
+                >
+                  <span>{inspectionCase.changeId}</span>
+                  <small>
+                    {inspectionCase.version} · {statusLabel(inspectionCase.status)}
+                  </small>
+                </button>
+              ))}
+            </div>
+          )}
+          <footer>选择作业只会载入方案，不会自动执行生产动作。</footer>
+        </aside>
+
+        <article className={styles.decisionSurface} data-testid="inspection-decision-surface">
+          <header className={styles.decisionHeader}>
+            <div>
+              <p className={styles.eyebrow}>当前任务</p>
+              <strong>{taskSummary}</strong>
+            </div>
+            <span data-tone={decision.tone}>
+              {workspace ? statusLabel(workspace.case.status) : candidateSet ? '方案已生成' : '等待描述'}
+            </span>
+          </header>
+          <section className={styles.currentDecision} data-tone={decision.tone}>
+            <p className={styles.eyebrow}>当前结论</p>
+            <h2>{decision.title}</h2>
+            <p>{decision.summary}</p>
+          </section>
+
+          {!workspace && candidateSet && (
+            <section className={styles.planView}>
+              <div className={styles.sectionHeading}>
+                <span>
+                  <p className={styles.eyebrow}>巡检方案</p>
+                  <h3>系统准备检查什么</h3>
+                </span>
+                <strong>
+                  {selectedCandidateIds.length}/{candidateSet.candidates.length} 项已选择
+                </strong>
+              </div>
+              <div className={styles.planMeta}>
+                <div>
+                  <span>服务拓扑</span>
+                  <strong>{candidateSet.topologySnapshot.rootService}</strong>
+                </div>
+                <div>
+                  <span>环境</span>
+                  <strong>{environmentLabel(candidateSet.changeContext.environment)}</strong>
+                </div>
+                <div>
+                  <span>规则目录</span>
+                  <strong>{candidateSet.topologySnapshot.catalogVersion}</strong>
+                </div>
+              </div>
+              <div className={styles.checkList}>
+                {candidateSet.candidates.map((candidate) => {
+                  const selected = selectedCandidateIds.includes(candidate.id);
+                  return (
+                    <div className={styles.checkItem} key={candidate.id} data-priority={candidate.priority}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleCandidate(candidate.id)}
+                          disabled={busy}
+                        />
+                        <span>
+                          <strong>{candidateLabel(candidate)}</strong>
+                          <small>{candidateReason(candidate)}</small>
+                        </span>
+                      </label>
+                      <span>
+                        {operatorLabel(candidate.check.operator)} {candidate.check.threshold} {candidate.check.unit}
+                      </span>
+                      {!selected && candidate.priority === 'required' && (
+                        <label className={styles.waiverField}>
+                          必选项豁免理由
+                          <input
+                            value={candidateWaivers[candidate.id] ?? ''}
+                            onChange={(event) =>
+                              setCandidateWaivers((current) => ({ ...current, [candidate.id]: event.target.value }))
+                            }
+                            placeholder="说明由什么外部门禁覆盖"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {candidateSet.coverageOmissions.map((omission) => (
+                <div key={omission.id} className={styles.coverageOmission}>
+                  <strong>未覆盖依赖 · {omission.dependencyRef}</strong>
+                  <span>该依赖尚未进入机器检查范围，需要人工复核其容量与健康状态。</span>
+                  <small>当前规则目录没有已审批的只读信号映射。</small>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {workspace && (
+            <section className={styles.evidenceView}>
+              {latestRun ? (
+                <>
+                  <div className={styles.sectionHeading}>
+                    <span>
+                      <p className={styles.eyebrow}>{PURPOSE_LABELS[latestRun.purpose]}</p>
+                      <h3>本阶段巡检证据</h3>
+                    </span>
+                    <strong data-tone={latestRun.verdict}>{statusLabel(latestRun.verdict)}</strong>
+                  </div>
+                  <div className={styles.metricGrid}>
+                    {latestRun.checkResults.map((result) => (
+                      <div key={result.id} data-tone={result.status}>
+                        <span>{result.checkId}</span>
+                        <strong>{result.value ?? '无数据'}</strong>
+                        <small>{statusLabel(result.status)}</small>
+                      </div>
+                    ))}
+                  </div>
+                  {latestRun.errorSummary && <p className={styles.errorText}>{latestRun.errorSummary}</p>}
+                  <details className={styles.evidenceDetails}>
+                    <summary>查看证据来源与完整性</summary>
+                    {latestRun.sourceSnapshot && (
+                      <dl>
+                        <div>
+                          <dt>数据连接</dt>
+                          <dd>{latestRun.sourceSnapshot.connectorRef}</dd>
+                        </div>
+                        <div>
+                          <dt>来源类型</dt>
+                          <dd>{latestRun.sourceSnapshot.sourceKind}</dd>
+                        </div>
+                        <div>
+                          <dt>观测时间</dt>
+                          <dd>{latestRun.sourceSnapshot.observedAt}</dd>
+                        </div>
+                        <div>
+                          <dt>观测窗口</dt>
+                          <dd>
+                            {latestRun.sourceSnapshot.window.from} → {latestRun.sourceSnapshot.window.to}
+                          </dd>
+                        </div>
+                      </dl>
+                    )}
+                    {latestRun.checkResults.map((result) => (
+                      <p key={result.id}>
+                        <code>{result.queryDigest}</code>
+                        <small>{result.observedAt ?? result.reason ?? '无观测时间'}</small>
+                      </p>
+                    ))}
+                  </details>
+                </>
+              ) : (
+                <div className={styles.blankSlate}>
+                  <strong>本次巡检还没有执行记录</strong>
+                  <span>
+                    巡检编号 {workspace.case.id} · 方案版本 {workspace.revision.revision}
+                  </span>
+                </div>
+              )}
+
+              {workspace.assessment && (
+                <details className={styles.assessment} data-testid="inspection-assessment">
+                  <summary>查看判断依据与未决风险</summary>
+                  <div className={styles.assessmentGate}>
+                    <div>
+                      <span>机器判定</span>
+                      <strong>{statusLabel(workspace.assessment.machineVerdict)}</strong>
+                    </div>
+                    <div>
+                      <span>覆盖状态</span>
+                      <strong>{workspace.assessment.coverageStatus === 'omission' ? '存在遗漏' : '完整'}</strong>
+                    </div>
+                    <div>
+                      <span>决策准备度</span>
+                      <strong>
+                        {workspace.assessment.decisionReadiness === 'ready'
+                          ? '可决策'
+                          : workspace.assessment.decisionReadiness === 'review_required'
+                            ? '需人工复核'
+                            : '已阻断'}
+                      </strong>
+                    </div>
+                  </div>
+                  {[
+                    ...workspace.assessment.facts,
+                    ...workspace.assessment.hypotheses,
+                    ...workspace.assessment.unknowns,
+                    ...workspace.assessment.recommendations,
+                  ].map((item) => (
+                    <article key={item.code + '-' + item.statement}>
+                      <strong>分析依据</strong>
+                      <p>{assessmentLabel(item)}</p>
+                      <small>{item.evidenceRefs.map((ref) => ref.ref).join(' · ')}</small>
+                    </article>
+                  ))}
+                </details>
+              )}
+
+              {workspace.abReport && (
+                <section className={styles.abReport} data-testid="inspection-ab-report">
+                  <div className={styles.sectionHeading}>
+                    <span>
+                      <p className={styles.eyebrow}>变更前后对比</p>
+                      <h3>关键指标是否发生退化</h3>
+                    </span>
+                    <strong>{workspace.abReport.comparability === 'valid' ? '可比' : '不可比'}</strong>
+                  </div>
+                  {workspace.abReport.reason && <p>不可用原因 · {workspace.abReport.reason}</p>}
+                  {workspace.abReport.checks.map((check) => (
+                    <div key={check.checkId}>
+                      <strong>{check.checkId}</strong>
+                      <span>
+                        {check.comparable
+                          ? String(check.baselineValue) + ' → ' + String(check.currentValue)
+                          : '不可比 · ' + check.reason}
+                      </span>
+                      <small>{check.comparable ? '变化 ' + String(check.absoluteDelta) : '禁止据此形成通过结论'}</small>
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              {workspace.report && (
+                <article className={styles.report} data-testid="immutable-report">
+                  <span>✓</span>
+                  <div>
+                    <p className={styles.eyebrow}>不可变报告 · {workspace.report.id}</p>
+                    <h3>{decision.title}</h3>
+                    <p>
+                      已固化 {workspace.report.runIds.length} 次执行证据与 {workspace.report.decisionIds.length}{' '}
+                      条人工决策。
+                    </p>
+                  </div>
+                </article>
+              )}
+            </section>
+          )}
+
+          <footer className={styles.nextAction}>
+            <div>
+              <p className={styles.eyebrow}>下一步</p>
+              <span>
+                {candidateSet && !workspace
+                  ? '确认范围后才会创建独立巡检记录。'
+                  : workspace?.report
+                    ? '报告只读，可继续追溯证据。'
+                    : '每次执行都会追加新的服务端证据。'}
+              </span>
+            </div>
+            {!workspace && candidateSet && (
+              <button
+                data-testid="materialize-candidates"
+                className={styles.primaryButton}
+                type="button"
+                onClick={() => void handleMaterializeCandidates()}
+                disabled={formDisabled || selectedCandidateIds.length === 0 || missingRequiredWaiver}
+              >
+                确认方案并创建巡检
+              </button>
+            )}
+            {workspace && !workspace.report && (
+              <div className={styles.runAction}>
+                <span className={styles.stageHint}>
+                  本次阶段<strong>{PURPOSE_LABELS[purpose]}</strong>
+                </span>
+                <button
+                  data-testid="start-run"
+                  className={styles.primaryButton}
+                  type="button"
+                  onClick={() => void handleRun()}
+                  disabled={formDisabled || workspace.case.status === 'completed'}
+                >
+                  {busy ? '正在读取服务端证据…' : '执行本阶段巡检'}
+                </button>
+                {latestRun?.purpose === 'post_change' && latestRun.status !== 'running' && (
+                  <button
+                    data-testid="accept-report"
+                    className={styles.secondaryButton}
+                    type="button"
+                    onClick={() => void handleAccept()}
+                    disabled={
+                      formDisabled ||
+                      latestRun.status !== 'completed' ||
+                      latestRun.verdict !== 'passed' ||
+                      postChangeAcceptanceBlocked
+                    }
+                    title={
+                      latestRun.status !== 'completed' || latestRun.verdict !== 'passed'
+                        ? '只有最新的已完成通过 Run 可以接受。'
+                        : postChangeAcceptanceBlocked
+                          ? '变更后 Run 缺少可比的 admission 基线，不能接受。'
+                          : undefined
+                    }
+                  >
+                    人工接受并固化报告
+                  </button>
+                )}
+              </div>
+            )}
+          </footer>
+        </article>
+
+        <aside className={styles.clawPanel} data-testid="inspection-claw-panel">
+          <header>
+            <span className={styles.clawMark}>✦</span>
+            <span>
+              <strong>CLAW 巡检搭档</strong>
+              <small>在线 · 解释与编排</small>
+            </span>
+          </header>
+          <p className={styles.safetyNote}>我会生成方案和解释证据，但不会代替你执行生产动作。</p>
+          <div className={styles.messages}>
+            <p>告诉我服务、版本和这次变更，我会先生成一份可审阅的巡检方案。</p>
+            {candidateSet && (
+              <p data-role="assistant">
+                已识别 {candidateSet.changeContext.service} {candidateSet.changeContext.version}，生成{' '}
+                {candidateSet.candidates.length} 项检查，并发现 {candidateSet.coverageOmissions.length} 个覆盖缺口。
+              </p>
+            )}
+            {workspace?.assessment && (
+              <p data-role="assistant">
+                机器判定为“{statusLabel(workspace.assessment.machineVerdict)}”，覆盖状态为“
+                {workspace.assessment.coverageStatus === 'omission' ? '存在遗漏' : '完整'}”。
+              </p>
+            )}
+          </div>
+          <form className={styles.clawForm} onSubmit={handleGenerateCandidates}>
             <label>
-              变更意图
+              描述巡检需求
               <textarea
                 data-testid="candidate-intent"
                 value={intent}
                 onChange={(event) => setIntent(event.target.value)}
-                placeholder="帮我巡检 payments-router 的路由配置变更"
+                placeholder="请帮我巡检 payments-router v3.18.0 的路由配置变更"
                 required
               />
             </label>
-            <div className={styles.compactFields}>
+            <div className={styles.confirmedContext}>
               <label>
                 服务
                 <input
@@ -499,12 +1084,15 @@ export function InspectionOperationsPage() {
               </label>
             </div>
             <div className={styles.sourceContract}>
-              <span>确认范围</span>
-              <strong>{selectedSource ? `${selectedSource.scope} · ${selectedSource.id}` : '等待服务端数据源'}</strong>
+              <span>已确认数据范围</span>
+              <strong>
+                {selectedSource
+                  ? environmentLabel(selectedSource.scope) + ' · ' + selectedSource.id
+                  : '等待服务端数据源'}
+              </strong>
             </div>
             <button
               data-testid="generate-candidates"
-              className={styles.primaryButton}
               type="submit"
               disabled={
                 formDisabled ||
@@ -514,185 +1102,71 @@ export function InspectionOperationsPage() {
                 !candidateVersion.trim()
               }
             >
-              {busy ? '生成中…' : '生成候选巡检项'}
+              {busy ? '正在生成…' : '生成巡检方案'} <span>↗</span>
             </button>
           </form>
-
-          <section className={styles.candidatePanel}>
-            <div className={styles.panelTitle}>
-              <span>原子能力 02</span>
-              <strong>候选包 → Playbook Revision</strong>
-            </div>
-            {candidateSet ? (
-              <>
-                <div className={styles.candidateMeta}>
-                  <span>{candidateSet.changeContext.changeId}</span>
-                  <span>{candidateSet.topologySnapshot.catalogVersion}</span>
-                  <span>{candidateSet.candidates.length} 项候选</span>
-                </div>
-                <div className={styles.candidateList}>
-                  {candidateSet.candidates.map((candidate) => {
-                    const selected = selectedCandidateIds.includes(candidate.id);
-                    return (
-                      <article key={candidate.id} className={styles.candidateCard} data-priority={candidate.priority}>
-                        <label className={styles.candidateChoice}>
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => toggleCandidate(candidate.id)}
-                            disabled={busy}
-                          />
-                          <span>
-                            <strong>{candidate.name}</strong>
-                            <small>{candidate.priority}</small>
-                          </span>
-                        </label>
-                        <p>{candidate.reason}</p>
-                        <code>{candidate.check.query}</code>
-                        {!selected && candidate.priority === 'required' && (
-                          <label className={styles.waiverField}>
-                            Required waiver
-                            <input
-                              value={candidateWaivers[candidate.id] ?? ''}
-                              onChange={(event) =>
-                                setCandidateWaivers((current) => ({ ...current, [candidate.id]: event.target.value }))
-                              }
-                              placeholder="说明由什么外部门禁覆盖"
-                            />
-                          </label>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
-                {candidateSet.coverageOmissions.map((omission) => (
-                  <article key={omission.id} className={styles.omissionCard}>
-                    <div>
-                      <strong>{omission.code}</strong>
-                      <span>{omission.dependencyRef}</span>
-                    </div>
-                    <p>{omission.risk}</p>
-                    <small>{omission.reason}</small>
-                  </article>
-                ))}
-                <button
-                  data-testid="materialize-candidates"
-                  className={styles.secondaryButton}
-                  type="button"
-                  onClick={() => void handleMaterializeCandidates()}
-                  disabled={formDisabled || selectedCandidateIds.length === 0 || missingRequiredWaiver}
-                >
-                  固化 Revision 并创建 Case
-                </button>
-              </>
-            ) : (
-              <div className={styles.blankSlate}>
-                <strong>等待候选巡检项</strong>
-                <span>系统会解释每一项来自哪段变更、哪条规则和哪条依赖。</span>
-              </div>
-            )}
-          </section>
-
-          <section className={styles.assessmentPanel}>
-            <div className={styles.panelTitle}>
-              <span>原子能力 03—05</span>
-              <strong>执行 · 报告 · AI 解读</strong>
-            </div>
-            {workspace?.abReport && (
-              <article className={styles.abReportCard} data-testid="inspection-ab-report">
-                <div>
-                  <strong>FINAL A/B</strong>
-                  <span>{workspace.abReport.comparability}</span>
-                </div>
-                <small>
-                  {workspace.abReport.baselineRunId ?? '未生成 admission'} →{' '}
-                  {workspace.abReport.currentRunId ?? '未生成 post_change'}
-                </small>
-                {workspace.abReport.reason && <p>不可用原因 · {workspace.abReport.reason}</p>}
-                {workspace.abReport.checks.map((check) => (
-                  <p key={check.checkId}>
-                    <b>{check.checkId}</b>{' '}
-                    {check.comparable
-                      ? `${check.baselineValue} → ${check.currentValue} · Δ ${check.absoluteDelta}`
-                      : `不可比 · ${check.reason}`}
-                  </p>
-                ))}
-              </article>
-            )}
-            {workspace?.assessment ? (
-              <div data-testid="inspection-assessment">
-                <div className={styles.assessmentGate} data-verdict={workspace.assessment.machineVerdict}>
-                  <div>
-                    <span>机器判定</span>
-                    <strong>{statusLabel(workspace.assessment.machineVerdict)}</strong>
-                  </div>
-                  <div>
-                    <span>覆盖状态</span>
-                    <strong>{workspace.assessment.coverageStatus === 'omission' ? '存在遗漏' : '完整'}</strong>
-                  </div>
-                  <div>
-                    <span>决策准备度</span>
-                    <strong>{workspace.assessment.decisionReadiness}</strong>
-                  </div>
-                </div>
-                {[
-                  ...workspace.assessment.facts,
-                  ...workspace.assessment.hypotheses,
-                  ...workspace.assessment.unknowns,
-                  ...workspace.assessment.recommendations,
-                ].map((item) => (
-                  <article key={`${item.code}-${item.statement}`} className={styles.assessmentItem}>
-                    <strong>{item.code}</strong>
-                    <p>{item.statement}</p>
-                    <small>{item.evidenceRefs.map((ref) => ref.ref).join(' · ')}</small>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className={styles.blankSlate}>
-                <strong>{workspace ? `Case ${workspace.case.id}` : '等待一次服务端 Run'}</strong>
-                <span>规则先生成 verdict；解读只基于 EvidenceRef 说明事实、假设与未决风险。</span>
-              </div>
-            )}
-          </section>
-        </div>
-      </section>
-
-      <section className={styles.grid}>
-        <aside className={styles.sidebar}>
-          <div className={styles.sectionHeading}>
-            <div>
-              <p className={styles.eyebrow}>JOB LIBRARY</p>
-              <h2>持久作业</h2>
-            </div>
-            <span>{jobs.length}</span>
-          </div>
-          {loading ? (
-            <p className={styles.muted}>正在读取服务端作业…</p>
-          ) : jobs.length === 0 ? (
-            <p className={styles.empty}>还没有持久作业。右侧保存后，刷新页面仍可复用。</p>
-          ) : (
-            <div className={styles.stack}>
-              {jobs.map((job) => (
-                <button
-                  key={job.id}
-                  type="button"
-                  className={job.id === selectedJobId ? styles.selectedCard : styles.cardButton}
-                  onClick={() => void chooseJob(job.id)}
-                  disabled={busy}
-                >
-                  <strong>{job.name}</strong>
-                  <span>
-                    {job.service} · {job.environment}
-                  </span>
-                  <small>
-                    rev {job.currentRevision} · {job.connectorRef}
-                  </small>
-                </button>
-              ))}
+          {candidateSet && (
+            <div className={styles.clawInsight}>
+              <strong>CLAW 已完成</strong>
+              <span>✓ 识别变更上下文</span>
+              <span>✓ 匹配检查规则</span>
+              <span>✓ 标记未覆盖依赖</span>
             </div>
           )}
+        </aside>
+      </section>
 
+      <section className={styles.timeline} data-testid="inspection-timeline">
+        <header className={styles.sectionHeading}>
+          <span>
+            <p className={styles.eyebrow}>执行与决策记录</p>
+            <h2>一条时间线看完整次变更</h2>
+          </span>
+          <strong>{workspace?.runs.length ?? 0} 次巡检</strong>
+        </header>
+        {!workspace || workspace.runs.length === 0 ? (
+          <div className={styles.timelineEmpty}>确认方案后，每一次执行、风险和人工决定都会留在这里。</div>
+        ) : (
+          <ol>
+            {workspace.runs.map((run) => (
+              <li key={run.id} data-tone={run.verdict}>
+                <span className={styles.timelineDot} />
+                <time>
+                  {new Date(run.startedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                </time>
+                <div>
+                  <span>
+                    {PURPOSE_LABELS[run.purpose]} · <code>{run.id}</code>
+                  </span>
+                  <strong>{statusLabel(run.verdict)}</strong>
+                  <p>
+                    {run.errorSummary ??
+                      (run.verdict === 'passed'
+                        ? '本阶段检查通过，证据已写入当前 Case。'
+                        : '本阶段存在阻断项，不能自动推进。')}
+                  </p>
+                </div>
+                <em>{statusLabel(run.verdict)}</em>
+              </li>
+            ))}
+          </ol>
+        )}
+        {workspace?.report && (
+          <footer>
+            <span>
+              <p className={styles.eyebrow}>报告快照</p>
+              <strong>{workspace.report.id}</strong>
+            </span>
+            <p>
+              结论：{statusLabel(workspace.report.verdict)} · 已固化 {workspace.report.runIds.length} 次执行证据
+            </p>
+          </footer>
+        )}
+      </section>
+
+      <details className={styles.advancedTools}>
+        <summary>高级维护 · 作业版本与手动巡检记录</summary>
+        <div className={styles.advancedGrid}>
           <form className={styles.form} onSubmit={handleCreateJob}>
             <h3>保存为可复用作业</h3>
             <label>
@@ -709,28 +1183,26 @@ export function InspectionOperationsPage() {
                 required
               />
             </label>
-            <div className={styles.twoColumns}>
-              <label>
-                环境
-                <input name="environment" value={selectedSource?.scope ?? ''} readOnly required />
-              </label>
-              <label>
-                数据源
-                <select value={connectorRef} onChange={(event) => setConnectorRef(event.target.value)} required>
-                  {sources.map((source) => (
-                    <option key={source.id} value={source.id}>
-                      {sourceLabel(source)} · {source.kind} · {source.scope}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <label>
+              环境
+              <input name="environment" value={selectedSource?.scope ?? ''} readOnly required />
+            </label>
+            <label>
+              数据源
+              <select value={connectorRef} onChange={(event) => setConnectorRef(event.target.value)} required>
+                {sources.map((source) => (
+                  <option key={source.id} value={source.id}>
+                    {sourceLabel(source)} · 类型: {source.kind} · 范围: {source.scope}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               精确只读查询
               <textarea name="query" value={query} onChange={(event) => setQuery(event.target.value)} required />
             </label>
             <label>
-              p95 上限（ms）
+              p95 上限（毫秒）
               <input
                 name="threshold"
                 type="number"
@@ -743,68 +1215,55 @@ export function InspectionOperationsPage() {
             </label>
             <button
               data-testid="create-job-submit"
-              className={styles.primaryButton}
+              className={styles.secondaryButton}
               type="submit"
               disabled={formDisabled || !name.trim() || !service.trim() || !query.trim()}
             >
-              {busy ? '保存中…' : '保存作业与 revision 1'}
+              {busy ? '保存中…' : '保存作业与版本 1'}
             </button>
           </form>
-        </aside>
 
-        <section className={styles.workspace}>
-          <div className={styles.sectionHeading}>
+          {selectedJob && (
             <div>
-              <p className={styles.eyebrow}>EXECUTION CASES</p>
-              <h2>{selectedJob?.name ?? '选择一个持久作业'}</h2>
-            </div>
-            {selectedJob && <span>rev {selectedJob.currentRevision}</span>}
-          </div>
-
-          {selectedJob ? (
-            <>
+              <h3>{jobLabel(selectedJob)}</h3>
+              <p>
+                当前版本 {selectedJob.currentRevision}
+                {workspace ? ' · 当前巡检绑定版本 ' + workspace.revision.revision : ''}
+              </p>
               {editableRevision?.jobId === selectedJob.id &&
-              editableRevision.revision === selectedJob.currentRevision ? (
-                <form className={styles.form} onSubmit={handleReviseJob}>
-                  <h3>创建 revision {selectedJob.currentRevision + 1}</h3>
-                  <p className={styles.muted}>
-                    当前 rev {selectedJob.currentRevision}。更新只会生成新 revision，已有 Case 继续绑定原 revision。
-                  </p>
-                  <label>
-                    Check query
-                    <textarea
-                      data-testid="revision-query"
-                      value={revisionQuery}
-                      onChange={(event) => setRevisionQuery(event.target.value)}
-                      required
-                    />
-                  </label>
-                  <label>
-                    Check threshold
-                    <input
-                      data-testid="revision-threshold"
-                      type="number"
-                      step="0.01"
-                      value={revisionThreshold}
-                      onChange={(event) => setRevisionThreshold(event.target.value)}
-                      required
-                    />
-                  </label>
-                  <button
-                    data-testid="revise-job-submit"
-                    className={styles.secondaryButton}
-                    type="submit"
-                    disabled={formDisabled || !revisionQuery.trim() || !revisionThreshold.trim()}
-                  >
-                    {busy ? '创建中…' : `保存 revision ${selectedJob.currentRevision + 1}`}
-                  </button>
-                </form>
-              ) : (
-                <p className={styles.muted}>
-                  当前 rev {selectedJob.currentRevision}。选择绑定当前 revision 的 Case 后可编辑检查条件。
-                </p>
-              )}
-              <form className={styles.caseForm} onSubmit={handleCreateCase}>
+                editableRevision.revision === selectedJob.currentRevision && (
+                  <form className={styles.form} onSubmit={handleReviseJob}>
+                    <label>
+                      检查查询
+                      <textarea
+                        data-testid="revision-query"
+                        value={revisionQuery}
+                        onChange={(event) => setRevisionQuery(event.target.value)}
+                        required
+                      />
+                    </label>
+                    <label>
+                      检查阈值
+                      <input
+                        data-testid="revision-threshold"
+                        type="number"
+                        step="0.01"
+                        value={revisionThreshold}
+                        onChange={(event) => setRevisionThreshold(event.target.value)}
+                        required
+                      />
+                    </label>
+                    <button
+                      data-testid="revise-job-submit"
+                      className={styles.secondaryButton}
+                      type="submit"
+                      disabled={formDisabled || !revisionQuery.trim() || !revisionThreshold.trim()}
+                    >
+                      {busy ? '创建中…' : '保存版本 ' + (selectedJob.currentRevision + 1)}
+                    </button>
+                  </form>
+                )}
+              <form className={styles.form} onSubmit={handleCreateCase}>
                 <label>
                   变更编号
                   <input
@@ -831,173 +1290,13 @@ export function InspectionOperationsPage() {
                   type="submit"
                   disabled={formDisabled || !changeId.trim() || !version.trim()}
                 >
-                  新建独立 Case
+                  新建独立巡检记录
                 </button>
               </form>
-
-              <div className={styles.caseRail}>
-                {cases.map((inspectionCase) => (
-                  <button
-                    key={inspectionCase.id}
-                    type="button"
-                    data-testid="case-pill"
-                    data-case-id={inspectionCase.id}
-                    className={inspectionCase.id === selectedCaseId ? styles.activePill : styles.pill}
-                    onClick={() => void chooseCase(inspectionCase.id)}
-                    disabled={busy}
-                  >
-                    {inspectionCase.changeId} · {inspectionCase.version} · {statusLabel(inspectionCase.status)}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className={styles.blankSlate}>
-              <strong>先保存或选择作业</strong>
-              <span>一个 Job 可以反复创建 Case；每个 Case 都绑定创建时的不可变 revision。</span>
             </div>
           )}
-
-          {workspace && (
-            <>
-              <div className={styles.commandBar}>
-                <label>
-                  执行阶段
-                  <select value={purpose} onChange={(event) => setPurpose(event.target.value as InspectionRunPurpose)}>
-                    {PURPOSES.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  data-testid="start-run"
-                  className={styles.primaryButton}
-                  type="button"
-                  onClick={() => void handleRun()}
-                  disabled={formDisabled || workspace.case.status === 'completed'}
-                >
-                  {busy
-                    ? selectedSource?.kind === 'replay'
-                      ? '正在读取服务端回放数据…'
-                      : '正在读取服务端观测…'
-                    : '执行只读巡检'}
-                </button>
-                <span>
-                  Case {workspace.case.id} · Case 绑定 rev {workspace.revision.revision}
-                </span>
-              </div>
-
-              {latestRun ? (
-                <article className={styles.runPanel}>
-                  <div className={styles.runHeader}>
-                    <div>
-                      <p className={styles.eyebrow}>AUTHORITATIVE RUN</p>
-                      <h3>
-                        {statusLabel(latestRun.verdict)} · {statusLabel(latestRun.status)}
-                      </h3>
-                    </div>
-                    <span>{latestRun.purpose}</span>
-                  </div>
-                  {latestRun.errorSummary && <p className={styles.errorText}>{latestRun.errorSummary}</p>}
-                  {latestRun.sourceSnapshot && (
-                    <dl className={styles.provenance}>
-                      <div>
-                        <dt>connectorRef</dt>
-                        <dd>{latestRun.sourceSnapshot.connectorRef}</dd>
-                      </div>
-                      <div>
-                        <dt>source kind</dt>
-                        <dd>{latestRun.sourceSnapshot.sourceKind}</dd>
-                      </div>
-                      <div>
-                        <dt>observedAt</dt>
-                        <dd>{latestRun.sourceSnapshot.observedAt}</dd>
-                      </div>
-                      <div>
-                        <dt>window</dt>
-                        <dd>
-                          {latestRun.sourceSnapshot.window.from} → {latestRun.sourceSnapshot.window.to}
-                        </dd>
-                      </div>
-                    </dl>
-                  )}
-                  <div className={styles.resultList}>
-                    {latestRun.checkResults.map((result) => (
-                      <div key={result.id} className={styles.resultCard}>
-                        <div>
-                          <strong>{result.checkId}</strong>
-                          <span>
-                            {statusLabel(result.status)} · {result.value ?? '无数据'}
-                          </span>
-                        </div>
-                        <code>{result.queryDigest}</code>
-                        <small>{result.observedAt ?? result.reason ?? '无观测时间'}</small>
-                      </div>
-                    ))}
-                  </div>
-                  {!workspace.report && latestRun.status !== 'running' && (
-                    <button
-                      data-testid="accept-report"
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => void handleAccept()}
-                      disabled={
-                        formDisabled ||
-                        latestRun.status !== 'completed' ||
-                        latestRun.verdict !== 'passed' ||
-                        postChangeAcceptanceBlocked
-                      }
-                      title={
-                        latestRun.status !== 'completed' || latestRun.verdict !== 'passed'
-                          ? '只有最新的已完成通过 Run 可以接受。'
-                          : postChangeAcceptanceBlocked
-                            ? '变更后 Run 缺少可比的 admission 基线，不能接受。'
-                            : undefined
-                      }
-                    >
-                      记录人工接受并固化报告
-                    </button>
-                  )}
-                </article>
-              ) : (
-                <div className={styles.blankSlate}>
-                  <strong>这个 Case 还没有 Run</strong>
-                  <span>执行时浏览器只提交阶段和幂等键；观测、时间与结论均由服务端生成。</span>
-                </div>
-              )}
-
-              {workspace.report && (
-                <article className={styles.report} data-testid="immutable-report">
-                  <div>
-                    <p className={styles.eyebrow}>IMMUTABLE REPORT</p>
-                    <h3>不可变报告 · {statusLabel(workspace.report.verdict)}</h3>
-                  </div>
-                  <dl className={styles.provenance}>
-                    <div>
-                      <dt>report</dt>
-                      <dd>{workspace.report.id}</dd>
-                    </div>
-                    <div>
-                      <dt>revision</dt>
-                      <dd>{workspace.report.jobRevisionId}</dd>
-                    </div>
-                    <div>
-                      <dt>runs</dt>
-                      <dd>{workspace.report.runIds.join(', ')}</dd>
-                    </div>
-                    <div>
-                      <dt>decisions</dt>
-                      <dd>{workspace.report.decisionIds.join(', ')}</dd>
-                    </div>
-                  </dl>
-                </article>
-              )}
-            </>
-          )}
-        </section>
-      </section>
+        </div>
+      </details>
     </main>
   );
 }

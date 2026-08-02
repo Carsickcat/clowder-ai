@@ -283,6 +283,29 @@ describe('InspectionOperationsPage', () => {
     });
   }
 
+  it('keeps the approved 7d991e single-screen product anatomy and Chinese decision language', async () => {
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce(workspace);
+
+    await renderPage();
+
+    expect(container.querySelector('[data-testid="inspection-context"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="inspection-journey"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="inspection-job-platform"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="inspection-decision-surface"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="inspection-claw-panel"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="inspection-timeline"]')).not.toBeNull();
+    expect(container.textContent).toContain('当前结论');
+    expect(container.textContent).toContain('下一步');
+    expect(container.textContent).toContain('CLAW 巡检搭档');
+    expect(container.textContent).not.toContain('CONNECTED SANDBOX');
+    expect(container.textContent).not.toContain('JOB LIBRARY');
+    expect(container.textContent).not.toContain('EXECUTION CASES');
+    expect(container.textContent).not.toContain('AUTHORITATIVE RUN');
+    expect(container.textContent).not.toContain('IMMUTABLE REPORT');
+  });
+
   it('fails closed when the connected API is unavailable', async () => {
     mocks.listInspectionSources.mockRejectedValueOnce(new Error('offline'));
     mocks.listInspectionJobs.mockRejectedValueOnce(new Error('offline'));
@@ -325,8 +348,8 @@ describe('InspectionOperationsPage', () => {
         version: 'v3.18.0',
       }),
     );
-    expect(container.textContent).toContain('Service availability');
-    expect(container.textContent).toContain('COVERAGE_OMISSION');
+    expect(container.textContent).toContain('服务可用性');
+    expect(container.textContent).toContain('未覆盖依赖');
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>('[data-testid="materialize-candidates"]')?.click();
@@ -343,7 +366,7 @@ describe('InspectionOperationsPage', () => {
       changeId: 'CHG-23841',
       version: 'v3.18.0',
     });
-    expect(container.textContent).toContain('Case case-1');
+    expect(container.textContent).toContain('巡检编号 case-1');
   });
 
   it('saves an exact check definition as a reusable server job', async () => {
@@ -415,8 +438,8 @@ describe('InspectionOperationsPage', () => {
 
     expect(container.textContent).toContain('验收回放');
     expect(container.textContent).toContain('服务端回放数据');
-    expect(container.textContent).toContain('kind: replay');
-    expect(container.textContent).toContain('scope: acceptance');
+    expect(container.textContent).toContain('类型: replay');
+    expect(container.textContent).toContain('范围: acceptance');
     expect(container.textContent).not.toContain('真实观测');
   });
 
@@ -451,8 +474,8 @@ describe('InspectionOperationsPage', () => {
       expectedRevision: 1,
       checks: [{ ...workspace.revision.checks[0], query: 'updated_metric', threshold: 220 }],
     });
-    expect(container.textContent).toContain('当前 rev 2');
-    expect(container.textContent).toContain('Case 绑定 rev 1');
+    expect(container.textContent).toContain('当前版本 2');
+    expect(container.textContent).toContain('当前巡检绑定版本 1');
     expect(container.querySelector('[data-testid="case-pill"]')?.textContent).toContain('CHG-42');
   });
 
@@ -495,7 +518,7 @@ describe('InspectionOperationsPage', () => {
     });
 
     expect(mocks.reviseInspectionJob).toHaveBeenCalledTimes(2);
-    expect(container.textContent).toContain('当前 rev 2');
+    expect(container.textContent).toContain('当前版本 2');
     expect(container.textContent).not.toContain('Inspection state conflict');
   });
 
@@ -563,7 +586,7 @@ describe('InspectionOperationsPage', () => {
       expectedRevision: 2,
       checks: [{ ...revisionTwo.checks[0], query: 'next_metric' }],
     });
-    expect(container.textContent).toContain('当前 rev 3');
+    expect(container.textContent).toContain('当前版本 3');
   });
 
   it('edits the current Job revision without replacing an old Case workspace revision', async () => {
@@ -588,8 +611,8 @@ describe('InspectionOperationsPage', () => {
     expect(container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]')?.value).toBe(
       'current_metric',
     );
-    expect(container.textContent).toContain('当前 rev 2');
-    expect(container.textContent).toContain('Case 绑定 rev 1');
+    expect(container.textContent).toContain('当前版本 2');
+    expect(container.textContent).toContain('当前巡检绑定版本 1');
   });
 
   it('renders persisted run provenance verbatim after reload', async () => {
@@ -599,7 +622,7 @@ describe('InspectionOperationsPage', () => {
 
     await renderPage();
 
-    expect(container.textContent).toContain('Payments release inspection');
+    expect(container.textContent).toContain('payments-router 变更巡检');
     expect(container.textContent).toContain('replay-acceptance');
     expect(container.textContent).toContain('2026-07-31T08:01:30.000Z');
     expect(container.textContent).toContain(`sha256:${'a'.repeat(64)}`);
@@ -685,7 +708,7 @@ describe('InspectionOperationsPage', () => {
 
     await renderPage();
 
-    expect(container.textContent).toContain('Latency may reflect change-related downstream contention.');
+    expect(container.textContent).toContain('延迟变化可能来自本次变更引发的下游资源争用。');
     expect(container.querySelector<HTMLButtonElement>('[data-testid="accept-report"]')?.disabled).toBe(true);
   });
 });
