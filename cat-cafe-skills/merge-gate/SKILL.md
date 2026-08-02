@@ -1,5 +1,6 @@
 ---
 name: merge-gate
+tips_exempt: internal developer harness; no end-user capability
 description: >
   合入 main 的完整流程：门禁检查 → PR → 云端 review → squash merge → Phase 文档同步 → 清理。
   Use when: reviewer 放行后准备合入、开 PR、触发云端 review、准备 merge。
@@ -26,14 +27,15 @@ triggers:
 2. **所有 P1/P2** 已修复且经 reviewer 确认
 3. Review 针对**当前分支/当前工作**（不是历史 review）
 4. BACKLOG 涉及条目已在 feature branch 上标 `[x]`
-5. **`pnpm gate` 全绿**（基于最新 `origin/main` rebase 后的全量 build + test + lint + check）
+5. **`pnpm gate` 全绿**（基于最新 `origin/main` rebase 后，执行当前仓库定义的 check、lint、build、测试与启动验收；public target 的 Windows 本地结果不能替代 PR 上的 Ubuntu `Test (Public)`）
 
 ### `pnpm gate` — Latest Main 全量门禁（Step 0，开 PR 前必跑）
 
 ```bash
 pnpm gate
 # 等价于 bash scripts/pre-merge-check.sh
-# 自动执行：fetch origin/main → rebase → build → test → lint → check
+# 自动执行：fetch origin/main → rebase → check → lint → build → 仓库/平台测试 → startup acceptance
+# public target 在 Windows 跑 Windows Smoke，并明确打印 Remote required: Test (Public)
 # 全绿才能继续开 PR。任一步骤失败 → 修复后重跑
 ```
 
@@ -42,10 +44,12 @@ pnpm gate
 导致你的代码在新 main 上 break。`pnpm gate` 在最终合流点做一次全量验证，
 堵住"每只猫都说绿，合流后一堆红"的系统性漏洞。
 
-**"UT 全绿"三件套证据**（`pnpm gate` 通过后自动打印）：
-1. 命令：`pnpm gate`（全量，不是 `--filter`）
+**本地门禁三件套证据**（`pnpm gate` 通过后自动打印）：
+1. 命令：`pnpm gate`（完整仓库门禁，不是手工挑选的 `--filter`）
 2. SHA：基于最新 `origin/main` rebase 后的 HEAD SHA
 3. 状态：已 rebase 到最新 `origin/main`
+
+public target 若在 Windows 执行，还必须保留输出中的 `Remote required: Test (Public)`，并在 merge 前以 PR check 的 Ubuntu `Test (Public)=success` 补齐 Linux public suite 证据。Windows Smoke 绿不等于 Public Suite 绿。
 
 ### 合入方式（唯一正确做法）
 
@@ -237,6 +241,7 @@ gh api --paginate repos/{OWNER}/{REPO}/pulls/{PR_NUMBER}/comments \
 | 本地 `git rebase -i` 手动 squash | 用 `gh pr merge --squash`（GitHub 处理） |
 | 本地 merge 后 `gh pr close` | `gh pr close` = 放弃，`gh pr merge` = 合入 |
 | 不等云端 review 直接合入 | 必须等 0 P1/P2 |
+| public target 在 Windows 跑完 Smoke 就声称 Public Suite 全绿 | 保留 `Remote required: Test (Public)` 证据；等 PR 上 Ubuntu `Test (Public)=success` 才能 merge |
 | Merge 后不更新 feature doc | Step 7.5 Phase 文档同步（每次 merge 必做！） |
 | Merge 后不清理 review 沙盒 | Step 8.5 按 review-target-id 回收 `/tmp/cat-cafe-review/` |
 

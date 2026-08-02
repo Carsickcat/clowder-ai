@@ -6,11 +6,14 @@ import { InspectionApiError } from '@/utils/inspection-api';
 const mocks = vi.hoisted(() => ({
   createInspectionCase: vi.fn(),
   createInspectionJob: vi.fn(),
+  generateInspectionCandidateSet: vi.fn(),
   fetchInspectionCase: vi.fn(),
   fetchInspectionJob: vi.fn(),
   listInspectionCases: vi.fn(),
+  listInspectionCandidateSets: vi.fn(),
   listInspectionJobs: vi.fn(),
   listInspectionSources: vi.fn(),
+  materializeInspectionCandidateSet: vi.fn(),
   recordInspectionDecision: vi.fn(),
   reviseInspectionJob: vi.fn(),
   startInspectionRun: vi.fn(),
@@ -51,6 +54,82 @@ const inspectionCase = {
   status: 'completed',
   createdAt: '2026-07-31T08:01:00.000Z',
   updatedAt: '2026-07-31T08:02:00.000Z',
+};
+
+const candidateSet = {
+  id: 'candidates-1',
+  userId: 'user-a',
+  changeContext: {
+    intent: '帮我巡检 payments-router 的支付路由配置变更',
+    service: 'payments-router',
+    environment: 'acceptance',
+    connectorRef: source.id,
+    changeId: 'CHG-23841',
+    version: 'v3.18.0',
+  },
+  topologySnapshot: {
+    catalogVersion: 'nova-mvp-1',
+    rootService: 'payments-router',
+    capturedAt: '2026-08-02T01:00:00.000Z',
+    dependencies: [
+      {
+        ref: 'baas:payments-connection-pool',
+        kind: 'baas',
+        direction: 'downstream',
+        criticality: 'critical',
+        signalMapped: false,
+      },
+    ],
+  },
+  candidates: [
+    {
+      id: 'availability',
+      name: 'Service availability',
+      priority: 'required',
+      readiness: 'ready',
+      stages: ['admission', 'canary', 'verification', 'post_change'],
+      check: {
+        id: 'availability',
+        name: 'Service availability',
+        query: 'safe_availability_metric',
+        operator: 'gte',
+        threshold: 0.995,
+        unit: 'ratio',
+        maxAgeMs: 120_000,
+      },
+      reason: 'Preserve successful request availability.',
+      evidenceRefs: [{ kind: 'rule', ref: 'rule:availability', label: 'availability rule' }],
+    },
+    {
+      id: 'latency',
+      name: 'p95 request latency',
+      priority: 'required',
+      readiness: 'ready',
+      stages: ['admission', 'canary', 'verification', 'post_change'],
+      check: {
+        id: 'latency',
+        name: 'p95 request latency',
+        query: 'safe_metric',
+        operator: 'lte',
+        threshold: 250,
+        unit: 'ms',
+        maxAgeMs: 120_000,
+      },
+      reason: 'Routing changes can add downstream contention.',
+      evidenceRefs: [{ kind: 'rule', ref: 'rule:latency', label: 'latency rule' }],
+    },
+  ],
+  coverageOmissions: [
+    {
+      id: 'coverage-pool',
+      code: 'COVERAGE_OMISSION',
+      dependencyRef: 'baas:payments-connection-pool',
+      reason: 'No approved signal mapping.',
+      risk: 'Pool saturation remains outside machine coverage.',
+      evidenceRefs: [{ kind: 'topology', ref: 'baas:payments-connection-pool', label: 'pool dependency' }],
+    },
+  ],
+  generatedAt: '2026-08-02T01:00:00.000Z',
 };
 
 const workspace = {
@@ -108,6 +187,36 @@ const workspace = {
       finishedAt: '2026-07-31T08:02:00.000Z',
     },
   ],
+  abReport: {
+    baselineRunId: 'run-before',
+    currentRunId: 'run-1',
+    comparability: 'valid',
+    reason: null,
+    generatedAt: '2026-07-31T08:02:00.000Z',
+    checks: [
+      {
+        checkId: 'latency',
+        comparable: true,
+        baselineValue: 180,
+        currentValue: 184,
+        absoluteDelta: 4,
+        relativeDeltaPercent: 2.222,
+        reason: null,
+        evidenceRefs: [],
+      },
+    ],
+  },
+  assessment: {
+    runId: 'run-1',
+    generatedAt: '2026-07-31T08:02:00.000Z',
+    machineVerdict: 'passed',
+    coverageStatus: 'complete',
+    decisionReadiness: 'ready',
+    facts: [],
+    hypotheses: [],
+    unknowns: [],
+    recommendations: [],
+  },
   report: {
     id: 'report-1',
     caseId: inspectionCase.id,
@@ -136,6 +245,7 @@ describe('InspectionOperationsPage', () => {
     mocks.listInspectionSources.mockResolvedValue([source]);
     mocks.listInspectionJobs.mockResolvedValue([]);
     mocks.listInspectionCases.mockResolvedValue([]);
+    mocks.listInspectionCandidateSets.mockResolvedValue([]);
     mocks.fetchInspectionJob.mockResolvedValue({ job, revision: workspace.revision });
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -182,6 +292,58 @@ describe('InspectionOperationsPage', () => {
     expect(container.textContent).toContain('连接中断');
     expect(container.textContent).not.toContain('Payments release inspection');
     expect(container.querySelector<HTMLButtonElement>('[data-testid="create-job-submit"]')?.disabled).toBe(true);
+  });
+
+  it('turns change intent into a candidate package, revision and ready Case on one screen', async () => {
+    const readyCase = { ...inspectionCase, changeId: 'CHG-23841', status: 'ready' };
+    const readyWorkspace = {
+      ...workspace,
+      case: readyCase,
+      candidateSet,
+      stageReports: [],
+      assessment: null,
+      runs: [],
+      report: null,
+    };
+    mocks.generateInspectionCandidateSet.mockResolvedValueOnce(candidateSet);
+    mocks.materializeInspectionCandidateSet.mockResolvedValueOnce({ job, revision: workspace.revision });
+    mocks.createInspectionCase.mockResolvedValueOnce(readyCase);
+    mocks.fetchInspectionCase.mockResolvedValueOnce(readyWorkspace);
+
+    await renderPage();
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="generate-candidates"]')?.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(mocks.generateInspectionCandidateSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intent: expect.stringContaining('payments-router'),
+        service: 'payments-router',
+        connectorRef: source.id,
+        changeId: 'CHG-23841',
+        version: 'v3.18.0',
+      }),
+    );
+    expect(container.textContent).toContain('Service availability');
+    expect(container.textContent).toContain('COVERAGE_OMISSION');
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="materialize-candidates"]')?.click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(mocks.materializeInspectionCandidateSet).toHaveBeenCalledWith(candidateSet.id, {
+      name: 'payments-router · CHG-23841',
+      selectedCandidateIds: ['availability', 'latency'],
+      waivers: [],
+    });
+    expect(mocks.createInspectionCase).toHaveBeenCalledWith({
+      jobId: job.id,
+      changeId: 'CHG-23841',
+      version: 'v3.18.0',
+    });
+    expect(container.textContent).toContain('Case case-1');
   });
 
   it('saves an exact check definition as a reusable server job', async () => {
@@ -441,6 +603,7 @@ describe('InspectionOperationsPage', () => {
     expect(container.textContent).toContain('replay-acceptance');
     expect(container.textContent).toContain('2026-07-31T08:01:30.000Z');
     expect(container.textContent).toContain(`sha256:${'a'.repeat(64)}`);
+    expect(container.querySelector('[data-testid="inspection-ab-report"]')?.textContent).toContain('180 → 184');
     expect(container.textContent).toContain('不可变报告');
   });
 
@@ -486,5 +649,43 @@ describe('InspectionOperationsPage', () => {
     expect(container.querySelector<HTMLButtonElement>('[data-testid="accept-report"]')?.title).toBe(
       '只有最新的已完成通过 Run 可以接受。',
     );
+  });
+
+  it('renders grounded hypotheses and blocks post-change acceptance when A/B is unavailable', async () => {
+    const blockedWorkspace = {
+      ...workspace,
+      report: null,
+      abReport: {
+        ...workspace.abReport,
+        baselineRunId: null,
+        comparability: 'unavailable',
+        reason: 'missing_baseline_run',
+      },
+      assessment: {
+        runId: 'run-1',
+        generatedAt: '2026-07-31T08:02:00.000Z',
+        machineVerdict: 'passed',
+        coverageStatus: 'complete',
+        decisionReadiness: 'blocked',
+        facts: [],
+        hypotheses: [
+          {
+            code: 'CHANGE_CONTENTION_HYPOTHESIS',
+            statement: 'Latency may reflect change-related downstream contention.',
+            evidenceRefs: [],
+          },
+        ],
+        unknowns: [],
+        recommendations: [],
+      },
+    };
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce(blockedWorkspace);
+
+    await renderPage();
+
+    expect(container.textContent).toContain('Latency may reflect change-related downstream contention.');
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="accept-report"]')?.disabled).toBe(true);
   });
 });

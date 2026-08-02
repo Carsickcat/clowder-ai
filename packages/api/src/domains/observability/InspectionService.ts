@@ -1,5 +1,9 @@
 import type {
+  InspectionABReport,
+  InspectionAssessment,
+  InspectionCandidateSet,
   InspectionCase,
+  InspectionChangeContext,
   InspectionCheckDefinition,
   InspectionDecisionKind,
   InspectionDecisionRecord,
@@ -9,7 +13,15 @@ import type {
   InspectionRun,
   InspectionRunPurpose,
   InspectionSourceSnapshot,
+  InspectionStageReport,
+  InspectionWaiver,
 } from '@cat-cafe/shared';
+import {
+  projectInspectionABReport,
+  projectInspectionAssessment,
+  projectInspectionStageReport,
+} from './InspectionAssessment.js';
+import { generateInspectionCandidateDraft } from './InspectionCandidateGenerator.js';
 import { evaluateInspection } from './InspectionEvaluator.js';
 import type { ObservabilitySource } from './ports/ObservabilitySource.js';
 import { ObservabilitySourceError } from './ports/ObservabilitySource.js';
@@ -51,6 +63,13 @@ export class InspectionDecisionConflictError extends Error {
   }
 }
 
+export class InspectionSelectionConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InspectionSelectionConflictError';
+  }
+}
+
 export interface RegisteredInspectionSource {
   readonly id: string;
   readonly kind: InspectionSourceSnapshot['sourceKind'];
@@ -85,6 +104,12 @@ export interface CreateInspectionCaseCommand {
   readonly version: string;
 }
 
+export interface MaterializeInspectionCandidateSetCommand {
+  readonly name: string;
+  readonly selectedCandidateIds: readonly string[];
+  readonly waivers: readonly InspectionWaiver[];
+}
+
 export interface StartInspectionRunCommand {
   readonly purpose: InspectionRunPurpose;
 }
@@ -100,6 +125,10 @@ export interface InspectionWorkspace {
   readonly job: InspectionJob;
   readonly revision: InspectionJobRevision;
   readonly runs: readonly InspectionRun[];
+  readonly stageReports: readonly InspectionStageReport[];
+  readonly abReport: InspectionABReport | null;
+  readonly assessment: InspectionAssessment | null;
+  readonly candidateSet: InspectionCandidateSet | null;
   readonly report: InspectionReportSnapshot | null;
 }
 
@@ -134,6 +163,76 @@ export class InspectionService {
 
   listJobs(userId: string): InspectionJob[] {
     return this.store.listJobs(userId);
+  }
+
+  listCandidateSets(userId: string): InspectionCandidateSet[] {
+    return this.store.listCandidateSets(userId);
+  }
+
+  getCandidateSet(userId: string, candidateSetId: string): InspectionCandidateSet | null {
+    return this.store.getCandidateSet(userId, candidateSetId);
+  }
+
+  generateCandidateSet(userId: string, input: InspectionChangeContext): InspectionCandidateSet {
+    const source = this.requireSource(input.connectorRef);
+    if (input.environment !== source.scope) {
+      throw new InspectionSourceScopeMismatchError(input.connectorRef, source.scope);
+    }
+    const draft = generateInspectionCandidateDraft(input, { now: this.now });
+    return this.store.createCandidateSet({ userId, ...draft });
+  }
+
+  materializeCandidateSet(
+    userId: string,
+    candidateSetId: string,
+    input: MaterializeInspectionCandidateSetCommand,
+  ): { job: InspectionJob; revision: InspectionJobRevision } {
+    const candidateSet = this.store.getCandidateSet(userId, candidateSetId);
+    if (!candidateSet) throw new InspectionNotFoundError('Inspection candidate set');
+    const source = this.requireSource(candidateSet.changeContext.connectorRef);
+    if (candidateSet.changeContext.environment !== source.scope) {
+      throw new InspectionSourceScopeMismatchError(source.id, source.scope);
+    }
+
+    const selectedIds = [...new Set(input.selectedCandidateIds)];
+    if (selectedIds.length === 0 || selectedIds.length !== input.selectedCandidateIds.length) {
+      throw new InspectionSelectionConflictError('Candidate selection must be non-empty and unique');
+    }
+    const candidatesById = new Map(candidateSet.candidates.map((candidate) => [candidate.id, candidate]));
+    const selected = selectedIds.map((candidateId) => {
+      const candidate = candidatesById.get(candidateId);
+      if (!candidate || candidate.readiness !== 'ready') {
+        throw new InspectionSelectionConflictError(`Candidate "${candidateId}" is not executable`);
+      }
+      return candidate;
+    });
+    const waiverByCandidate = new Map(input.waivers.map((waiver) => [waiver.candidateId, waiver.reason.trim()]));
+    for (const candidate of candidateSet.candidates) {
+      if (candidate.priority !== 'required' || selectedIds.includes(candidate.id)) continue;
+      const reason = waiverByCandidate.get(candidate.id);
+      if (!reason) {
+        throw new InspectionSelectionConflictError(`Required candidate "${candidate.id}" needs a waiver reason`);
+      }
+    }
+    const relevantWaivers = candidateSet.candidates
+      .filter((candidate) => candidate.priority === 'required' && !selectedIds.includes(candidate.id))
+      .map((candidate) => ({ candidateId: candidate.id, reason: waiverByCandidate.get(candidate.id) as string }));
+    const checks = selected.map((candidate) => candidate.check);
+    this.assertChecksSupported(source, checks);
+    return this.store.createJob({
+      userId,
+      name: input.name,
+      service: candidateSet.changeContext.service,
+      environment: candidateSet.changeContext.environment,
+      connectorRef: candidateSet.changeContext.connectorRef,
+      checks,
+      createdBy: userId,
+      origin: {
+        candidateSetId,
+        selectedCandidateIds: selectedIds,
+        waivers: relevantWaivers,
+      },
+    });
   }
 
   getJobDetail(userId: string, jobId: string): { job: InspectionJob; revision: InspectionJobRevision } | null {
@@ -191,11 +290,21 @@ export class InspectionService {
     if (!job || !revision) {
       throw new InspectionNotFoundError('Inspection workspace');
     }
+    const runs = this.store.listRuns(userId, caseId);
+    const candidateSet = revision.origin?.candidateSetId
+      ? this.store.getCandidateSet(userId, revision.origin.candidateSetId)
+      : null;
+    const latestRun = runs.at(-1) ?? null;
+    const abReport = projectInspectionABReport(runs);
     return {
       case: inspectionCase,
       job,
       revision,
-      runs: this.store.listRuns(userId, caseId),
+      runs,
+      stageReports: runs.map((run) => projectInspectionStageReport(run, revision)),
+      abReport,
+      assessment: latestRun ? projectInspectionAssessment(latestRun, candidateSet, abReport, revision.origin) : null,
+      candidateSet,
       report: this.store.getReportForCase(userId, caseId),
     };
   }

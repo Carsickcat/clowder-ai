@@ -1,19 +1,26 @@
 import { randomUUID } from 'node:crypto';
 import type {
+  InspectionCandidate,
+  InspectionCandidateSet,
   InspectionCase,
+  InspectionChangeContext,
   InspectionCheckDefinition,
   InspectionCheckResult,
+  InspectionCoverageOmission,
   InspectionDecisionKind,
   InspectionDecisionRecord,
   InspectionJob,
   InspectionJobRevision,
   InspectionReportSnapshot,
+  InspectionRevisionOrigin,
   InspectionRun,
   InspectionRunPurpose,
   InspectionSourceSnapshot,
+  InspectionTopologySnapshot,
   InspectionVerdict,
 } from '@cat-cafe/shared';
 import type Database from 'better-sqlite3';
+import { projectInspectionABReport } from './InspectionAssessment.js';
 
 export class InspectionNotFoundError extends Error {
   constructor(resource: string) {
@@ -58,6 +65,18 @@ export class InspectionImmutableRecordError extends Error {
   }
 }
 
+function preservesCandidateSelection(
+  checks: readonly InspectionCheckDefinition[],
+  origin: InspectionRevisionOrigin,
+): boolean {
+  const checkIds = checks.map((check) => check.id);
+  if (checkIds.length !== origin.selectedCandidateIds.length || new Set(checkIds).size !== checkIds.length) {
+    return false;
+  }
+  const selectedIds = new Set(origin.selectedCandidateIds);
+  return checkIds.every((checkId) => selectedIds.has(checkId));
+}
+
 export interface SqliteInspectionStoreOptions {
   readonly now?: () => string;
   readonly idFactory?: (kind: string) => string;
@@ -71,6 +90,16 @@ export interface CreateInspectionJobInput {
   readonly connectorRef: string;
   readonly checks: readonly InspectionCheckDefinition[];
   readonly createdBy: string;
+  readonly origin?: InspectionRevisionOrigin | null;
+}
+
+export interface CreateInspectionCandidateSetInput {
+  readonly userId: string;
+  readonly changeContext: InspectionChangeContext;
+  readonly topologySnapshot: InspectionTopologySnapshot;
+  readonly candidates: readonly InspectionCandidate[];
+  readonly coverageOmissions: readonly InspectionCoverageOmission[];
+  readonly generatedAt: string;
 }
 
 export interface ReviseInspectionJobInput {
@@ -130,8 +159,24 @@ interface RevisionRow {
   job_id: string;
   revision: number;
   checks_json: string;
+  origin_json: string | null;
   created_by: string;
   created_at: string;
+}
+
+interface CandidateSetRow {
+  id: string;
+  user_id: string;
+  intent: string;
+  service: string;
+  environment: string;
+  connector_ref: string;
+  change_id: string;
+  version: string;
+  topology_json: string;
+  candidates_json: string;
+  omissions_json: string;
+  generated_at: string;
 }
 
 interface CaseRow {
@@ -211,8 +256,28 @@ function toRevision(row: RevisionRow): InspectionJobRevision {
     jobId: row.job_id,
     revision: row.revision,
     checks: JSON.parse(row.checks_json) as InspectionCheckDefinition[],
+    origin: row.origin_json ? (JSON.parse(row.origin_json) as InspectionRevisionOrigin) : null,
     createdBy: row.created_by,
     createdAt: row.created_at,
+  };
+}
+
+function toCandidateSet(row: CandidateSetRow): InspectionCandidateSet {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    changeContext: {
+      intent: row.intent,
+      service: row.service,
+      environment: row.environment,
+      connectorRef: row.connector_ref,
+      changeId: row.change_id,
+      version: row.version,
+    },
+    topologySnapshot: JSON.parse(row.topology_json) as InspectionTopologySnapshot,
+    candidates: JSON.parse(row.candidates_json) as InspectionCandidate[],
+    coverageOmissions: JSON.parse(row.omissions_json) as InspectionCoverageOmission[],
+    generatedAt: row.generated_at,
   };
 }
 
@@ -283,6 +348,46 @@ export class SqliteInspectionStore {
     this.recoverInterruptedRuns();
   }
 
+  createCandidateSet(input: CreateInspectionCandidateSetInput): InspectionCandidateSet {
+    const id = this.idFactory('candidates');
+    this.db
+      .prepare(
+        `INSERT INTO inspection_candidate_sets
+         (id, user_id, intent, service, environment, connector_ref, change_id, version,
+          topology_json, candidates_json, omissions_json, generated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        input.userId,
+        input.changeContext.intent,
+        input.changeContext.service,
+        input.changeContext.environment,
+        input.changeContext.connectorRef,
+        input.changeContext.changeId,
+        input.changeContext.version,
+        JSON.stringify(input.topologySnapshot),
+        JSON.stringify(input.candidates),
+        JSON.stringify(input.coverageOmissions),
+        input.generatedAt,
+      );
+    return this.requireCandidateSet(input.userId, id);
+  }
+
+  getCandidateSet(userId: string, candidateSetId: string): InspectionCandidateSet | null {
+    const row = this.db
+      .prepare('SELECT * FROM inspection_candidate_sets WHERE id = ? AND user_id = ?')
+      .get(candidateSetId, userId) as CandidateSetRow | undefined;
+    return row ? toCandidateSet(row) : null;
+  }
+
+  listCandidateSets(userId: string): InspectionCandidateSet[] {
+    const rows = this.db
+      .prepare('SELECT * FROM inspection_candidate_sets WHERE user_id = ? ORDER BY generated_at DESC, id DESC')
+      .all(userId) as CandidateSetRow[];
+    return rows.map(toCandidateSet);
+  }
+
   createJob(input: CreateInspectionJobInput): {
     job: InspectionJob;
     revision: InspectionJobRevision;
@@ -301,10 +406,17 @@ export class SqliteInspectionStore {
       this.db
         .prepare(
           `INSERT INTO inspection_job_revisions
-           (id, job_id, revision, checks_json, created_by, created_at)
-           VALUES (?, ?, 1, ?, ?, ?)`,
+           (id, job_id, revision, checks_json, origin_json, created_by, created_at)
+           VALUES (?, ?, 1, ?, ?, ?, ?)`,
         )
-        .run(revisionId, jobId, JSON.stringify(input.checks), input.createdBy, now);
+        .run(
+          revisionId,
+          jobId,
+          JSON.stringify(input.checks),
+          input.origin ? JSON.stringify(input.origin) : null,
+          input.createdBy,
+          now,
+        );
       return {
         job: this.requireJob(input.userId, jobId),
         revision: this.requireJobRevision(input.userId, revisionId),
@@ -374,6 +486,11 @@ export class SqliteInspectionStore {
       if (job.currentRevision !== input.expectedRevision) {
         throw new InspectionRevisionConflictError();
       }
+      const currentRevision = this.getCurrentJobRevision(input.userId, input.jobId);
+      if (!currentRevision) throw new InspectionNotFoundError('Inspection job revision');
+      if (currentRevision.origin && !preservesCandidateSelection(input.checks, currentRevision.origin)) {
+        throw new InspectionRevisionConflictError();
+      }
 
       const now = this.now();
       const nextRevision = input.expectedRevision + 1;
@@ -381,10 +498,18 @@ export class SqliteInspectionStore {
       this.db
         .prepare(
           `INSERT INTO inspection_job_revisions
-           (id, job_id, revision, checks_json, created_by, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+           (id, job_id, revision, checks_json, origin_json, created_by, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(revisionId, input.jobId, nextRevision, JSON.stringify(input.checks), input.createdBy, now);
+        .run(
+          revisionId,
+          input.jobId,
+          nextRevision,
+          JSON.stringify(input.checks),
+          currentRevision.origin ? JSON.stringify(currentRevision.origin) : null,
+          input.createdBy,
+          now,
+        );
       const updated = this.db
         .prepare(
           `UPDATE inspection_jobs
@@ -588,8 +713,18 @@ export class SqliteInspectionStore {
         )
         .run(input.verdict, JSON.stringify(input.sourceSnapshot), finishedAt, input.runId, input.userId);
 
+      const postChangeReady =
+        current.purpose === 'post_change' &&
+        input.verdict === 'passed' &&
+        projectInspectionABReport(this.listRuns(input.userId, current.caseId))?.comparability === 'valid';
       const nextCaseStatus =
-        input.verdict === 'unknown' ? 'blocked' : current.purpose === 'post_change' ? 'completed' : 'running';
+        current.purpose === 'post_change'
+          ? postChangeReady
+            ? 'running'
+            : 'blocked'
+          : input.verdict === 'unknown'
+            ? 'blocked'
+            : 'running';
       this.db
         .prepare('UPDATE inspection_cases SET status = ?, updated_at = ? WHERE id = ? AND user_id = ?')
         .run(nextCaseStatus, finishedAt, current.caseId, input.userId);
@@ -676,6 +811,14 @@ export class SqliteInspectionStore {
         throw new InspectionAcceptanceConflictError(
           'Accept requires the latest completed passed inspection run from this case',
         );
+      }
+      if (latestRun.purpose === 'post_change') {
+        const abReport = projectInspectionABReport(this.listRuns(input.userId, input.caseId));
+        if (abReport?.comparability !== 'valid') {
+          throw new InspectionAcceptanceConflictError(
+            'Accept requires a comparable admission baseline for a post-change run',
+          );
+        }
       }
 
       const activeRun = this.db
@@ -820,6 +963,12 @@ export class SqliteInspectionStore {
     const job = this.getJob(userId, jobId);
     if (!job) throw new InspectionNotFoundError('Inspection job');
     return job;
+  }
+
+  private requireCandidateSet(userId: string, candidateSetId: string): InspectionCandidateSet {
+    const candidateSet = this.getCandidateSet(userId, candidateSetId);
+    if (!candidateSet) throw new InspectionNotFoundError('Inspection candidate set');
+    return candidateSet;
   }
 
   private requireJobRevision(userId: string, revisionId: string): InspectionJobRevision {

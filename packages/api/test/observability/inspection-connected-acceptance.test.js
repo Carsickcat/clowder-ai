@@ -126,7 +126,7 @@ describe('connected inspection restart acceptance', () => {
             ...USER_HEADER,
             'idempotency-key': `acceptance-run-${index}`,
           },
-          payload: { purpose: 'post_change' },
+          payload: { purpose: 'admission' },
         }),
       );
     }
@@ -168,6 +168,76 @@ describe('connected inspection restart acceptance', () => {
 
     await runtime.app.close();
     runtime.db.close();
+  });
+
+  test('rejects dropping candidate coverage through the public revision route', async () => {
+    acceptanceDir = mkdtempSync(join(tmpdir(), 'nova-inspection-origin-'));
+    const runtime = await createApp(join(acceptanceDir, 'inspection.sqlite'));
+    try {
+      const generatedResponse = await runtime.app.inject({
+        method: 'POST',
+        url: '/api/observability/inspection-candidate-sets',
+        headers: USER_HEADER,
+        payload: {
+          intent: 'Inspect the payments route configuration change.',
+          service: 'payments-router',
+          environment: 'acceptance',
+          connectorRef: 'replay-acceptance',
+          changeId: 'CHG-COVERAGE',
+          version: 'v3.18.3',
+        },
+      });
+      assert.equal(generatedResponse.statusCode, 201);
+      const candidateSet = generatedResponse.json();
+
+      const materializedResponse = await runtime.app.inject({
+        method: 'POST',
+        url: `/api/observability/inspection-candidate-sets/${candidateSet.id}/materialize`,
+        headers: USER_HEADER,
+        payload: {
+          name: 'Candidate-backed payments inspection',
+          selectedCandidateIds: ['availability', 'latency', 'error-rate'],
+          waivers: [],
+        },
+      });
+      assert.equal(materializedResponse.statusCode, 201);
+      const materialized = materializedResponse.json();
+
+      const revisedResponse = await runtime.app.inject({
+        method: 'POST',
+        url: `/api/observability/inspection-jobs/${materialized.job.id}/revisions`,
+        headers: USER_HEADER,
+        payload: {
+          expectedRevision: 1,
+          checks: [
+            {
+              id: 'latency',
+              name: 'p95 request latency',
+              query: 'safe_metric',
+              operator: 'lte',
+              threshold: 250,
+              unit: 'ms',
+              maxAgeMs: 120_000,
+            },
+          ],
+        },
+      });
+
+      assert.equal(revisedResponse.statusCode, 409);
+      assert.deepEqual(revisedResponse.json(), { error: 'Inspection state conflict' });
+
+      const detailResponse = await runtime.app.inject({
+        method: 'GET',
+        url: `/api/observability/inspection-jobs/${materialized.job.id}`,
+        headers: USER_HEADER,
+      });
+      assert.equal(detailResponse.statusCode, 200);
+      assert.equal(detailResponse.json().job.currentRevision, 1);
+      assert.deepEqual(detailResponse.json().revision.origin, materialized.revision.origin);
+    } finally {
+      await runtime.app.close();
+      runtime.db.close();
+    }
   });
 
   test('seals an interrupted run as failed on restart and requires a new idempotency key', async () => {

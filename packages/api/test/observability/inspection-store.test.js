@@ -2,8 +2,14 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import Database from 'better-sqlite3';
 
-import { applyMigrations, CURRENT_SCHEMA_VERSION, SCHEMA_V10_INSPECTIONS } from '../../dist/domains/memory/schema.js';
 import {
+  applyMigrations,
+  CURRENT_SCHEMA_VERSION,
+  SCHEMA_V10_INSPECTIONS,
+  SCHEMA_V11_INSPECTION_INTEGRITY,
+} from '../../dist/domains/memory/schema.js';
+import {
+  InspectionAcceptanceConflictError,
   InspectionImmutableRecordError,
   InspectionRevisionConflictError,
   SqliteInspectionStore,
@@ -82,6 +88,7 @@ describe('NOVA inspection SQLite state', () => {
     const expected = [
       'inspection_jobs',
       'inspection_job_revisions',
+      'inspection_candidate_sets',
       'inspection_cases',
       'inspection_runs',
       'inspection_check_results',
@@ -104,7 +111,7 @@ describe('NOVA inspection SQLite state', () => {
     }
   });
 
-  it('upgrades an existing V10 inspection schema with the V11 integrity triggers', () => {
+  it('upgrades an existing V10 inspection schema through the current inspection migrations', () => {
     const legacyDb = new Database(':memory:');
     try {
       legacyDb.exec(`CREATE TABLE schema_version (
@@ -116,7 +123,10 @@ describe('NOVA inspection SQLite state', () => {
 
       applyMigrations(legacyDb);
 
-      assert.equal(legacyDb.prepare('SELECT MAX(version) AS version FROM schema_version').get().version, 11);
+      assert.equal(
+        legacyDb.prepare('SELECT MAX(version) AS version FROM schema_version').get().version,
+        CURRENT_SCHEMA_VERSION,
+      );
       assert.ok(
         legacyDb
           .prepare("SELECT 1 FROM sqlite_master WHERE type = 'trigger' AND name = ?")
@@ -124,6 +134,61 @@ describe('NOVA inspection SQLite state', () => {
       );
     } finally {
       legacyDb.close();
+    }
+  });
+
+  it('recovers V12 when origin_json exists but the schema version was not recorded', () => {
+    const partialDb = new Database(':memory:');
+    try {
+      partialDb.exec(`CREATE TABLE schema_version (
+        version INTEGER PRIMARY KEY,
+        applied_at TEXT NOT NULL
+      )`);
+      partialDb.exec(SCHEMA_V10_INSPECTIONS);
+      partialDb.exec(SCHEMA_V11_INSPECTION_INTEGRITY);
+      partialDb.prepare('INSERT INTO schema_version (version, applied_at) VALUES (10, ?)').run('2026-07-31T00:00:00Z');
+      partialDb.prepare('INSERT INTO schema_version (version, applied_at) VALUES (11, ?)').run('2026-07-31T00:01:00Z');
+      partialDb.exec(`
+        CREATE TABLE inspection_candidate_sets (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          intent TEXT NOT NULL,
+          service TEXT NOT NULL,
+          environment TEXT NOT NULL,
+          connector_ref TEXT NOT NULL,
+          change_id TEXT NOT NULL,
+          version TEXT NOT NULL,
+          topology_json TEXT NOT NULL,
+          candidates_json TEXT NOT NULL,
+          omissions_json TEXT NOT NULL,
+          generated_at TEXT NOT NULL,
+          UNIQUE (id, user_id)
+        );
+        CREATE INDEX idx_inspection_candidate_sets_user
+          ON inspection_candidate_sets(user_id, generated_at DESC, id DESC);
+        ALTER TABLE inspection_job_revisions ADD COLUMN origin_json TEXT;
+      `);
+
+      applyMigrations(partialDb);
+
+      assert.equal(
+        partialDb.prepare('SELECT MAX(version) AS version FROM schema_version').get().version,
+        CURRENT_SCHEMA_VERSION,
+      );
+      assert.equal(
+        partialDb
+          .prepare('PRAGMA table_info(inspection_job_revisions)')
+          .all()
+          .filter((column) => column.name === 'origin_json').length,
+        1,
+      );
+      assert.ok(
+        partialDb
+          .prepare("SELECT 1 FROM sqlite_master WHERE type = 'trigger' AND name = ?")
+          .get('inspection_candidate_sets_immutable_update'),
+      );
+    } finally {
+      partialDb.close();
     }
   });
 
@@ -401,7 +466,7 @@ describe('NOVA inspection SQLite state', () => {
     const run = store.startRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
-      purpose: 'post_change',
+      purpose: 'admission',
       idempotencyKey: 'request-atomic-accept',
     });
     store.completeRun({
@@ -490,7 +555,7 @@ describe('NOVA inspection SQLite state', () => {
     const run = store.startRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
-      purpose: 'post_change',
+      purpose: 'admission',
       idempotencyKey: 'request-report',
     });
     store.completeRun({
@@ -533,5 +598,113 @@ describe('NOVA inspection SQLite state', () => {
       () => db.prepare('UPDATE inspection_reports SET verdict = ? WHERE id = ?').run('risk', report.id),
       /immutable/i,
     );
+  });
+
+  it('keeps a passed post-change case open for verification until accept seals the report', () => {
+    const created = createJob();
+    const inspectionCase = startCase(created.job.id);
+    const completePassedRun = (runId, value) =>
+      store.completeRun({
+        userId: 'user-a',
+        runId,
+        verdict: 'passed',
+        sourceSnapshot: {
+          connectorRef: 'prometheus-default',
+          sourceKind: 'replay',
+          observedAt: '2026-07-31T01:02:00.000Z',
+          window: {
+            from: '2026-07-31T00:52:00.000Z',
+            to: '2026-07-31T01:02:00.000Z',
+          },
+        },
+        checkResults: [
+          {
+            checkId: 'latency',
+            status: 'passed',
+            value,
+            baselineValue: null,
+            observedAt: '2026-07-31T01:02:00.000Z',
+            queryDigest: 'sha256:latency',
+            reason: null,
+          },
+        ],
+      });
+
+    const admission = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'admission',
+      idempotencyKey: 'request-before-change',
+    });
+    completePassedRun(admission.id, 188);
+    const postChange = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'post_change',
+      idempotencyKey: 'request-after-change',
+    });
+    completePassedRun(postChange.id, 184);
+
+    assert.equal(store.getCase('user-a', inspectionCase.id).status, 'running');
+    assert.equal(store.getReportForCase('user-a', inspectionCase.id), null);
+
+    const verification = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'verification',
+      idempotencyKey: 'request-before-accept',
+    });
+    completePassedRun(verification.id, 183);
+    const accepted = store.acceptLatestPassedRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      runId: verification.id,
+      actorId: 'user-a',
+      note: 'Seal only after the final verification.',
+    });
+
+    assert.equal(store.getCase('user-a', inspectionCase.id).status, 'completed');
+    assert.deepEqual(accepted.report.runIds, [admission.id, postChange.id, verification.id]);
+  });
+
+  it('rejects sealing a post-change pass without a comparable admission baseline', () => {
+    const created = createJob();
+    const inspectionCase = startCase(created.job.id);
+    const run = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'post_change',
+      idempotencyKey: 'post-without-baseline',
+    });
+    store.completeRun({
+      userId: 'user-a',
+      runId: run.id,
+      verdict: 'passed',
+      sourceSnapshot: {
+        connectorRef: 'prometheus-default',
+        sourceKind: 'replay',
+        observedAt: '2026-07-31T01:02:00.000Z',
+        window: {
+          from: '2026-07-31T00:52:00.000Z',
+          to: '2026-07-31T01:02:00.000Z',
+        },
+      },
+      checkResults: [],
+    });
+
+    assert.equal(store.getCase('user-a', inspectionCase.id).status, 'blocked');
+
+    assert.throws(
+      () =>
+        store.acceptLatestPassedRun({
+          userId: 'user-a',
+          caseId: inspectionCase.id,
+          runId: run.id,
+          actorId: 'user-a',
+          note: 'Should remain blocked.',
+        }),
+      InspectionAcceptanceConflictError,
+    );
+    assert.equal(store.getReportForCase('user-a', inspectionCase.id), null);
   });
 });

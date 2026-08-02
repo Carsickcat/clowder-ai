@@ -12,6 +12,41 @@ export type InspectionRunPurpose = 'admission' | 'canary' | 'verification' | 'po
 export type InspectionDecisionKind = 'approve' | 'pause' | 'resume' | 'accept';
 export type InspectionCheckStatus = 'passed' | 'risk' | 'unknown';
 export type InspectionCheckOperator = 'lte' | 'gte' | 'relative_lte' | 'relative_gte';
+export type InspectionCandidatePriority = 'required' | 'recommended' | 'optional';
+export type InspectionCandidateReadiness = 'ready' | 'needs_mapping';
+export type InspectionCoverageStatus = 'complete' | 'omission';
+export type InspectionDecisionReadiness = 'ready' | 'review_required' | 'blocked';
+export type InspectionABComparability = 'valid' | 'partial' | 'unavailable';
+
+export interface InspectionChangeContext {
+  readonly intent: string;
+  readonly service: string;
+  readonly environment: string;
+  readonly connectorRef: string;
+  readonly changeId: string;
+  readonly version: string;
+}
+
+export interface InspectionEvidenceRef {
+  readonly kind: 'change_context' | 'topology' | 'rule' | 'run' | 'check_result';
+  readonly ref: string;
+  readonly label: string;
+}
+
+export interface InspectionTopologyDependency {
+  readonly ref: string;
+  readonly kind: 'service' | 'baas' | 'infrastructure';
+  readonly direction: 'upstream' | 'downstream';
+  readonly criticality: 'critical' | 'important' | 'supporting';
+  readonly signalMapped: boolean;
+}
+
+export interface InspectionTopologySnapshot {
+  readonly catalogVersion: string;
+  readonly rootService: string;
+  readonly capturedAt: string;
+  readonly dependencies: readonly InspectionTopologyDependency[];
+}
 
 export interface InspectionCheckDefinition {
   readonly id: string;
@@ -21,6 +56,47 @@ export interface InspectionCheckDefinition {
   readonly operator: InspectionCheckOperator;
   readonly threshold: number;
   readonly maxAgeMs: number;
+}
+
+export interface InspectionCandidate {
+  readonly id: string;
+  readonly name: string;
+  readonly priority: InspectionCandidatePriority;
+  readonly readiness: InspectionCandidateReadiness;
+  readonly stages: readonly InspectionRunPurpose[];
+  readonly check: InspectionCheckDefinition;
+  readonly reason: string;
+  readonly evidenceRefs: readonly InspectionEvidenceRef[];
+}
+
+export interface InspectionCoverageOmission {
+  readonly id: string;
+  readonly code: 'COVERAGE_OMISSION';
+  readonly dependencyRef: string;
+  readonly reason: string;
+  readonly risk: string;
+  readonly evidenceRefs: readonly InspectionEvidenceRef[];
+}
+
+export interface InspectionCandidateSet {
+  readonly id: string;
+  readonly userId: string;
+  readonly changeContext: InspectionChangeContext;
+  readonly topologySnapshot: InspectionTopologySnapshot;
+  readonly candidates: readonly InspectionCandidate[];
+  readonly coverageOmissions: readonly InspectionCoverageOmission[];
+  readonly generatedAt: string;
+}
+
+export interface InspectionWaiver {
+  readonly candidateId: string;
+  readonly reason: string;
+}
+
+export interface InspectionRevisionOrigin {
+  readonly candidateSetId: string;
+  readonly selectedCandidateIds: readonly string[];
+  readonly waivers: readonly InspectionWaiver[];
 }
 
 export interface InspectionObservationWindow {
@@ -65,8 +141,77 @@ export interface InspectionJobRevision {
   readonly jobId: string;
   readonly revision: number;
   readonly checks: readonly InspectionCheckDefinition[];
+  readonly origin: InspectionRevisionOrigin | null;
   readonly createdBy: string;
   readonly createdAt: string;
+}
+
+export interface InspectionEvidenceQuality {
+  readonly status: 'complete' | 'degraded' | 'unavailable';
+  readonly observedChecks: number;
+  readonly totalChecks: number;
+  readonly missingChecks: number;
+}
+
+export interface InspectionStageReport {
+  readonly runId: string;
+  readonly purpose: InspectionRunPurpose;
+  readonly runStatus: InspectionRunStatus;
+  readonly machineVerdict: InspectionVerdict;
+  readonly generatedAt: string;
+  readonly evidenceQuality: InspectionEvidenceQuality;
+  readonly resultCounts: Readonly<Record<InspectionCheckStatus, number>>;
+  readonly sourceSnapshot: InspectionSourceSnapshot | null;
+}
+
+export interface InspectionABCheckComparison {
+  readonly checkId: string;
+  readonly comparable: boolean;
+  readonly baselineValue: number | null;
+  readonly currentValue: number | null;
+  readonly absoluteDelta: number | null;
+  readonly relativeDeltaPercent: number | null;
+  readonly reason:
+    | 'missing_baseline_result'
+    | 'missing_current_result'
+    | 'query_digest_mismatch'
+    | 'source_mismatch'
+    | 'run_order_mismatch'
+    | 'unusable_evidence'
+    | null;
+  readonly evidenceRefs: readonly InspectionEvidenceRef[];
+}
+
+export interface InspectionABReport {
+  readonly baselineRunId: string | null;
+  readonly currentRunId: string | null;
+  readonly comparability: InspectionABComparability;
+  readonly reason:
+    | 'missing_baseline_run'
+    | 'missing_current_run'
+    | 'missing_both_runs'
+    | 'baseline_not_before_current'
+    | null;
+  readonly checks: readonly InspectionABCheckComparison[];
+  readonly generatedAt: string;
+}
+
+export interface InspectionAssessmentItem {
+  readonly code: string;
+  readonly statement: string;
+  readonly evidenceRefs: readonly InspectionEvidenceRef[];
+}
+
+export interface InspectionAssessment {
+  readonly runId: string;
+  readonly generatedAt: string;
+  readonly machineVerdict: InspectionVerdict;
+  readonly coverageStatus: InspectionCoverageStatus;
+  readonly decisionReadiness: InspectionDecisionReadiness;
+  readonly facts: readonly InspectionAssessmentItem[];
+  readonly hypotheses: readonly InspectionAssessmentItem[];
+  readonly unknowns: readonly InspectionAssessmentItem[];
+  readonly recommendations: readonly InspectionAssessmentItem[];
 }
 
 export interface InspectionCase {

@@ -66,7 +66,7 @@ END`,
 END`,
 ];
 
-export const CURRENT_SCHEMA_VERSION = 11;
+export const CURRENT_SCHEMA_VERSION = 12;
 
 // Phase C: embedding metadata (model/dim version anchor)
 export const SCHEMA_V2 = `
@@ -399,6 +399,37 @@ WHEN NOT EXISTS (
 END;
 `;
 
+// NOVA atomic inspection capability: durable, immutable candidate packages and
+// an auditable origin on every revision materialized from a generated package.
+export const SCHEMA_V12_INSPECTION_CANDIDATES = `
+CREATE TABLE IF NOT EXISTS inspection_candidate_sets (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  intent TEXT NOT NULL,
+  service TEXT NOT NULL,
+  environment TEXT NOT NULL,
+  connector_ref TEXT NOT NULL,
+  change_id TEXT NOT NULL,
+  version TEXT NOT NULL,
+  topology_json TEXT NOT NULL,
+  candidates_json TEXT NOT NULL,
+  omissions_json TEXT NOT NULL,
+  generated_at TEXT NOT NULL,
+  UNIQUE (id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_inspection_candidate_sets_user
+  ON inspection_candidate_sets(user_id, generated_at DESC, id DESC);
+
+CREATE TRIGGER IF NOT EXISTS inspection_candidate_sets_immutable_update
+BEFORE UPDATE ON inspection_candidate_sets BEGIN
+  SELECT RAISE(ABORT, 'inspection candidate set is immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS inspection_candidate_sets_immutable_delete
+BEFORE DELETE ON inspection_candidate_sets BEGIN
+  SELECT RAISE(ABORT, 'inspection candidate set is immutable');
+END;
+`;
+
 /**
  * Apply all schema migrations up to CURRENT_SCHEMA_VERSION.
  * Safe to call on empty DB (creates schema_version table first).
@@ -532,6 +563,20 @@ export function applyMigrations(db: Database.Database): void {
   if (currentVersion < 11) {
     db.exec(SCHEMA_V11_INSPECTION_INTEGRITY);
     db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(11, new Date().toISOString());
+  }
+
+  if (currentVersion < 12) {
+    const applyV12 = db.transaction(() => {
+      db.exec(SCHEMA_V12_INSPECTION_CANDIDATES);
+      const revisionColumns = db.prepare('PRAGMA table_info(inspection_job_revisions)').all() as {
+        name: string;
+      }[];
+      if (!revisionColumns.some((column) => column.name === 'origin_json')) {
+        db.exec('ALTER TABLE inspection_job_revisions ADD COLUMN origin_json TEXT');
+      }
+      db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(12, new Date().toISOString());
+    });
+    applyV12();
   }
 }
 
