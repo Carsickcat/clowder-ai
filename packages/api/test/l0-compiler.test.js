@@ -106,6 +106,7 @@ test('compileL0ViaSubprocess (no outPath) returns stdout as compiled L0', async 
     resolve(root, 'private/profile'),
   ]);
   assert.ok(!call.args.includes('--out'), 'no --out when outPath omitted');
+  assert.equal(call.opts.windowsHide, process.platform === 'win32', 'L0 compiler must hide its Windows child console');
 });
 
 test('compileL0ViaSubprocess (outPath) passes --out and returns file content', async () => {

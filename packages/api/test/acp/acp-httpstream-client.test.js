@@ -106,12 +106,14 @@ describe('AcpHttpStreamClient', () => {
     });
     const { child, agentStdout } = createMockChild();
     const port = serverPort(server);
+    let spawnOptions;
 
     client = new AcpHttpStreamClient({
       command: 'fake-http-acp',
       args: [],
       cwd: '/tmp',
-      spawnFn: () => {
+      spawnFn: (_command, _args, options) => {
+        spawnOptions = options;
         setImmediate(() => agentStdout.write(`Listening on port ${port}\n`));
         return child;
       },
@@ -122,6 +124,7 @@ describe('AcpHttpStreamClient', () => {
 
     assert.equal(result.agentInfo.name, 'http-acp');
     assert.deepEqual(seenMethods, ['initialize']);
+    assert.equal(spawnOptions.windowsHide, process.platform === 'win32');
   });
 
   it('keeps draining stdout after discovering the HTTP port', async () => {

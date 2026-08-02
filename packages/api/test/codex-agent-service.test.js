@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { describe, mock, test } from 'node:test';
 import { catRegistry } from '@cat-cafe/shared';
@@ -1630,6 +1630,19 @@ describe('CodexAgentService Tests (CLI mode)', { concurrency: false }, () => {
           !args.some((arg) => arg.includes('SECRET_TOKEN') || arg.includes('super-secret-token')),
           'external MCP env names and values must not be exposed in argv',
         );
+        const wrapperArgs = args.find((arg) => arg.startsWith('mcp_servers.secret-tool.args=['));
+        assert.ok(wrapperArgs, 'env-wrapped external server must have wrapper arguments');
+        const wrapperPath = wrapperArgs.match(/^mcp_servers\.secret-tool\.args=\["([^"]+mcp-env-wrapper\.mjs)"/)?.[1];
+        assert.ok(wrapperPath, 'wrapper arguments must contain the generated wrapper path');
+        try {
+          assert.match(
+            readFileSync(wrapperPath, 'utf8'),
+            /windowsHide: process\.platform === 'win32'/,
+            'the generated MCP wrapper must hide its Windows child console',
+          );
+        } finally {
+          rmSync(dirname(wrapperPath), { recursive: true, force: true });
+        }
       });
     } finally {
       rmSync(projectDir, { recursive: true, force: true });

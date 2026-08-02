@@ -136,6 +136,7 @@ describe('AcpClient Windows default spawn path', () => {
     assert.deepEqual(captured.args?.slice(1), ['--acp', '--approval-mode', 'yolo']);
     assert.equal(captured.options?.shell, undefined);
     assert.deepEqual(captured.options?.stdio, ['pipe', 'pipe', 'pipe']);
+    assert.equal(captured.options?.windowsHide, true);
   });
 
   it('spawns native .exe commands directly when spawnFn is omitted', async () => {
@@ -183,5 +184,6 @@ describe('AcpClient Windows default spawn path', () => {
     assert.deepEqual(captured.args, ['--acp', '--approval-mode', 'yolo']);
     assert.equal(captured.options?.shell, undefined);
     assert.deepEqual(captured.options?.stdio, ['pipe', 'pipe', 'pipe']);
+    assert.equal(captured.options?.windowsHide, true);
   });
 });

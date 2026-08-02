@@ -231,7 +231,11 @@ async function doCompileL0(
   const args = [scriptPath, '--cat', catId, '--profile-dir', profileDir, ...(outPath ? ['--out', outPath] : [])];
 
   const stdout = await new Promise<string>((resolvePromise, rejectPromise) => {
-    const child = spawnFn(process.execPath, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawnFn(process.execPath, args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: process.platform === 'win32',
+    });
     let out = '';
     let err = '';
     let settled = false;

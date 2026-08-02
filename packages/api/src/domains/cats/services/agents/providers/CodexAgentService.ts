@@ -304,6 +304,7 @@ function writeCodexMcpEnvWrapper(spec: {
       '  cwd: spec.cwd || process.cwd(),',
       '  env: { ...process.env, ...(spec.env ?? {}) },',
       "  stdio: 'inherit',",
+      "  windowsHide: process.platform === 'win32',",
       '});',
       'const cleanup = () => {',
       '  try { rmSync(wrapperPath, { force: true }); } catch {}',
