@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>NOVA 变更巡检 · 产品介绍</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f3f8f5;
+        --muted: #96aaa2;
+        --green: #63e6a8;
+        --green-dark: #1fae72;
+        --amber: #f4c96d;
+        --blue: #69b8ff;
+        --line: rgba(203, 231, 220, .14);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; overflow: hidden; background: #050b0a; color: var(--ink); }
+      button { font: inherit; }
+      .deck { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 10% 0%, rgba(34,151,101,.17), transparent 34%), #050b0a; }
+      .slide {
+        display: none; position: relative; width: min(1280px, calc(100vw - 48px)); aspect-ratio: 16 / 9; overflow: hidden;
+        border: 1px solid var(--line); border-radius: 24px; padding: clamp(30px, 5vw, 72px);
+        background:
+          linear-gradient(140deg, rgba(18,34,30,.98), rgba(5,13,11,.98)),
+          #07100e;
+        box-shadow: 0 34px 120px rgba(0,0,0,.48);
+      }
+      .slide::after { content: attr(data-page); position: absolute; right: 32px; bottom: 24px; color: #53645e; font-size: 12px; letter-spacing: .16em; }
+      .slide.active { display: flex; flex-direction: column; animation: reveal .35s ease; }
+      @keyframes reveal { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: none; } }
+      .kicker { margin: 0 0 12px; color: var(--green); font-size: 12px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(44px, 6.3vw, 88px); line-height: .98; letter-spacing: -.055em; max-width: 980px; }
+      h2 { margin: 0; font-size: clamp(32px, 4vw, 58px); line-height: 1.05; letter-spacing: -.04em; }
+      h3 { margin: 0 0 9px; font-size: clamp(16px, 1.8vw, 24px); }
+      p { margin: 0; line-height: 1.65; }
+      .lead { margin-top: 24px; max-width: 780px; color: var(--muted); font-size: clamp(16px, 1.6vw, 22px); }
+      .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+      .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+      .logo { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: #06120c; background: linear-gradient(135deg,#9affcf,#24b878); }
+      .demo { color: var(--amber); font-size: 12px; border: 1px solid rgba(244,201,109,.32); background: rgba(244,201,109,.08); padding: 7px 10px; border-radius: 999px; }
+      .cover-copy { margin: auto 0; }
+      .cover-copy h1 em { color: var(--green); font-style: normal; }
+      .cover-meta { display: flex; align-items: center; gap: 20px; color: var(--muted); font-size: 12px; }
+      .rule { width: 74px; height: 1px; background: var(--green); }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: auto; }
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: auto; }
+      .card { min-width: 0; border: 1px solid var(--line); border-radius: 18px; padding: 22px; background: rgba(255,255,255,.028); }
+      .card p { color: var(--muted); font-size: clamp(12px, 1.25vw, 17px); }
+      .card .index { display: block; margin-bottom: 22px; color: var(--green); font: 800 13px/1 ui-monospace, monospace; }
+      .problem { border-color: rgba(255,130,120,.24); }
+      .problem .index { color: #ff8278; }
+      .statement { margin: auto 0; font-size: clamp(28px, 4.2vw, 62px); line-height: 1.14; letter-spacing: -.045em; max-width: 1100px; }
+      .statement b { color: var(--green); }
+      .definition { margin-top: auto; padding: 24px 28px; border-left: 3px solid var(--green); background: rgba(98,230,168,.06); border-radius: 0 18px 18px 0; font-size: clamp(18px, 2.1vw, 28px); line-height: 1.5; }
+      .workspace-map { display: grid; grid-template-columns: 1.1fr 2.4fr 1.2fr; grid-template-rows: auto 1fr auto; gap: 10px; margin-top: 26px; flex: 1; min-height: 0; }
+      .map-block { border: 1px solid var(--line); background: rgba(255,255,255,.025); border-radius: 14px; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; }
+      .map-block strong { color: var(--green); font-size: clamp(13px, 1.4vw, 19px); }
+      .map-block span { color: var(--muted); font-size: clamp(10px, 1vw, 13px); }
+      .map-context { grid-column: 1 / -1; flex-direction: row; align-items: center; }
+      .map-center { border-color: rgba(98,230,168,.34); background: rgba(98,230,168,.055); }
+      .map-time { grid-column: 1 / -1; flex-direction: row; align-items: center; }
+      .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin: auto 0; }
+      .step { position: relative; min-height: 185px; padding: 18px 15px; border-radius: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.025); }
+      .step:not(:last-child)::after { content: "→"; position: absolute; top: 50%; right: -14px; z-index: 2; color: var(--green); font-weight: 900; }
+      .step b { display: block; margin-bottom: 25px; color: var(--green); font: 800 12px/1 ui-monospace, monospace; }
+      .step strong { display: block; margin-bottom: 9px; font-size: clamp(13px, 1.35vw, 18px); }
+      .step p { color: var(--muted); font-size: clamp(10px, 1vw, 13px); line-height: 1.5; }
+      .evidence-model { display: grid; grid-template-columns: 1.1fr 1fr; gap: 22px; margin-top: auto; align-items: stretch; }
+      .chain { display: grid; gap: 10px; }
+      .chain-row { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 14px; }
+      .chain-row strong { color: var(--green); }
+      .chain-row span { color: var(--muted); font-size: 13px; }
+      .fail-closed { border: 1px solid rgba(244,201,109,.32); border-radius: 18px; padding: 25px; background: rgba(244,201,109,.055); }
+      .fail-closed h3 { color: var(--amber); }
+      .fail-closed ul { margin: 18px 0 0; padding-left: 20px; color: var(--muted); line-height: 1.8; font-size: 14px; }
+      .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 32px 0 18px; }
+      .kpi { padding: 20px; border: 1px solid var(--line); border-radius: 17px; background: rgba(255,255,255,.025); }
+      .kpi span { color: var(--muted); font-size: 12px; }
+      .kpi strong { display: block; margin: 12px 0 6px; font-size: clamp(32px, 4vw, 56px); letter-spacing: -.05em; }
+      .kpi small { color: var(--green); }
+      .stages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .stage { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border: 1px solid rgba(98,230,168,.25); background: rgba(98,230,168,.05); border-radius: 13px; }
+      .stage b { color: var(--green); }
+      .deliver { display: grid; grid-template-columns: 1.5fr 1fr; gap: 22px; margin-top: auto; }
+      .deliver-list { display: grid; gap: 10px; }
+      .deliver-item { display: flex; align-items: center; gap: 13px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; }
+      .check { width: 25px; height: 25px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #06120c; background: var(--green); font-weight: 900; }
+      .deliver-item span { color: var(--muted); font-size: 12px; }
+      .run-box { display: flex; flex-direction: column; justify-content: center; border: 1px solid rgba(98,230,168,.32); border-radius: 20px; padding: 27px; background: linear-gradient(145deg, rgba(98,230,168,.1), rgba(255,255,255,.02)); }
+      .run-box code { display: block; margin: 18px 0; padding: 13px 15px; border-radius: 11px; color: var(--green); background: #050c0a; font: 14px/1.4 ui-monospace, monospace; }
+      .run-box p { color: var(--muted); font-size: 13px; }
+      .controls { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line); border-radius: 999px; background: rgba(5,12,10,.86); backdrop-filter: blur(14px); }
+      .controls button { width: 34px; height: 34px; border: 0; border-radius: 50%; cursor: pointer; color: var(--ink); background: rgba(255,255,255,.06); }
+      .controls button:hover { background: rgba(98,230,168,.18); }
+      .counter { min-width: 64px; text-align: center; color: var(--muted); font: 12px/1 ui-monospace, monospace; }
+      .progress { position: fixed; left: 0; bottom: 0; height: 3px; background: var(--green); transition: width .25s ease; }
+      @media (max-width: 900px) {
+        .deck { padding: 8px; }
+        .slide { width: calc(100vw - 16px); min-height: calc(100vh - 70px); aspect-ratio: auto; overflow-y: auto; padding: 28px 22px 54px; }
+        .grid-3, .grid-2, .flow, .evidence-model, .deliver, .kpis, .stages { grid-template-columns: 1fr; }
+        .workspace-map { grid-template-columns: 1fr; grid-template-rows: repeat(5, minmax(90px, auto)); }
+        .map-context, .map-time { grid-column: auto; }
+        .step { min-height: auto; }
+        .step:not(:last-child)::after { display: none; }
+        body { overflow: auto; }
+      }
+      @media print {
+        body { overflow: visible; background: #fff; }
+        .deck { display: block; padding: 0; background: #fff; }
+        .slide, .slide.active { display: flex; width: 100%; height: 100vh; border-radius: 0; break-after: page; box-shadow: none; }
+        .controls, .progress { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="deck" aria-live="polite">
+      <section class="slide active" data-page="01 / 08">
+        <div class="brand-row"><div class="brand"><span class="logo">N</span>NOVA · 变更巡检</div><span class="demo">Mock 数据 · 仅用于演示</span></div>
+        <div class="cover-copy"><p class="kicker">Evidence-driven change inspection</p><h1>让每一次变更<br />都有<em>证据</em>可追溯</h1><p class="lead">面向 SRE 的单屏巡检工作台：从变更意图、方案生成到三阶段验证与不可变报告，在同一个 Case 内完成。</p></div>
+        <div class="cover-meta"><span class="rule"></span><span>最小可运行验收包 · 2026.08</span><span>Clowder AI</span></div>
+      </section>
+
+      <section class="slide" data-page="02 / 08">
+        <p class="kicker">问题不是缺少指标，而是缺少决策链</p><h2>传统巡检把人留在“拼证据”的现场</h2>
+        <div class="grid-3">
+          <article class="card problem"><span class="index">01</span><h3>上下文断裂</h3><p>变更单、拓扑、指标和执行历史散落在多个系统，巡检对象与证据口径难以对齐。</p></article>
+          <article class="card problem"><span class="index">02</span><h3>阶段割裂</h3><p>变更前、灰度、变更后各看一套页面，结果无法自然形成同一条可比较的旅程。</p></article>
+          <article class="card problem"><span class="index">03</span><h3>结论不可追溯</h3><p>“看起来没问题”没有绑定 source snapshot、query digest、人工决策与报告快照。</p></article>
+        </div>
+      </section>
+
+      <section class="slide" data-page="03 / 08">
+        <p class="kicker">产品定义</p><div class="statement">NOVA 不是替人拍板，<br />而是把<b>事实、未知与决策边界</b><br />放到同一张桌面上。</div>
+        <div class="definition">一句话描述变更 → 生成可审阅方案 → 创建独立 Case → 服务端只读执行 → 证据化评估 → 人工接受并固化不可变报告。</div>
+      </section>
+
+      <section class="slide" data-page="04 / 08">
+        <p class="kicker">单屏工作台</p><h2>页面始终回答三个问题</h2><p class="lead">我在巡检什么？当前结论是什么？下一步应该做什么？</p>
+        <div class="workspace-map">
+          <div class="map-block map-context"><strong>变更上下文 + 三阶段旅程</strong><span>服务 / 版本 / 变更单 / 当前进度</span></div>
+          <div class="map-block"><strong>作业与 Case</strong><span>复用方案，但每次执行保持独立</span></div>
+          <div class="map-block map-center"><strong>结论与证据中心</strong><span>指标、评估、A/B、覆盖缺口、最终报告</span></div>
+          <div class="map-block"><strong>CLAW 巡检搭档</strong><span>解释生成依据与证据，不伪造状态</span></div>
+          <div class="map-block map-time"><strong>执行与决策时间线</strong><span>Run、人工动作和报告固化形成连续记录</span></div>
+        </div>
+      </section>
+
+      <section class="slide" data-page="05 / 08">
+        <p class="kicker">端到端用户旅程</p><h2>从一句话到一份不可变报告</h2>
+        <div class="flow">
+          <article class="step"><b>01</b><strong>描述变更</strong><p>输入服务、版本、变更意图与只读数据源。</p></article>
+          <article class="step"><b>02</b><strong>生成方案</strong><p>结合拓扑、规则与历史形成候选项和覆盖缺口。</p></article>
+          <article class="step"><b>03</b><strong>人工编排</strong><p>选择检查项；必选项缺失必须填写 waiver。</p></article>
+          <article class="step"><b>04</b><strong>三阶段执行</strong><p>变更前、灰度、变更后均由服务端读取证据。</p></article>
+          <article class="step"><b>05</b><strong>证据化评估</strong><p>区分事实、假设、未知与建议，输出 A/B。</p></article>
+          <article class="step"><b>06</b><strong>人工接受</strong><p>最新完成态通过后，固化证据与决策快照。</p></article>
+        </div>
+      </section>
+
+      <section class="slide" data-page="06 / 08">
+        <p class="kicker">可信边界</p><h2>浏览器发起意图，服务端拥有事实</h2>
+        <div class="evidence-model">
+          <div class="chain">
+            <div class="chain-row"><strong>变更上下文</strong><span>service / version / changeId / topology provenance</span></div>
+            <div class="chain-row"><strong>只读观测</strong><span>source snapshot / observedAt / query digest</span></div>
+            <div class="chain-row"><strong>机器评估</strong><span>threshold / verdict / coverage / A-B consistency</span></div>
+            <div class="chain-row"><strong>人工决策</strong><span>actor / note / accepted run / immutable report</span></div>
+          </div>
+          <aside class="fail-closed"><h3>以下情况一律 fail closed</h3><ul><li>观测过期或来源中断</li><li>source / query 口径不一致</li><li>required 检查缺失且没有 waiver</li><li>存在未解释的 unknown 或覆盖缺口</li><li>不是最新完成态、通过的变更后 Run</li></ul></aside>
+        </div>
+      </section>
+
+      <section class="slide" data-page="07 / 08">
+        <div class="brand-row"><div><p class="kicker">Mock 验收结果</p><h2>payments-router v3.18.3</h2></div><span class="demo">合成验收数据</span></div>
+        <div class="kpis"><div class="kpi"><span>服务可用性</span><strong>99.90%</strong><small>阈值 ≥ 99.50%</small></div><div class="kpi"><span>请求延迟</span><strong>184ms</strong><small>阈值 ≤ 250ms</small></div><div class="kpi"><span>服务错误率</span><strong>0.20%</strong><small>阈值 ≤ 0.50%</small></div></div>
+        <div class="stages"><div class="stage"><span>变更前准入</span><b>通过</b></div><div class="stage"><span>灰度持续验证</span><b>通过</b></div><div class="stage"><span>变更后验收</span><b>通过</b></div></div>
+        <p class="lead">机器判定通过；payments-connection-pool 的信号覆盖缺口被保留在报告中，由 SRE 人工复核后接受。</p>
+      </section>
+
+      <section class="slide" data-page="08 / 08">
+        <p class="kicker">可运行交付</p><h2>产品、数据、讲解与验收入口已经合在一个包里</h2>
+        <div class="deliver">
+          <div class="deliver-list">
+            <div class="deliver-item"><span class="check">✓</span><div><strong>Connected 产品</strong><br /><span>真实 API、SQLite 持久化、三阶段 Run 与不可变报告</span></div></div>
+            <div class="deliver-item"><span class="check">✓</span><div><strong>Mock 产品 HTML</strong><br /><span>离线可开，阶段切换、证据摘要与数据导出</span></div></div>
+            <div class="deliver-item"><span class="check">✓</span><div><strong>产品介绍 HTML</strong><br /><span>8 页 16:9，可键盘翻页、全屏展示与打印为 PDF</span></div></div>
+            <div class="deliver-item"><span class="check">✓</span><div><strong>结构化 Mock JSON</strong><br /><span>完整 change / topology / case / run / assessment / report</span></div></div>
+          </div>
+          <aside class="run-box"><p class="kicker">一条命令启动</p><h3>最小验收包</h3><code>pnpm demo:nova</code><p>默认打开 5272；产品 Mock、演示稿和数据均由零依赖静态服务提供。</p></aside>
+        </div>
+      </section>
+    </main>
+
+    <nav class="controls" aria-label="幻灯片导航"><button type="button" id="prev" aria-label="上一页">←</button><span class="counter" id="counter">01 / 08</span><button type="button" id="next" aria-label="下一页">→</button></nav>
+    <div class="progress" id="progress"></div>
+    <script>
+      const slides = [...document.querySelectorAll('.slide')];
+      let current = 0;
+      function show(next) {
+        current = (next + slides.length) % slides.length;
+        slides.forEach((slide, index) => {
+          slide.classList.toggle('active', index === current);
+        });
+        document.querySelector('#counter').textContent = `${String(current + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+        document.querySelector('#progress').style.width = `${((current + 1) / slides.length) * 100}%`;
+      }
+      document.querySelector('#prev').addEventListener('click', () => show(current - 1));
+      document.querySelector('#next').addEventListener('click', () => show(current + 1));
+      document.addEventListener('keydown', (event) => {
+        if (['ArrowRight', 'PageDown', ' '].includes(event.key)) show(current + 1);
+        if (['ArrowLeft', 'PageUp'].includes(event.key)) show(current - 1);
+        if (event.key === 'Home') show(0);
+        if (event.key === 'End') show(slides.length - 1);
+      });
+      show(0);
+    </script>
+  </body>
+</html>

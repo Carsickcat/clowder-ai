@@ -4,6 +4,8 @@ topics: [nova, inspection, observability, productization]
 doc_kind: implementation-plan
 created: 2026-08-02
 updated: 2026-08-02
+tips_exempt:
+  reason: "本功能是独立 NOVA 验收包与产品工作台，不属于 Hub 内需要能力提示曝光的用户路径。"
 ---
 
 # NOVA 高保真巡检工作台接入计划

@@ -73,8 +73,8 @@ describe('public pre-merge gate', () => {
     assert.equal(PACKAGE_JSON.scripts.gate, 'bash ./scripts/pre-merge-check.sh');
     assert.equal(
       PACKAGE_JSON.scripts['check:pre-merge-gate'],
-      'node --test scripts/pre-merge-check.test.mjs scripts/public-startup-acceptance.test.mjs',
-      'pnpm gate must continuously enforce both orchestration and hostile startup regressions',
+      'node --test scripts/pre-merge-check.test.mjs scripts/public-startup-acceptance.test.mjs scripts/nova-deliverables.test.mjs',
+      'pnpm gate must continuously enforce orchestration, hostile startup, and NOVA deliverable regressions',
     );
     assert.equal(
       existsSync(GATE_SCRIPT_PATH),
@@ -114,7 +114,7 @@ describe('public pre-merge gate', () => {
   it('detects removal or premature execution of the final cleanliness invariant', () => {
     const script = readGateScript();
     const cleanlinessGuard =
-      /\nif \[\[ -n "\$\(git status --porcelain\)" \]\]; then\n  echo "Pre-merge gate left the worktree dirty\." >&2\n  git status --short >&2\n  exit 1\nfi\n/;
+      /\nif \[\[ -n "\$\(git status --porcelain\)" \]\]; then\n {2}echo "Pre-merge gate left the worktree dirty\." >&2\n {2}git status --short >&2\n {2}exit 1\nfi\n/;
     const guardMatch = script.match(cleanlinessGuard);
     assert.ok(guardMatch, 'expected the checked-in final cleanliness guard');
 
