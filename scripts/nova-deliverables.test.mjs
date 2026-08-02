@@ -34,6 +34,26 @@ test('ships a truthful, complete mock inspection dataset', async () => {
   assert.match(mock.report.id, /^report-/u);
 });
 
+test('keeps mock evidence chronology strictly causal', async () => {
+  const mock = JSON.parse(await readDeliverable('nova-payments-router-case.json'));
+  const timeline = [
+    ['case.createdAt', mock.case.createdAt],
+    ...mock.runs.map((run) => [`run.${run.purpose}.observedAt`, run.observedAt]),
+    ['decision.createdAt', mock.decision.createdAt],
+    ['report.generatedAt', mock.report.generatedAt],
+    ['case.updatedAt', mock.case.updatedAt],
+  ].map(([label, timestamp]) => [label, Date.parse(timestamp)]);
+
+  for (const [label, timestamp] of timeline) {
+    assert.ok(Number.isFinite(timestamp), `${label} must be an ISO timestamp`);
+  }
+  for (let index = 1; index < timeline.length; index += 1) {
+    const [previousLabel, previousTimestamp] = timeline[index - 1];
+    const [currentLabel, currentTimestamp] = timeline[index];
+    assert.ok(previousTimestamp < currentTimestamp, `${currentLabel} must occur after ${previousLabel}`);
+  }
+});
+
 test('ships self-contained Chinese product and presentation HTML', async () => {
   const [productHtml, deckHtml] = await Promise.all([
     readDeliverable('nova-inspection-mock.html'),
@@ -51,6 +71,10 @@ test('ships self-contained Chinese product and presentation HTML', async () => {
   assert.match(productHtml, /灰度持续验证/u);
   assert.match(productHtml, /变更后验收/u);
   assert.match(productHtml, /不可变报告/u);
+  assert.match(productHtml, /导出演示摘要/u);
+  assert.match(productHtml, /nova-payments-router-demo-summary\.json/u);
+  assert.match(productHtml, /summaryOnly: true/u);
+  assert.doesNotMatch(productHtml, /导出 Mock JSON/u);
 
   const slideCount = (deckHtml.match(/class="slide(?:\s|")/gu) ?? []).length;
   assert.equal(slideCount, 8);

@@ -12,9 +12,9 @@ pnpm demo:nova
 
 默认地址：`http://127.0.0.1:5272`
 
-- `/product`：完整 Mock 产品视图，可切换三阶段、展开证据摘要并导出内嵌数据。
+- `/product`：完整 Mock 产品视图，可切换三阶段、展开证据摘要并导出演示摘要。
 - `/deck`：8 页中文产品介绍，支持左右方向键、PageUp/PageDown、空格翻页，可直接打印为 PDF。
-- `/mock-data`：结构化 Mock JSON。
+- `/mock-data`：完整结构化 Mock JSON；与产品页导出的演示摘要边界明确分开。
 
 如 5272 被占用：
 

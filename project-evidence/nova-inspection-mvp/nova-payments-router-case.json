@@ -36,8 +36,8 @@
     "id": "case-nova-payments-0318",
     "status": "completed",
     "jobRevisionId": "revision-nova-payments-1",
-    "createdAt": "2026-08-02T16:04:30.832Z",
-    "updatedAt": "2026-08-02T16:04:30.852Z"
+    "createdAt": "2026-08-02T16:04:00.000Z",
+    "updatedAt": "2026-08-02T16:24:31.100Z"
   },
   "candidates": [
     {
@@ -132,7 +132,7 @@
       "label": "灰度持续验证",
       "status": "completed",
       "verdict": "passed",
-      "observedAt": "2026-08-02T16:04:06.220Z",
+      "observedAt": "2026-08-02T16:14:06.220Z",
       "queryDigests": [
         "sha256:a8a7912dd9680f7d079c789e0fbc82348414b0496e19ebfb77426f02a97f535b",
         "sha256:aaad7d9008048127cb78805db5fabe7bbcbf2f68d01a6486a6224e7c60d7ceb3",
@@ -145,7 +145,7 @@
       "label": "变更后验收",
       "status": "completed",
       "verdict": "passed",
-      "observedAt": "2026-08-02T16:04:06.220Z",
+      "observedAt": "2026-08-02T16:24:06.220Z",
       "queryDigests": [
         "sha256:a8a7912dd9680f7d079c789e0fbc82348414b0496e19ebfb77426f02a97f535b",
         "sha256:aaad7d9008048127cb78805db5fabe7bbcbf2f68d01a6486a6224e7c60d7ceb3",
@@ -170,7 +170,7 @@
     "kind": "accept",
     "actor": "SRE 值班负责人",
     "note": "已复核覆盖缺口，接受当前巡检证据。",
-    "createdAt": "2026-08-02T16:04:30.852Z"
+    "createdAt": "2026-08-02T16:24:30.852Z"
   },
   "report": {
     "id": "report-nova-payments-0318",
@@ -178,6 +178,6 @@
     "immutable": true,
     "runIds": ["run-nova-admission", "run-nova-canary", "run-nova-post-change"],
     "decisionIds": ["decision-nova-accept"],
-    "generatedAt": "2026-08-02T16:04:30.852Z"
+    "generatedAt": "2026-08-02T16:24:31.000Z"
   }
 }

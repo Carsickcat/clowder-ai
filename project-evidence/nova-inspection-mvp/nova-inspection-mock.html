@@ -200,7 +200,7 @@
           <div class="claw-identity"><span class="claw-orb"></span><div><strong>CLAW 巡检搭档</strong><small>解释证据，不替代决策</small></div></div>
           <div class="claw-note"><b>为什么可以继续？</b><br />三个阶段使用相同的只读数据源与查询口径。当前阶段没有阈值越界，也没有证据过期；唯一覆盖缺口已保留给人工复核。</div>
           <ul><li>服务可用性高于 99.50%</li><li>请求延迟低于 250ms</li><li>服务错误率低于 0.50%</li><li>未知项不会被包装成绿色结论</li></ul>
-          <div class="claw-actions"><button type="button" class="ghost" id="download-mock">导出 Mock JSON</button><button type="button" class="ghost" id="reset-stage">回到变更前</button></div>
+          <div class="claw-actions"><button type="button" class="ghost" id="download-mock">导出演示摘要</button><button type="button" class="ghost" id="reset-stage">回到变更前</button></div>
         </aside>
       </section>
 
@@ -213,7 +213,7 @@
 
     <script>
       window.NOVA_DEMO_DATA = {
-        disclaimer: { mockOnly: true, label: '合成验收数据，仅用于演示，不代表生产环境' },
+        disclaimer: { mockOnly: true, summaryOnly: true, label: '合成验收演示摘要，不代表完整 Mock JSON 或生产环境' },
         report: { id: 'report-nova-payments-0318', verdict: 'passed', immutable: true },
         stages: {
           admission: { eyebrow: '变更前准入 · 已完成', title: '当前证据支持进入灰度', summary: '三项服务指标均满足阈值，覆盖缺口已显式保留，等待人工复核。', values: [99.9, 184, 0.2], fact: '服务可用性 99.90%，请求延迟 184ms，服务错误率 0.20%，均处于已配置阈值内。' },
@@ -249,7 +249,7 @@
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'nova-payments-router-demo.json';
+        link.download = 'nova-payments-router-demo-summary.json';
         link.click();
         URL.revokeObjectURL(link.href);
       });
