@@ -7,7 +7,7 @@
 **Architecture owner:** existing `packages/api/domains/observability` + `packages/web/observability` bounded slice
 **Map delta:** none; this increment completes the existing slice and introduces no new ownership cell
 **Owner:** Ragdoll / Sonnet
-**Status:** in progress
+**Status:** complete
 **tips_exempt:** This increment upgrades the existing `/observability/inspections` route and its existing navigation entry; it does not add a new launch action or capability-discovery surface. The connected-mode boundary is disclosed in the route banner and the mobile runbook.
 
 ## Why
@@ -175,7 +175,7 @@ in_context_observability:
 - [x] **AC-9:** focused unit/API/web/browser tests cover the state table, invariants, and adversarial matrix; all existing gates remain green.
 - [x] **AC-10a:** Kimi high-fidelity journey gate passed in message `0001785774802914-000134-537e97d5`.
 - [x] **AC-10b:** Terra architecture gate passed with hard constraints in message `0001785774803181-000136-dcc162d1`.
-- [ ] **AC-10c:** independent code review and merged-commit acceptance pass.
+- [x] **AC-10c:** independent code review and merged-commit acceptance pass.
 
 ## Design-in-Context Evidence
 
@@ -203,10 +203,12 @@ in_context_observability:
 | “拉个分支开发” | isolated `feat/nova-inspection-runtime` worktree from exact `origin/main` | complete |
 | “高保真让 kimi 整体再细化一下细节和用户旅程” | state matrix, responsive journey, Kimi gate | complete |
 | “方案上和 terra 再 check 下” | canonical model, dedicated DB, server-owned truth | complete |
-| “明早起来给我一版可运行的方案” | runnable route, verification, independent review, merged acceptance | implementation and acceptance complete; review pending |
+| “明早起来给我一版可运行的方案” | runnable route, verification, independent review, merged acceptance | complete |
 
 ## Verification Evidence
 
+- Merged PR: `#6`; squash commit `3fc82d782add7bf478583bc92c2bb09e0fa8b926`.
+- Merged-commit acceptance: isolated detached environment; connected Chrome `empty/partial/completed/error` at `1440/720/390`, unexpected console/network `0/0`, expected fail-closed API errors `3/3`, and process-restart report recovery `true`.
 - Runtime: API `3184`, web `3183`, isolated data root `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime`.
 - Golden connected user: `nova-acceptance-30048-1785777683187`.
 - Process-restart recovery: `scripts/nova-connected-runtime-acceptance.mjs --recovery-only` returned `recoveredAfterProcessRestart: true`.
