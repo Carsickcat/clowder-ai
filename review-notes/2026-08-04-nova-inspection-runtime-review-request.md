@@ -2,7 +2,7 @@
 
 Review-Target-ID: `nova-inspection-runtime`  
 Branch: `feat/nova-inspection-runtime`  
-Behavior SHA: `ecc82b76876e9e834bd1ad4274bed85b65e7606d`  
+Behavior SHA: `ecc82b76876e9e834bd1ad4274bed85b65e7606d`
 Base: `26231439a5a98461ca7c1d301b200e07724f1756`
 
 ## Original Requirements
