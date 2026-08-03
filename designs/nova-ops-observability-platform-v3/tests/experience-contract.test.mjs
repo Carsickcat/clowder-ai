@@ -100,16 +100,30 @@ test("inspection intelligence is visible as provenance, orchestration, and repor
   }
   for (const label of [
     "报告评分",
-    "覆盖完整度",
+    "方案覆盖诚实度",
     "证据可信度",
     "基线可比性",
     "证据新鲜度",
     "风险闭环度",
     "剩余风险",
+    "扣分依据",
     "引用证据",
   ]) {
     assert.match(report, new RegExp(label));
   }
+  assert.match(report, /score\.deductions/);
+});
+
+test("plan generation copy reports produced scope without inventing risk coverage", () => {
+  const surface = read("components", "change-inspection", "DecisionSurface.js");
+
+  assert.match(surface, /项检查已生成/);
+  assert.match(surface, /类来源已就绪/);
+  assert.doesNotMatch(
+    surface,
+    /风险面已覆盖/,
+    "generated check count is not a measured risk-coverage denominator",
+  );
 });
 
 test("the journey includes historical inspection tasks without creating a second product shell", () => {

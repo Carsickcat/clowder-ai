@@ -88,7 +88,7 @@ ReportSnapshot = {
       overall,
       grade,
       modelVersion,
-      dimensions: [{ id, label, score, weight, explanation }],
+      dimensions: [{ id, label, score, weight, explanation, evidenceRefs }],
       deductions: [{ id, points, reason, evidenceRefs }],
     },
     interpretation: {
@@ -102,6 +102,8 @@ ReportSnapshot = {
   },
 }
 ```
+
+The final acceptance `InspectionRun` persists `reportAssessmentBasis` (plan source/check/omission snapshot, comparability contract, and freshness). The score is then reproducible from the report-linked immutable `runs/findings/decisions` alone; it never rereads live reducer fields.
 
 `ExecutionStepView` is a pure selector from `plan.orchestration + stage + runs + findings + decisions`; it is never separately persisted.
 
@@ -221,7 +223,7 @@ ReportSnapshot = {
 
 ## Verification evidence
 
-- Domain + product + distribution tests: `59/59` passed.
+- Domain + product + distribution tests: `61/61` passed.
 - Offline browser acceptance: standalone launch, full journey, task reuse, unmapped-service blocker, desktop/720/mobile, console 0, network 0.
 - Visual inspection: request, explainable plan, canary risk, scored final report, and mobile completed state reviewed from full-page Chrome captures.
 - Permanent drift guard: `tests/experience-contract.test.mjs` freezes the `230px / flexible / 340px` layout and both AI value axes.

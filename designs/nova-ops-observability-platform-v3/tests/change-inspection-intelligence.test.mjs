@@ -129,14 +129,51 @@ test("execution status is a pure projection of plan and case evidence", async ()
   );
 });
 
+test("execution status blocks only the next executable step when its decision inputs are invalid", async () => {
+  const { projectExecutionSteps } = await loadIntelligence();
+  let state = createChangeInspectionState();
+  state = reduce(state, "INTENT_SUBMITTED", {
+    text: "请巡检 payments-router v3.18.0 是否可以灰度发布",
+  });
+  state = reduce(state, "COMPARABILITY_INVALIDATED");
+
+  let steps = projectExecutionSteps(state);
+  assert.equal(steps.find((step) => step.id === "admission").status, "blocked");
+  assert.ok(
+    steps
+      .filter((step) => step.id !== "admission")
+      .every((step) => step.status === "queued"),
+  );
+
+  state = reduce(state, "COMPARABILITY_RESTORED");
+  state = reduce(state, "PLAN_CONFIRMED");
+  state = reduce(state, "CANARY_APPROVED");
+  state = reduce(state, "REMEDIATION_RECORDED");
+  state = reduce(state, "VERIFICATION_RAN");
+  state = reduce(state, "EVIDENCE_BECAME_STALE");
+
+  steps = projectExecutionSteps(state);
+  assert.equal(steps.find((step) => step.id === "admission").status, "passed");
+  assert.equal(steps.find((step) => step.id === "canary").status, "resolved");
+  assert.equal(
+    steps.find((step) => step.id === "verification").status,
+    "passed",
+  );
+  assert.equal(
+    steps.find((step) => step.id === "full-traffic").status,
+    "blocked",
+  );
+  assert.equal(steps.find((step) => step.id === "acceptance").status, "queued");
+});
+
 test("the immutable report contains deterministic scoring and resolvable citations", async () => {
-  await loadIntelligence();
+  const { createReportIntelligence } = await loadIntelligence();
   const state = completeCase();
   const report = state.reportSnapshot;
 
   assert.ok(report.intelligence.score.overall >= 0);
   assert.ok(report.intelligence.score.overall <= 100);
-  assert.equal(report.intelligence.score.modelVersion, "nova-report-score-v1");
+  assert.equal(report.intelligence.score.modelVersion, "nova-report-score-v2");
   assert.deepEqual(
     report.intelligence.score.dimensions.map((dimension) => dimension.id),
     ["coverage", "integrity", "comparability", "freshness", "risk_closure"],
@@ -147,9 +184,63 @@ test("the immutable report contains deterministic scoring and resolvable citatio
     ...report.findingIds,
     ...report.decisionIds,
   ]);
+  for (const dimension of report.intelligence.score.dimensions) {
+    assert.ok(dimension.evidenceRefs.length > 0);
+    assert.ok(dimension.evidenceRefs.every((id) => evidenceIds.has(id)));
+  }
+  const weightedScore = report.intelligence.score.dimensions.reduce(
+    (sum, dimension) => sum + dimension.score * dimension.weight,
+    0,
+  );
+  const explainedDeductions = report.intelligence.score.deductions.reduce(
+    (sum, deduction) => sum + deduction.points,
+    0,
+  );
+  assert.equal(
+    explainedDeductions,
+    Number((100 - weightedScore / 100).toFixed(2)),
+  );
+  assert.equal(
+    report.intelligence.score.overall,
+    Math.round(100 - explainedDeductions),
+  );
+  for (const deduction of report.intelligence.score.deductions) {
+    assert.ok(deduction.evidenceRefs.length > 0);
+    assert.ok(deduction.evidenceRefs.every((id) => evidenceIds.has(id)));
+  }
   for (const citation of report.intelligence.interpretation.citations) {
     assert.ok(evidenceIds.has(citation));
   }
+
+  const persistedEvidence = {
+    runs: state.runs.filter((item) => report.runIds.includes(item.id)),
+    findings: state.findings.filter((item) =>
+      report.findingIds.includes(item.id),
+    ),
+    decisions: state.decisions.filter((item) =>
+      report.decisionIds.includes(item.id),
+    ),
+  };
+  assert.deepEqual(
+    createReportIntelligence(persistedEvidence),
+    report.intelligence,
+    "report scoring must be independently reproducible from persisted evidence",
+  );
+  const assessmentRun = persistedEvidence.runs.find(
+    (run) => run.reportAssessmentBasis,
+  );
+  assert.ok(assessmentRun, "the final run must persist the scoring basis");
+  assert.equal(Object.isFrozen(assessmentRun.reportAssessmentBasis), true);
+  assert.deepEqual(assessmentRun.reportAssessmentBasis.plan.sourceKinds, [
+    "natural_language",
+    "change_guide",
+    "knowledge_graph",
+  ]);
+  assert.equal(
+    assessmentRun.reportAssessmentBasis.comparability.status,
+    "valid",
+  );
+  assert.equal(assessmentRun.reportAssessmentBasis.freshness, "fresh");
 
   const immutableReport = JSON.stringify(report);
   const explained = reduce(state, "REPORT_EXPLANATION_REQUESTED");

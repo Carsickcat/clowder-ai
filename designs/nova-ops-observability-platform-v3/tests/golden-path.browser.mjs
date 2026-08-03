@@ -70,7 +70,9 @@ async function submitIntent(page) {
   await input.fill(prompt);
   await page.getByRole("button", { name: "生成巡检方案" }).click();
   await page.getByTestId("inspection-plan").waitFor();
-  await page.getByText("5/5 风险面已覆盖", { exact: true }).waitFor();
+  await page
+    .getByText("5 项检查已生成 · 3 类来源已就绪", { exact: true })
+    .waitFor();
   assert.equal(await page.locator(".ci-generation-sources > div").count(), 3);
   assert.equal(
     await page.locator(".ci-generation-workflow li.is-done").count(),
@@ -161,6 +163,12 @@ async function desktopJourney() {
   );
   await page.getByText("Claw 需要补充", { exact: true }).waitFor();
   assert.equal(
+    await page.locator(".ci-execution-step.is-blocked").count(),
+    1,
+    "an incomparable baseline must block the next executable plan step",
+  );
+  await page.getByText("已阻断", { exact: true }).waitFor();
+  assert.equal(
     await page.getByText("Claw 已完成", { exact: true }).count(),
     0,
     "Claw cannot claim completion while the baseline is incomparable",
@@ -186,6 +194,11 @@ async function desktopJourney() {
   await page.getByRole("button", { name: "继续到 100% 放量" }).click();
   await page.getByRole("button", { name: "执行变更后验收" }).click();
   await page.getByTestId("final-report").waitFor();
+  await page.getByText("扣分依据", { exact: true }).waitFor();
+  assert.ok(
+    (await page.locator(".ci-report-deductions li").count()) >= 1,
+    "the final score must expose its weighted deductions",
+  );
   assert.equal(await page.locator(".ci-run-item").count(), 5);
   await capture(page, "05-change-inspection-report-desktop.png");
 

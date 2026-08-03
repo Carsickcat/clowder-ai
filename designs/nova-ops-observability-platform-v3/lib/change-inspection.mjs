@@ -5,6 +5,7 @@ import {
 import { deepFreeze } from "./change-inspection-immutability.mjs";
 import { createCaseFromJob } from "./change-inspection-jobs.mjs";
 import {
+  createReportAssessmentBasis,
   createReportSnapshot,
   nextRecordId,
 } from "./change-inspection-records.mjs";
@@ -104,7 +105,6 @@ function blockForFreshness(state) {
     },
   };
 }
-
 function reduceInspectionState(state, action) {
   if (!inspectionActionPolicy.allows(state, action.type)) return state;
   switch (action.type) {
@@ -310,7 +310,10 @@ function reduceInspectionState(state, action) {
 
     case "POST_CHANGE_RAN": {
       if (state.stage !== "post-change") return state;
-      const run = nextRun(state, createRunFixture(state.service, "acceptance"));
+      const run = nextRun(state, {
+        ...createRunFixture(state.service, "acceptance"),
+        reportAssessmentBasis: createReportAssessmentBasis(state),
+      });
       const runs = [...state.runs, run];
       const decisions = [
         ...state.decisions,

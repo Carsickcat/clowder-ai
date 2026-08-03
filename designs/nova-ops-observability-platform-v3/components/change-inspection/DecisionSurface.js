@@ -66,7 +66,8 @@ function PlanView({ state }) {
           <h3>系统准备检查什么</h3>
         </div>
         <span className="ci-coverage">
-          {state.plan.checks.length}/{state.plan.checks.length} 风险面已覆盖
+          {state.plan.checks.length} 项检查已生成 ·{" "}
+          {state.plan.generation.sources.length} 类来源已就绪
         </span>
       </div>
       <div className="ci-generation-sources">

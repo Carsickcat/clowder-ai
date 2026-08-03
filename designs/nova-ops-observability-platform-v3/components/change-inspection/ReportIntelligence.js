@@ -1,5 +1,5 @@
 const dimensionLabel = {
-  coverage: "覆盖完整度",
+  coverage: "方案覆盖诚实度",
   integrity: "证据可信度",
   comparability: "基线可比性",
   freshness: "证据新鲜度",
@@ -23,6 +23,10 @@ function ScoreRing({ score, grade }) {
 
 export function ReportIntelligence({ report }) {
   const { score, interpretation } = report.intelligence;
+  const deductionTotal = score.deductions.reduce(
+    (sum, deduction) => sum + deduction.points,
+    0,
+  );
 
   return (
     <section
@@ -52,6 +56,21 @@ export function ReportIntelligence({ report }) {
           </div>
         ))}
       </div>
+
+      <section className="ci-report-deductions">
+        <header>
+          <span className="ci-eyebrow">扣分依据</span>
+          <strong>加权合计 −{deductionTotal.toFixed(1)} 分</strong>
+        </header>
+        <ul>
+          {score.deductions.map((deduction) => (
+            <li key={deduction.id}>
+              <strong>−{deduction.points.toFixed(1)}</strong>
+              <span>{deduction.reason}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div className="ci-report-reading-grid">
         <section>

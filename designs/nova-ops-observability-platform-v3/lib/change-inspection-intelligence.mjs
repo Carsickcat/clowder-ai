@@ -287,16 +287,21 @@ export function projectExecutionSteps(state) {
   const hasVerification = state.runs.some(
     (run) => run.purpose === "verification",
   );
+  const nextStepBlocked =
+    state.comparabilityContract.status !== "valid" ||
+    state.evidenceFreshness !== "fresh";
   function statusFor(step, index) {
     const evidenceRefs = evidenceForStep(state, step.id);
     if (step.id === "canary" && state.findings.length > 0) {
       return hasVerification ? "resolved" : "risk";
     }
     if (evidenceRefs.length > 0) return "passed";
-    if (index === 0 && state.plan.status === "ready") return "ready";
+    let status;
+    if (index === 0 && state.plan.status === "ready") status = "ready";
     const previous =
       index > 0 ? evidenceForStep(state, steps[index - 1].id) : [];
-    return previous.length > 0 ? "ready" : "queued";
+    status ??= previous.length > 0 ? "ready" : "queued";
+    return status === "ready" && nextStepBlocked ? "blocked" : status;
   }
   return steps.map((step, index) => ({
     ...step,

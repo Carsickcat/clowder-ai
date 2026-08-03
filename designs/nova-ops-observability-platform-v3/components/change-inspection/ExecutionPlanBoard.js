@@ -7,6 +7,7 @@ const statusLabel = {
   passed: "已通过",
   risk: "有风险",
   resolved: "已解决",
+  blocked: "已阻断",
 };
 
 export function ExecutionPlanBoard({ state, onReportOpen }) {

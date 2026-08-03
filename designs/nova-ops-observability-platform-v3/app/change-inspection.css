@@ -1095,6 +1095,52 @@
   line-height: 1.45;
 }
 
+.ci-report-deductions {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px solid rgb(255 190 102 / 22%);
+  border-radius: 8px;
+  background: rgb(255 190 102 / 5%);
+}
+
+.ci-report-deductions > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ci-report-deductions > header strong {
+  color: #e9bd7c;
+  font-size: 9px;
+}
+
+.ci-report-deductions ul {
+  margin: 9px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  list-style: none;
+}
+
+.ci-report-deductions li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+}
+
+.ci-report-deductions li strong {
+  color: #e7b36b;
+  font-size: 9px;
+}
+
+.ci-report-deductions li span {
+  color: #9e8c73;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
 .ci-report-reading-grid {
   margin-top: 10px;
   display: grid;
@@ -1559,6 +1605,11 @@
   background: rgb(255 119 125 / 5%);
 }
 
+.ci-execution-step.is-blocked {
+  border-color: rgb(255 190 102 / 30%);
+  background: rgb(255 190 102 / 5%);
+}
+
 .ci-execution-step.is-resolved {
   border-color: rgb(93 211 163 / 30%);
 }
@@ -1619,6 +1670,11 @@
 .ci-step-status.is-ready {
   background: rgb(115 167 255 / 10%);
   color: #9cc2ff;
+}
+
+.ci-step-status.is-blocked {
+  background: rgb(255 190 102 / 11%);
+  color: #ffc579;
 }
 
 .ci-audit-details {
@@ -1912,6 +1968,7 @@
   .ci-metrics,
   .ci-generation-sources,
   .ci-score-dimensions,
+  .ci-report-deductions ul,
   .ci-report-reading-grid {
     grid-template-columns: 1fr;
   }
