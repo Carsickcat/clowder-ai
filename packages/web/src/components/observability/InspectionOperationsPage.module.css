@@ -110,6 +110,28 @@
   font-weight: 700;
 }
 
+.environmentBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  max-width: 1480px;
+  padding: 10px 14px;
+  margin: 14px auto 0;
+  color: var(--cafe-text-secondary);
+  background: color-mix(in srgb, var(--color-gemini-bg) 72%, var(--cafe-surface));
+  border: 1px solid color-mix(in srgb, var(--cafe-crosspost) 34%, var(--cafe-border));
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+.environmentBanner strong {
+  color: var(--cafe-crosspost);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 .caseContext {
   display: flex;
   align-items: flex-end;
@@ -723,6 +745,125 @@
   font-size: 10px;
 }
 
+.report > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.reportIntelligence {
+  padding-top: 16px;
+  margin-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--color-codex-primary) 34%, var(--cafe-border));
+}
+
+.reportIntelligence > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.reportIntelligence > header > span:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.reportIntelligence > header small,
+.reportIntelligence > header > span:last-child,
+.scoreDimensions small,
+.reportDeductions code,
+.reportBasis {
+  color: var(--cafe-text-muted);
+  font-size: 9px;
+}
+
+.reportIntelligence > header strong {
+  color: var(--cafe-text);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.reportIntelligence > header em {
+  color: var(--color-codex-dark);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.scoreDimensions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.scoreDimensions > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--cafe-surface) 68%, transparent);
+  border: 1px solid var(--cafe-border-subtle);
+  border-radius: 9px;
+}
+
+.scoreDimensions span {
+  color: var(--cafe-text-secondary);
+  font-size: 10px;
+}
+
+.scoreDimensions strong {
+  color: var(--cafe-text);
+  font-size: 18px;
+}
+
+.reportDeductions,
+.reportInterpretation,
+.reportBasis {
+  padding: 12px;
+  margin-top: 10px;
+  background: color-mix(in srgb, var(--cafe-surface) 55%, transparent);
+  border-radius: 9px;
+}
+
+.reportDeductions > strong {
+  color: var(--cafe-text);
+  font-size: 11px;
+}
+
+.reportDeductions p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 7px;
+  color: var(--cafe-text-secondary);
+  font-size: 10px;
+}
+
+.reportInterpretation p {
+  margin-top: 6px;
+}
+
+.reportBasis dl {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+}
+
+.reportBasis dl div {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+}
+
+.reportBasis dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.page :focus-visible {
+  outline: 2px solid var(--cafe-crosspost);
+  outline-offset: 3px;
+}
+
 .nextAction {
   display: flex;
   align-items: center;
@@ -1148,11 +1289,11 @@
   }
 
   .jobPlatform {
-    order: 2;
+    order: 1;
   }
 
   .decisionSurface {
-    order: 1;
+    order: 2;
   }
 
   .clawPanel {
@@ -1174,6 +1315,10 @@
   .advancedGrid {
     grid-template-columns: 1fr;
   }
+
+  .scoreDimensions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 520px) {
@@ -1188,6 +1333,12 @@
 
   .connection {
     padding: 8px;
+  }
+
+  .environmentBanner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
   }
 
   .caseContext {
@@ -1218,6 +1369,35 @@
   .confirmedContext,
   .metricGrid {
     grid-template-columns: 1fr;
+  }
+
+  .page button,
+  .page input,
+  .page textarea,
+  .page select {
+    min-height: 44px;
+  }
+
+  .nextAction {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    background: color-mix(in srgb, var(--cafe-surface) 96%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .scoreDimensions {
+    grid-template-columns: 1fr;
+  }
+
+  .report {
+    align-items: flex-start;
+  }
+
+  .reportDeductions p,
+  .reportIntelligence > header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .timeline > ol li {

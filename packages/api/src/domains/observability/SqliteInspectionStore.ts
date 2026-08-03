@@ -11,6 +11,7 @@ import type {
   InspectionDecisionRecord,
   InspectionJob,
   InspectionJobRevision,
+  InspectionReportIntelligence,
   InspectionReportSnapshot,
   InspectionRevisionOrigin,
   InspectionRun,
@@ -21,6 +22,7 @@ import type {
 } from '@cat-cafe/shared';
 import type Database from 'better-sqlite3';
 import { projectInspectionABReport } from './InspectionAssessment.js';
+import { createInspectionReportIntelligence } from './InspectionReportIntelligence.js';
 
 export class InspectionNotFoundError extends Error {
   constructor(resource: string) {
@@ -232,6 +234,7 @@ interface ReportRow {
   run_ids_json: string;
   decision_ids_json: string;
   verdict: InspectionVerdict;
+  intelligence_json: string | null;
   generated_at: string;
 }
 
@@ -329,6 +332,7 @@ function toReport(row: ReportRow): InspectionReportSnapshot {
     runIds: JSON.parse(row.run_ids_json) as string[],
     decisionIds: JSON.parse(row.decision_ids_json) as string[],
     verdict: row.verdict,
+    intelligence: row.intelligence_json ? (JSON.parse(row.intelligence_json) as InspectionReportIntelligence) : null,
     generatedAt: row.generated_at,
   };
 }
@@ -861,12 +865,15 @@ export class SqliteInspectionStore {
           .all(input.userId, input.caseId) as { id: string }[]
       ).map((row) => row.id);
 
+      const intelligence = this.createReportIntelligence(input.userId, inspectionCase, generatedAt);
+
       const id = this.idFactory('report');
       this.db
         .prepare(
           `INSERT INTO inspection_reports
-           (id, user_id, case_id, job_revision_id, run_ids_json, decision_ids_json, verdict, generated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, user_id, case_id, job_revision_id, run_ids_json, decision_ids_json, verdict,
+            intelligence_json, generated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -876,6 +883,7 @@ export class SqliteInspectionStore {
           JSON.stringify(runIds),
           JSON.stringify(decisionIds),
           latestRun.verdict,
+          JSON.stringify(intelligence),
           generatedAt,
         );
       this.db
@@ -912,6 +920,32 @@ export class SqliteInspectionStore {
       .prepare('SELECT * FROM inspection_check_results WHERE run_id = ? ORDER BY rowid')
       .all(runId) as CheckResultRow[];
     return rows.map(toCheckResult);
+  }
+
+  private createReportIntelligence(
+    userId: string,
+    inspectionCase: InspectionCase,
+    generatedAt: string,
+  ): InspectionReportIntelligence {
+    const runs = this.listRuns(userId, inspectionCase.id);
+    const decisions = (
+      this.db
+        .prepare(
+          `SELECT * FROM inspection_decisions
+           WHERE user_id = ? AND case_id = ?
+           ORDER BY rowid`,
+        )
+        .all(userId, inspectionCase.id) as DecisionRow[]
+    ).map(toDecision);
+    const revision = this.requireJobRevision(userId, inspectionCase.jobRevisionId);
+    const candidateSet = revision.origin ? this.getCandidateSet(userId, revision.origin.candidateSetId) : null;
+    return createInspectionReportIntelligence({
+      runs,
+      decisions,
+      candidateSet,
+      abReport: projectInspectionABReport(runs),
+      generatedAt,
+    });
   }
 
   private recoverInterruptedRuns(): void {

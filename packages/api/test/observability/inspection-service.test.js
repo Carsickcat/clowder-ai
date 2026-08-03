@@ -226,6 +226,8 @@ describe('InspectionService', () => {
     assert.deepEqual(completed.sourceSnapshot, {
       connectorRef: 'replay-acceptance',
       observedAt: '2026-07-31T07:59:30.000Z',
+      scope: 'acceptance',
+      snapshotHash: 'sha256:9f628e5d76387c456dd40446c8866842bc7a1bc67699415aea0674a69bd75ba1',
       sourceKind: 'replay',
       window: {
         from: '2026-07-31T07:54:30.000Z',

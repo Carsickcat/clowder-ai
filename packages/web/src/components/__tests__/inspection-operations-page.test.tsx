@@ -163,6 +163,8 @@ const workspace = {
       sourceSnapshot: {
         connectorRef: source.id,
         sourceKind: 'replay',
+        scope: 'acceptance',
+        snapshotHash: 'sha256:connected-replay-snapshot',
         observedAt: '2026-07-31T08:01:30.000Z',
         window: {
           from: '2026-07-31T07:56:30.000Z',
@@ -224,6 +226,64 @@ const workspace = {
     runIds: ['run-1'],
     decisionIds: ['decision-1'],
     verdict: 'passed',
+    intelligence: {
+      assessmentBasis: {
+        candidateSetId: 'candidates-1',
+        coverageOmissionIds: [],
+        comparability: 'valid',
+        runIds: ['run-1'],
+        decisionIds: ['decision-1'],
+        sourceSnapshotHashes: ['sha256:connected-replay-snapshot'],
+      },
+      score: {
+        overall: 98,
+        grade: 'A',
+        modelVersion: 'nova-report-score-v2',
+        dimensions: [
+          ['coverage', '方案覆盖诚实度', 100, 25],
+          ['integrity', '证据可信度', 98, 25],
+          ['comparability', '基线可比性', 96, 20],
+          ['freshness', '证据新鲜度', 100, 15],
+          ['risk_closure', '风险闭环度', 92, 15],
+        ].map(([id, label, score, weight]) => ({
+          id,
+          label,
+          score,
+          weight,
+          explanation: `${label}可重建`,
+          evidenceRefs: ['run-1'],
+        })),
+        deductions: [
+          {
+            id: 'integrity-deduction',
+            points: 0.5,
+            reason: '本地 replay 没有外部签名。',
+            evidenceRefs: ['run-1'],
+          },
+          {
+            id: 'comparability-deduction',
+            points: 0.8,
+            reason: '本地 replay 保留审慎折减。',
+            evidenceRefs: ['run-1'],
+          },
+          {
+            id: 'risk-closure-deduction',
+            points: 1.2,
+            reason: '历史风险仍需持续观察。',
+            evidenceRefs: ['run-1'],
+          },
+        ],
+      },
+      interpretation: {
+        executiveSummary: '本次变更综合评分 98 分。',
+        keyEvidence: [{ statement: '证据链完整。', evidenceRefs: ['run-1'] }],
+        residualRisks: [{ statement: '继续观察连接池容量。', evidenceRefs: ['run-1'] }],
+        recommendation: '可接受本地巡检结论；生产动作仍不可用。',
+        confidence: 0.98,
+        citations: ['run-1', 'decision-1'],
+        clawExplanation: '报告评分 98 分，五个维度均可追溯。',
+      },
+    },
     generatedAt: '2026-07-31T08:03:00.000Z',
   },
 };
@@ -304,6 +364,44 @@ describe('InspectionOperationsPage', () => {
     expect(container.textContent).not.toContain('EXECUTION CASES');
     expect(container.textContent).not.toContain('AUTHORITATIVE RUN');
     expect(container.textContent).not.toContain('IMMUTABLE REPORT');
+  });
+
+  it('labels the connected runtime honestly and renders immutable report intelligence', async () => {
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce(workspace);
+
+    await renderPage();
+
+    expect(container.querySelector('[data-testid="runtime-environment-banner"]')?.textContent).toContain(
+      'DEV LOCAL · fixture-backed sources',
+    );
+    expect(container.textContent).toContain('production topology、LLM、knowledge graph 与发布动作不可用');
+    expect(container.textContent).toContain('acceptance');
+    expect(container.textContent).toContain('sha256:connected-replay-snapshot');
+
+    const intelligence = container.querySelector('[data-testid="report-intelligence"]');
+    expect(intelligence?.textContent).toContain('98');
+    expect(intelligence?.textContent).toContain('nova-report-score-v2');
+    expect(intelligence?.textContent).toContain('方案覆盖诚实度');
+    expect(intelligence?.textContent).toContain('证据可信度');
+    expect(intelligence?.textContent).toContain('基线可比性');
+    expect(intelligence?.textContent).toContain('证据新鲜度');
+    expect(intelligence?.textContent).toContain('风险闭环度');
+    expect(intelligence?.textContent).toContain('加权扣分 2.5');
+    expect(intelligence?.textContent).toContain('继续观察连接池容量');
+  });
+
+  it('states the no-fallback contract while the connected API is loading', async () => {
+    const pending = new Promise<never>(() => {});
+    mocks.listInspectionSources.mockReturnValueOnce(pending);
+    mocks.listInspectionJobs.mockReturnValueOnce(pending);
+    mocks.listInspectionCandidateSets.mockReturnValueOnce(pending);
+
+    await renderPage();
+
+    expect(container.textContent).toContain('正在连接巡检服务，不会加载演示数据。');
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="generate-candidates"]')?.disabled).toBe(true);
   });
 
   it('fails closed when the connected API is unavailable', async () => {

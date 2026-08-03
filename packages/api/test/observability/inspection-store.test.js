@@ -337,6 +337,8 @@ describe('NOVA inspection SQLite state', () => {
       sourceSnapshot: {
         connectorRef: 'prometheus-default',
         sourceKind: 'replay',
+        scope: 'acceptance',
+        snapshotHash: 'sha256:report-source',
         observedAt: '2026-07-31T01:02:00.000Z',
         window: {
           from: '2026-07-31T00:52:00.000Z',
@@ -476,10 +478,22 @@ describe('NOVA inspection SQLite state', () => {
       sourceSnapshot: {
         connectorRef: 'prometheus-default',
         sourceKind: 'replay',
+        scope: 'acceptance',
+        snapshotHash: 'sha256:report-source',
         observedAt: '2026-07-31T01:02:00.000Z',
         window: { from: '2026-07-31T00:57:00.000Z', to: '2026-07-31T01:02:00.000Z' },
       },
-      checkResults: [],
+      checkResults: [
+        {
+          checkId: 'latency',
+          status: 'passed',
+          value: 184,
+          baselineValue: null,
+          observedAt: '2026-07-31T01:02:00.000Z',
+          queryDigest: 'sha256:latency',
+          reason: null,
+        },
+      ],
     });
     db.exec(`CREATE TRIGGER inspection_reports_force_failure
       BEFORE INSERT ON inspection_reports BEGIN
@@ -565,13 +579,25 @@ describe('NOVA inspection SQLite state', () => {
       sourceSnapshot: {
         connectorRef: 'prometheus-default',
         sourceKind: 'replay',
+        scope: 'acceptance',
+        snapshotHash: 'sha256:report-source',
         observedAt: '2026-07-31T01:02:00.000Z',
         window: {
           from: '2026-07-31T00:52:00.000Z',
           to: '2026-07-31T01:02:00.000Z',
         },
       },
-      checkResults: [],
+      checkResults: [
+        {
+          checkId: 'latency',
+          status: 'passed',
+          value: 184,
+          baselineValue: null,
+          observedAt: '2026-07-31T01:02:00.000Z',
+          queryDigest: 'sha256:latency',
+          reason: null,
+        },
+      ],
     });
     const accepted = store.acceptLatestPassedRun({
       userId: 'user-a',
@@ -590,7 +616,14 @@ describe('NOVA inspection SQLite state', () => {
     assert.equal(report.jobRevisionId, created.revision.id);
     assert.deepEqual(report.runIds, [run.id]);
     assert.deepEqual(report.decisionIds, [decision.id]);
+    assert.equal(report.intelligence.score.modelVersion, 'nova-report-score-v2');
+    assert.deepEqual(
+      report.intelligence.score.dimensions.map((dimension) => dimension.id),
+      ['coverage', 'integrity', 'comparability', 'freshness', 'risk_closure'],
+    );
+    assert.deepEqual(report.intelligence.assessmentBasis.sourceSnapshotHashes, ['sha256:report-source']);
     assert.deepEqual(store.getReport('user-a', report.id), report);
+    assert.deepEqual(new SqliteInspectionStore(db).getReport('user-a', report.id), report);
     assert.deepEqual(store.getReportForCase('user-a', inspectionCase.id), report);
     assert.equal(store.getReportForCase('user-b', inspectionCase.id), null);
     assert.equal(store.getReport('user-b', report.id), null);

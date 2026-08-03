@@ -66,7 +66,7 @@ END`,
 END`,
 ];
 
-export const CURRENT_SCHEMA_VERSION = 12;
+export const CURRENT_SCHEMA_VERSION = 13;
 
 // Phase C: embedding metadata (model/dim version anchor)
 export const SCHEMA_V2 = `
@@ -430,6 +430,11 @@ BEFORE DELETE ON inspection_candidate_sets BEGIN
 END;
 `;
 
+// NOVA report intelligence is sealed with the immutable report rather than
+// recalculated in the browser. The column stays nullable for pre-V13 reports.
+export const SCHEMA_V13_INSPECTION_REPORT_INTELLIGENCE =
+  'ALTER TABLE inspection_reports ADD COLUMN intelligence_json TEXT';
+
 /**
  * Apply all schema migrations up to CURRENT_SCHEMA_VERSION.
  * Safe to call on empty DB (creates schema_version table first).
@@ -577,6 +582,19 @@ export function applyMigrations(db: Database.Database): void {
       db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(12, new Date().toISOString());
     });
     applyV12();
+  }
+
+  if (currentVersion < 13) {
+    const applyV13 = db.transaction(() => {
+      const reportColumns = db.prepare('PRAGMA table_info(inspection_reports)').all() as {
+        name: string;
+      }[];
+      if (!reportColumns.some((column) => column.name === 'intelligence_json')) {
+        db.exec(SCHEMA_V13_INSPECTION_REPORT_INTELLIGENCE);
+      }
+      db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(13, new Date().toISOString());
+    });
+    applyV13();
   }
 }
 

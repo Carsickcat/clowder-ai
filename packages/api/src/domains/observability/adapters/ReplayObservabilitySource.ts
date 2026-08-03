@@ -22,20 +22,27 @@ export interface ReplayAcceptanceBundle {
   readonly sourceId: string;
 }
 
+export interface ReplayObservabilitySourceOptions {
+  readonly clock?: () => Date;
+}
+
 export class ReplayObservabilitySource implements ObservabilitySource {
   readonly sourceId: string;
   private readonly collectedAt: string;
+  private readonly clock: (() => Date) | undefined;
   private readonly observations: ReadonlyMap<string, ReplayObservation>;
 
-  constructor(bundle: ReplayAcceptanceBundle) {
+  constructor(bundle: ReplayAcceptanceBundle, options: ReplayObservabilitySourceOptions = {}) {
     this.sourceId = bundle.sourceId;
     this.collectedAt = bundle.collectedAt;
+    this.clock = options.clock;
     this.observations = new Map(
       Object.entries(bundle.observations).map(([checkId, observation]) => [checkId, { ...observation }]),
     );
   }
 
   async collect(request: ObservabilityCollectRequest): Promise<ObservabilitySnapshot> {
+    const collectedAt = this.clock ? this.clock().toISOString() : this.collectedAt;
     const observations: ObservabilityObservation[] = request.checks.map((check) => {
       const configured = this.observations.get(check.id);
       if (!configured) {
@@ -55,7 +62,7 @@ export class ReplayObservabilitySource implements ObservabilitySource {
         return {
           baselineValue: null,
           checkId: check.id,
-          observedAt: configured.observedAt ?? null,
+          observedAt: configured.observedAt ?? collectedAt,
           partial: false,
           queryDigest,
           status: 'error',
@@ -66,7 +73,7 @@ export class ReplayObservabilitySource implements ObservabilitySource {
       return {
         baselineValue: configured.baselineValue ?? null,
         checkId: check.id,
-        observedAt: configured.observedAt ?? null,
+        observedAt: configured.observedAt ?? collectedAt,
         partial: configured.partial ?? false,
         queryDigest,
         status: configured.status ?? 'ok',
@@ -75,7 +82,7 @@ export class ReplayObservabilitySource implements ObservabilitySource {
     });
 
     return {
-      collectedAt: this.collectedAt,
+      collectedAt,
       observations,
       sourceId: this.sourceId,
       window: request.window,
