@@ -12,6 +12,7 @@ import {
   InspectionImmutableRecordError,
   InspectionNotFoundError,
   InspectionRevisionConflictError,
+  InspectionRunSequenceConflictError,
 } from '../domains/observability/SqliteInspectionStore.js';
 import { resolveHeaderUserId } from '../utils/request-identity.js';
 
@@ -181,6 +182,7 @@ function inspectionErrorResponse(error: Error & { statusCode?: number }): {
     error instanceof InspectionRevisionConflictError ||
     error instanceof InspectionIdempotencyConflictError ||
     error instanceof InspectionImmutableRecordError ||
+    error instanceof InspectionRunSequenceConflictError ||
     error instanceof InspectionDecisionConflictError ||
     error instanceof InspectionSelectionConflictError
   ) {

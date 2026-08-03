@@ -29,6 +29,7 @@ import {
   startInspectionRun,
 } from '@/utils/inspection-api';
 import styles from './InspectionOperationsPage.module.css';
+import { InspectionReportIntelligencePanel } from './InspectionReportIntelligencePanel';
 
 function runKey(): string {
   const random = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
@@ -151,7 +152,7 @@ function journeyStage(workspace: InspectionWorkspace | null): number {
 function suggestedPurpose(workspace: InspectionWorkspace | null): InspectionRunPurpose {
   const latest = workspace?.runs.at(-1);
   if (!latest) return 'admission';
-  if (latest.verdict !== 'passed') return 'verification';
+  if (latest.verdict !== 'passed') return latest.purpose === 'admission' ? 'admission' : 'verification';
   if (latest.purpose === 'admission') return 'canary';
   if (latest.purpose === 'canary' || latest.purpose === 'verification') return 'post_change';
   return 'post_change';
@@ -582,9 +583,24 @@ export function InspectionOperationsPage() {
   const taskSummary = workspace
     ? `巡检 ${workspace.job.service} ${workspace.case.version} 是否具备当前阶段推进条件`
     : (changeContext?.intent ?? '创建一份变更巡检方案');
+  const runtimeUiState = loading
+    ? 'loading'
+    : connectionError
+      ? 'error'
+      : busy
+        ? 'running'
+        : workspace?.report
+          ? 'completed'
+          : workspace?.case.status === 'blocked'
+            ? 'blocked'
+            : candidateSet?.coverageOmissions.length
+              ? 'partial'
+              : jobs.length === 0 && !candidateSet
+                ? 'empty'
+                : 'ready';
 
   return (
-    <main className={styles.page} data-theme="dark">
+    <main className={styles.page} data-theme="dark" data-runtime-state={runtimeUiState} aria-busy={busy || loading}>
       <header className={styles.topbar}>
         <div className={styles.brand}>
           <span className={styles.brandMark} aria-hidden="true">
@@ -611,10 +627,19 @@ export function InspectionOperationsPage() {
                         ? '报告已固化'
                         : '证据服务已连接'}
             </strong>
-            <small>只读观测，不会执行发布、放量或回滚</small>
+            <small>
+              {connectionState === 'booting'
+                ? '正在连接巡检服务，不会加载演示数据。'
+                : '只读观测，不会执行发布、放量或回滚'}
+            </small>
           </span>
         </div>
       </header>
+
+      <output className={styles.environmentBanner} data-testid="runtime-environment-banner">
+        <strong>DEV LOCAL · fixture-backed sources</strong>
+        <span>production topology、LLM、knowledge graph 与发布动作不可用；所有运行仅写入本地巡检审计库。</span>
+      </output>
 
       {connectionError && (
         <div className={styles.errorBanner} role="alert">
@@ -862,9 +887,25 @@ export function InspectionOperationsPage() {
                           <dd>{latestRun.sourceSnapshot.sourceKind}</dd>
                         </div>
                         <div>
+                          <dt>来源范围</dt>
+                          <dd>{latestRun.sourceSnapshot.scope ?? 'legacy-unscoped'}</dd>
+                        </div>
+                        <div>
+                          <dt>快照摘要</dt>
+                          <dd>
+                            <code>{latestRun.sourceSnapshot.snapshotHash ?? 'legacy-without-snapshot-hash'}</code>
+                          </dd>
+                        </div>
+                        <div>
                           <dt>观测时间</dt>
                           <dd>{latestRun.sourceSnapshot.observedAt}</dd>
                         </div>
+                        {latestRun.sourceSnapshot.fixtureCapturedAt ? (
+                          <div>
+                            <dt>Fixture 固化时间</dt>
+                            <dd>{latestRun.sourceSnapshot.fixtureCapturedAt}</dd>
+                          </div>
+                        ) : null}
                         <div>
                           <dt>观测窗口</dt>
                           <dd>
@@ -962,6 +1003,9 @@ export function InspectionOperationsPage() {
                       已固化 {workspace.report.runIds.length} 次执行证据与 {workspace.report.decisionIds.length}{' '}
                       条人工决策。
                     </p>
+                    {workspace.report.intelligence && (
+                      <InspectionReportIntelligencePanel intelligence={workspace.report.intelligence} />
+                    )}
                   </div>
                 </article>
               )}
@@ -1002,7 +1046,7 @@ export function InspectionOperationsPage() {
                   onClick={() => void handleRun()}
                   disabled={formDisabled || workspace.case.status === 'completed'}
                 >
-                  {busy ? '正在读取服务端证据…' : '执行本阶段巡检'}
+                  {busy ? '正在读取服务端证据…' : '采集本阶段本地只读证据'}
                 </button>
                 {latestRun?.purpose === 'post_change' && latestRun.status !== 'running' && (
                   <button
@@ -1054,6 +1098,9 @@ export function InspectionOperationsPage() {
                 机器判定为“{statusLabel(workspace.assessment.machineVerdict)}”，覆盖状态为“
                 {workspace.assessment.coverageStatus === 'omission' ? '存在遗漏' : '完整'}”。
               </p>
+            )}
+            {workspace?.report?.intelligence && (
+              <p data-role="assistant">{workspace.report.intelligence.interpretation.clawExplanation}</p>
             )}
           </div>
           <form className={styles.clawForm} onSubmit={handleGenerateCandidates}>
@@ -1133,7 +1180,7 @@ export function InspectionOperationsPage() {
         <header className={styles.sectionHeading}>
           <span>
             <p className={styles.eyebrow}>执行与决策记录</p>
-            <h2>一条时间线看完整次变更</h2>
+            <h2>执行计划 · 一条时间线看完整次变更</h2>
           </span>
           <strong>{workspace?.runs.length ?? 0} 次巡检</strong>
         </header>

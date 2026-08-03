@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type {
   InspectionABReport,
   InspectionAssessment,
@@ -424,6 +425,9 @@ export class InspectionService {
       const sourceSnapshot: InspectionSourceSnapshot = {
         connectorRef: registration.id,
         sourceKind: registration.kind,
+        scope: registration.scope,
+        snapshotHash: `sha256:${createHash('sha256').update(JSON.stringify(snapshot), 'utf8').digest('hex')}`,
+        ...(snapshot.fixtureCapturedAt ? { fixtureCapturedAt: snapshot.fixtureCapturedAt } : {}),
         observedAt: snapshot.collectedAt,
         window: {
           from: new Date(observedAtMs - COLLECTION_WINDOW_MS).toISOString(),

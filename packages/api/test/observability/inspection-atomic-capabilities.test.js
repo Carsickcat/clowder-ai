@@ -142,11 +142,12 @@ describe('NOVA atomic inspection capabilities', () => {
       version: CONTEXT.version,
     });
     const run = await service.startRun('user-a', inspectionCase.id, 'stage-admission-1', { purpose: 'admission' });
+    await service.startRun('user-a', inspectionCase.id, 'stage-canary-1', { purpose: 'canary' });
     await service.startRun('user-a', inspectionCase.id, 'stage-post-change-1', { purpose: 'post_change' });
     const workspace = service.getCase('user-a', inspectionCase.id);
 
     assert.equal(run.verdict, 'passed');
-    assert.equal(workspace.stageReports.length, 2);
+    assert.equal(workspace.stageReports.length, 3);
     assert.deepEqual(workspace.stageReports[0].resultCounts, { passed: 3, risk: 0, unknown: 0 });
     assert.equal(workspace.stageReports[0].evidenceQuality.status, 'complete');
     assert.equal(workspace.assessment.machineVerdict, 'passed');

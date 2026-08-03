@@ -11,6 +11,7 @@ import type {
   InspectionDecisionRecord,
   InspectionJob,
   InspectionJobRevision,
+  InspectionReportIntelligence,
   InspectionReportSnapshot,
   InspectionRevisionOrigin,
   InspectionRun,
@@ -21,6 +22,7 @@ import type {
 } from '@cat-cafe/shared';
 import type Database from 'better-sqlite3';
 import { projectInspectionABReport } from './InspectionAssessment.js';
+import { createInspectionReportIntelligence } from './InspectionReportIntelligence.js';
 
 export class InspectionNotFoundError extends Error {
   constructor(resource: string) {
@@ -48,6 +50,13 @@ export class InspectionActiveRunConflictError extends InspectionIdempotencyConfl
     super();
     this.message = 'Inspection case already has an active inspection run';
     this.name = 'InspectionActiveRunConflictError';
+  }
+}
+
+export class InspectionRunSequenceConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InspectionRunSequenceConflictError';
   }
 }
 
@@ -203,6 +212,18 @@ interface RunRow {
   finished_at: string | null;
 }
 
+function expectedRunPurpose(
+  latest: Pick<RunRow, 'purpose' | 'status' | 'verdict'> | undefined,
+): InspectionRunPurpose | null {
+  if (!latest) return 'admission';
+  if (latest.status !== 'completed' || latest.verdict !== 'passed') {
+    return latest.purpose === 'admission' ? 'admission' : 'verification';
+  }
+  if (latest.purpose === 'admission') return 'canary';
+  if (latest.purpose === 'canary' || latest.purpose === 'verification') return 'post_change';
+  return null;
+}
+
 interface CheckResultRow {
   id: string;
   run_id: string;
@@ -232,6 +253,7 @@ interface ReportRow {
   run_ids_json: string;
   decision_ids_json: string;
   verdict: InspectionVerdict;
+  intelligence_json: string | null;
   generated_at: string;
 }
 
@@ -329,6 +351,7 @@ function toReport(row: ReportRow): InspectionReportSnapshot {
     runIds: JSON.parse(row.run_ids_json) as string[],
     decisionIds: JSON.parse(row.decision_ids_json) as string[],
     verdict: row.verdict,
+    intelligence: row.intelligence_json ? (JSON.parse(row.intelligence_json) as InspectionReportIntelligence) : null,
     generatedAt: row.generated_at,
   };
 }
@@ -598,7 +621,7 @@ export class SqliteInspectionStore {
       const existing = this.findRunByIdempotencyKey(input.userId, input.caseId, input.idempotencyKey);
       if (existing) return this.requireMatchingIdempotentRun(existing, input.purpose);
 
-      this.assertCaseCanStartRun(input.userId, input.caseId);
+      this.assertCaseCanStartRun(input.userId, input.caseId, input.purpose);
 
       const id = this.idFactory('run');
       const now = this.now();
@@ -627,7 +650,7 @@ export class SqliteInspectionStore {
     return this.toRun(row);
   }
 
-  private assertCaseCanStartRun(userId: string, caseId: string): void {
+  private assertCaseCanStartRun(userId: string, caseId: string, purpose: InspectionRunPurpose): void {
     const inspectionCase = this.getCase(userId, caseId);
     if (!inspectionCase) throw new InspectionNotFoundError('Inspection case');
     if (inspectionCase.status === 'completed') {
@@ -641,6 +664,22 @@ export class SqliteInspectionStore {
       )
       .get(userId, caseId) as { id: string } | undefined;
     if (active) throw new InspectionActiveRunConflictError();
+
+    const latest = this.db
+      .prepare(
+        `SELECT purpose, status, verdict FROM inspection_runs
+         WHERE user_id = ? AND case_id = ?
+         ORDER BY rowid DESC LIMIT 1`,
+      )
+      .get(userId, caseId) as Pick<RunRow, 'purpose' | 'status' | 'verdict'> | undefined;
+    const expectedPurpose = expectedRunPurpose(latest);
+    if (purpose !== expectedPurpose) {
+      throw new InspectionRunSequenceConflictError(
+        expectedPurpose
+          ? `Inspection run purpose must be ${expectedPurpose} after the latest durable evidence`
+          : 'A passed post-change run must be accepted before any further execution',
+      );
+    }
   }
 
   private insertRunningRun(input: StartInspectionRunInput, id: string, startedAt: string): InspectionRun | null {
@@ -812,13 +851,14 @@ export class SqliteInspectionStore {
           'Accept requires the latest completed passed inspection run from this case',
         );
       }
-      if (latestRun.purpose === 'post_change') {
-        const abReport = projectInspectionABReport(this.listRuns(input.userId, input.caseId));
-        if (abReport?.comparability !== 'valid') {
-          throw new InspectionAcceptanceConflictError(
-            'Accept requires a comparable admission baseline for a post-change run',
-          );
-        }
+      if (latestRun.purpose !== 'post_change') {
+        throw new InspectionAcceptanceConflictError('Accept requires the latest passed post-change run');
+      }
+      const abReport = projectInspectionABReport(this.listRuns(input.userId, input.caseId));
+      if (abReport?.comparability !== 'valid') {
+        throw new InspectionAcceptanceConflictError(
+          'Accept requires a comparable admission baseline for a post-change run',
+        );
       }
 
       const activeRun = this.db
@@ -861,12 +901,15 @@ export class SqliteInspectionStore {
           .all(input.userId, input.caseId) as { id: string }[]
       ).map((row) => row.id);
 
+      const intelligence = this.createReportIntelligence(input.userId, inspectionCase, generatedAt);
+
       const id = this.idFactory('report');
       this.db
         .prepare(
           `INSERT INTO inspection_reports
-           (id, user_id, case_id, job_revision_id, run_ids_json, decision_ids_json, verdict, generated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, user_id, case_id, job_revision_id, run_ids_json, decision_ids_json, verdict,
+            intelligence_json, generated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -876,6 +919,7 @@ export class SqliteInspectionStore {
           JSON.stringify(runIds),
           JSON.stringify(decisionIds),
           latestRun.verdict,
+          JSON.stringify(intelligence),
           generatedAt,
         );
       this.db
@@ -912,6 +956,32 @@ export class SqliteInspectionStore {
       .prepare('SELECT * FROM inspection_check_results WHERE run_id = ? ORDER BY rowid')
       .all(runId) as CheckResultRow[];
     return rows.map(toCheckResult);
+  }
+
+  private createReportIntelligence(
+    userId: string,
+    inspectionCase: InspectionCase,
+    generatedAt: string,
+  ): InspectionReportIntelligence {
+    const runs = this.listRuns(userId, inspectionCase.id);
+    const decisions = (
+      this.db
+        .prepare(
+          `SELECT * FROM inspection_decisions
+           WHERE user_id = ? AND case_id = ?
+           ORDER BY rowid`,
+        )
+        .all(userId, inspectionCase.id) as DecisionRow[]
+    ).map(toDecision);
+    const revision = this.requireJobRevision(userId, inspectionCase.jobRevisionId);
+    const candidateSet = revision.origin ? this.getCandidateSet(userId, revision.origin.candidateSetId) : null;
+    return createInspectionReportIntelligence({
+      runs,
+      decisions,
+      candidateSet,
+      abReport: projectInspectionABReport(runs),
+      generatedAt,
+    });
   }
 
   private recoverInterruptedRuns(): void {

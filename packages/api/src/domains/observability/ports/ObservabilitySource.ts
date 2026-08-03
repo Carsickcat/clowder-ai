@@ -43,6 +43,7 @@ export interface ObservabilityObservation {
 
 export interface ObservabilitySnapshot {
   readonly collectedAt: string;
+  readonly fixtureCapturedAt?: string;
   readonly observations: readonly ObservabilityObservation[];
   readonly sourceId: string;
   readonly window: string;

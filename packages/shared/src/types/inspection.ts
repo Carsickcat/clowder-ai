@@ -107,6 +107,9 @@ export interface InspectionObservationWindow {
 export interface InspectionSourceSnapshot {
   readonly connectorRef: string;
   readonly sourceKind: 'prometheus' | 'replay';
+  readonly scope: string;
+  readonly snapshotHash: string;
+  readonly fixtureCapturedAt?: string | null;
   readonly observedAt: string;
   readonly window: InspectionObservationWindow;
 }
@@ -249,6 +252,58 @@ export interface InspectionDecisionRecord {
   readonly createdAt: string;
 }
 
+export type InspectionReportDimensionId = 'coverage' | 'integrity' | 'comparability' | 'freshness' | 'risk_closure';
+
+export interface InspectionReportDimension {
+  readonly id: InspectionReportDimensionId;
+  readonly label: string;
+  readonly score: number;
+  readonly weight: number;
+  readonly explanation: string;
+  readonly evidenceRefs: readonly string[];
+}
+
+export interface InspectionReportDeduction {
+  readonly id: string;
+  readonly points: number;
+  readonly reason: string;
+  readonly evidenceRefs: readonly string[];
+}
+
+export interface InspectionReportInterpretationItem {
+  readonly statement: string;
+  readonly evidenceRefs: readonly string[];
+}
+
+export interface InspectionReportAssessmentBasis {
+  readonly candidateSetId: string | null;
+  readonly coverageOmissionIds: readonly string[];
+  readonly comparability: InspectionABComparability;
+  readonly runIds: readonly string[];
+  readonly decisionIds: readonly string[];
+  readonly sourceSnapshotHashes: readonly string[];
+}
+
+export interface InspectionReportIntelligence {
+  readonly assessmentBasis: InspectionReportAssessmentBasis;
+  readonly score: {
+    readonly overall: number;
+    readonly grade: 'A' | 'B' | 'C';
+    readonly modelVersion: 'nova-report-score-v2';
+    readonly dimensions: readonly InspectionReportDimension[];
+    readonly deductions: readonly InspectionReportDeduction[];
+  };
+  readonly interpretation: {
+    readonly executiveSummary: string;
+    readonly keyEvidence: readonly InspectionReportInterpretationItem[];
+    readonly residualRisks: readonly InspectionReportInterpretationItem[];
+    readonly recommendation: string;
+    readonly confidence: number;
+    readonly citations: readonly string[];
+    readonly clawExplanation: string;
+  };
+}
+
 export interface InspectionReportSnapshot {
   readonly id: string;
   readonly caseId: string;
@@ -256,5 +311,7 @@ export interface InspectionReportSnapshot {
   readonly runIds: readonly string[];
   readonly decisionIds: readonly string[];
   readonly verdict: InspectionVerdict;
+  /** Null only for reports sealed before the v2 intelligence migration. */
+  readonly intelligence: InspectionReportIntelligence | null;
   readonly generatedAt: string;
 }
