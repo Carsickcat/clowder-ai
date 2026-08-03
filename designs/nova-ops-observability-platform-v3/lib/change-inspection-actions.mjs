@@ -58,6 +58,14 @@ export function getPrimaryAction(state) {
       disabled: true,
     };
   }
+  if (state.plan.status === "blocked") {
+    return {
+      type: "INTENT_SUBMITTED",
+      label: "补齐知识来源后重新生成",
+      reason: "缺少变更指导书或业务知识图谱映射，不能确认巡检方案",
+      disabled: true,
+    };
+  }
   if (state.plan.status !== "ready") {
     return {
       type: "INTENT_SUBMITTED",

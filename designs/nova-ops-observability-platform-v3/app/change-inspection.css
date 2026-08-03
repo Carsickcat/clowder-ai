@@ -297,6 +297,35 @@
   line-height: 1.55;
 }
 
+.ci-history-summary {
+  margin-top: 14px;
+  border: 1px solid #20313f;
+  border-radius: 9px;
+  background: #0c151d;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.ci-history-summary > div {
+  padding: 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.ci-history-summary > div + div {
+  border-left: 1px solid #20313f;
+}
+
+.ci-history-summary strong {
+  color: #d8e5ef;
+  font-size: 15px;
+}
+
+.ci-history-summary span {
+  color: #63798c;
+  font-size: 8px;
+}
+
 .ci-job-list {
   display: grid;
   gap: 8px;
@@ -369,6 +398,23 @@
 .ci-job-card > small,
 .ci-job-card > code {
   display: block;
+}
+
+.ci-task-score {
+  margin-top: 9px;
+  border-top: 1px solid #1e2e3b;
+  padding-top: 8px;
+  color: #71879a;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 8px;
+}
+
+.ci-task-score strong {
+  color: #8eddbb;
+  font-family: var(--mono, monospace);
+  font-size: 13px;
 }
 
 .ci-job-card > strong {
@@ -680,6 +726,78 @@
   font-size: 10px;
 }
 
+.ci-generation-sources {
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.ci-generation-sources > div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #20313f;
+  border-radius: 8px;
+  background: #0e1821;
+  display: grid;
+  gap: 4px;
+}
+
+.ci-generation-sources span,
+.ci-generation-sources small {
+  color: #688095;
+  font-size: 8px;
+}
+
+.ci-generation-sources strong {
+  overflow: hidden;
+  color: #bfd0df;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-generation-sources > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #708699;
+  font-size: 9px;
+  text-align: right;
+}
+
+.ci-generation-sources > p strong {
+  color: #9ec3ff;
+}
+
+.ci-plan-omissions {
+  max-width: 540px;
+  margin: 18px auto 0;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  text-align: left;
+}
+
+.ci-plan-omissions li {
+  padding: 10px 12px;
+  border: 1px solid rgb(255 190 102 / 22%);
+  border-radius: 8px;
+  background: rgb(255 190 102 / 6%);
+  display: grid;
+  gap: 4px;
+}
+
+.ci-plan-omissions strong {
+  color: #e3bb7d;
+  font-size: 10px;
+}
+
+.ci-plan-omissions span {
+  color: #9a876b;
+  font-size: 9px;
+}
+
 .ci-check-list {
   display: grid;
   gap: 6px;
@@ -695,6 +813,28 @@
   grid-template-columns: 22px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
+}
+
+.ci-check > details {
+  grid-column: 2 / -1;
+  padding-top: 5px;
+  border-top: 1px solid #1a2935;
+  color: #71889c;
+  font-size: 9px;
+}
+
+.ci-check > details summary {
+  cursor: pointer;
+}
+
+.ci-check > details p {
+  margin: 7px 0 4px;
+  color: #9aacbb;
+  line-height: 1.55;
+}
+
+.ci-check > details code {
+  white-space: normal;
 }
 
 .ci-check-mark {
@@ -825,7 +965,8 @@
   border: 1px solid rgb(93 211 163 / 24%);
   border-radius: 11px;
   background: linear-gradient(110deg, rgb(93 211 163 / 10%), transparent);
-  display: flex;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -848,6 +989,227 @@
   margin: 0;
   color: #8fa89d;
   line-height: 1.6;
+}
+
+.ci-report-intelligence {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid rgb(93 211 163 / 18%);
+}
+
+.ci-report-intelligence > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.ci-report-intelligence > header h3 {
+  margin: 5px 0;
+  font-size: 16px;
+}
+
+.ci-score-ring {
+  width: 84px;
+  height: 84px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: conic-gradient(var(--ci-mint) var(--score), #20313b 0);
+  display: grid;
+  place-items: center;
+}
+
+.ci-score-ring > div {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: #0d171f;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.ci-score-ring strong {
+  color: #ecfff6;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.ci-score-ring span {
+  margin-top: 4px;
+  color: #78aa96;
+  font-size: 8px;
+}
+
+.ci-score-dimensions {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.ci-score-dimension {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #20352e;
+  border-radius: 8px;
+  background: rgb(7 20 17 / 52%);
+}
+
+.ci-score-dimension > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ci-score-dimension span {
+  color: #7d9c8f;
+  font-size: 8px;
+}
+
+.ci-score-dimension strong {
+  color: #bce7d5;
+  font-size: 11px;
+}
+
+.ci-score-track {
+  height: 3px;
+  margin-top: 7px;
+  border-radius: 99px;
+  background: #20362e;
+  display: block;
+  overflow: hidden;
+}
+
+.ci-score-track > span {
+  height: 100%;
+  background: var(--ci-mint);
+  display: block;
+}
+
+.ci-score-dimension p {
+  margin-top: 8px;
+  color: #759084;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.ci-report-deductions {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px solid rgb(255 190 102 / 22%);
+  border-radius: 8px;
+  background: rgb(255 190 102 / 5%);
+}
+
+.ci-report-deductions > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ci-report-deductions > header strong {
+  color: #e9bd7c;
+  font-size: 9px;
+}
+
+.ci-report-deductions ul {
+  margin: 9px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  list-style: none;
+}
+
+.ci-report-deductions li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+}
+
+.ci-report-deductions li strong {
+  color: #e7b36b;
+  font-size: 9px;
+}
+
+.ci-report-deductions li span {
+  color: #9e8c73;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.ci-report-reading-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 8px;
+}
+
+.ci-report-reading-grid > section,
+.ci-report-recommendation {
+  padding: 12px;
+  border: 1px solid #20352e;
+  border-radius: 8px;
+  background: #0e1918;
+}
+
+.ci-report-reading-grid p {
+  margin: 7px 0 0;
+  color: #91aa9f;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.ci-residual-risk {
+  border-color: rgb(255 190 102 / 22%) !important;
+  background: rgb(255 190 102 / 5%) !important;
+}
+
+.ci-report-recommendation {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.ci-report-recommendation span,
+.ci-report-recommendation small {
+  color: #6f8e81;
+  font-size: 8px;
+}
+
+.ci-report-recommendation strong {
+  color: #b8d6c9;
+  font-size: 9px;
+}
+
+.ci-report-citations {
+  margin-top: 8px;
+  color: #718a80;
+  font-size: 8px;
+}
+
+.ci-report-citations summary {
+  cursor: pointer;
+}
+
+.ci-report-citations > div {
+  margin-top: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ci-report-citations code {
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: #152620;
+  color: #7ca18f;
+  font-size: 7px;
 }
 
 .ci-next-action {
@@ -946,6 +1308,76 @@
   display: grid;
   place-items: center;
   font-size: 9px;
+}
+
+.ci-generation-workflow {
+  margin-bottom: 14px;
+  padding: 11px;
+  border: 1px solid #223748;
+  border-radius: 9px;
+  background: linear-gradient(145deg, rgb(115 167 255 / 7%), #0d1821 56%);
+}
+
+.ci-generation-workflow > div {
+  display: grid;
+  gap: 4px;
+}
+
+.ci-generation-workflow > div strong {
+  color: #c5d5e2;
+  font-size: 10px;
+}
+
+.ci-generation-workflow ol {
+  margin: 11px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  list-style: none;
+}
+
+.ci-generation-workflow li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 7px;
+}
+
+.ci-generation-workflow li > span {
+  width: 17px;
+  height: 17px;
+  border: 1px solid #324a5e;
+  border-radius: 50%;
+  color: #62798c;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+}
+
+.ci-generation-workflow li.is-done > span {
+  border-color: rgb(93 211 163 / 35%);
+  background: rgb(93 211 163 / 10%);
+  color: var(--ci-mint);
+}
+
+.ci-generation-workflow li.is-blocked > span {
+  border-color: rgb(255 190 102 / 35%);
+  background: rgb(255 190 102 / 8%);
+  color: var(--ci-amber);
+}
+
+.ci-generation-workflow li div {
+  display: grid;
+  gap: 2px;
+}
+
+.ci-generation-workflow li strong {
+  color: #9db0c0;
+  font-size: 9px;
+}
+
+.ci-generation-workflow li small {
+  color: #5f7689;
+  font-size: 8px;
 }
 
 .ci-messages {
@@ -1132,6 +1564,138 @@
   color: #8799aa;
   cursor: pointer;
   font-size: 9px;
+}
+
+.inspection-execution-region {
+  margin-top: 18px;
+}
+
+.ci-execution-board {
+  padding: 20px 22px;
+  border: 1px solid #1c2c3a;
+  border-radius: 14px;
+  background: rgb(14 22 30 / 94%);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 15%);
+}
+
+.ci-execution-steps {
+  margin: 17px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  list-style: none;
+}
+
+.ci-execution-step {
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid #1d2e3b;
+  border-radius: 9px;
+  background: #0e1821;
+  display: grid;
+  grid-template-columns:
+    32px minmax(160px, 1.3fr) minmax(110px, 0.8fr) minmax(120px, 0.9fr)
+    auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.ci-execution-step.is-risk {
+  border-color: rgb(255 119 125 / 34%);
+  background: rgb(255 119 125 / 5%);
+}
+
+.ci-execution-step.is-blocked {
+  border-color: rgb(255 190 102 / 30%);
+  background: rgb(255 190 102 / 5%);
+}
+
+.ci-execution-step.is-resolved {
+  border-color: rgb(93 211 163 / 30%);
+}
+
+.ci-step-index {
+  color: #526b80;
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+}
+
+.ci-step-main,
+.ci-step-dependencies,
+.ci-step-evidence {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.ci-step-main span,
+.ci-step-dependencies span,
+.ci-step-evidence span {
+  color: #60788d;
+  font-size: 8px;
+}
+
+.ci-step-main strong,
+.ci-step-dependencies strong,
+.ci-step-evidence strong {
+  overflow: hidden;
+  color: #a9bac8;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ci-step-status {
+  min-width: 49px;
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: #172632;
+  color: #71879a;
+  font-size: 8px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.ci-step-status.is-passed,
+.ci-step-status.is-resolved {
+  background: rgb(93 211 163 / 10%);
+  color: #7de1b8;
+}
+
+.ci-step-status.is-risk {
+  background: rgb(255 119 125 / 11%);
+  color: #ff969b;
+}
+
+.ci-step-status.is-ready {
+  background: rgb(115 167 255 / 10%);
+  color: #9cc2ff;
+}
+
+.ci-step-status.is-blocked {
+  background: rgb(255 190 102 / 11%);
+  color: #ffc579;
+}
+
+.ci-audit-details {
+  margin-top: 14px;
+  border-top: 1px solid #1c2c3a;
+  padding-top: 13px;
+  color: #70869a;
+  font-size: 9px;
+}
+
+.ci-audit-details > summary {
+  cursor: pointer;
+}
+
+.ci-audit-details .ci-timeline-panel {
+  margin: 12px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .ci-timeline-panel {
@@ -1401,7 +1965,28 @@
   }
 
   .ci-plan-meta,
-  .ci-metrics {
+  .ci-metrics,
+  .ci-generation-sources,
+  .ci-score-dimensions,
+  .ci-report-deductions ul,
+  .ci-report-reading-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ci-execution-step {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+  }
+
+  .ci-step-dependencies,
+  .ci-step-evidence {
+    grid-column: 2 / -1;
+  }
+
+  .ci-report-intelligence > header {
+    align-items: flex-start;
+  }
+
+  .ci-report-recommendation {
     grid-template-columns: 1fr;
   }
 

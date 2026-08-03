@@ -1,3 +1,6 @@
+import { compileInspectionPlan } from "./change-inspection-intelligence.mjs";
+import { createInspectionCaseId } from "./change-inspection-identifiers.mjs";
+
 const serviceVersionPattern =
   /(?:^|\s)([a-z][a-z0-9._-]{2,})\s+(v?\d+(?:\.\d+){1,3})(?=\s|$|[，。？?])/i;
 
@@ -15,7 +18,7 @@ export function parseInspectionIntent(text) {
   };
 }
 
-export function applyInspectionIntent(state, text, executionId, createChecks) {
+export function applyInspectionIntent(state, text, executionId) {
   const intent = parseInspectionIntent(text);
   if (!intent.text) return state;
 
@@ -29,6 +32,8 @@ export function applyInspectionIntent(state, text, executionId, createChecks) {
         status: "clarification",
         intent: intent.text,
         checks: [],
+        generation: { sources: [], confidence: 0, omissions: [] },
+        orchestration: [],
       },
       decision: {
         status: "waiting",
@@ -49,6 +54,8 @@ export function applyInspectionIntent(state, text, executionId, createChecks) {
 
   const caseId = createInspectionCaseId("MANUAL", executionId);
   if (!caseId) return state;
+  const compiledPlan = compileInspectionPlan(intent);
+  const blocked = compiledPlan.status === "blocked";
   return {
     ...state,
     id: caseId,
@@ -56,25 +63,29 @@ export function applyInspectionIntent(state, text, executionId, createChecks) {
     version: intent.version,
     plan: {
       ...state.plan,
-      status: "ready",
+      ...compiledPlan,
       version: state.plan.version + 1,
       intent: intent.text,
-      checks: createChecks(intent.service),
     },
     decision: {
-      status: "ready",
-      label: "方案待确认",
-      title: "已生成覆盖 5 个风险面的巡检方案",
-      summary: "范围、阈值、基线和频率已就绪，确认后执行变更前巡检。",
+      status: blocked ? "unknown" : "ready",
+      label: blocked ? "生成受阻" : "方案待确认",
+      title: blocked
+        ? "知识来源不完整，尚不能生成可信巡检方案"
+        : "已融合自然语义、变更指导书与业务知识图谱",
+      summary: blocked
+        ? "请先关联变更指导书并补齐业务知识图谱节点；NOVA 不会用通用检查项冒充业务方案。"
+        : "每个检查项都保留生成理由、置信度和来源引用，确认后执行变更前巡检。",
     },
     conversation: [
       ...state.conversation,
       { role: "user", text: intent.text },
       {
         role: "assistant",
-        text: `已识别 ${intent.service} ${intent.version}，并生成 5 个检查项。请在左侧确认方案。`,
+        text: blocked
+          ? `已识别 ${intent.service} ${intent.version}，但缺少指导书与知识图谱映射，已阻止生成。`
+          : `已识别 ${intent.service} ${intent.version}，并融合 3 类来源生成 ${compiledPlan.checks.length} 个可解释检查项。请在中间核对方案。`,
       },
     ],
   };
 }
-import { createInspectionCaseId } from "./change-inspection-identifiers.mjs";

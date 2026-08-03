@@ -70,7 +70,15 @@ async function submitIntent(page) {
   await input.fill(prompt);
   await page.getByRole("button", { name: "生成巡检方案" }).click();
   await page.getByTestId("inspection-plan").waitFor();
-  await page.getByText("5/5 风险面已覆盖", { exact: true }).waitFor();
+  await page
+    .getByText("5 项检查已生成 · 3 类来源已就绪", { exact: true })
+    .waitFor();
+  assert.equal(await page.locator(".ci-generation-sources > div").count(), 3);
+  assert.equal(
+    await page.locator(".ci-generation-workflow li.is-done").count(),
+    4,
+    "CLAW must expose the three-source generation path plus an explainable plan",
+  );
 }
 
 async function finishJourney(page) {
@@ -81,6 +89,7 @@ async function finishJourney(page) {
   await page.getByRole("button", { name: "批准进入 25% 灰度" }).click();
   await page.getByText("暂停在 25% 灰度", { exact: true }).waitFor();
   await page.getByText("连接池在灰度实例出现排队", { exact: true }).waitFor();
+  await page.locator(".ci-execution-step.is-risk").waitFor();
 
   await page.getByRole("button", { name: "记录处置" }).click();
   await page
@@ -103,6 +112,8 @@ async function finishJourney(page) {
   await page.getByText("进入变更后验收", { exact: true }).waitFor();
   await page.getByRole("button", { name: "执行变更后验收" }).click();
   await page.getByTestId("final-report").waitFor();
+  await page.getByTestId("report-intelligence").waitFor();
+  await page.getByLabel("报告评分 98 分").waitFor();
   await page.getByText("本次变更验收通过", { exact: true }).first().waitFor();
   await page.getByRole("button", { name: "请 Claw 解读最终报告" }).click();
   await page.getByText(/风险已完成复验/).waitFor();
@@ -152,6 +163,12 @@ async function desktopJourney() {
   );
   await page.getByText("Claw 需要补充", { exact: true }).waitFor();
   assert.equal(
+    await page.locator(".ci-execution-step.is-blocked").count(),
+    1,
+    "an incomparable baseline must block the next executable plan step",
+  );
+  await page.getByText("已阻断", { exact: true }).waitFor();
+  assert.equal(
     await page.getByText("Claw 已完成", { exact: true }).count(),
     0,
     "Claw cannot claim completion while the baseline is incomparable",
@@ -177,6 +194,11 @@ async function desktopJourney() {
   await page.getByRole("button", { name: "继续到 100% 放量" }).click();
   await page.getByRole("button", { name: "执行变更后验收" }).click();
   await page.getByTestId("final-report").waitFor();
+  await page.getByText("扣分依据", { exact: true }).waitFor();
+  assert.ok(
+    (await page.locator(".ci-report-deductions li").count()) >= 1,
+    "the final score must expose its weighted deductions",
+  );
   assert.equal(await page.locator(".ci-run-item").count(), 5);
   await capture(page, "05-change-inspection-report-desktop.png");
 
@@ -191,10 +213,10 @@ async function savedJobJourney() {
   const page = await trackedPage(context);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
 
-  await page.getByRole("heading", { name: "作业平台" }).waitFor();
+  await page.getByRole("heading", { name: "巡检任务", exact: true }).waitFor();
   await page.getByRole("button", { name: /库存服务发布巡检/ }).click();
   await page.getByRole("heading", { name: "inventory-service v2.4" }).waitFor();
-  await page.getByText("已载入可复用巡检作业", { exact: true }).waitFor();
+  await page.getByText("已载入历史巡检任务", { exact: true }).waitFor();
   assert.equal(
     await page.locator(".ci-run-item").count(),
     0,
@@ -325,11 +347,40 @@ async function clarificationCheck() {
   await context.close();
 }
 
+async function unmappedServiceCheck() {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await trackedPage(context);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page
+    .getByLabel("描述巡检需求")
+    .fill("请检查 mystery-service v1.2.0 是否可以发布");
+  await page.getByRole("button", { name: "生成巡检方案" }).click();
+  await page
+    .getByRole("heading", {
+      name: "知识来源不完整，尚不能生成可信巡检方案",
+    })
+    .waitFor();
+  await page.getByText("方案生成已阻止", { exact: true }).waitFor();
+  assert.equal(await page.locator(".ci-plan-omissions li").count(), 2);
+  assert.equal(await page.locator(".ci-check").count(), 0);
+  assert.equal(
+    await page
+      .getByRole("button", { name: "补齐知识来源后重新生成" })
+      .isDisabled(),
+    true,
+  );
+  await assertNoHorizontalOverflow(page, "unmapped service blocker");
+  await context.close();
+}
+
 try {
   await savedJobJourney();
   await desktopJourney();
   await customServiceJourney();
   await clarificationCheck();
+  await unmappedServiceCheck();
   await mobileJourney();
   assert.deepEqual(
     failures,
@@ -344,7 +395,7 @@ try {
     );
   }
   process.stdout.write(
-    `Browser golden paths passed${standaloneMode ? " against committed file:// artifact" : ""}: Chinese single journey, custom-service evidence truth, clarification and unknown blockers, pre-change admission, canary verification, post-change report, desktop/720/mobile, console 0${standaloneMode ? ", network 0" : ""}.\n`,
+    `Browser golden paths passed${standaloneMode ? " against committed file:// artifact" : ""}: accepted three-column workbench, three-source explainable generation, unmapped-service blocker, execution-plan status, scored report, desktop/720/mobile, console 0${standaloneMode ? ", network 0" : ""}.\n`,
   );
 } finally {
   await browser.close();

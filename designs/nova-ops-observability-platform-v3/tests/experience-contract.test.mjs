@@ -33,12 +33,105 @@ test("the product opens directly into one Chinese change inspection journey", ()
   );
 });
 
-test("the journey includes reusable saved jobs without creating a second product shell", () => {
+test("the operator-approved 75d991e layout remains the product anchor", () => {
+  const app = read("components", "change-inspection", "ChangeInspectionApp.js");
+  const styles = read("app", "change-inspection.css");
+
+  assert.match(
+    styles,
+    /grid-template-areas:\s*["']jobs decision claw["']/,
+    "desktop must keep task history, selected task, and CLAW in three columns",
+  );
+  assert.match(
+    styles,
+    /grid-template-columns:\s*230px\s+minmax\(0,\s*1fr\)\s+340px/,
+    "the accepted desktop proportions are a product contract",
+  );
+  for (const region of [
+    "InspectionTaskHistory",
+    "inspection-decision-column",
+    "inspection-claw-column",
+    "ExecutionPlanBoard",
+  ]) {
+    assert.match(app, new RegExp(region));
+  }
+  assert.match(app, /inspection-execution-region/);
+});
+
+test("inspection intelligence is visible as provenance, orchestration, and report scoring", () => {
+  const claw = read("components", "change-inspection", "ClawPanel.js");
+  const surface = read("components", "change-inspection", "DecisionSurface.js");
+  const requiredComponents = [
+    "InspectionTaskHistory.js",
+    "ExecutionPlanBoard.js",
+    "ReportIntelligence.js",
+  ];
+  for (const component of requiredComponents) {
+    assert.ok(
+      existsSync(resolve(root, "components", "change-inspection", component)),
+      `${component} must exist in the accepted workbench shell`,
+    );
+  }
+  const taskHistory = read(
+    "components",
+    "change-inspection",
+    requiredComponents[0],
+  );
+  const execution = read(
+    "components",
+    "change-inspection",
+    requiredComponents[1],
+  );
+  const report = read("components", "change-inspection", requiredComponents[2]);
+
+  for (const label of ["巡检任务", "历史任务", "报告评分"]) {
+    assert.match(taskHistory, new RegExp(label));
+  }
+  for (const label of [
+    "自然语义",
+    "变更指导书",
+    "业务知识图谱",
+    "生成工作流",
+  ]) {
+    assert.match(`${claw}\n${surface}`, new RegExp(label));
+  }
+  for (const label of ["执行计划", "依赖", "证据", "已解决"]) {
+    assert.match(execution, new RegExp(label));
+  }
+  for (const label of [
+    "报告评分",
+    "方案覆盖诚实度",
+    "证据可信度",
+    "基线可比性",
+    "证据新鲜度",
+    "风险闭环度",
+    "剩余风险",
+    "扣分依据",
+    "引用证据",
+  ]) {
+    assert.match(report, new RegExp(label));
+  }
+  assert.match(report, /score\.deductions/);
+});
+
+test("plan generation copy reports produced scope without inventing risk coverage", () => {
+  const surface = read("components", "change-inspection", "DecisionSurface.js");
+
+  assert.match(surface, /项检查已生成/);
+  assert.match(surface, /类来源已就绪/);
+  assert.doesNotMatch(
+    surface,
+    /风险面已覆盖/,
+    "generated check count is not a measured risk-coverage denominator",
+  );
+});
+
+test("the journey includes historical inspection tasks without creating a second product shell", () => {
   const app = read("components", "change-inspection", "ChangeInspectionApp.js");
   const jobs = read("lib", "change-inspection-jobs.mjs");
   const domain = read("lib", "change-inspection.mjs");
 
-  assert.match(app, /InspectionJobPlatform/);
+  assert.match(app, /InspectionTaskHistory/);
   assert.match(app, /JOB_SELECTED/);
   assert.match(jobs, /InspectionJobTemplate/);
   assert.match(jobs, /支付路由灰度巡检/);
@@ -239,7 +332,11 @@ test("all new implementation files stay within the frontend size boundary", () =
     ["lib", "change-inspection-jobs.mjs"],
     ["lib", "change-inspection-records.mjs"],
     ["components", "change-inspection", "ChangeInspectionApp.js"],
-    ["components", "change-inspection", "InspectionJobPlatform.js"],
+    ["components", "change-inspection", "InspectionTaskHistory.js"],
+    ["components", "change-inspection", "ExecutionPlanBoard.js"],
+    ["components", "change-inspection", "ReportIntelligence.js"],
+    ["lib", "change-inspection-intelligence.mjs"],
+    ["lib", "change-inspection-report-intelligence.mjs"],
     ["components", "change-inspection", "JourneyHeader.js"],
     ["components", "change-inspection", "DecisionSurface.js"],
     ["components", "change-inspection", "ClawPanel.js"],
