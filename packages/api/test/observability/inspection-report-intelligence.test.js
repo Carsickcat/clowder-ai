@@ -8,6 +8,7 @@ const SOURCE = {
   sourceKind: 'replay',
   scope: 'acceptance',
   snapshotHash: 'sha256:fixture-snapshot',
+  fixtureCapturedAt: '2026-08-03T23:00:00.000Z',
   observedAt: '2026-08-04T00:09:00.000Z',
   window: {
     from: '2026-08-04T00:04:00.000Z',
@@ -128,10 +129,11 @@ describe('NOVA immutable report intelligence', () => {
       intelligence.score.dimensions.reduce((sum, dimension) => sum + dimension.weight, 0),
       100,
     );
-    assert.equal(intelligence.score.overall, 98);
+    assert.equal(intelligence.score.dimensions.find((dimension) => dimension.id === 'freshness')?.score, 90);
+    assert.equal(intelligence.score.overall, 96);
     assert.equal(
       intelligence.score.deductions.reduce((sum, deduction) => sum + deduction.points, 0),
-      2.5,
+      4,
     );
 
     const evidenceIds = new Set([...runs.map((item) => item.id), ...decisions.map((item) => item.id)]);

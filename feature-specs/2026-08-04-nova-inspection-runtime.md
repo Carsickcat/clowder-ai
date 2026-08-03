@@ -33,7 +33,7 @@ One documented local command starts the existing web and API processes on isolat
 3. advances runs and decisions through idempotent, identity-scoped commands;
 4. persists the full inspection lineage in a dedicated SQLite database with TTL `0`;
 5. restores the same case after browser refresh and process restart;
-6. exposes source kind, capture time, scope, snapshot hash, and omissions;
+6. exposes source kind, replay execution time, original fixture capture time, scope, snapshot hash, and omissions;
 7. blocks progression when the API, source, evidence, or A/B basis is unavailable;
 8. seals five-dimensional report intelligence from persisted evidence;
 9. preserves the accepted left task rail / center decision / right CLAW / bottom execution plan at desktop, 720, and 390 pixels.
@@ -120,7 +120,7 @@ Unknown methods, malformed payloads, missing identity, unavailable sources, stal
 - `SqliteInspectionStore` opens a dedicated inspection SQLite file under the configured local data root; it must not use `memoryServices.store.getDb()` or the F153 scheduler database.
 - Existing strict routes and `InspectionService` remain the only write path.
 - Browser payloads may select intent, candidate ids, decisions, and idempotency keys; they may not author evidence, source snapshots, verdicts, report scores, or timestamps.
-- Source adapters are read-only and server-side. The replay source is labeled `DEV LOCAL · fixture-backed sources` with capture time, scope, and snapshot hash.
+- Source adapters are read-only and server-side. The replay source is labeled `DEV LOCAL · fixture-backed sources`; it preserves the fixture's original capture time separately from the current local replay execution time, and report freshness is capped rather than presenting fixed values as live telemetry.
 - Production source scopes and production actions are unavailable by construction.
 - A separate “dry-run” API is intentionally not added: every implemented source is read-only, all state changes are limited to the isolated inspection audit database, and no production command route exists. The UI still requires explicit confirmation and labels the action as a local replay.
 - Report intelligence is deterministic, versioned, cited, and stored with the immutable report snapshot.
@@ -165,7 +165,7 @@ in_context_observability:
 - [x] **AC-1:** the documented development command starts the existing API/web application on isolated ports and opens `/observability/inspections`.
 - [x] **AC-2:** inspection objects persist in a dedicated TTL-0 SQLite database and survive browser and process restart.
 - [x] **AC-3:** strict identity, schema, idempotency, source-scope, concurrency, and immutable-report guards remain enforced.
-- [x] **AC-4:** connected source and run evidence expose kind, capture time, scope, snapshot hash, and omissions without browser-authored truth.
+- [x] **AC-4:** connected source and run evidence expose kind, replay execution time, original fixture capture time, scope, snapshot hash, and omissions without browser-authored truth.
 - [x] **AC-5:** the connected UI covers loading, empty, partial, blocked, running, completed, and error without silent demo fallback.
 - [x] **AC-6:** the accepted four-region layout and complete user journey remain usable at 1440, 720, and 390 pixels.
 - [x] **AC-7:** five-dimensional report scoring and CLAW explanation are reconstructed from durable evidence and immutable across restart/explanation.

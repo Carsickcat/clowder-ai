@@ -100,3 +100,14 @@ test('serves the minimal acceptance package without external dependencies', asyn
   const traversal = await fetch(`${origin}/..%2f..%2fpackage.json`);
   assert.equal(traversal.status, 404);
 });
+
+test('connected degradation acceptance exempts only the expected API failure', async () => {
+  const acceptance = await readFile(path.join(repoRoot, 'scripts', 'nova-connected-runtime-acceptance.mjs'), 'utf8');
+
+  assert.doesNotMatch(acceptance, /if \(!intentionalApiFailure\) consoleErrors/u);
+  assert.match(acceptance, /expectedApiFailures/u);
+  assert.match(acceptance, /expectedApiConsoleErrors/u);
+  assert.match(acceptance, /message\.location\(\)/u);
+  assert.match(acceptance, /request\.url\(\)\.includes\('\/api\/observability\/'\)/u);
+  assert.match(acceptance, /assert\.ok\(expectedApiFailures\.length > 0/u);
+});

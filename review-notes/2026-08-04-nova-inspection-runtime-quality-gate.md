@@ -17,7 +17,7 @@ The connected NOVA workbench runs as the existing Cat Café web/API product, per
 |---|---|---|
 | Existing web/API product starts on isolated ports | production build served on web `3183` / API `3184` | PASS |
 | Dedicated durable inspection truth | `InspectionDatabase.ts`; reopen test; process-restart browser recovery | PASS |
-| Server-owned evidence and immutable report | 73 observability tests; source hash/scope/captured-at; V13 sealed intelligence JSON | PASS |
+| Server-owned evidence and immutable report | 73 observability tests; source hash/scope/replay-time/fixture-time; V13 sealed intelligence JSON | PASS |
 | Honest local boundary | visible `DEV LOCAL · fixture-backed sources`; no production action route | PASS |
 | Loading/empty/partial/blocked/running/completed/error | contract tests plus Chrome journey | PASS |
 | Accepted four-region IA | Chrome at 1440, 720, and 390; mobile order task → detail → CLAW → execution | PASS |
@@ -34,17 +34,17 @@ The connected NOVA workbench runs as the existing Cat Café web/API product, per
 - Root `pnpm check`: exit 0; Biome checked 1903 files; feature truth and all configured environment/startup/pre-merge checks passed.
 - Root production build: exit 0; `/observability/inspections` emitted as a 12.7 kB route.
 - Nested standalone `npm run check`: formatting, 61/61 contracts, distribution, and two offline Chrome journeys passed with console/network `0/0`.
-- Connected Chrome: `consoleErrors=0`, `failedRequests=0`, states `empty/partial/completed/error`, viewports `1440/720/390`, no horizontal overflow.
-- Process restart: user `nova-final-20260804` restored the same report from `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime`.
+- Connected Chrome: `consoleErrors=0`, unexpected `failedRequests=0`, three expected API aborts and their exact three resource errors classified separately; states `empty/partial/completed/error`, viewports `1440/720/390`, no horizontal overflow.
+- Process restart: user `nova-final-fc-fix-20260804-02` restored the same report from `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime-fc-fix`.
 
 The repository root `pnpm test` command is not executable as written on Windows because `packages/api` embeds POSIX inline environment assignment. Running its API body directly additionally exposes unchanged workspace tests that assert POSIX separators and `/tmp` symlink semantics. The diff contains no workspace-domain or workspace-test file. The changed API domain, the entire web suite, configured root checks, production builds, standalone suite, and real connected browser journey all pass independently.
 
 ## Browser Evidence
 
-- Desktop completed report: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime\evidence-final\03-completed-report-1440.png`
-- Mobile completed report: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime\evidence-final\04-completed-report-390.png`
-- Restart recovery: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime\evidence-final\06-recovered-after-process-restart-1440.png`
-- 15-second Chrome journey: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime\evidence-final\nova-connected-runtime-15s.webm`
+- Desktop completed report: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime-fc-fix\evidence\03-completed-report-1440.png`
+- Mobile completed report: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime-fc-fix\evidence\04-completed-report-390.png`
+- Restart recovery: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime-fc-fix\evidence\06-recovered-after-process-restart-1440.png`
+- 15-second Chrome journey: `E:\ClowderAI\acceptance-runtime-data\nova-inspection-runtime-fc-fix\evidence\nova-connected-runtime-15s.webm`
 
 The repository contains no NOVA `.pen` source and the referenced `vision-evidence-workflow.md` is absent from the available skill tree. The accepted standalone HTML/assets and Kimi's high-fidelity gate are therefore the design baseline; the final implementation was verified in the real connected runtime rather than inferred from selectors.
 
@@ -67,4 +67,3 @@ runtime_processes_left_running: 0
 acceptance_ports_left_listening: 0
 root_media_artifacts: 0
 ```
-

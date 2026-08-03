@@ -37,7 +37,7 @@ pnpm start:direct --memory
 
 ## 诚实边界
 
-- 当前 replay 的指标值是固定开发 fixture；每次采集时间与快照摘要由服务端重新生成。
+- 当前 replay 的指标值是固定开发 fixture；页面会同时显示 fixture 固化时间与本次本地回放时间。快照摘要由服务端重新生成，评分会对 fixture 新鲜度封顶折减，不把固定值伪装成实时遥测。
 - production topology、真实 LLM、enterprise knowledge graph、生产 Prometheus 凭据均未接入。
 - 页面没有发布、放量、回滚或生产 remediation 路由；浏览器也不能填写证据、判定、时间戳或评分。
 - `payments-router` 的连接池依赖没有批准的只读信号，因此报告会保留覆盖扣分；不会用高分掩盖未覆盖风险。

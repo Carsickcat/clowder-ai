@@ -83,6 +83,7 @@ export class ReplayObservabilitySource implements ObservabilitySource {
 
     return {
       collectedAt,
+      fixtureCapturedAt: this.collectedAt,
       observations,
       sourceId: this.sourceId,
       window: request.window,

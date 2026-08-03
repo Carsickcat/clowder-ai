@@ -109,6 +109,7 @@ export interface InspectionSourceSnapshot {
   readonly sourceKind: 'prometheus' | 'replay';
   readonly scope: string;
   readonly snapshotHash: string;
+  readonly fixtureCapturedAt?: string | null;
   readonly observedAt: string;
   readonly window: InspectionObservationWindow;
 }

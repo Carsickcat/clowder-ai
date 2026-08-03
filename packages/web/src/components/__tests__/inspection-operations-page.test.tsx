@@ -165,6 +165,7 @@ const workspace = {
         sourceKind: 'replay',
         scope: 'acceptance',
         snapshotHash: 'sha256:connected-replay-snapshot',
+        fixtureCapturedAt: '2026-07-30T08:00:00.000Z',
         observedAt: '2026-07-31T08:01:30.000Z',
         window: {
           from: '2026-07-31T07:56:30.000Z',
@@ -379,6 +380,8 @@ describe('InspectionOperationsPage', () => {
     expect(container.textContent).toContain('production topology、LLM、knowledge graph 与发布动作不可用');
     expect(container.textContent).toContain('acceptance');
     expect(container.textContent).toContain('sha256:connected-replay-snapshot');
+    expect(container.textContent).toContain('Fixture 固化时间');
+    expect(container.textContent).toContain('2026-07-30T08:00:00.000Z');
 
     const intelligence = container.querySelector('[data-testid="report-intelligence"]');
     expect(intelligence?.textContent).toContain('98');

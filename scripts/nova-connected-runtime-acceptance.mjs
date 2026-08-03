@@ -19,14 +19,30 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 const consoleErrors = [];
 const failedRequests = [];
+const expectedApiFailures = [];
+const expectedApiConsoleErrors = [];
 let intentionalApiFailure = false;
 
 page.on('console', (message) => {
-  if (message.type() === 'error' && !intentionalApiFailure) consoleErrors.push(message.text());
+  if (message.type() !== 'error') return;
+  const location = message.location();
+  const detail = `${message.text()} ${location.url ?? ''}`.trim();
+  if (
+    intentionalApiFailure &&
+    location.url?.includes('/api/observability/') &&
+    message.text() === 'Failed to load resource: net::ERR_FAILED'
+  ) {
+    expectedApiConsoleErrors.push(detail);
+  } else {
+    consoleErrors.push(detail);
+  }
 });
 page.on('requestfailed', (request) => {
-  if (!intentionalApiFailure) {
-    failedRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText ?? ''}`);
+  const detail = `${request.method()} ${request.url()} ${request.failure()?.errorText ?? ''}`;
+  if (intentionalApiFailure && request.url().includes('/api/observability/')) {
+    expectedApiFailures.push(detail);
+  } else {
+    failedRequests.push(detail);
   }
 });
 
@@ -92,7 +108,10 @@ try {
     assert.match(reportText, /nova-report-score-v2/);
     assert.match(reportText, /方案覆盖诚实度/);
     assert.match(reportText, /风险闭环度/);
-    assert.match(await page.$eval('main', (node) => node.textContent ?? ''), /sha256:/);
+    const completedText = await page.$eval('main', (node) => node.textContent ?? '');
+    assert.match(completedText, /sha256:/);
+    assert.match(completedText, /Fixture 固化时间/);
+    assert.match(completedText, /固定 fixture/);
     await screenshot('03-completed-report-1440');
 
     await page.reload({ waitUntil: 'networkidle0' });
@@ -133,6 +152,12 @@ try {
     assert.equal(await page.$eval('main', (node) => node.getAttribute('data-runtime-state')), 'error');
     await screenshot('05-connected-error-390');
 
+    assert.ok(expectedApiFailures.length > 0, 'the degraded journey must exercise an actual API failure');
+    assert.equal(
+      expectedApiConsoleErrors.length,
+      expectedApiFailures.length,
+      'only the resource errors caused by the expected aborted API requests may be exempted',
+    );
     assert.deepEqual(consoleErrors, []);
     assert.deepEqual(failedRequests, []);
     process.stdout.write(
@@ -142,6 +167,8 @@ try {
         userId,
         consoleErrors: consoleErrors.length,
         failedRequests: failedRequests.length,
+        expectedApiFailures: expectedApiFailures.length,
+        expectedApiConsoleErrors: expectedApiConsoleErrors.length,
         states: ['empty', 'partial', 'completed', 'error'],
         viewports: [1440, 720, 390],
       })}\n`,
@@ -154,6 +181,8 @@ try {
     text: await page.$eval('main', (node) => (node.textContent ?? '').slice(0, 2_000)).catch(() => ''),
     consoleErrors,
     failedRequests,
+    expectedApiFailures,
+    expectedApiConsoleErrors,
   };
   await screenshot('99-failure');
   process.stderr.write(`${JSON.stringify(diagnostic)}\n`);

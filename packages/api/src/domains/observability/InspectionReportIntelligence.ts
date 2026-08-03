@@ -143,14 +143,26 @@ function freshnessDimension(
   evidenceRefs: readonly string[],
 ): InspectionReportDimension {
   const fresh = input.runs.length > 0 && input.runs.every(isFresh);
+  const replayRuns = input.runs.filter((run) => run.sourceSnapshot?.sourceKind === 'replay');
+  const replayFixtureProvenanceComplete = replayRuns.every((run) => {
+    const capturedAt = Date.parse(run.sourceSnapshot?.fixtureCapturedAt ?? '');
+    const executedAt = Date.parse(run.sourceSnapshot?.observedAt ?? '');
+    return Number.isFinite(capturedAt) && Number.isFinite(executedAt) && capturedAt <= executedAt;
+  });
+  const score = !fresh || !replayFixtureProvenanceComplete ? 55 : replayRuns.length > 0 ? 90 : 100;
+  let explanation = '至少一个来源快照缺失、晚于对应运行完成时间或超出新鲜度窗口。';
+  if (fresh && replayRuns.length === 0) {
+    explanation = '报告只使用各次运行采集窗口内冻结的来源快照。';
+  } else if (fresh && replayFixtureProvenanceComplete) {
+    explanation =
+      '本地 replay 在当前运行窗口内执行，但底层值来自固定 fixture；报告保留 fixture 固化时间并对新鲜度封顶折减。';
+  }
   return {
     id: 'freshness',
     label: '证据新鲜度',
-    score: fresh ? 100 : 55,
+    score,
     weight: 15,
-    explanation: fresh
-      ? '报告只使用各次运行采集窗口内冻结的来源快照。'
-      : '至少一个来源快照缺失、晚于对应运行完成时间或超出新鲜度窗口。',
+    explanation,
     evidenceRefs,
   };
 }

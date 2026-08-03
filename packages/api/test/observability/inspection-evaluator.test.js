@@ -238,7 +238,7 @@ describe('InspectionEvaluator', () => {
     assert.equal(result.observations[0].queryDigest, createQueryDigest('trusted_metric'));
   });
 
-  test('ReplayObservabilitySource refreshes capture time per local replay without changing fixture values', async () => {
+  test('ReplayObservabilitySource separates fixture capture time from local replay execution time', async () => {
     const times = [new Date('2026-08-04T00:00:00.000Z'), new Date('2026-08-04T00:03:00.000Z')];
     const source = new ReplayObservabilitySource(
       {
@@ -258,8 +258,10 @@ describe('InspectionEvaluator', () => {
     const second = await source.collect({ checks: [{ id: 'latency', query: 'safe_metric' }], window: '5m' });
 
     assert.equal(first.collectedAt, '2026-08-04T00:00:00.000Z');
+    assert.equal(first.fixtureCapturedAt, '2026-08-03T23:00:00.000Z');
     assert.equal(first.observations[0].observedAt, first.collectedAt);
     assert.equal(second.collectedAt, '2026-08-04T00:03:00.000Z');
+    assert.equal(second.fixtureCapturedAt, first.fixtureCapturedAt);
     assert.equal(second.observations[0].observedAt, second.collectedAt);
     assert.equal(first.observations[0].value, second.observations[0].value);
     assert.equal(first.observations[0].queryDigest, second.observations[0].queryDigest);

@@ -900,6 +900,12 @@ export function InspectionOperationsPage() {
                           <dt>观测时间</dt>
                           <dd>{latestRun.sourceSnapshot.observedAt}</dd>
                         </div>
+                        {latestRun.sourceSnapshot.fixtureCapturedAt ? (
+                          <div>
+                            <dt>Fixture 固化时间</dt>
+                            <dd>{latestRun.sourceSnapshot.fixtureCapturedAt}</dd>
+                          </div>
+                        ) : null}
                         <div>
                           <dt>观测窗口</dt>
                           <dd>
