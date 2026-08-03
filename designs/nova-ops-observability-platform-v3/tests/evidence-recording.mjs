@@ -1,12 +1,26 @@
+import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { chromium } from "playwright-core";
 
-const baseUrl = process.env.BASE_URL || "http://localhost:5290/";
+const standalone = process.env.STANDALONE === "1";
+const standaloneArtifact = resolve(
+  import.meta.dirname,
+  "..",
+  "NOVA-Ops-Intelligence-Standalone.html",
+);
+const baseUrl =
+  process.env.BASE_URL ||
+  (standalone
+    ? pathToFileURL(standaloneArtifact).href
+    : "http://localhost:5290/");
 const executablePath =
   process.env.CHROME_PATH ||
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const evidenceDir = resolve(import.meta.dirname, "..", "evidence");
+const evidenceDir = process.env.EVIDENCE_DIR
+  ? resolve(process.env.EVIDENCE_DIR)
+  : resolve(import.meta.dirname, "..", "evidence");
 const videoTemp = resolve(evidenceDir, ".video-temp");
 mkdirSync(videoTemp, { recursive: true });
 
@@ -17,6 +31,12 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 const video = page.video();
+const networkRequests = [];
+page.on("request", (request) => {
+  if (standalone && /^https?:/i.test(request.url())) {
+    networkRequests.push(request.url());
+  }
+});
 
 await page.goto(baseUrl, { waitUntil: "networkidle" });
 await page.waitForTimeout(1200);
@@ -46,6 +66,7 @@ await page.getByTestId("final-report").waitFor();
 await page.waitForTimeout(2400);
 await page.getByRole("button", { name: "请 Claw 解读最终报告" }).click();
 await page.getByText(/风险已完成复验/).waitFor();
+await page.getByTestId("report-intelligence").scrollIntoViewIfNeeded();
 await page.waitForTimeout(2000);
 
 await context.close();
@@ -53,6 +74,11 @@ await video.saveAs(
   resolve(evidenceDir, "nova-change-inspection-journey-15s.webm"),
 );
 await browser.close();
+assert.deepEqual(
+  networkRequests,
+  [],
+  `offline evidence recording cannot access the network:\n${networkRequests.join("\n")}`,
+);
 process.stdout.write(
-  "Saved change inspection request, canary verification, and report recording.\n",
+  `Saved change inspection generation, execution, and scored-report recording${standalone ? " from the offline artifact with network 0" : ""}.\n`,
 );

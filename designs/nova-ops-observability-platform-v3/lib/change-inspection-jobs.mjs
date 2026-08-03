@@ -1,5 +1,6 @@
 import { deepFreeze } from "./change-inspection-immutability.mjs";
 import { createInspectionCaseId } from "./change-inspection-identifiers.mjs";
+import { compileInspectionPlan } from "./change-inspection-intelligence.mjs";
 
 export const inspectionJobTemplates = deepFreeze([
   {
@@ -19,6 +20,7 @@ export const inspectionJobTemplates = deepFreeze([
       finishedAt: "今天 14:20",
       result: "passed",
       reportId: "RPT-CHG-23798-V1",
+      score: 96,
     },
   },
   {
@@ -38,6 +40,7 @@ export const inspectionJobTemplates = deepFreeze([
       finishedAt: "昨天 19:45",
       result: "passed",
       reportId: "RPT-CHG-23763-V2",
+      score: 94,
     },
   },
   {
@@ -57,6 +60,7 @@ export const inspectionJobTemplates = deepFreeze([
       finishedAt: "7 月 28 日 16:08",
       result: "risk",
       reportId: "RPT-CHG-23691-V1",
+      score: 86,
     },
   },
 ]);
@@ -65,10 +69,15 @@ export function findInspectionJob(jobId) {
   return inspectionJobTemplates.find((job) => job.id === jobId) ?? null;
 }
 
-export function createCaseFromJob(baseState, jobId, executionId, createChecks) {
+export function createCaseFromJob(baseState, jobId, executionId) {
   const job = findInspectionJob(jobId);
   const caseId = createInspectionCaseId(jobId, executionId);
   if (!job || !caseId) return null;
+  const compiledPlan = compileInspectionPlan({
+    intent: job.intent,
+    service: job.service,
+    version: job.version,
+  });
   return {
     ...baseState,
     id: caseId,
@@ -82,10 +91,9 @@ export function createCaseFromJob(baseState, jobId, executionId, createChecks) {
     changeId: job.changeId,
     plan: {
       ...baseState.plan,
-      status: "ready",
+      ...compiledPlan,
       version: 1,
       intent: job.intent,
-      checks: createChecks(job.service),
       frequency: job.frequency,
       window: job.window,
       baseline: job.baseline,
@@ -93,14 +101,15 @@ export function createCaseFromJob(baseState, jobId, executionId, createChecks) {
     decision: {
       status: "ready",
       label: "方案待确认",
-      title: "已载入可复用巡检作业",
-      summary: "历史方案已固化为模板，本次执行仍会生成全新的巡检证据。",
+      title: "已载入历史巡检任务",
+      summary:
+        "历史任务沉淀了知识来源与检查范围，本次执行仍会生成全新的巡检证据。",
     },
     conversation: [
       ...baseState.conversation,
       {
         role: "assistant",
-        text: `已载入“${job.name}”。请核对服务、版本和门禁后再执行。`,
+        text: `已载入历史任务“${job.name}”。请核对知识来源、服务版本和门禁后再执行。`,
       },
     ],
   };

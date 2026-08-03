@@ -8,9 +8,9 @@ import {
 import { createInspectionExecutionId } from "../../lib/change-inspection-identifiers.mjs";
 import { ClawPanel } from "./ClawPanel";
 import { DecisionSurface } from "./DecisionSurface";
-import { InspectionJobPlatform } from "./InspectionJobPlatform";
+import { ExecutionPlanBoard } from "./ExecutionPlanBoard";
+import { InspectionTaskHistory } from "./InspectionTaskHistory";
 import { JourneyHeader } from "./JourneyHeader";
-import { RunTimeline } from "./RunTimeline";
 
 export function ChangeInspectionApp() {
   const [state, dispatch] = useReducer(
@@ -47,7 +47,7 @@ export function ChangeInspectionApp() {
       <main className="ci-main">
         <div className="inspection-layout">
           <div className="inspection-job-column">
-            <InspectionJobPlatform
+            <InspectionTaskHistory
               onNew={() => dispatch({ type: "CASE_RESET" })}
               onSelect={handleJobSelect}
               state={state}
@@ -60,7 +60,9 @@ export function ChangeInspectionApp() {
             <ClawPanel dispatch={dispatch} state={state} />
           </div>
         </div>
-        <RunTimeline onReportOpen={openReport} state={state} />
+        <div className="inspection-execution-region">
+          <ExecutionPlanBoard onReportOpen={openReport} state={state} />
+        </div>
       </main>
       <footer className="ci-page-footer">
         <span>NOVA · 变更巡检</span>

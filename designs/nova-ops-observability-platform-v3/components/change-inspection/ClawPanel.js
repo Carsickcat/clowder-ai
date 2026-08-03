@@ -4,6 +4,61 @@ import { createInspectionExecutionId } from "../../lib/change-inspection-identif
 
 const EXAMPLE = "请帮我巡检 payments-router v3.18.0 是否可以灰度发布";
 
+const workflowSteps = [
+  ["natural_language", "自然语义", "解析服务、版本与发布目标"],
+  ["change_guide", "变更指导书", "定位门禁、处置与回退章节"],
+  ["knowledge_graph", "业务知识图谱", "展开上下游依赖与业务指标"],
+];
+
+function GenerationWorkflow({ state }) {
+  const sourceKinds = new Set(
+    state.plan.generation?.sources.map((source) => source.kind) ?? [],
+  );
+  const started = state.plan.status !== "empty";
+
+  return (
+    <section className="ci-generation-workflow">
+      <div>
+        <span className="ci-eyebrow">生成工作流</span>
+        <strong>{started ? "CLAW 正在编排巡检任务" : "等待巡检意图"}</strong>
+      </div>
+      <ol>
+        {workflowSteps.map(([kind, label, description]) => {
+          const completed = sourceKinds.has(kind);
+          const blocked =
+            started && !completed && state.plan.status === "blocked";
+          return (
+            <li
+              className={blocked ? "is-blocked" : completed ? "is-done" : ""}
+              key={kind}
+            >
+              <span>{blocked ? "!" : completed ? "✓" : "·"}</span>
+              <div>
+                <strong>{label}</strong>
+                <small>{blocked ? "未找到可信映射" : description}</small>
+              </div>
+            </li>
+          );
+        })}
+        <li className={state.plan.status === "ready" ? "is-done" : ""}>
+          <span>{state.plan.status === "ready" ? "✓" : "·"}</span>
+          <div>
+            <strong>可解释方案</strong>
+            <small>生成检查项、依赖顺序、理由与置信度</small>
+          </div>
+        </li>
+        <li className={state.reportSnapshot ? "is-done" : ""}>
+          <span>{state.reportSnapshot ? "✓" : "·"}</span>
+          <div>
+            <strong>报告评分解读</strong>
+            <small>执行完成后形成五维评分与剩余风险</small>
+          </div>
+        </li>
+      </ol>
+    </section>
+  );
+}
+
 export function ClawPanel({ state, dispatch }) {
   const [text, setText] = useState("");
 
@@ -35,6 +90,8 @@ export function ClawPanel({ state, dispatch }) {
         我会生成方案和解释证据，但不会代替你执行生产动作。
       </div>
 
+      <GenerationWorkflow state={state} />
+
       <div className="ci-messages" aria-live="polite">
         {state.conversation.map((message, index) => (
           <div
@@ -62,13 +119,16 @@ export function ClawPanel({ state, dispatch }) {
         )}
 
       {(state.plan.status === "clarification" ||
+        state.plan.status === "blocked" ||
         state.comparabilityContract.status !== "valid") && (
         <div className="ci-claw-blocker">
           <span className="ci-eyebrow">Claw 需要补充</span>
           <p>
             {state.plan.status === "clarification"
               ? "缺少明确的服务名或版本号，暂不能生成巡检方案。"
-              : "当前基线不可比，补充对照组后才能完成方案校验。"}
+              : state.plan.status === "blocked"
+                ? "缺少变更指导书或业务知识图谱映射，CLAW 已停止生成，避免编造业务检查项。"
+                : "当前基线不可比，补充对照组后才能完成方案校验。"}
           </p>
         </div>
       )}

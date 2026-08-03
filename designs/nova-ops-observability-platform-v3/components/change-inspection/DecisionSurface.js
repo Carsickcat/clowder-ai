@@ -1,4 +1,5 @@
 import { getPrimaryAction } from "../../lib/change-inspection.mjs";
+import { ReportIntelligence } from "./ReportIntelligence";
 
 const statusClass = {
   waiting: "neutral",
@@ -7,6 +8,12 @@ const statusClass = {
   passed: "passed",
   risk: "risk",
   unknown: "unknown",
+};
+
+const sourceLabel = {
+  natural_language: "自然语义",
+  change_guide: "变更指导书",
+  knowledge_graph: "业务知识图谱",
 };
 
 function PlanView({ state }) {
@@ -23,18 +30,30 @@ function PlanView({ state }) {
     );
   }
 
-  if (state.plan.status === "clarification") {
+  if (["clarification", "blocked"].includes(state.plan.status)) {
+    const blocked = state.plan.status === "blocked";
     return (
       <div
         className="ci-empty-state ci-clarification-state"
         data-testid="inspection-plan"
       >
-        <span className="ci-empty-icon">?</span>
-        <h3>方案尚未生成</h3>
+        <span className="ci-empty-icon">{blocked ? "!" : "?"}</span>
+        <h3>{blocked ? "方案生成已阻止" : "方案尚未生成"}</h3>
         <p>
-          补充明确的服务名和版本号后，Claw
-          才会生成检查项、比较基线、阈值和执行频率。
+          {blocked
+            ? "NOVA 没有找到可信的指导书与业务知识图谱映射，因此没有生成通用检查项。"
+            : "补充明确的服务名和版本号后，Claw 才会生成检查项、比较基线、阈值和执行频率。"}
         </p>
+        {blocked && (
+          <ul className="ci-plan-omissions">
+            {state.plan.generation.omissions.map((item) => (
+              <li key={item.id}>
+                <strong>{item.title}</strong>
+                <span>{item.action}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   }
@@ -46,7 +65,22 @@ function PlanView({ state }) {
           <span className="ci-eyebrow">巡检方案 v{state.plan.version}</span>
           <h3>系统准备检查什么</h3>
         </div>
-        <span className="ci-coverage">5/5 风险面已覆盖</span>
+        <span className="ci-coverage">
+          {state.plan.checks.length}/{state.plan.checks.length} 风险面已覆盖
+        </span>
+      </div>
+      <div className="ci-generation-sources">
+        {state.plan.generation.sources.map((source) => (
+          <div key={source.id}>
+            <span>{sourceLabel[source.kind]}</span>
+            <strong>{source.title}</strong>
+            <small>{source.freshness}</small>
+          </div>
+        ))}
+        <p>
+          生成置信度{" "}
+          <strong>{Math.round(state.plan.generation.confidence * 100)}%</strong>
+        </p>
       </div>
       <div className="ci-plan-meta">
         <div>
@@ -80,6 +114,13 @@ function PlanView({ state }) {
               <code>{check.metric}</code>
             </div>
             <small>{check.rule}</small>
+            <details>
+              <summary>
+                为什么检查 · 置信度 {Math.round(check.confidence * 100)}%
+              </summary>
+              <p>{check.rationale}</p>
+              <code>{check.sourceRefs.join(" · ")}</code>
+            </details>
           </div>
         ))}
       </div>
@@ -144,6 +185,7 @@ function FinalReport({ state }) {
         <h3>{state.reportSnapshot.title}</h3>
         <p>{state.reportSnapshot.summary}</p>
       </div>
+      <ReportIntelligence report={state.reportSnapshot} />
     </section>
   );
 }

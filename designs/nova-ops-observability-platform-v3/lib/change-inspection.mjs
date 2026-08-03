@@ -39,6 +39,8 @@ export function createChangeInspectionState() {
       version: 0,
       intent: "",
       checks: [],
+      generation: { sources: [], confidence: 0, omissions: [] },
+      orchestration: [],
       frequency: "每 2 分钟",
       window: "连续 10 分钟",
       baseline: "过去 7 天同星期、同时段",
