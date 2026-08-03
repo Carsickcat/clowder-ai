@@ -140,12 +140,28 @@ describe('connected inspection restart acceptance', () => {
     assert.notEqual(runs[0].id, runs[1].id);
     assert.notEqual(runs[0].checkResults[0].id, runs[1].checkResults[0].id);
 
+    let terminalRun = runs[0];
+    for (const purpose of ['canary', 'post_change']) {
+      const response = await runtime.app.inject({
+        method: 'POST',
+        url: `/api/observability/inspection-cases/${cases[0].id}/runs`,
+        headers: {
+          ...USER_HEADER,
+          'idempotency-key': `acceptance-${purpose}`,
+        },
+        payload: { purpose },
+      });
+      assert.equal(response.statusCode, 201);
+      terminalRun = response.json();
+      assert.equal(terminalRun.verdict, 'passed');
+    }
+
     const accepted = await runtime.app.inject({
       method: 'POST',
       url: `/api/observability/inspection-cases/${cases[0].id}/decisions`,
       headers: USER_HEADER,
       payload: {
-        runId: runs[0].id,
+        runId: terminalRun.id,
         kind: 'accept',
         note: 'Acceptance evidence reviewed.',
       },
@@ -276,7 +292,7 @@ describe('connected inspection restart acceptance', () => {
     const interrupted = initialStore.startRun({
       userId: 'acceptance-user',
       caseId: inspectionCase.id,
-      purpose: 'verification',
+      purpose: 'admission',
       idempotencyKey: 'before-restart',
     });
     initialDb.close();
@@ -297,7 +313,7 @@ describe('connected inspection restart acceptance', () => {
       method: 'POST',
       url: `/api/observability/inspection-cases/${inspectionCase.id}/runs`,
       headers: { ...USER_HEADER, 'idempotency-key': 'before-restart' },
-      payload: { purpose: 'verification' },
+      payload: { purpose: 'admission' },
     });
     assert.equal(sameKey.statusCode, 201);
     assert.equal(sameKey.json().id, interrupted.id);
@@ -307,7 +323,7 @@ describe('connected inspection restart acceptance', () => {
       method: 'POST',
       url: `/api/observability/inspection-cases/${inspectionCase.id}/runs`,
       headers: { ...USER_HEADER, 'idempotency-key': 'after-restart' },
-      payload: { purpose: 'verification' },
+      payload: { purpose: 'admission' },
     });
     assert.equal(newKey.statusCode, 201);
     assert.notEqual(newKey.json().id, interrupted.id);

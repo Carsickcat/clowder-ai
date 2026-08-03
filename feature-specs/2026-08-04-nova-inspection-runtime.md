@@ -1,12 +1,12 @@
 # NOVA Inspection Runtime — Thread-Scoped Product Increment
 
-**Project truth source:** this document is the single scope anchor for the runtime phase.  
-**Evolved from:** `feature-specs/2026-08-03-nova-inspection-intelligence-design.md`  
-**Operator authorization:** thread message `0001785774553420-000133-33be0abf`  
-**Merged baseline:** `26231439a5a98461ca7c1d301b200e07724f1756`  
-**Architecture owner:** existing `packages/api/domains/observability` + `packages/web/observability` bounded slice  
-**Map delta:** none; this increment completes the existing slice and introduces no new ownership cell  
-**Owner:** Ragdoll / Sonnet  
+**Project truth source:** this document is the single scope anchor for the runtime phase.
+**Evolved from:** `feature-specs/2026-08-03-nova-inspection-intelligence-design.md`
+**Operator authorization:** thread message `0001785774553420-000133-33be0abf`
+**Merged baseline:** `26231439a5a98461ca7c1d301b200e07724f1756`
+**Architecture owner:** existing `packages/api/domains/observability` + `packages/web/observability` bounded slice
+**Map delta:** none; this increment completes the existing slice and introduces no new ownership cell
+**Owner:** Ragdoll / Sonnet
 **Status:** in progress
 **tips_exempt:** This increment upgrades the existing `/observability/inspections` route and its existing navigation entry; it does not add a new launch action or capability-discovery surface. The connected-mode boundary is disclosed in the route banner and the mobile runbook.
 
@@ -121,7 +121,8 @@ Unknown methods, malformed payloads, missing identity, unavailable sources, stal
 - Existing strict routes and `InspectionService` remain the only write path.
 - Browser payloads may select intent, candidate ids, decisions, and idempotency keys; they may not author evidence, source snapshots, verdicts, report scores, or timestamps.
 - Source adapters are read-only and server-side. The replay source is labeled `DEV LOCAL · fixture-backed sources`; it preserves the fixture's original capture time separately from the current local replay execution time, and report freshness is capped rather than presenting fixed values as live telemetry.
-- Production source scopes and production actions are unavailable by construction.
+- The local runtime registers only the replay source. The Prometheus adapter remains an independently tested future capability but is not imported or configured by the application startup path; production source scopes and production actions are unavailable by construction.
+- The durable store enforces `admission → canary → post_change`, with `verification` permitted only after non-passing canary/verification/post-change evidence. Acceptance requires the latest run to be a completed, passed, comparable `post_change`; idempotent retries remain valid.
 - A separate “dry-run” API is intentionally not added: every implemented source is read-only, all state changes are limited to the isolated inspection audit database, and no production command route exists. The UI still requires explicit confirmation and labels the action as a local replay.
 - Report intelligence is deterministic, versioned, cited, and stored with the immutable report snapshot.
 
@@ -144,6 +145,7 @@ in_context_observability:
 - **INV-5:** runtime/API/source failures never mutate the case and never switch to demo success.
 - **INV-6:** every source, run, decision, deduction, and citation resolves to server-owned provenance.
 - **INV-7:** production data and production actions are unavailable in development mode.
+- **INV-8:** clients cannot skip a run stage or seal admission, canary, or verification evidence as a final report.
 - **INV-8:** concurrent runs or acceptance attempts serialize or fail without duplicate durable truth.
 - **INV-9:** desktop, 720px, and 390px show the same selected case and next action.
 

@@ -12,6 +12,7 @@ import {
   InspectionAcceptanceConflictError,
   InspectionImmutableRecordError,
   InspectionRevisionConflictError,
+  InspectionRunSequenceConflictError,
   SqliteInspectionStore,
 } from '../../dist/domains/observability/SqliteInspectionStore.js';
 
@@ -81,6 +82,58 @@ describe('NOVA inspection SQLite state', () => {
       changeId: 'CHG-42',
       version: 'v3.18.0',
     });
+  }
+
+  function completeRun(run, { queryDigest = 'sha256:latency', value = 184, verdict = 'passed' } = {}) {
+    return store.completeRun({
+      userId: 'user-a',
+      runId: run.id,
+      verdict,
+      sourceSnapshot: {
+        connectorRef: 'prometheus-default',
+        sourceKind: 'replay',
+        scope: 'acceptance',
+        snapshotHash: 'sha256:report-source',
+        observedAt: '2026-07-31T01:02:00.000Z',
+        window: { from: '2026-07-31T00:57:00.000Z', to: '2026-07-31T01:02:00.000Z' },
+      },
+      checkResults: [
+        {
+          checkId: 'latency',
+          status: verdict === 'passed' ? 'passed' : 'risk',
+          value,
+          baselineValue: null,
+          observedAt: '2026-07-31T01:02:00.000Z',
+          queryDigest,
+          reason: null,
+        },
+      ],
+    });
+  }
+
+  function completeHappyPath(caseId) {
+    const admission = store.startRun({
+      userId: 'user-a',
+      caseId,
+      purpose: 'admission',
+      idempotencyKey: 'happy-admission',
+    });
+    completeRun(admission, { value: 188 });
+    const canary = store.startRun({
+      userId: 'user-a',
+      caseId,
+      purpose: 'canary',
+      idempotencyKey: 'happy-canary',
+    });
+    completeRun(canary, { value: 186 });
+    const postChange = store.startRun({
+      userId: 'user-a',
+      caseId,
+      purpose: 'post_change',
+      idempotencyKey: 'happy-post-change',
+    });
+    completeRun(postChange, { value: 184 });
+    return { admission, canary, postChange };
   }
 
   it('applies the durable inspection schema with no TTL columns', () => {
@@ -428,7 +481,7 @@ describe('NOVA inspection SQLite state', () => {
     const interrupted = store.startRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
-      purpose: 'verification',
+      purpose: 'admission',
       idempotencyKey: 'request-before-restart',
     });
 
@@ -446,7 +499,7 @@ describe('NOVA inspection SQLite state', () => {
       reopened.startRun({
         userId: 'user-a',
         caseId: inspectionCase.id,
-        purpose: 'verification',
+        purpose: 'admission',
         idempotencyKey: 'request-before-restart',
       }).id,
       interrupted.id,
@@ -455,7 +508,7 @@ describe('NOVA inspection SQLite state', () => {
       reopened.startRun({
         userId: 'user-a',
         caseId: inspectionCase.id,
-        purpose: 'verification',
+        purpose: 'admission',
         idempotencyKey: 'request-after-restart',
       }).status,
       'running',
@@ -465,36 +518,7 @@ describe('NOVA inspection SQLite state', () => {
   it('rolls back the accept decision when report creation fails', () => {
     const created = createJob();
     const inspectionCase = startCase(created.job.id);
-    const run = store.startRun({
-      userId: 'user-a',
-      caseId: inspectionCase.id,
-      purpose: 'admission',
-      idempotencyKey: 'request-atomic-accept',
-    });
-    store.completeRun({
-      userId: 'user-a',
-      runId: run.id,
-      verdict: 'passed',
-      sourceSnapshot: {
-        connectorRef: 'prometheus-default',
-        sourceKind: 'replay',
-        scope: 'acceptance',
-        snapshotHash: 'sha256:report-source',
-        observedAt: '2026-07-31T01:02:00.000Z',
-        window: { from: '2026-07-31T00:57:00.000Z', to: '2026-07-31T01:02:00.000Z' },
-      },
-      checkResults: [
-        {
-          checkId: 'latency',
-          status: 'passed',
-          value: 184,
-          baselineValue: null,
-          observedAt: '2026-07-31T01:02:00.000Z',
-          queryDigest: 'sha256:latency',
-          reason: null,
-        },
-      ],
-    });
+    const { postChange: run } = completeHappyPath(inspectionCase.id);
     db.exec(`CREATE TRIGGER inspection_reports_force_failure
       BEFORE INSERT ON inspection_reports BEGIN
         SELECT RAISE(ABORT, 'forced report failure');
@@ -566,39 +590,7 @@ describe('NOVA inspection SQLite state', () => {
   it('creates an immutable report from only the exact case revision, runs and decisions', () => {
     const created = createJob();
     const inspectionCase = startCase(created.job.id);
-    const run = store.startRun({
-      userId: 'user-a',
-      caseId: inspectionCase.id,
-      purpose: 'admission',
-      idempotencyKey: 'request-report',
-    });
-    store.completeRun({
-      userId: 'user-a',
-      runId: run.id,
-      verdict: 'passed',
-      sourceSnapshot: {
-        connectorRef: 'prometheus-default',
-        sourceKind: 'replay',
-        scope: 'acceptance',
-        snapshotHash: 'sha256:report-source',
-        observedAt: '2026-07-31T01:02:00.000Z',
-        window: {
-          from: '2026-07-31T00:52:00.000Z',
-          to: '2026-07-31T01:02:00.000Z',
-        },
-      },
-      checkResults: [
-        {
-          checkId: 'latency',
-          status: 'passed',
-          value: 184,
-          baselineValue: null,
-          observedAt: '2026-07-31T01:02:00.000Z',
-          queryDigest: 'sha256:latency',
-          reason: null,
-        },
-      ],
-    });
+    const { admission, canary, postChange: run } = completeHappyPath(inspectionCase.id);
     const accepted = store.acceptLatestPassedRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
@@ -614,7 +606,7 @@ describe('NOVA inspection SQLite state', () => {
     const report = accepted.report;
 
     assert.equal(report.jobRevisionId, created.revision.id);
-    assert.deepEqual(report.runIds, [run.id]);
+    assert.deepEqual(report.runIds, [admission.id, canary.id, run.id]);
     assert.deepEqual(report.decisionIds, [decision.id]);
     assert.equal(report.intelligence.score.modelVersion, 'nova-report-score-v2');
     assert.deepEqual(
@@ -633,97 +625,50 @@ describe('NOVA inspection SQLite state', () => {
     );
   });
 
-  it('keeps a passed post-change case open for verification until accept seals the report', () => {
+  it('keeps a passed post-change case open until accept seals the report', () => {
     const created = createJob();
     const inspectionCase = startCase(created.job.id);
-    const completePassedRun = (runId, value) =>
-      store.completeRun({
-        userId: 'user-a',
-        runId,
-        verdict: 'passed',
-        sourceSnapshot: {
-          connectorRef: 'prometheus-default',
-          sourceKind: 'replay',
-          observedAt: '2026-07-31T01:02:00.000Z',
-          window: {
-            from: '2026-07-31T00:52:00.000Z',
-            to: '2026-07-31T01:02:00.000Z',
-          },
-        },
-        checkResults: [
-          {
-            checkId: 'latency',
-            status: 'passed',
-            value,
-            baselineValue: null,
-            observedAt: '2026-07-31T01:02:00.000Z',
-            queryDigest: 'sha256:latency',
-            reason: null,
-          },
-        ],
-      });
-
-    const admission = store.startRun({
-      userId: 'user-a',
-      caseId: inspectionCase.id,
-      purpose: 'admission',
-      idempotencyKey: 'request-before-change',
-    });
-    completePassedRun(admission.id, 188);
-    const postChange = store.startRun({
-      userId: 'user-a',
-      caseId: inspectionCase.id,
-      purpose: 'post_change',
-      idempotencyKey: 'request-after-change',
-    });
-    completePassedRun(postChange.id, 184);
+    const { admission, canary, postChange } = completeHappyPath(inspectionCase.id);
 
     assert.equal(store.getCase('user-a', inspectionCase.id).status, 'running');
     assert.equal(store.getReportForCase('user-a', inspectionCase.id), null);
 
-    const verification = store.startRun({
-      userId: 'user-a',
-      caseId: inspectionCase.id,
-      purpose: 'verification',
-      idempotencyKey: 'request-before-accept',
-    });
-    completePassedRun(verification.id, 183);
     const accepted = store.acceptLatestPassedRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
-      runId: verification.id,
+      runId: postChange.id,
       actorId: 'user-a',
-      note: 'Seal only after the final verification.',
+      note: 'Seal only after the final post-change evidence.',
     });
 
     assert.equal(store.getCase('user-a', inspectionCase.id).status, 'completed');
-    assert.deepEqual(accepted.report.runIds, [admission.id, postChange.id, verification.id]);
+    assert.deepEqual(accepted.report.runIds, [admission.id, canary.id, postChange.id]);
   });
 
   it('rejects sealing a post-change pass without a comparable admission baseline', () => {
     const created = createJob();
     const inspectionCase = startCase(created.job.id);
+    const admission = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'admission',
+      idempotencyKey: 'incomparable-admission',
+    });
+    completeRun(admission);
+    const canary = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'canary',
+      idempotencyKey: 'incomparable-canary',
+    });
+    completeRun(canary);
     const run = store.startRun({
       userId: 'user-a',
       caseId: inspectionCase.id,
       purpose: 'post_change',
-      idempotencyKey: 'post-without-baseline',
+      idempotencyKey: 'incomparable-post-change',
     });
-    store.completeRun({
-      userId: 'user-a',
-      runId: run.id,
-      verdict: 'passed',
-      sourceSnapshot: {
-        connectorRef: 'prometheus-default',
-        sourceKind: 'replay',
-        observedAt: '2026-07-31T01:02:00.000Z',
-        window: {
-          from: '2026-07-31T00:52:00.000Z',
-          to: '2026-07-31T01:02:00.000Z',
-        },
-      },
-      checkResults: [],
-    });
+    completeRun(run, { queryDigest: 'sha256:different-query' });
 
     assert.equal(store.getCase('user-a', inspectionCase.id).status, 'blocked');
 
@@ -737,6 +682,142 @@ describe('NOVA inspection SQLite state', () => {
           note: 'Should remain blocked.',
         }),
       InspectionAcceptanceConflictError,
+    );
+    assert.equal(store.getReportForCase('user-a', inspectionCase.id), null);
+  });
+
+  it('enforces the server-owned run lifecycle before creating durable runs', () => {
+    const created = createJob();
+    const inspectionCase = startCase(created.job.id);
+    const completeRun = (run, verdict, value) =>
+      store.completeRun({
+        userId: 'user-a',
+        runId: run.id,
+        verdict,
+        sourceSnapshot: {
+          connectorRef: 'prometheus-default',
+          sourceKind: 'replay',
+          scope: 'acceptance',
+          snapshotHash: `sha256:${run.purpose}`,
+          observedAt: '2026-07-31T01:02:00.000Z',
+          window: { from: '2026-07-31T00:57:00.000Z', to: '2026-07-31T01:02:00.000Z' },
+        },
+        checkResults: [
+          {
+            checkId: 'latency',
+            status: verdict === 'passed' ? 'passed' : 'risk',
+            value,
+            baselineValue: null,
+            observedAt: '2026-07-31T01:02:00.000Z',
+            queryDigest: 'sha256:latency',
+            reason: null,
+          },
+        ],
+      });
+
+    assert.throws(
+      () =>
+        store.startRun({
+          userId: 'user-a',
+          caseId: inspectionCase.id,
+          purpose: 'canary',
+          idempotencyKey: 'skip-admission',
+        }),
+      InspectionRunSequenceConflictError,
+    );
+
+    const admission = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'admission',
+      idempotencyKey: 'admission',
+    });
+    completeRun(admission, 'passed', 188);
+
+    assert.throws(
+      () =>
+        store.startRun({
+          userId: 'user-a',
+          caseId: inspectionCase.id,
+          purpose: 'post_change',
+          idempotencyKey: 'skip-canary',
+        }),
+      InspectionRunSequenceConflictError,
+    );
+
+    const canary = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'canary',
+      idempotencyKey: 'canary',
+    });
+    completeRun(canary, 'risk', 300);
+
+    const verification = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'verification',
+      idempotencyKey: 'verification',
+    });
+    completeRun(verification, 'passed', 185);
+
+    assert.throws(
+      () =>
+        store.acceptLatestPassedRun({
+          userId: 'user-a',
+          caseId: inspectionCase.id,
+          runId: verification.id,
+          actorId: 'user-a',
+          note: 'Verification cannot replace post-change evidence.',
+        }),
+      /post-change/i,
+    );
+
+    const postChange = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'post_change',
+      idempotencyKey: 'post-change',
+    });
+    completeRun(postChange, 'passed', 184);
+
+    assert.equal(store.listRuns('user-a', inspectionCase.id).length, 4);
+  });
+
+  it('accepts only the latest comparable passed post-change run', () => {
+    const created = createJob();
+    const inspectionCase = startCase(created.job.id);
+    const admission = store.startRun({
+      userId: 'user-a',
+      caseId: inspectionCase.id,
+      purpose: 'admission',
+      idempotencyKey: 'admission-only',
+    });
+    store.completeRun({
+      userId: 'user-a',
+      runId: admission.id,
+      verdict: 'passed',
+      sourceSnapshot: {
+        connectorRef: 'prometheus-default',
+        sourceKind: 'replay',
+        scope: 'acceptance',
+        snapshotHash: 'sha256:admission-only',
+        observedAt: '2026-07-31T01:02:00.000Z',
+        window: { from: '2026-07-31T00:57:00.000Z', to: '2026-07-31T01:02:00.000Z' },
+      },
+      checkResults: [],
+    });
+
+    assert.throws(
+      () =>
+        store.acceptLatestPassedRun({
+          userId: 'user-a',
+          caseId: inspectionCase.id,
+          runId: admission.id,
+          actorId: 'user-a',
+          note: 'Admission is not a terminal report basis.',
+        }),
+      /post-change/i,
     );
     assert.equal(store.getReportForCase('user-a', inspectionCase.id), null);
   });

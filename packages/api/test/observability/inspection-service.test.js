@@ -258,7 +258,7 @@ describe('InspectionService', () => {
     });
     const { inspectionCase } = createCase();
 
-    const failed = await service.startRun('user-a', inspectionCase.id, 'request-failed', { purpose: 'verification' });
+    const failed = await service.startRun('user-a', inspectionCase.id, 'request-failed', { purpose: 'admission' });
 
     assert.equal(failed.status, 'failed');
     assert.equal(failed.verdict, 'unknown');
@@ -269,7 +269,15 @@ describe('InspectionService', () => {
 
   test('returns a scoped workspace and creates an immutable report only on accept', async () => {
     const { created, inspectionCase } = createCase();
-    const run = await service.startRun('user-a', inspectionCase.id, 'request-report', { purpose: 'admission' });
+    const admission = await service.startRun('user-a', inspectionCase.id, 'request-report-admission', {
+      purpose: 'admission',
+    });
+    const canary = await service.startRun('user-a', inspectionCase.id, 'request-report-canary', {
+      purpose: 'canary',
+    });
+    const run = await service.startRun('user-a', inspectionCase.id, 'request-report-post-change', {
+      purpose: 'post_change',
+    });
     const recorded = service.recordDecision('user-a', inspectionCase.id, {
       runId: run.id,
       kind: 'accept',
@@ -279,7 +287,7 @@ describe('InspectionService', () => {
 
     assert.equal(recorded.decision.actorId, 'user-a');
     assert.equal(recorded.report.jobRevisionId, created.revision.id);
-    assert.deepEqual(recorded.report.runIds, [run.id]);
+    assert.deepEqual(recorded.report.runIds, [admission.id, canary.id, run.id]);
     assert.deepEqual(recorded.report.decisionIds, [recorded.decision.id]);
     assert.deepEqual(workspace.report, recorded.report);
     assert.deepEqual(workspace.revision, created.revision);
@@ -290,7 +298,7 @@ describe('InspectionService', () => {
       () => service.startRun('user-a', inspectionCase.id, 'request-after-report', { purpose: 'verification' }),
       InspectionImmutableRecordError,
     );
-    assert.equal(source.calls.length, 1);
+    assert.equal(source.calls.length, 3);
   });
 
   test('rejects accepting a non-passing run without creating a report', async () => {

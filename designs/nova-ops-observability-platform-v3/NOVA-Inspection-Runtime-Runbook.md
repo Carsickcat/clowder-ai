@@ -38,7 +38,8 @@ pnpm start:direct --memory
 ## 诚实边界
 
 - 当前 replay 的指标值是固定开发 fixture；页面会同时显示 fixture 固化时间与本次本地回放时间。快照摘要由服务端重新生成，评分会对 fixture 新鲜度封顶折减，不把固定值伪装成实时遥测。
-- production topology、真实 LLM、enterprise knowledge graph、生产 Prometheus 凭据均未接入。
+- production topology、真实 LLM、enterprise knowledge graph、生产 Prometheus 凭据均未接入；应用启动只注册本地 replay source，不读取可配置 Prometheus URL、scope 或 authorization。
+- 服务端持久层强制 `admission → canary → post_change`；风险态才能进入 verification，且只有最新、通过、可比的 post-change 证据可以固化报告。
 - 页面没有发布、放量、回滚或生产 remediation 路由；浏览器也不能填写证据、判定、时间戳或评分。
 - `payments-router` 的连接池依赖没有批准的只读信号，因此报告会保留覆盖扣分；不会用高分掩盖未覆盖风险。
 - connected API 断开时所有写动作禁用，页面不会回退到演示成功态。
@@ -49,4 +50,4 @@ pnpm start:direct --memory
 - 1440 / 720 / 390：无横向溢出；390 顺序为任务 → 详情 → CLAW → 执行计划。
 - 浏览器刷新与 API 进程重启：同一报告可恢复。
 - connected 旅程：console error `0`，unexpected network failure `0`。
-- 服务端 observability：73/73；connected 页面合同：18/18；standalone：61/61。
+- 服务端 observability：75/75；connected 页面合同：18/18；standalone：61/61。

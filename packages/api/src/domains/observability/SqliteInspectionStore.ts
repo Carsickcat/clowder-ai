@@ -53,6 +53,13 @@ export class InspectionActiveRunConflictError extends InspectionIdempotencyConfl
   }
 }
 
+export class InspectionRunSequenceConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InspectionRunSequenceConflictError';
+  }
+}
+
 export class InspectionAcceptanceConflictError extends Error {
   constructor(message: string) {
     super(message);
@@ -203,6 +210,18 @@ interface RunRow {
   error_summary: string | null;
   started_at: string;
   finished_at: string | null;
+}
+
+function expectedRunPurpose(
+  latest: Pick<RunRow, 'purpose' | 'status' | 'verdict'> | undefined,
+): InspectionRunPurpose | null {
+  if (!latest) return 'admission';
+  if (latest.status !== 'completed' || latest.verdict !== 'passed') {
+    return latest.purpose === 'admission' ? 'admission' : 'verification';
+  }
+  if (latest.purpose === 'admission') return 'canary';
+  if (latest.purpose === 'canary' || latest.purpose === 'verification') return 'post_change';
+  return null;
 }
 
 interface CheckResultRow {
@@ -602,7 +621,7 @@ export class SqliteInspectionStore {
       const existing = this.findRunByIdempotencyKey(input.userId, input.caseId, input.idempotencyKey);
       if (existing) return this.requireMatchingIdempotentRun(existing, input.purpose);
 
-      this.assertCaseCanStartRun(input.userId, input.caseId);
+      this.assertCaseCanStartRun(input.userId, input.caseId, input.purpose);
 
       const id = this.idFactory('run');
       const now = this.now();
@@ -631,7 +650,7 @@ export class SqliteInspectionStore {
     return this.toRun(row);
   }
 
-  private assertCaseCanStartRun(userId: string, caseId: string): void {
+  private assertCaseCanStartRun(userId: string, caseId: string, purpose: InspectionRunPurpose): void {
     const inspectionCase = this.getCase(userId, caseId);
     if (!inspectionCase) throw new InspectionNotFoundError('Inspection case');
     if (inspectionCase.status === 'completed') {
@@ -645,6 +664,22 @@ export class SqliteInspectionStore {
       )
       .get(userId, caseId) as { id: string } | undefined;
     if (active) throw new InspectionActiveRunConflictError();
+
+    const latest = this.db
+      .prepare(
+        `SELECT purpose, status, verdict FROM inspection_runs
+         WHERE user_id = ? AND case_id = ?
+         ORDER BY rowid DESC LIMIT 1`,
+      )
+      .get(userId, caseId) as Pick<RunRow, 'purpose' | 'status' | 'verdict'> | undefined;
+    const expectedPurpose = expectedRunPurpose(latest);
+    if (purpose !== expectedPurpose) {
+      throw new InspectionRunSequenceConflictError(
+        expectedPurpose
+          ? `Inspection run purpose must be ${expectedPurpose} after the latest durable evidence`
+          : 'A passed post-change run must be accepted before any further execution',
+      );
+    }
   }
 
   private insertRunningRun(input: StartInspectionRunInput, id: string, startedAt: string): InspectionRun | null {
@@ -816,13 +851,14 @@ export class SqliteInspectionStore {
           'Accept requires the latest completed passed inspection run from this case',
         );
       }
-      if (latestRun.purpose === 'post_change') {
-        const abReport = projectInspectionABReport(this.listRuns(input.userId, input.caseId));
-        if (abReport?.comparability !== 'valid') {
-          throw new InspectionAcceptanceConflictError(
-            'Accept requires a comparable admission baseline for a post-change run',
-          );
-        }
+      if (latestRun.purpose !== 'post_change') {
+        throw new InspectionAcceptanceConflictError('Accept requires the latest passed post-change run');
+      }
+      const abReport = projectInspectionABReport(this.listRuns(input.userId, input.caseId));
+      if (abReport?.comparability !== 'valid') {
+        throw new InspectionAcceptanceConflictError(
+          'Accept requires a comparable admission baseline for a post-change run',
+        );
       }
 
       const activeRun = this.db

@@ -152,7 +152,7 @@ function journeyStage(workspace: InspectionWorkspace | null): number {
 function suggestedPurpose(workspace: InspectionWorkspace | null): InspectionRunPurpose {
   const latest = workspace?.runs.at(-1);
   if (!latest) return 'admission';
-  if (latest.verdict !== 'passed') return 'verification';
+  if (latest.verdict !== 'passed') return latest.purpose === 'admission' ? 'admission' : 'verification';
   if (latest.purpose === 'admission') return 'canary';
   if (latest.purpose === 'canary' || latest.purpose === 'verification') return 'post_change';
   return 'post_change';

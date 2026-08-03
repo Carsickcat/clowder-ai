@@ -7,7 +7,10 @@ import {
   InspectionSourceScopeMismatchError,
   InspectionSourceUnavailableError,
 } from '../../dist/domains/observability/InspectionService.js';
-import { InspectionRevisionConflictError } from '../../dist/domains/observability/SqliteInspectionStore.js';
+import {
+  InspectionRevisionConflictError,
+  InspectionRunSequenceConflictError,
+} from '../../dist/domains/observability/SqliteInspectionStore.js';
 
 const USER_HEADER = { 'x-cat-cafe-user': 'user-a' };
 
@@ -325,6 +328,9 @@ describe('inspection routes', () => {
     service.recordDecision = () => {
       throw new InspectionDecisionConflictError('not ready');
     };
+    service.startRun = () => {
+      throw new InspectionRunSequenceConflictError('admission must run first');
+    };
     const app = await createApp();
 
     const unavailable = await app.inject({
@@ -377,6 +383,12 @@ describe('inspection routes', () => {
         note: 'No terminal run exists.',
       },
     });
+    const invalidRun = await app.inject({
+      method: 'POST',
+      url: '/api/observability/inspection-cases/case-1/runs',
+      headers: { ...USER_HEADER, 'idempotency-key': 'skip-stage' },
+      payload: { purpose: 'post_change' },
+    });
 
     assert.equal(unavailable.statusCode, 503);
     assert.deepEqual(unavailable.json(), { error: 'Inspection source unavailable' });
@@ -384,6 +396,8 @@ describe('inspection routes', () => {
     assert.deepEqual(conflict.json(), { error: 'Inspection state conflict' });
     assert.equal(invalidDecision.statusCode, 409);
     assert.deepEqual(invalidDecision.json(), { error: 'Inspection state conflict' });
+    assert.equal(invalidRun.statusCode, 409);
+    assert.deepEqual(invalidRun.json(), { error: 'Inspection state conflict' });
   });
 
   test('maps a server-owned source scope mismatch to a bounded conflict', async () => {

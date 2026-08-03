@@ -502,9 +502,6 @@ async function main(): Promise<void> {
   const { SqliteInspectionStore } = await import('./domains/observability/SqliteInspectionStore.js');
   const { InspectionService } = await import('./domains/observability/InspectionService.js');
   const { ReplayObservabilitySource } = await import('./domains/observability/adapters/ReplayObservabilitySource.js');
-  const { PrometheusObservabilitySource } = await import(
-    './domains/observability/adapters/PrometheusObservabilitySource.js'
-  );
   const inspectionStartedAt = new Date().toISOString();
   const replaySource = new ReplayObservabilitySource(
     {
@@ -527,29 +524,6 @@ async function main(): Promise<void> {
       source: replaySource,
     },
   ];
-  const prometheusUrl = process.env.NOVA_INSPECTION_PROMETHEUS_URL?.trim();
-  if (prometheusUrl) {
-    const prometheusScope = process.env.NOVA_INSPECTION_PROMETHEUS_SCOPE?.trim();
-    if (!prometheusScope || !['development', 'acceptance', 'staging'].includes(prometheusScope)) {
-      throw new Error(
-        'NOVA_INSPECTION_PROMETHEUS_SCOPE must be development, acceptance or staging; production telemetry is not allowed',
-      );
-    }
-    const prometheusSource = new PrometheusObservabilitySource({
-      sourceId: 'prometheus-configured',
-      baseUrl: prometheusUrl,
-      ...(process.env.NOVA_INSPECTION_PROMETHEUS_AUTHORIZATION
-        ? { authorization: process.env.NOVA_INSPECTION_PROMETHEUS_AUTHORIZATION }
-        : {}),
-    });
-    inspectionSources.unshift({
-      id: prometheusSource.sourceId,
-      kind: 'prometheus',
-      label: `Prometheus (${prometheusScope})`,
-      scope: prometheusScope,
-      source: prometheusSource,
-    });
-  }
   const inspectionDatabase = openInspectionDatabase({
     dataRoot: process.env.CAT_CAFE_DATA_DIR?.trim() || resolve(repoRoot, 'data'),
   });

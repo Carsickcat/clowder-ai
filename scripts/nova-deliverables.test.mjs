@@ -111,3 +111,10 @@ test('connected degradation acceptance exempts only the expected API failure', a
   assert.match(acceptance, /request\.url\(\)\.includes\('\/api\/observability\/'\)/u);
   assert.match(acceptance, /assert\.ok\(expectedApiFailures\.length > 0/u);
 });
+
+test('local inspection runtime registers no configurable Prometheus source', async () => {
+  const apiEntry = await readFile(path.join(repoRoot, 'packages', 'api', 'src', 'index.ts'), 'utf8');
+
+  assert.doesNotMatch(apiEntry, /NOVA_INSPECTION_PROMETHEUS_(?:URL|SCOPE|AUTHORIZATION)/u);
+  assert.doesNotMatch(apiEntry, /PrometheusObservabilitySource/u);
+});
