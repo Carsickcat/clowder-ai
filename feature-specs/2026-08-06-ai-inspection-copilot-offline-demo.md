@@ -1,5 +1,5 @@
 ---
-feature_ids: []
+feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
 topics: [nova, inspection, copilot, offline-demo, observability]
 doc_kind: plan
 created: 2026-08-06
@@ -16,7 +16,7 @@ tips_exempt:
 **Map delta:** none
 **Map delta why:** 这是现有 NOVA inspection control-plane 语义的离线投影，不新增产品路由、后端所有权或生产集成。
 **Architecture:** 复用 NOVA 的风险假设、Check Contract、证据与行动分离语义；用不可变 scenario fixtures + 单一 reducer 驱动两个确定性 mock 旅程。构建器将 HTML、CSS、JS 和场景数据内联为一个文件，浏览器通过 `file://` 运行且不发起网络请求。
-**Tech Stack:** 原生 ES modules、Node test runner、Playwright file:// acceptance、静态单文件构建。
+**Tech Stack:** 原生 ES modules、Node test runner、Chrome DevTools Protocol file:// acceptance、零依赖静态单文件构建。
 **前端验证:** Yes — desktop 与 mobile，两个 golden path、一个 blocker 状态、console 0、network 0、horizontal overflow 0。
 
 ---
@@ -177,7 +177,7 @@ DemoSession = {
 - Create: `designs/ai-inspection-copilot-offline-demo/tests/offline.browser.mjs`
 - Create: `designs/ai-inspection-copilot-offline-demo/README.md`
 
-1. Install only demo dev dependencies with pnpm; no runtime server.
+1. Use the local Chrome executable through a zero-dependency CDP client; no runtime server or package install.
 2. Run browser journeys against `file://.../AI-Inspection-Copilot-Offline-Demo.html`.
 3. Assert natural-language final `Proceed`, electronic-flow final `Pause`, RC explanation, network 0, console 0, 1440px/390px no overflow.
 4. Run `pnpm test`, `pnpm test:browser`, build reproducibility, and repository focused checks.
@@ -188,4 +188,3 @@ DemoSession = {
 - Deterministic standalone build test.
 - Browser transcript for both golden paths and mobile overflow check.
 - Checked-in standalone artifact and README opening instructions.
-

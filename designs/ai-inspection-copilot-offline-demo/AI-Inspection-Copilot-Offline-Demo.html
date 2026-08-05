@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="AI 巡检任务生成与解读 Copilot 离线验收 Demo"
+    />
+    <title>AI 巡检 Copilot · 离线验收 Demo</title>
+      <style>
+:root {
+  color-scheme: dark;
+  --bg: #07101f;
+  --bg-soft: #0a1629;
+  --surface: rgba(14, 29, 51, 0.88);
+  --surface-strong: #10233d;
+  --surface-hover: #142c4a;
+  --line: rgba(144, 177, 219, 0.16);
+  --line-strong: rgba(144, 177, 219, 0.28);
+  --text: #edf6ff;
+  --text-soft: #9fb3ca;
+  --text-faint: #6f87a3;
+  --cyan: #5ae7d2;
+  --cyan-soft: rgba(90, 231, 210, 0.13);
+  --blue: #6d91ff;
+  --blue-soft: rgba(109, 145, 255, 0.14);
+  --amber: #f6ba5b;
+  --amber-soft: rgba(246, 186, 91, 0.14);
+  --red: #ff6d7f;
+  --red-soft: rgba(255, 109, 127, 0.14);
+  --green: #72e6a6;
+  --green-soft: rgba(114, 230, 166, 0.12);
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  --font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% -10%, rgba(65, 126, 226, 0.2), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(47, 205, 179, 0.12), transparent 30%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+}
+button, input, textarea { font: inherit; }
+button { color: inherit; }
+a { color: inherit; text-decoration: none; }
+code { font-family: var(--mono); }
+h1, h2, h3, h4, p { margin-top: 0; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+.app-shell { width: min(1760px, 100%); margin: 0 auto; padding: 20px 26px 0; }
+.app-header { min-height: 68px; display: grid; grid-template-columns: 250px 1fr auto; align-items: center; gap: 24px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand > span { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(90, 231, 210, 0.38); border-radius: 11px; background: linear-gradient(145deg, rgba(90, 231, 210, 0.19), rgba(109, 145, 255, 0.14)); color: var(--cyan); font-weight: 800; box-shadow: inset 0 0 20px rgba(90, 231, 210, 0.08); }
+.brand div { display: flex; flex-direction: column; letter-spacing: 0.08em; }
+.brand strong { font-size: 15px; }
+.brand small { color: var(--text-faint); font-size: 9px; }
+.title-lockup { min-width: 0; }
+.title-lockup span { color: var(--cyan); font: 600 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.title-lockup h1 { margin: 5px 0 0; overflow: hidden; font-size: clamp(17px, 2vw, 22px); text-overflow: ellipsis; white-space: nowrap; }
+.offline-badge { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-soft); font: 600 10px/1 var(--mono); }
+.offline-badge span { color: var(--cyan); }
+.scenario-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 18px 0 14px; }
+.phase-rail { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; padding: 0 0 18px; list-style: none; }
+.workspace { display: grid; grid-template-columns: minmax(240px, 0.72fr) minmax(480px, 1.85fr) minmax(270px, 0.8fr); gap: 14px; align-items: start; }
+.panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(16, 35, 61, 0.92), rgba(9, 21, 39, 0.92)); box-shadow: var(--shadow); }
+.context-panel, .copilot-panel { position: sticky; top: 14px; }
+.context-panel { padding: 18px; }
+.stage-panel { min-height: 670px; padding: clamp(20px, 3vw, 34px); }
+.copilot-panel { overflow: hidden; }
+.app-footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 18px; padding: 16px 2px 18px; border-top: 1px solid var(--line); color: var(--text-faint); font-size: 11px; }
+.app-footer strong { color: var(--text-soft); font-weight: 500; }
+
+.scenario-tab { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(10, 23, 42, 0.72); text-align: left; cursor: pointer; transition: 160ms ease; }
+.scenario-tab:hover { border-color: var(--line-strong); background: var(--surface-hover); transform: translateY(-1px); }
+.scenario-tab.is-active { border-color: rgba(90, 231, 210, 0.42); background: linear-gradient(135deg, rgba(90, 231, 210, 0.12), rgba(109, 145, 255, 0.1)); box-shadow: inset 0 0 0 1px rgba(90, 231, 210, 0.06); }
+.scenario-tab > span:first-child { width: 30px; height: 30px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 9px; background: var(--cyan-soft); color: var(--cyan); }
+.scenario-tab > span:last-child { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.scenario-tab strong { font-size: 13px; }
+.scenario-tab small { overflow: hidden; color: var(--text-faint); text-overflow: ellipsis; white-space: nowrap; }
+.phase-step { position: relative; display: flex; align-items: center; gap: 9px; color: var(--text-faint); font-size: 11px; }
+.phase-step::after { position: absolute; right: 12px; left: 38px; height: 1px; background: var(--line); content: ""; }
+.phase-step:last-child::after { display: none; }
+.phase-step > span { position: relative; z-index: 1; width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--bg-soft); font: 600 9px/1 var(--mono); }
+.phase-step.is-current { color: var(--text); }
+.phase-step.is-current > span { border-color: var(--cyan); background: var(--cyan-soft); color: var(--cyan); box-shadow: 0 0 18px rgba(90, 231, 210, 0.16); }
+.phase-step.is-done > span { border-color: rgba(114, 230, 166, 0.44); background: var(--green-soft); color: var(--green); }
+.panel-heading, .stage-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.panel-heading h2, .stage-heading h2 { margin: 5px 0 0; font-size: 17px; }
+.module-tag { color: var(--cyan); font: 600 9px/1 var(--mono); letter-spacing: 0.07em; text-transform: uppercase; }
+.source-status, .readiness { flex: 0 0 auto; padding: 6px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-faint); font: 600 9px/1 var(--mono); }
+.source-status.is-ready, .readiness.ready { border-color: rgba(114, 230, 166, 0.35); background: var(--green-soft); color: var(--green); }
+.readiness.blocked { border-color: rgba(246, 186, 91, 0.35); background: var(--amber-soft); color: var(--amber); }
+.prompt-card { margin: 20px 0 16px; padding: 14px; border: 1px solid rgba(109, 145, 255, 0.25); border-radius: var(--radius-sm); background: var(--blue-soft); }
+.prompt-card span, .hypothesis-block > span, .copilot-message > span, .copilot-principles > span { color: var(--blue); font: 600 9px/1 var(--mono); letter-spacing: 0.07em; text-transform: uppercase; }
+.prompt-card p { margin: 8px 0 0; color: #dbe8ff; font-size: 13px; line-height: 1.6; }
+.change-facts { display: grid; gap: 11px; margin: 0; }
+.change-facts div { min-width: 0; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.change-facts dt { margin-bottom: 4px; color: var(--text-faint); font-size: 10px; }
+.change-facts dd { margin: 0; color: var(--text-soft); font-size: 12px; line-height: 1.45; }
+.change-facts code { overflow-wrap: anywhere; color: #bed1ff; font-size: 10px; }
+.reconciliation { margin-top: 16px; padding: 13px; border: 1px solid; border-radius: var(--radius-sm); }
+.reconciliation.is-exact { border-color: rgba(114, 230, 166, 0.3); background: var(--green-soft); }
+.reconciliation.is-expanded { border-color: rgba(246, 186, 91, 0.3); background: var(--amber-soft); }
+.reconciliation span { display: block; color: var(--text-faint); font: 600 9px/1 var(--mono); }
+.reconciliation strong { display: block; margin-top: 6px; color: var(--text); }
+.reconciliation p { margin: 5px 0 0; color: var(--text-soft); font-size: 11px; line-height: 1.5; }
+.entity-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.entity-cloud li { padding: 5px 7px; border: 1px solid var(--line); border-radius: 7px; color: var(--text-soft); font: 9px/1 var(--mono); }
+.stage-empty { display: grid; min-height: 590px; place-items: center; align-content: center; text-align: center; }
+.stage-orb { width: 74px; height: 74px; display: grid; place-items: center; margin-bottom: 18px; border: 1px solid rgba(90, 231, 210, 0.38); border-radius: 24px; background: linear-gradient(145deg, rgba(90, 231, 210, 0.18), rgba(109, 145, 255, 0.16)); color: var(--cyan); font-size: 28px; box-shadow: 0 20px 60px rgba(48, 168, 170, 0.12); }
+.stage-kicker { color: var(--cyan); font: 600 10px/1 var(--mono); text-transform: uppercase; }
+.stage-empty h2 { margin-bottom: 10px; font-size: clamp(26px, 4vw, 40px); }
+.stage-empty > p:not(.stage-kicker) { max-width: 560px; color: var(--text-soft); line-height: 1.7; }
+.understanding-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; width: 100%; margin-top: 28px; text-align: left; }
+.understanding-grid div { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.45); }
+.understanding-grid span { display: block; margin-bottom: 7px; color: var(--text-faint); font-size: 9px; }
+.understanding-grid strong { font-size: 11px; line-height: 1.45; }
+.scope-stage > h2 { margin: 12px 0 8px; font-size: 30px; }
+.scope-stage > p, .stage-lead { color: var(--text-soft); line-height: 1.65; }
+.source-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 24px 0; padding: 0; list-style: none; }
+.source-card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.46); }
+.source-kind { display: inline-flex; margin-bottom: 10px; padding: 4px 6px; border-radius: 5px; background: var(--blue-soft); color: var(--blue); font: 600 8px/1 var(--mono); }
+.source-card strong { display: block; }
+.source-card p { margin: 7px 0; color: var(--text-soft); font-size: 11px; line-height: 1.5; }
+.source-card small { color: var(--text-faint); font-size: 9px; }
+.hypothesis-block { padding: 18px; border: 1px solid rgba(90, 231, 210, 0.22); border-radius: var(--radius); background: var(--cyan-soft); }
+.hypothesis-block ol { display: grid; gap: 10px; margin: 14px 0 0; padding-left: 22px; color: #d7f6f1; }
+.stage-heading { margin-bottom: 8px; }
+.candidate-stack, .check-stack { display: grid; gap: 10px; margin-top: 18px; }
+.candidate-card { padding: 16px; border: 1px solid rgba(246, 186, 91, 0.3); border-radius: var(--radius); background: var(--amber-soft); }
+.candidate-card.is-accepted { border-color: rgba(114, 230, 166, 0.34); background: var(--green-soft); }
+.candidate-card.is-rejected { opacity: 0.72; border-color: var(--line); background: rgba(111, 135, 163, 0.08); }
+.candidate-card header, .check-card header { display: flex; justify-content: space-between; gap: 12px; }
+.candidate-card header span { color: var(--amber); font: 600 9px/1 var(--mono); }
+.candidate-card header strong { color: var(--text-soft); font-size: 10px; }
+.candidate-card h4 { margin: 12px 0 6px; }
+.candidate-card p { color: var(--text-soft); font-size: 11px; line-height: 1.55; }
+.candidate-card code { display: block; color: #ffd99c; font-size: 10px; overflow-wrap: anywhere; }
+.candidate-actions { display: flex; gap: 8px; margin-top: 14px; }
+.candidate-actions button, .rc-button { padding: 8px 11px; border: 1px solid rgba(90, 231, 210, 0.3); border-radius: 8px; background: var(--cyan-soft); color: var(--cyan); cursor: pointer; font-size: 10px; font-weight: 700; }
+.candidate-actions .button-ghost { border-color: var(--line); background: transparent; color: var(--text-soft); }
+.check-card { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.44); }
+.check-card.is-candidate-check { border-color: rgba(114, 230, 166, 0.28); }
+.check-index { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--blue-soft); color: var(--blue); font-size: 11px; font-weight: 800; }
+.check-body { min-width: 0; }
+.check-card h4 { margin: 0; font-size: 13px; }
+.check-card header span { color: var(--red); font: 600 8px/1 var(--mono); }
+.check-card p { margin: 7px 0 10px; color: var(--text-soft); font-size: 11px; line-height: 1.45; }
+.check-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.check-card dl div { min-width: 0; }
+.check-card dt { color: var(--text-faint); font-size: 8px; }
+.check-card dd { margin: 3px 0 0; color: var(--text-soft); font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
+.check-card code { color: #b9caff; }
+.live-dot { color: var(--red); font: 700 9px/1 var(--mono); }
+.execution-list { display: grid; gap: 10px; margin: 26px 0 0; padding: 0; list-style: none; }
+.execution-item { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.44); opacity: 0.55; }
+.execution-item.complete, .execution-item.active { opacity: 1; }
+.execution-item.active { border-color: rgba(90, 231, 210, 0.34); box-shadow: inset 3px 0 var(--cyan); }
+.execution-item.violated.complete { border-color: rgba(255, 109, 127, 0.34); background: var(--red-soft); }
+.execution-number { color: var(--text-faint); font: 600 10px/1 var(--mono); }
+.execution-item strong { font-size: 12px; }
+.execution-item p { margin: 5px 0 0; color: var(--text-soft); font-size: 10px; }
+.execution-item > code { color: var(--cyan); font-size: 9px; }
+.execution-item.violated > code { color: var(--red); }
+.decision-hero { padding: 24px; border: 1px solid rgba(114, 230, 166, 0.28); border-radius: var(--radius-lg); background: linear-gradient(145deg, rgba(114, 230, 166, 0.14), rgba(90, 231, 210, 0.05)); }
+.report-stage.pause .decision-hero { border-color: rgba(255, 109, 127, 0.34); background: linear-gradient(145deg, rgba(255, 109, 127, 0.17), rgba(246, 186, 91, 0.05)); }
+.decision-hero span { color: var(--green); font: 600 9px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.report-stage.pause .decision-hero span { color: var(--red); }
+.decision-hero h2 { margin: 12px 0 5px; font-size: clamp(26px, 4vw, 40px); }
+.decision-hero p { margin: 0; color: var(--text-soft); }
+.semantic-pair { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 14px 0; }
+.semantic-pair div { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.5); }
+.semantic-pair span, .semantic-pair small { display: block; color: var(--text-faint); font-size: 9px; }
+.semantic-pair code { display: block; margin: 6px 0; color: var(--cyan); font-size: 15px; }
+.evidence-badges { display: flex; flex-wrap: wrap; gap: 7px; }
+.evidence-badges span { padding: 6px 8px; border-radius: 999px; font-size: 9px; font-weight: 700; }
+.evidence-badges .verified { background: var(--green-soft); color: var(--green); }
+.evidence-badges .violated { background: var(--red-soft); color: var(--red); }
+.evidence-badges .unresolved { background: var(--amber-soft); color: var(--amber); }
+.report-summary { margin: 18px 0; color: var(--text-soft); font-size: 13px; line-height: 1.7; }
+.report-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.report-columns section { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.42); }
+.report-columns h3 { margin-bottom: 9px; font-size: 11px; }
+.report-columns p, .report-columns li { color: var(--text-soft); font-size: 10px; line-height: 1.55; }
+.report-columns ul { display: grid; gap: 6px; margin: 0; padding-left: 17px; }
+.rc-button { margin-top: 14px; }
+.rc-panel { margin-top: 10px; padding: 18px; border: 1px solid rgba(109, 145, 255, 0.28); border-radius: var(--radius); background: var(--blue-soft); }
+.rc-panel > span { color: var(--blue); font: 600 9px/1 var(--mono); }
+.rc-panel h3 { margin: 10px 0; font-size: 14px; }
+.rc-chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rc-chain code { padding: 5px 7px; border-radius: 6px; background: rgba(7, 16, 31, 0.48); color: #cbd8ff; font-size: 9px; }
+.rc-chain i { color: var(--text-faint); }
+.rc-panel p { margin: 12px 0 0; color: var(--text-soft); font-size: 11px; }
+.copilot-panel > header { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
+.copilot-mark { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; background: var(--cyan-soft); color: var(--cyan); }
+.copilot-panel header div { display: flex; flex-direction: column; gap: 2px; }
+.copilot-panel header small { color: var(--text-faint); font: 600 8px/1 var(--mono); }
+.copilot-panel header strong { font-size: 11px; }
+.online { color: var(--green); font: 600 8px/1 var(--mono); }
+.copilot-message { margin: 14px; padding: 16px; border: 1px solid rgba(90, 231, 210, 0.18); border-radius: var(--radius); background: var(--cyan-soft); }
+.copilot-message h3 { margin: 10px 0 7px; font-size: 14px; }
+.copilot-message p { margin: 0; color: var(--text-soft); font-size: 11px; line-height: 1.6; }
+.copilot-principles { padding: 4px 18px 18px; }
+.copilot-principles ul { display: grid; gap: 8px; margin: 12px 0 0; padding-left: 17px; color: var(--text-soft); font-size: 10px; }
+.primary-action { width: calc(100% - 28px); display: flex; justify-content: space-between; align-items: center; margin: 0 14px 14px; padding: 13px 14px; border: 1px solid rgba(90, 231, 210, 0.35); border-radius: 10px; background: linear-gradient(135deg, rgba(90, 231, 210, 0.22), rgba(109, 145, 255, 0.16)); color: #eafffb; cursor: pointer; font-size: 11px; font-weight: 700; }
+.primary-action:disabled { border-color: var(--line); background: rgba(111, 135, 163, 0.08); color: var(--text-faint); cursor: not-allowed; }
+.primary-action b { color: var(--cyan); font-size: 16px; }
+
+@media (max-width: 1180px) {
+  .workspace { grid-template-columns: minmax(230px, 0.7fr) minmax(480px, 1.5fr); }
+  .copilot-panel { position: static; grid-column: 1 / -1; }
+  .copilot-panel { display: grid; grid-template-columns: minmax(220px, 0.6fr) 1fr auto; align-items: stretch; }
+  .copilot-panel > header { border-right: 1px solid var(--line); border-bottom: 0; }
+  .copilot-message { margin: 10px; }
+  .copilot-principles { display: none; }
+  .primary-action { width: 220px; align-self: center; margin: 10px; }
+}
+
+@media (max-width: 820px) {
+  .app-shell { padding: 14px 14px 0; }
+  .app-header { grid-template-columns: 1fr auto; gap: 12px; }
+  .title-lockup { grid-column: 1 / -1; grid-row: 2; padding-bottom: 12px; }
+  .offline-badge { font-size: 8px; }
+  .scenario-nav { grid-template-columns: 1fr; }
+  .phase-rail { overflow-x: auto; grid-template-columns: repeat(5, minmax(104px, 1fr)); padding-bottom: 13px; }
+  .workspace { grid-template-columns: 1fr; }
+  .context-panel, .copilot-panel { position: static; }
+  .stage-panel { min-height: 0; }
+  .context-panel { order: 1; }
+  .stage-panel { order: 2; }
+  .copilot-panel { order: 3; display: block; }
+  .copilot-panel > header { border-right: 0; border-bottom: 1px solid var(--line); }
+  .copilot-principles { display: block; }
+  .primary-action { width: calc(100% - 28px); }
+  .understanding-grid, .source-list, .report-columns { grid-template-columns: 1fr; }
+  .app-footer { flex-direction: column; gap: 5px; }
+}
+
+@media (max-width: 520px) {
+  .app-shell { padding-inline: 10px; }
+  .brand div { display: none; }
+  .app-header { grid-template-columns: auto 1fr; }
+  .offline-badge { justify-self: end; padding: 7px 9px; }
+  .title-lockup h1 { white-space: normal; line-height: 1.25; }
+  .scenario-tab { padding: 11px; }
+  .phase-step strong { font-size: 9px; }
+  .stage-panel { padding: 18px 14px; }
+  .context-panel { padding: 15px; }
+  .stage-empty { min-height: 430px; }
+  .semantic-pair { grid-template-columns: 1fr; }
+  .check-card { grid-template-columns: 1fr; }
+  .check-card dl { grid-template-columns: 1fr; }
+  .execution-item { grid-template-columns: 28px 1fr; }
+  .execution-item > code { grid-column: 2; }
+  .candidate-actions { flex-direction: column; }
+  .candidate-actions button { width: 100%; }
+}
+
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+(() => {
+"use strict";
+const EVIDENCE_VERDICTS = Object.freeze([
+  "Verified",
+  "Violated",
+  "Inconclusive",
+  "NotEvaluated",
+]);
+
+const ACTION_STATUSES = Object.freeze([
+  "Proceed",
+  "Proceed-with-conditions",
+  "Pause",
+  "Rollback",
+]);
+
+const REQUIRED_CHECK_FIELDS = Object.freeze([
+  "id",
+  "priority",
+  "purpose",
+  "entity",
+  "capability",
+  "metric",
+  "window",
+  "baseline",
+  "rule",
+  "severity",
+  "failureAction",
+  "rationale",
+  "sourceRefs",
+]);
+
+function deepFreeze(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+  for (const child of Object.values(value)) deepFreeze(child);
+  return Object.freeze(value);
+}
+
+function sortedUnique(values = []) {
+  return [...new Set(values.filter(Boolean))].sort((left, right) =>
+    left.localeCompare(right),
+  );
+}
+
+function assertCheckContract(check, sourceIds) {
+  for (const field of REQUIRED_CHECK_FIELDS) {
+    const value = check?.[field];
+    const missing =
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0);
+    if (missing) throw new Error(`Check ${check?.id ?? "unknown"} missing ${field}`);
+  }
+  for (const sourceRef of check.sourceRefs) {
+    if (!sourceIds.has(sourceRef)) {
+      throw new Error(`Unknown sourceRef ${sourceRef} on ${check.id}`);
+    }
+  }
+  return true;
+}
+
+function reconcileChange(declaredChange, observedChange) {
+  if (!declaredChange?.entities?.length || !observedChange?.entities?.length) {
+    return deepFreeze({
+      status: "Unverifiable",
+      declaredEntities: sortedUnique(declaredChange?.entities),
+      observedEntities: sortedUnique(observedChange?.entities),
+      resolvedEntities: [],
+      addedEntities: [],
+      missingEntities: [],
+    });
+  }
+
+  const declaredEntities = sortedUnique(declaredChange.entities);
+  const observedEntities = sortedUnique(observedChange.entities);
+  const declared = new Set(declaredEntities);
+  const observed = new Set(observedEntities);
+  const addedEntities = observedEntities.filter((entity) => !declared.has(entity));
+  const missingEntities = declaredEntities.filter((entity) => !observed.has(entity));
+  const shared = observedEntities.filter((entity) => declared.has(entity));
+  let status = "Exact";
+  if (shared.length === 0) status = "Conflict";
+  else if (addedEntities.length && !missingEntities.length) {
+    status = "Observed-Superset";
+  } else if (missingEntities.length && !addedEntities.length) {
+    status = "Observed-Subset";
+  } else if (addedEntities.length || missingEntities.length) {
+    status = "Conflict";
+  }
+
+  return deepFreeze({
+    status,
+    declaredEntities,
+    observedEntities,
+    resolvedEntities: status === "Conflict" ? [] : observedEntities,
+    addedEntities,
+    missingEntities,
+  });
+}
+
+function check(input) {
+  return {
+    priority: "required",
+    window: "变更前 15 分钟 vs 变更后 15 分钟",
+    baseline: "过去 7 天同星期、同时段",
+    severity: "critical",
+    ...input,
+  };
+}
+
+const naturalLanguagePass = {
+  id: "natural-language-pass",
+  entryKind: "natural-language",
+  eyebrow: "Journey 01 · Natural language",
+  title: "订单服务升级验收",
+  subtitle: "从一句话生成一份值得 SRE 确认的巡检任务",
+  prompt: "今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。",
+  declaredChange: {
+    id: "MANUAL-ORDER-480",
+    summary: "order-api v4.8.0 应用代码升级",
+    version: "v4.8.0",
+    entities: ["order-api", "payment-gateway", "order-cache"],
+    fingerprint: "image:order-api@sha256:4e80",
+  },
+  observedChange: {
+    summary: "运行时版本与声明一致",
+    entities: ["order-api", "payment-gateway", "order-cache"],
+    fingerprint: "image:order-api@sha256:4e80",
+  },
+  contextSources: [
+    {
+      id: "nl-intent",
+      kind: "自然语义",
+      label: "SRE 巡检意图",
+      detail: "识别服务、版本、订单提交与支付确认两个业务目标",
+      freshness: "刚刚",
+    },
+    {
+      id: "order-graph",
+      kind: "业务图谱",
+      label: "订单黄金旅程",
+      detail: "订单提交 → 支付确认；绑定成功率与支付完成率",
+      freshness: "2 小时前",
+    },
+    {
+      id: "order-trace",
+      kind: "Trace",
+      label: "近 24h 真实调用",
+      detail: "order-api → payment-gateway；order-api → order-cache",
+      freshness: "3 分钟前",
+    },
+    {
+      id: "metric-catalog",
+      kind: "指标目录",
+      label: "已注册执行能力",
+      detail: "业务、服务、缓存与拨测指标均可直接执行",
+      freshness: "当前",
+    },
+  ],
+  hypotheses: [
+    "新版本不能降低订单提交成功率",
+    "order-api 延迟与错误率不能显著退化",
+    "支付依赖与缓存不能成为新增瓶颈",
+  ],
+  candidateChecks: [
+    check({
+      id: "candidate-memory-trend",
+      priority: "recommended",
+      criticality: "medium",
+      purpose: "识别升级后的缓慢内存爬升",
+      entity: "order-api",
+      capability: "容器资源趋势",
+      metric: "container.memory.working_set",
+      rule: "斜率低于历史同版本 P95",
+      failureAction: "延长观察窗口",
+      rationale: "历史复盘出现过长尾内存增长，但本次代码差异未触及缓存模块。",
+      sourceRefs: ["nl-intent", "metric-catalog"],
+    }),
+  ],
+  committedChecks: [
+    check({
+      id: "order-success",
+      purpose: "保护订单提交业务结果",
+      entity: "订单提交旅程",
+      capability: "业务黄金指标",
+      metric: "order.submit.success_rate",
+      rule: "下降不超过 0.20pp",
+      failureAction: "暂停发布并转 RC Agent",
+      rationale: "业务图谱将 order-api 绑定为订单提交的关键服务。",
+      sourceRefs: ["nl-intent", "order-graph", "metric-catalog"],
+    }),
+    check({
+      id: "service-golden-signals",
+      purpose: "验证服务自身没有退化",
+      entity: "order-api",
+      capability: "服务黄金信号",
+      metric: "http.error_rate + http.duration.p95",
+      rule: "错误率 ≤ 0.5%，p95 增幅 ≤ 10%",
+      failureAction: "暂停并检查新版本实例",
+      rationale: "版本升级直接改变 order-api 运行时行为。",
+      sourceRefs: ["nl-intent", "metric-catalog"],
+    }),
+    check({
+      id: "payment-dependency",
+      purpose: "验证关键下游支付确认",
+      entity: "payment-gateway",
+      capability: "Trace 依赖门禁",
+      metric: "span.client.error_rate + span.client.duration.p95",
+      rule: "无新增错误依赖，p95 增幅 ≤ 8%",
+      failureAction: "暂停并下钻支付 Trace",
+      rationale: "真实 Trace 证明订单提交同步调用 payment-gateway。",
+      sourceRefs: ["order-graph", "order-trace", "metric-catalog"],
+    }),
+    check({
+      id: "cache-health",
+      purpose: "验证订单缓存无新增饱和",
+      entity: "order-cache",
+      capability: "Redis 开箱指标",
+      metric: "redis.hit_rate + redis.command_latency",
+      rule: "命中率下降 ≤ 2%，命令 p99 ≤ 6ms",
+      failureAction: "标记条件放行并延长观察",
+      rationale: "Trace 证明 order-api 实际访问 order-cache。",
+      sourceRefs: ["order-trace", "metric-catalog"],
+    }),
+  ],
+  execution: [
+    { id: "baseline", label: "锁定变更前基线", status: "Verified", fact: "四类关键证据均新鲜可比" },
+    { id: "business", label: "验证业务黄金指标", status: "Verified", fact: "订单成功率 99.82%，较基线 +0.03pp" },
+    { id: "service", label: "验证服务与 Trace", status: "Verified", fact: "p95 +3.2%，依赖无新增错误" },
+    { id: "middleware", label: "验证缓存与拨测", status: "Verified", fact: "命中率 96.4%，多地拨测通过" },
+  ],
+  report: {
+    evidenceVerdict: "Verified",
+    action: "Proceed",
+    actionLabel: "建议继续发布",
+    title: "声明范围内未发现异常退化",
+    summary: "订单提交、支付依赖、服务黄金信号与缓存均通过确定性验证。",
+    scopeStatement: "结论覆盖订单提交与支付确认旅程，以及 Trace 证明的直接依赖。",
+    evidenceCounts: { verified: 4, violated: 0, unresolved: 0 },
+    keyEvidence: [
+      "订单提交成功率 99.82%，较基线 +0.03pp",
+      "order-api p95 186ms，较稳定版本 +3.2%",
+      "payment-gateway 无新增错误 Trace",
+    ],
+    residualRisks: ["内存趋势为建议项，未纳入本次硬门禁。"],
+    rcAgent: null,
+  },
+};
+
+const changeTicketRisk = {
+  id: "change-ticket-risk",
+  entryKind: "change-ticket",
+  eyebrow: "Journey 02 · Change ticket",
+  title: "支付配置变更巡检",
+  subtitle: "声明与运行时对账后扩大影响面，异常联动 RC Agent",
+  prompt: "电子流 CHG-84217：调整 payment-api Redis 超时，灰度 25%。",
+  declaredChange: {
+    id: "CHG-84217",
+    summary: "payment-api Redis 超时 80ms → 120ms",
+    version: "config-2026.08.06.2",
+    entities: ["payment-api"],
+    fingerprint: "config:payment-timeout@91fa",
+  },
+  observedChange: {
+    summary: "共享配置包同时作用于结算 DB 与发票异步任务",
+    entities: ["payment-api", "settlement-db", "invoice-worker"],
+    fingerprint: "config:shared-payment-stack@c2bd",
+  },
+  contextSources: [
+    { id: "change-ticket", kind: "电子流", label: "CHG-84217", detail: "声明仅调整 payment-api Redis 超时", freshness: "刚刚" },
+    { id: "runtime-diff", kind: "运行时对账", label: "Observed-Superset", detail: "共享配置 hash 影响 payment-api、settlement-db、invoice-worker", freshness: "1 分钟前" },
+    { id: "payment-graph", kind: "业务图谱", label: "支付确认旅程", detail: "支付确认依赖 settlement-db，invoice-worker 为异步账单链路", freshness: "5 小时前" },
+    { id: "payment-trace", kind: "Trace", label: "灰度调用样本", detail: "payment-api → settlement-db 连接等待升高", freshness: "2 分钟前" },
+    { id: "middleware-catalog", kind: "指标目录", label: "DB / Redis 开箱能力", detail: "连接等待、池占用、慢查询和 Redis 延迟可执行", freshness: "当前" },
+  ],
+  hypotheses: [
+    "共享配置不能造成数据库连接池饱和",
+    "支付确认成功率不能退化",
+    "发票异步积压不能扩大",
+  ],
+  candidateChecks: [
+    check({
+      id: "candidate-db-wait",
+      priority: "recommended",
+      criticality: "high",
+      purpose: "验证共享配置是否放大数据库连接等待",
+      entity: "settlement-db",
+      capability: "数据库连接池检查",
+      metric: "db.pool.wait_p95 + db.pool.utilization",
+      rule: "等待 p95 ≤ 20ms，池占用 ≤ 80%",
+      failureAction: "暂停灰度并启动 RC Agent",
+      rationale: "运行时 hash 对账发现 settlement-db 位于声明外的实际影响面。",
+      sourceRefs: ["runtime-diff", "payment-trace", "middleware-catalog"],
+    }),
+  ],
+  committedChecks: [
+    check({
+      id: "payment-success",
+      purpose: "保护支付确认业务结果",
+      entity: "支付确认旅程",
+      capability: "业务黄金指标",
+      metric: "payment.confirm.success_rate",
+      rule: "下降不超过 0.10pp",
+      failureAction: "暂停并通知支付 SRE",
+      rationale: "业务图谱将 payment-api 与支付确认结果绑定。",
+      sourceRefs: ["change-ticket", "payment-graph"],
+    }),
+    check({
+      id: "payment-service",
+      purpose: "验证 payment-api 自身稳定性",
+      entity: "payment-api",
+      capability: "服务黄金信号",
+      metric: "http.error_rate + http.duration.p95",
+      rule: "错误率 ≤ 0.3%，p95 增幅 ≤ 8%",
+      failureAction: "暂停灰度",
+      rationale: "电子流声明 payment-api 为直接变更对象。",
+      sourceRefs: ["change-ticket", "middleware-catalog"],
+    }),
+    check({
+      id: "invoice-backlog",
+      purpose: "验证异步账单链路无积压",
+      entity: "invoice-worker",
+      capability: "消息队列开箱指标",
+      metric: "invoice.queue.lag",
+      rule: "积压增长率 ≤ 5%",
+      failureAction: "条件放行并延长异步观察",
+      rationale: "Observed-Superset 证明共享配置同时作用于 invoice-worker。",
+      sourceRefs: ["runtime-diff", "payment-graph", "middleware-catalog"],
+    }),
+  ],
+  execution: [
+    { id: "reconcile", label: "验证实际变更范围", status: "Verified", fact: "发现 2 个声明外实体并已纳入计划" },
+    { id: "business", label: "验证支付黄金指标", status: "Verified", fact: "支付成功率暂未退化" },
+    { id: "database", label: "验证数据库连接等待", status: "Violated", fact: "连接池占用 96%，等待 p95 68ms" },
+    { id: "async", label: "验证发票异步链路", status: "Inconclusive", fact: "低流量窗口证据不足，需继续观察" },
+  ],
+  report: {
+    evidenceVerdict: "Violated",
+    action: "Pause",
+    actionLabel: "建议暂停在 25% 灰度",
+    title: "数据库连接等待违反关键门禁",
+    summary: "支付结果尚未退化，但 settlement-db 已出现连接池饱和，不能用业务指标暂时正常替代关键证据。",
+    scopeStatement: "结论覆盖实际配置 hash 影响的 payment-api、settlement-db 与 invoice-worker。",
+    evidenceCounts: { verified: 2, violated: 1, unresolved: 1 },
+    keyEvidence: [
+      "settlement-db 连接池占用 96%（门禁 80%）",
+      "连接等待 p95 68ms（门禁 20ms）",
+      "支付成功率当前稳定，但属于滞后结果信号",
+    ],
+    residualRisks: ["invoice-worker 当前样本不足，证据为 Inconclusive。"],
+    rcAgent: {
+      title: "RC Agent · 诊断完成",
+      rootCause: "共享配置包将 DB 连接池上限从 120 降为 60，灰度实例连接等待放大。",
+      chain: ["payment-api p95 上升", "settlement-db pool wait", "shared-payment-stack@c2bd"],
+      recommendation: "恢复连接池上限，复验通过后再继续灰度。",
+    },
+  },
+};
+
+for (const scenario of [naturalLanguagePass, changeTicketRisk]) {
+  scenario.reconciliation = reconcileChange(
+    scenario.declaredChange,
+    scenario.observedChange,
+  );
+}
+
+const scenarios = deepFreeze([naturalLanguagePass, changeTicketRisk]);
+
+function getScenario(scenarioId) {
+  return scenarios.find((scenario) => scenario.id === scenarioId) ?? null;
+}
+
+function requireScenario(state) {
+  const scenario = getScenario(state.scenarioId);
+  if (!scenario) throw new Error(`Unknown scenario ${state.scenarioId}`);
+  return scenario;
+}
+
+function selectResolvedScope(state) {
+  const scenario = requireScenario(state);
+  return {
+    status: scenario.reconciliation.status,
+    entities: scenario.reconciliation.resolvedEntities,
+    addedEntities: scenario.reconciliation.addedEntities,
+  };
+}
+
+function selectPlanReadiness(state) {
+  const scenario = requireScenario(state);
+  const unresolvedCandidateIds = scenario.candidateChecks
+    .filter(
+      (candidate) =>
+        candidate.criticality === "high" &&
+        !["accepted", "rejected"].includes(
+          state.candidateDisposition[candidate.id]?.status,
+        ),
+    )
+    .map((candidate) => candidate.id);
+  const reconciliationBlocked = ["Conflict", "Unverifiable"].includes(
+    scenario.reconciliation.status,
+  );
+  return {
+    status:
+      reconciliationBlocked || unresolvedCandidateIds.length
+        ? "blocked"
+        : "ready",
+    unresolvedCandidateIds,
+    reconciliationBlocked,
+  };
+}
+
+function selectCommittedChecks(state) {
+  const scenario = requireScenario(state);
+  const acceptedCandidates = scenario.candidateChecks.filter(
+    (candidate) =>
+      state.candidateDisposition[candidate.id]?.status === "accepted",
+  );
+  const checks = [...scenario.committedChecks, ...acceptedCandidates];
+  const sourceIds = new Set(scenario.contextSources.map((source) => source.id));
+  for (const check of checks) assertCheckContract(check, sourceIds);
+  return checks;
+}
+
+function selectExecutionView(state) {
+  const scenario = requireScenario(state);
+  return scenario.execution.map((step, index) => ({
+    ...step,
+    progress:
+      state.phase === "report" || index <= state.executionStep
+        ? "complete"
+        : index === state.executionStep + 1 && state.phase === "execution"
+          ? "active"
+          : "queued",
+  }));
+}
+
+function selectReportView(state) {
+  const scenario = requireScenario(state);
+  return state.phase === "report" ? scenario.report : null;
+}
+
+function selectViewModel(state) {
+  const scenario = requireScenario(state);
+  return {
+    state,
+    scenario,
+    scope: selectResolvedScope(state),
+    readiness: selectPlanReadiness(state),
+    committedChecks: selectCommittedChecks(state),
+    execution: selectExecutionView(state),
+    report: selectReportView(state),
+  };
+}
+
+function createDemoSession(scenarioId = "natural-language-pass") {
+  if (!getScenario(scenarioId)) throw new Error(`Unknown scenario ${scenarioId}`);
+  return deepFreeze({
+    scenarioId,
+    phase: "intake",
+    candidateDisposition: {},
+    executionStep: -1,
+    rcExpanded: false,
+  });
+}
+
+function disposeCandidate(state, action) {
+  if (state.phase !== "plan") return state;
+  const scenario = getScenario(state.scenarioId);
+  const candidate = scenario.candidateChecks.find(
+    (item) => item.id === action.candidateId,
+  );
+  if (!candidate || !["accepted", "rejected"].includes(action.disposition)) {
+    return state;
+  }
+  const reason = action.reason?.trim() ?? "";
+  if (action.disposition === "rejected" && !reason) return state;
+  return {
+    ...state,
+    candidateDisposition: {
+      ...state.candidateDisposition,
+      [candidate.id]: {
+        status: action.disposition,
+        reason: reason || null,
+      },
+    },
+  };
+}
+
+function reduceSession(state, action) {
+  switch (action.type) {
+    case "SCENARIO_SELECTED":
+      return getScenario(action.scenarioId)
+        ? createDemoSession(action.scenarioId)
+        : state;
+    case "RESET":
+      return createDemoSession(state.scenarioId);
+    case "INPUT_CONFIRMED":
+      return state.phase === "intake" ? { ...state, phase: "context" } : state;
+    case "SCOPE_ACCEPTED": {
+      if (state.phase !== "context") return state;
+      const reconciliation = getScenario(state.scenarioId).reconciliation;
+      return ["Conflict", "Unverifiable"].includes(reconciliation.status)
+        ? state
+        : { ...state, phase: "plan" };
+    }
+    case "CANDIDATE_DISPOSED":
+      return disposeCandidate(state, action);
+    case "PLAN_CONFIRMED":
+      return state.phase === "plan" &&
+        selectPlanReadiness(state).status === "ready"
+        ? { ...state, phase: "execution", executionStep: -1 }
+        : state;
+    case "EXECUTION_ADVANCED": {
+      if (state.phase !== "execution") return state;
+      const lastIndex = getScenario(state.scenarioId).execution.length - 1;
+      const nextStep = state.executionStep + 1;
+      return nextStep >= lastIndex
+        ? { ...state, phase: "report", executionStep: lastIndex }
+        : { ...state, executionStep: nextStep };
+    }
+    case "RC_TOGGLED":
+      return state.phase === "report" &&
+        getScenario(state.scenarioId).report.rcAgent
+        ? { ...state, rcExpanded: !state.rcExpanded }
+        : state;
+    default:
+      return state;
+  }
+}
+
+function demoReducer(state, action) {
+  return deepFreeze(reduceSession(state, action));
+}
+
+const PHASES = [
+  ["intake", "输入理解", "01"],
+  ["context", "范围对账", "02"],
+  ["plan", "任务草案", "03"],
+  ["execution", "执行取证", "04"],
+  ["report", "行动报告", "05"],
+];
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function phaseIndex(phase) {
+  return PHASES.findIndex(([id]) => id === phase);
+}
+
+function renderScenarioNav(activeId) {
+  return scenarios
+    .map(
+      (scenario) => `
+        <button
+          class="scenario-tab ${scenario.id === activeId ? "is-active" : ""}"
+          data-scenario-id="${scenario.id}"
+          aria-pressed="${scenario.id === activeId}"
+          type="button"
+        >
+          <span>${scenario.entryKind === "natural-language" ? "✦" : "⌁"}</span>
+          <span>
+            <strong>${scenario.entryKind === "natural-language" ? "自然语言巡检" : "电子流巡检"}</strong>
+            <small>${escapeHtml(scenario.title)}</small>
+          </span>
+        </button>`,
+    )
+    .join("");
+}
+
+function renderProgress(state) {
+  const current = phaseIndex(state.phase);
+  return PHASES.map(
+    ([id, label, number], index) => `
+      <li class="phase-step ${index < current ? "is-done" : ""} ${id === state.phase ? "is-current" : ""}">
+        <span>${index < current ? "✓" : number}</span>
+        <strong>${label}</strong>
+      </li>`,
+  ).join("");
+}
+
+function renderSource(source) {
+  return `
+    <li class="source-card">
+      <span class="source-kind">${escapeHtml(source.kind)}</span>
+      <strong>${escapeHtml(source.label)}</strong>
+      <p>${escapeHtml(source.detail)}</p>
+      <small>新鲜度 · ${escapeHtml(source.freshness)}</small>
+    </li>`;
+}
+
+function renderContext(vm) {
+  const { scenario, scope, state } = vm;
+  const visible = phaseIndex(state.phase) >= 1;
+  return `
+    <section class="panel context-panel" aria-labelledby="context-title">
+      <header class="panel-heading">
+        <div><span class="module-tag">Module 01 · Input compiler</span><h2 id="context-title">输入与变更理解</h2></div>
+        <span class="source-status ${visible ? "is-ready" : ""}">${visible ? "已确认" : "待确认"}</span>
+      </header>
+      <div class="prompt-card">
+        <span>${scenario.entryKind === "natural-language" ? "SRE 对话" : "变更电子流"}</span>
+        <p>“${escapeHtml(scenario.prompt)}”</p>
+      </div>
+      <dl class="change-facts">
+        <div><dt>声明对象</dt><dd>${escapeHtml(scenario.declaredChange.summary)}</dd></div>
+        <div><dt>声明指纹</dt><dd><code>${escapeHtml(scenario.declaredChange.fingerprint)}</code></dd></div>
+        <div><dt>实际变化</dt><dd>${visible ? escapeHtml(scenario.observedChange.summary) : "等待运行时事实对账"}</dd></div>
+        <div><dt>实际指纹</dt><dd><code>${visible ? escapeHtml(scenario.observedChange.fingerprint) : "—"}</code></dd></div>
+      </dl>
+      ${
+        visible
+          ? `<div class="reconciliation ${scope.status === "Exact" ? "is-exact" : "is-expanded"}">
+              <span>Change Reconciliation</span>
+              <strong>${scope.status}</strong>
+              <p>${scope.status === "Exact" ? "声明与运行时事实一致。" : `发现 ${scope.addedEntities.length} 个声明外实体，已扩大巡检范围。`}</p>
+            </div>
+            <ul class="entity-cloud">${scope.entities.map((entity) => `<li>${escapeHtml(entity)}</li>`).join("")}</ul>`
+          : ""
+      }
+    </section>`;
+}
+
+function renderCandidate(candidate, disposition) {
+  const accepted = disposition?.status === "accepted";
+  const rejected = disposition?.status === "rejected";
+  const status = accepted ? "已纳入正式计划" : rejected ? "已拒绝并记录理由" : "待处置";
+  return `
+    <article class="candidate-card ${accepted ? "is-accepted" : ""} ${rejected ? "is-rejected" : ""}">
+      <header><span>AI 候选 · ${escapeHtml(candidate.criticality)} criticality</span><strong>${status}</strong></header>
+      <h4>${escapeHtml(candidate.purpose)}</h4>
+      <p>${escapeHtml(candidate.rationale)}</p>
+      <code>${escapeHtml(candidate.metric)}</code>
+      ${
+        !accepted && !rejected
+          ? `<div class="candidate-actions">
+              <button data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="accepted" type="button">纳入计划</button>
+              <button class="button-ghost" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="rejected" data-reason="专家确认该风险不属于本次变更边界" type="button">拒绝并留痕</button>
+            </div>`
+          : rejected
+            ? `<small>拒绝理由：${escapeHtml(disposition.reason)}</small>`
+            : ""
+      }
+    </article>`;
+}
+
+function renderCheck(check, isCandidate) {
+  return `
+    <article class="check-card ${isCandidate ? "is-candidate-check" : ""}">
+      <div class="check-index">${check.priority === "required" ? "必" : "荐"}</div>
+      <div class="check-body">
+        <header><h4>${escapeHtml(check.purpose)}</h4><span>${escapeHtml(check.severity)}</span></header>
+        <p>${escapeHtml(check.rationale)}</p>
+        <dl>
+          <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
+          <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
+          <div><dt>指标 / 查询</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
+          <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
+          <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
+          <div><dt>失败动作</dt><dd>${escapeHtml(check.failureAction)}</dd></div>
+        </dl>
+      </div>
+    </article>`;
+}
+
+function renderIntake(vm) {
+  return `
+    <div class="stage-empty">
+      <span class="stage-orb">✦</span>
+      <p class="stage-kicker">Copilot 已收到巡检意图</p>
+      <h2>${escapeHtml(vm.scenario.title)}</h2>
+      <p>${escapeHtml(vm.scenario.subtitle)}</p>
+      <div class="understanding-grid">
+        <div><span>服务 / 版本</span><strong>${escapeHtml(vm.scenario.declaredChange.entities[0])} · ${escapeHtml(vm.scenario.declaredChange.version)}</strong></div>
+        <div><span>旅程目标</span><strong>${escapeHtml(vm.scenario.hypotheses[0])}</strong></div>
+        <div><span>入口类型</span><strong>${vm.scenario.entryKind === "natural-language" ? "自然语言 Copilot" : "电子流自动补全"}</strong></div>
+      </div>
+    </div>`;
+}
+
+function renderScope(vm) {
+  return `
+    <div class="scope-stage">
+      <span class="module-tag">Module 02 · Scope resolver</span>
+      <h2>多源事实已经对齐</h2>
+      <p>不是把图谱上的所有关系塞进任务，而是用业务目标、运行时 Trace 和已注册能力收敛检查范围。</p>
+      <ul class="source-list">${vm.scenario.contextSources.map(renderSource).join("")}</ul>
+      <div class="hypothesis-block">
+        <span>本次要证伪的风险假设</span>
+        <ol>${vm.scenario.hypotheses.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>
+      </div>
+    </div>`;
+}
+
+function renderPlan(vm) {
+  const disposition = vm.state.candidateDisposition;
+  const candidates = vm.scenario.candidateChecks
+    .map((candidate) => renderCandidate(candidate, disposition[candidate.id]))
+    .join("");
+  const acceptedIds = new Set(
+    Object.entries(disposition)
+      .filter(([, item]) => item.status === "accepted")
+      .map(([id]) => id),
+  );
+  return `
+    <div class="plan-stage" data-testid="inspection-plan">
+      <header class="stage-heading">
+        <div><span class="module-tag">Module 03 · Plan compiler</span><h2>可审阅的 InspectionPlan</h2></div>
+        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === "ready" ? "Ready · 可确认" : "Blocked · 候选待处置"}</span>
+      </header>
+      <p class="stage-lead">模板保底，多源约束，AI 只补洞。候选被接受前不属于正式 Check，也没有门禁权。</p>
+      <div class="candidate-stack">${candidates}</div>
+      <div class="check-stack">
+        ${vm.committedChecks.map((check) => renderCheck(check, acceptedIds.has(check.id))).join("")}
+      </div>
+    </div>`;
+}
+
+function renderExecution(vm) {
+  return `
+    <div class="execution-stage">
+      <header class="stage-heading"><div><span class="module-tag">Deterministic execution</span><h2>现有巡检引擎正在取证</h2></div><span class="live-dot">● MOCK LIVE</span></header>
+      <p class="stage-lead">页面只播放确定性 mock；每一步都绑定 Check Contract，不生成生产查询。</p>
+      <ol class="execution-list">
+        ${vm.execution
+          .map(
+            (step, index) => `<li class="execution-item ${step.progress} ${step.status.toLowerCase()}">
+              <span class="execution-number">${String(index + 1).padStart(2, "0")}</span>
+              <div><strong>${escapeHtml(step.label)}</strong><p>${step.progress === "complete" ? escapeHtml(step.fact) : step.progress === "active" ? "等待运行下一步 mock 证据" : "排队等待前置检查"}</p></div>
+              <code>${step.progress === "complete" ? step.status : step.progress}</code>
+            </li>`,
+          )
+          .join("")}
+      </ol>
+    </div>`;
+}
+
+function renderReport(vm) {
+  const report = vm.report;
+  return `
+    <div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report">
+      <div class="decision-hero">
+        <span>Action first · ${report.action}</span>
+        <h2>${escapeHtml(report.actionLabel)}</h2>
+        <p>${escapeHtml(report.title)}</p>
+      </div>
+      <div class="semantic-pair">
+        <div><span>证据结论</span><code>${report.evidenceVerdict}</code><small>系统知道了什么</small></div>
+        <div><span>行动决策</span><code>${report.action}</code><small>SRE 现在该做什么</small></div>
+      </div>
+      <div class="evidence-badges">
+        <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
+        <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
+        <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
+      </div>
+      <p class="report-summary">${escapeHtml(report.summary)}</p>
+      <div class="report-columns">
+        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
+        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
+      </div>
+      ${
+        report.rcAgent
+          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? "收起 RC Agent" : "启动 RC Agent"}</button>
+            ${
+              vm.state.rcExpanded
+                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join("<i>→</i>")}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
+                : ""
+            }`
+          : ""
+      }
+    </div>`;
+}
+
+function renderStage(vm) {
+  const renderers = {
+    intake: renderIntake,
+    context: renderScope,
+    plan: renderPlan,
+    execution: renderExecution,
+    report: renderReport,
+  };
+  return renderers[vm.state.phase](vm);
+}
+
+function primaryAction(vm) {
+  const actions = {
+    intake: ["INPUT_CONFIRMED", "确认理解结果"],
+    context: ["SCOPE_ACCEPTED", "接受范围并生成任务"],
+    plan: ["PLAN_CONFIRMED", vm.readiness.status === "ready" ? "确认任务并开始执行" : "请先处置高风险候选"],
+    execution: ["EXECUTION_ADVANCED", vm.state.executionStep + 1 >= vm.scenario.execution.length - 1 ? "完成执行并生成报告" : "运行下一步 mock 检查"],
+    report: ["RESET", "重新演示当前旅程"],
+  };
+  const [action, label] = actions[vm.state.phase];
+  const disabled = vm.state.phase === "plan" && vm.readiness.status !== "ready";
+  return `<button class="primary-action" data-action="${action}" ${disabled ? "disabled" : ""} type="button"><span>${escapeHtml(label)}</span><b>→</b></button>`;
+}
+
+function renderCopilot(vm) {
+  const copy = {
+    intake: ["先确认我理解得对不对", "实体不唯一或缺少版本时，我不会静默猜测。"],
+    context: ["范围不是知识图谱全展开", "我只保留业务目标、运行时事实与可执行能力共同支持的关系。"],
+    plan: ["候选不是正式任务", vm.readiness.status === "ready" ? "当前计划已满足确认条件。" : "高关键度候选仍未处置，计划不能确认。"],
+    execution: ["执行与解释分开", "确定性引擎产生证据；Copilot 只组织理由和下一步。"],
+    report: ["结论有边界", vm.report?.scopeStatement ?? "报告尚未生成"],
+  }[vm.state.phase];
+  return `
+    <aside class="panel copilot-panel" aria-label="Copilot 解释">
+      <header><span class="copilot-mark">✦</span><div><small>NOVA COPILOT</small><strong>可信任务编译器</strong></div><span class="online">ONLINE</span></header>
+      <div class="copilot-message"><span>当前判断</span><h3>${escapeHtml(copy[0])}</h3><p>${escapeHtml(copy[1])}</p></div>
+      <div class="copilot-principles"><span>护栏</span><ul><li>不生成任意生产查询</li><li>不把缺失证据写成正常</li><li>不代替 SRE 执行发布动作</li></ul></div>
+      ${primaryAction(vm)}
+    </aside>`;
+}
+
+function renderApp(vm) {
+  return `
+    <div class="app-shell" data-phase="${vm.state.phase}" data-scenario="${vm.scenario.id}">
+      <header class="app-header">
+        <a class="brand" href="#main"><span>N</span><div><strong>NOVA</strong><small>OPS INTELLIGENCE</small></div></a>
+        <div class="title-lockup"><span>${escapeHtml(vm.scenario.eyebrow)}</span><h1>AI 巡检任务生成与解读 Copilot</h1></div>
+        <div class="offline-badge"><span>●</span> OFFLINE · MOCK ONLY</div>
+      </header>
+      <nav class="scenario-nav" aria-label="验收场景">${renderScenarioNav(vm.scenario.id)}</nav>
+      <ol class="phase-rail" aria-label="旅程阶段">${renderProgress(vm.state)}</ol>
+      <main id="main" class="workspace">
+        ${renderContext(vm)}
+        <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
+        ${renderCopilot(vm)}
+      </main>
+      <footer class="app-footer"><span>AI Inspection Copilot · Offline Acceptance v0.1</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
+    </div>`;
+}
+
+const root = document.querySelector("#app");
+let state = createDemoSession();
+
+function render() {
+  root.innerHTML = renderApp(selectViewModel(state));
+}
+
+function dispatch(action) {
+  const next = demoReducer(state, action);
+  if (next !== state) {
+    state = next;
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}
+
+root.addEventListener("click", (event) => {
+  const scenarioButton = event.target.closest("[data-scenario-id]");
+  if (scenarioButton) {
+    dispatch({
+      type: "SCENARIO_SELECTED",
+      scenarioId: scenarioButton.dataset.scenarioId,
+    });
+    return;
+  }
+
+  const actionButton = event.target.closest("[data-action]");
+  if (!actionButton || actionButton.disabled) return;
+  const { action } = actionButton.dataset;
+  if (action === "CANDIDATE_DISPOSED") {
+    dispatch({
+      type: action,
+      candidateId: actionButton.dataset.candidateId,
+      disposition: actionButton.dataset.disposition,
+      reason: actionButton.dataset.reason,
+    });
+    return;
+  }
+  dispatch({ type: action });
+});
+
+render();
+})();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+.app-shell { width: min(1760px, 100%); margin: 0 auto; padding: 20px 26px 0; }
+.app-header { min-height: 68px; display: grid; grid-template-columns: 250px 1fr auto; align-items: center; gap: 24px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand > span { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(90, 231, 210, 0.38); border-radius: 11px; background: linear-gradient(145deg, rgba(90, 231, 210, 0.19), rgba(109, 145, 255, 0.14)); color: var(--cyan); font-weight: 800; box-shadow: inset 0 0 20px rgba(90, 231, 210, 0.08); }
+.brand div { display: flex; flex-direction: column; letter-spacing: 0.08em; }
+.brand strong { font-size: 15px; }
+.brand small { color: var(--text-faint); font-size: 9px; }
+.title-lockup { min-width: 0; }
+.title-lockup span { color: var(--cyan); font: 600 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.title-lockup h1 { margin: 5px 0 0; overflow: hidden; font-size: clamp(17px, 2vw, 22px); text-overflow: ellipsis; white-space: nowrap; }
+.offline-badge { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-soft); font: 600 10px/1 var(--mono); }
+.offline-badge span { color: var(--cyan); }
+.scenario-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 18px 0 14px; }
+.phase-rail { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; padding: 0 0 18px; list-style: none; }
+.workspace { display: grid; grid-template-columns: minmax(240px, 0.72fr) minmax(480px, 1.85fr) minmax(270px, 0.8fr); gap: 14px; align-items: start; }
+.panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(16, 35, 61, 0.92), rgba(9, 21, 39, 0.92)); box-shadow: var(--shadow); }
+.context-panel, .copilot-panel { position: sticky; top: 14px; }
+.context-panel { padding: 18px; }
+.stage-panel { min-height: 670px; padding: clamp(20px, 3vw, 34px); }
+.copilot-panel { overflow: hidden; }
+.app-footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 18px; padding: 16px 2px 18px; border-top: 1px solid var(--line); color: var(--text-faint); font-size: 11px; }
+.app-footer strong { color: var(--text-soft); font-weight: 500; }

@@ -1,0 +1,76 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { createDemoSession, demoReducer } from "../lib/reducer.mjs";
+import { selectViewModel } from "../lib/selectors.mjs";
+import { renderApp } from "../src/render.mjs";
+
+function dispatch(state, type, payload = {}) {
+  return demoReducer(state, { type, ...payload });
+}
+
+test("intake renders both acceptance journeys and the phase contract", () => {
+  const html = renderApp(selectViewModel(createDemoSession()));
+  assert.match(html, /自然语言巡检/);
+  assert.match(html, /电子流巡检/);
+  assert.match(html, /输入理解/);
+  assert.match(html, /范围对账/);
+  assert.match(html, /任务草案/);
+  assert.match(html, /执行取证/);
+  assert.match(html, /行动报告/);
+  assert.match(html, /今晚升级 order-api v4\.8\.0/);
+});
+
+test("electronic-flow plan exposes reconciliation and blocks unresolved candidate", () => {
+  let state = createDemoSession("change-ticket-risk");
+  state = dispatch(state, "INPUT_CONFIRMED");
+  state = dispatch(state, "SCOPE_ACCEPTED");
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /Observed-Superset/);
+  assert.match(html, /invoice-worker/);
+  assert.match(html, /settlement-db/);
+  assert.match(html, /数据库连接等待/);
+  assert.match(html, /待处置/);
+  assert.match(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
+});
+
+test("accepted candidate becomes a formal check and unlocks confirmation", () => {
+  let state = createDemoSession("change-ticket-risk");
+  state = dispatch(state, "INPUT_CONFIRMED");
+  state = dispatch(state, "SCOPE_ACCEPTED");
+  state = dispatch(state, "CANDIDATE_DISPOSED", {
+    candidateId: "candidate-db-wait",
+    disposition: "accepted",
+  });
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /已纳入正式计划/);
+  assert.match(html, /db\.pool\.wait_p95/);
+  assert.doesNotMatch(
+    html,
+    /data-action="PLAN_CONFIRMED"[^>]+disabled/,
+  );
+});
+
+test("risk report leads with action while preserving evidence semantics", () => {
+  let state = createDemoSession("change-ticket-risk");
+  state = dispatch(state, "INPUT_CONFIRMED");
+  state = dispatch(state, "SCOPE_ACCEPTED");
+  state = dispatch(state, "CANDIDATE_DISPOSED", {
+    candidateId: "candidate-db-wait",
+    disposition: "accepted",
+  });
+  state = dispatch(state, "PLAN_CONFIRMED");
+  for (let index = 0; index < 4; index += 1) {
+    state = dispatch(state, "EXECUTION_ADVANCED");
+  }
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /建议暂停在 25% 灰度/);
+  assert.match(html, /证据结论/);
+  assert.match(html, /Violated/);
+  assert.match(html, /行动决策/);
+  assert.match(html, /Pause/);
+  assert.match(html, /启动 RC Agent/);
+});

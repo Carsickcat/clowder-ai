@@ -1,0 +1,305 @@
+import { scenarios } from "../lib/scenarios.mjs";
+
+const PHASES = [
+  ["intake", "输入理解", "01"],
+  ["context", "范围对账", "02"],
+  ["plan", "任务草案", "03"],
+  ["execution", "执行取证", "04"],
+  ["report", "行动报告", "05"],
+];
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function phaseIndex(phase) {
+  return PHASES.findIndex(([id]) => id === phase);
+}
+
+function renderScenarioNav(activeId) {
+  return scenarios
+    .map(
+      (scenario) => `
+        <button
+          class="scenario-tab ${scenario.id === activeId ? "is-active" : ""}"
+          data-scenario-id="${scenario.id}"
+          aria-pressed="${scenario.id === activeId}"
+          type="button"
+        >
+          <span>${scenario.entryKind === "natural-language" ? "✦" : "⌁"}</span>
+          <span>
+            <strong>${scenario.entryKind === "natural-language" ? "自然语言巡检" : "电子流巡检"}</strong>
+            <small>${escapeHtml(scenario.title)}</small>
+          </span>
+        </button>`,
+    )
+    .join("");
+}
+
+function renderProgress(state) {
+  const current = phaseIndex(state.phase);
+  return PHASES.map(
+    ([id, label, number], index) => `
+      <li class="phase-step ${index < current ? "is-done" : ""} ${id === state.phase ? "is-current" : ""}">
+        <span>${index < current ? "✓" : number}</span>
+        <strong>${label}</strong>
+      </li>`,
+  ).join("");
+}
+
+function renderSource(source) {
+  return `
+    <li class="source-card">
+      <span class="source-kind">${escapeHtml(source.kind)}</span>
+      <strong>${escapeHtml(source.label)}</strong>
+      <p>${escapeHtml(source.detail)}</p>
+      <small>新鲜度 · ${escapeHtml(source.freshness)}</small>
+    </li>`;
+}
+
+function renderContext(vm) {
+  const { scenario, scope, state } = vm;
+  const visible = phaseIndex(state.phase) >= 1;
+  return `
+    <section class="panel context-panel" aria-labelledby="context-title">
+      <header class="panel-heading">
+        <div><span class="module-tag">Module 01 · Input compiler</span><h2 id="context-title">输入与变更理解</h2></div>
+        <span class="source-status ${visible ? "is-ready" : ""}">${visible ? "已确认" : "待确认"}</span>
+      </header>
+      <div class="prompt-card">
+        <span>${scenario.entryKind === "natural-language" ? "SRE 对话" : "变更电子流"}</span>
+        <p>“${escapeHtml(scenario.prompt)}”</p>
+      </div>
+      <dl class="change-facts">
+        <div><dt>声明对象</dt><dd>${escapeHtml(scenario.declaredChange.summary)}</dd></div>
+        <div><dt>声明指纹</dt><dd><code>${escapeHtml(scenario.declaredChange.fingerprint)}</code></dd></div>
+        <div><dt>实际变化</dt><dd>${visible ? escapeHtml(scenario.observedChange.summary) : "等待运行时事实对账"}</dd></div>
+        <div><dt>实际指纹</dt><dd><code>${visible ? escapeHtml(scenario.observedChange.fingerprint) : "—"}</code></dd></div>
+      </dl>
+      ${
+        visible
+          ? `<div class="reconciliation ${scope.status === "Exact" ? "is-exact" : "is-expanded"}">
+              <span>Change Reconciliation</span>
+              <strong>${scope.status}</strong>
+              <p>${scope.status === "Exact" ? "声明与运行时事实一致。" : `发现 ${scope.addedEntities.length} 个声明外实体，已扩大巡检范围。`}</p>
+            </div>
+            <ul class="entity-cloud">${scope.entities.map((entity) => `<li>${escapeHtml(entity)}</li>`).join("")}</ul>`
+          : ""
+      }
+    </section>`;
+}
+
+function renderCandidate(candidate, disposition) {
+  const accepted = disposition?.status === "accepted";
+  const rejected = disposition?.status === "rejected";
+  const status = accepted ? "已纳入正式计划" : rejected ? "已拒绝并记录理由" : "待处置";
+  return `
+    <article class="candidate-card ${accepted ? "is-accepted" : ""} ${rejected ? "is-rejected" : ""}">
+      <header><span>AI 候选 · ${escapeHtml(candidate.criticality)} criticality</span><strong>${status}</strong></header>
+      <h4>${escapeHtml(candidate.purpose)}</h4>
+      <p>${escapeHtml(candidate.rationale)}</p>
+      <code>${escapeHtml(candidate.metric)}</code>
+      ${
+        !accepted && !rejected
+          ? `<div class="candidate-actions">
+              <button data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="accepted" type="button">纳入计划</button>
+              <button class="button-ghost" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="rejected" data-reason="专家确认该风险不属于本次变更边界" type="button">拒绝并留痕</button>
+            </div>`
+          : rejected
+            ? `<small>拒绝理由：${escapeHtml(disposition.reason)}</small>`
+            : ""
+      }
+    </article>`;
+}
+
+function renderCheck(check, isCandidate) {
+  return `
+    <article class="check-card ${isCandidate ? "is-candidate-check" : ""}">
+      <div class="check-index">${check.priority === "required" ? "必" : "荐"}</div>
+      <div class="check-body">
+        <header><h4>${escapeHtml(check.purpose)}</h4><span>${escapeHtml(check.severity)}</span></header>
+        <p>${escapeHtml(check.rationale)}</p>
+        <dl>
+          <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
+          <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
+          <div><dt>指标 / 查询</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
+          <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
+          <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
+          <div><dt>失败动作</dt><dd>${escapeHtml(check.failureAction)}</dd></div>
+        </dl>
+      </div>
+    </article>`;
+}
+
+function renderIntake(vm) {
+  return `
+    <div class="stage-empty">
+      <span class="stage-orb">✦</span>
+      <p class="stage-kicker">Copilot 已收到巡检意图</p>
+      <h2>${escapeHtml(vm.scenario.title)}</h2>
+      <p>${escapeHtml(vm.scenario.subtitle)}</p>
+      <div class="understanding-grid">
+        <div><span>服务 / 版本</span><strong>${escapeHtml(vm.scenario.declaredChange.entities[0])} · ${escapeHtml(vm.scenario.declaredChange.version)}</strong></div>
+        <div><span>旅程目标</span><strong>${escapeHtml(vm.scenario.hypotheses[0])}</strong></div>
+        <div><span>入口类型</span><strong>${vm.scenario.entryKind === "natural-language" ? "自然语言 Copilot" : "电子流自动补全"}</strong></div>
+      </div>
+    </div>`;
+}
+
+function renderScope(vm) {
+  return `
+    <div class="scope-stage">
+      <span class="module-tag">Module 02 · Scope resolver</span>
+      <h2>多源事实已经对齐</h2>
+      <p>不是把图谱上的所有关系塞进任务，而是用业务目标、运行时 Trace 和已注册能力收敛检查范围。</p>
+      <ul class="source-list">${vm.scenario.contextSources.map(renderSource).join("")}</ul>
+      <div class="hypothesis-block">
+        <span>本次要证伪的风险假设</span>
+        <ol>${vm.scenario.hypotheses.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>
+      </div>
+    </div>`;
+}
+
+function renderPlan(vm) {
+  const disposition = vm.state.candidateDisposition;
+  const candidates = vm.scenario.candidateChecks
+    .map((candidate) => renderCandidate(candidate, disposition[candidate.id]))
+    .join("");
+  const acceptedIds = new Set(
+    Object.entries(disposition)
+      .filter(([, item]) => item.status === "accepted")
+      .map(([id]) => id),
+  );
+  return `
+    <div class="plan-stage" data-testid="inspection-plan">
+      <header class="stage-heading">
+        <div><span class="module-tag">Module 03 · Plan compiler</span><h2>可审阅的 InspectionPlan</h2></div>
+        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === "ready" ? "Ready · 可确认" : "Blocked · 候选待处置"}</span>
+      </header>
+      <p class="stage-lead">模板保底，多源约束，AI 只补洞。候选被接受前不属于正式 Check，也没有门禁权。</p>
+      <div class="candidate-stack">${candidates}</div>
+      <div class="check-stack">
+        ${vm.committedChecks.map((check) => renderCheck(check, acceptedIds.has(check.id))).join("")}
+      </div>
+    </div>`;
+}
+
+function renderExecution(vm) {
+  return `
+    <div class="execution-stage">
+      <header class="stage-heading"><div><span class="module-tag">Deterministic execution</span><h2>现有巡检引擎正在取证</h2></div><span class="live-dot">● MOCK LIVE</span></header>
+      <p class="stage-lead">页面只播放确定性 mock；每一步都绑定 Check Contract，不生成生产查询。</p>
+      <ol class="execution-list">
+        ${vm.execution
+          .map(
+            (step, index) => `<li class="execution-item ${step.progress} ${step.status.toLowerCase()}">
+              <span class="execution-number">${String(index + 1).padStart(2, "0")}</span>
+              <div><strong>${escapeHtml(step.label)}</strong><p>${step.progress === "complete" ? escapeHtml(step.fact) : step.progress === "active" ? "等待运行下一步 mock 证据" : "排队等待前置检查"}</p></div>
+              <code>${step.progress === "complete" ? step.status : step.progress}</code>
+            </li>`,
+          )
+          .join("")}
+      </ol>
+    </div>`;
+}
+
+function renderReport(vm) {
+  const report = vm.report;
+  return `
+    <div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report">
+      <div class="decision-hero">
+        <span>Action first · ${report.action}</span>
+        <h2>${escapeHtml(report.actionLabel)}</h2>
+        <p>${escapeHtml(report.title)}</p>
+      </div>
+      <div class="semantic-pair">
+        <div><span>证据结论</span><code>${report.evidenceVerdict}</code><small>系统知道了什么</small></div>
+        <div><span>行动决策</span><code>${report.action}</code><small>SRE 现在该做什么</small></div>
+      </div>
+      <div class="evidence-badges">
+        <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
+        <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
+        <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
+      </div>
+      <p class="report-summary">${escapeHtml(report.summary)}</p>
+      <div class="report-columns">
+        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
+        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
+      </div>
+      ${
+        report.rcAgent
+          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? "收起 RC Agent" : "启动 RC Agent"}</button>
+            ${
+              vm.state.rcExpanded
+                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join("<i>→</i>")}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
+                : ""
+            }`
+          : ""
+      }
+    </div>`;
+}
+
+function renderStage(vm) {
+  const renderers = {
+    intake: renderIntake,
+    context: renderScope,
+    plan: renderPlan,
+    execution: renderExecution,
+    report: renderReport,
+  };
+  return renderers[vm.state.phase](vm);
+}
+
+function primaryAction(vm) {
+  const actions = {
+    intake: ["INPUT_CONFIRMED", "确认理解结果"],
+    context: ["SCOPE_ACCEPTED", "接受范围并生成任务"],
+    plan: ["PLAN_CONFIRMED", vm.readiness.status === "ready" ? "确认任务并开始执行" : "请先处置高风险候选"],
+    execution: ["EXECUTION_ADVANCED", vm.state.executionStep + 1 >= vm.scenario.execution.length - 1 ? "完成执行并生成报告" : "运行下一步 mock 检查"],
+    report: ["RESET", "重新演示当前旅程"],
+  };
+  const [action, label] = actions[vm.state.phase];
+  const disabled = vm.state.phase === "plan" && vm.readiness.status !== "ready";
+  return `<button class="primary-action" data-action="${action}" ${disabled ? "disabled" : ""} type="button"><span>${escapeHtml(label)}</span><b>→</b></button>`;
+}
+
+function renderCopilot(vm) {
+  const copy = {
+    intake: ["先确认我理解得对不对", "实体不唯一或缺少版本时，我不会静默猜测。"],
+    context: ["范围不是知识图谱全展开", "我只保留业务目标、运行时事实与可执行能力共同支持的关系。"],
+    plan: ["候选不是正式任务", vm.readiness.status === "ready" ? "当前计划已满足确认条件。" : "高关键度候选仍未处置，计划不能确认。"],
+    execution: ["执行与解释分开", "确定性引擎产生证据；Copilot 只组织理由和下一步。"],
+    report: ["结论有边界", vm.report?.scopeStatement ?? "报告尚未生成"],
+  }[vm.state.phase];
+  return `
+    <aside class="panel copilot-panel" aria-label="Copilot 解释">
+      <header><span class="copilot-mark">✦</span><div><small>NOVA COPILOT</small><strong>可信任务编译器</strong></div><span class="online">ONLINE</span></header>
+      <div class="copilot-message"><span>当前判断</span><h3>${escapeHtml(copy[0])}</h3><p>${escapeHtml(copy[1])}</p></div>
+      <div class="copilot-principles"><span>护栏</span><ul><li>不生成任意生产查询</li><li>不把缺失证据写成正常</li><li>不代替 SRE 执行发布动作</li></ul></div>
+      ${primaryAction(vm)}
+    </aside>`;
+}
+
+export function renderApp(vm) {
+  return `
+    <div class="app-shell" data-phase="${vm.state.phase}" data-scenario="${vm.scenario.id}">
+      <header class="app-header">
+        <a class="brand" href="#main"><span>N</span><div><strong>NOVA</strong><small>OPS INTELLIGENCE</small></div></a>
+        <div class="title-lockup"><span>${escapeHtml(vm.scenario.eyebrow)}</span><h1>AI 巡检任务生成与解读 Copilot</h1></div>
+        <div class="offline-badge"><span>●</span> OFFLINE · MOCK ONLY</div>
+      </header>
+      <nav class="scenario-nav" aria-label="验收场景">${renderScenarioNav(vm.scenario.id)}</nav>
+      <ol class="phase-rail" aria-label="旅程阶段">${renderProgress(vm.state)}</ol>
+      <main id="main" class="workspace">
+        ${renderContext(vm)}
+        <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
+        ${renderCopilot(vm)}
+      </main>
+      <footer class="app-footer"><span>AI Inspection Copilot · Offline Acceptance v0.1</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
+    </div>`;
+}
