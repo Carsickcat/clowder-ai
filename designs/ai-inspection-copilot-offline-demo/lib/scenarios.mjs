@@ -1,0 +1,273 @@
+import { deepFreeze, reconcileChange } from "./domain.mjs";
+
+function check(input) {
+  return {
+    priority: "required",
+    window: "变更前 15 分钟 vs 变更后 15 分钟",
+    baseline: "过去 7 天同星期、同时段",
+    severity: "critical",
+    ...input,
+  };
+}
+
+const naturalLanguagePass = {
+  id: "natural-language-pass",
+  entryKind: "natural-language",
+  eyebrow: "Journey 01 · Natural language",
+  title: "订单服务升级验收",
+  subtitle: "从一句话生成一份值得 SRE 确认的巡检任务",
+  prompt: "今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。",
+  declaredChange: {
+    id: "MANUAL-ORDER-480",
+    summary: "order-api v4.8.0 应用代码升级",
+    version: "v4.8.0",
+    entities: ["order-api", "payment-gateway", "order-cache"],
+    fingerprint: "image:order-api@sha256:4e80",
+  },
+  observedChange: {
+    summary: "运行时版本与声明一致",
+    entities: ["order-api", "payment-gateway", "order-cache"],
+    fingerprint: "image:order-api@sha256:4e80",
+  },
+  contextSources: [
+    {
+      id: "nl-intent",
+      kind: "自然语义",
+      label: "SRE 巡检意图",
+      detail: "识别服务、版本、订单提交与支付确认两个业务目标",
+      freshness: "刚刚",
+    },
+    {
+      id: "order-graph",
+      kind: "业务图谱",
+      label: "订单黄金旅程",
+      detail: "订单提交 → 支付确认；绑定成功率与支付完成率",
+      freshness: "2 小时前",
+    },
+    {
+      id: "order-trace",
+      kind: "Trace",
+      label: "近 24h 真实调用",
+      detail: "order-api → payment-gateway；order-api → order-cache",
+      freshness: "3 分钟前",
+    },
+    {
+      id: "metric-catalog",
+      kind: "指标目录",
+      label: "已注册执行能力",
+      detail: "业务、服务、缓存与拨测指标均可直接执行",
+      freshness: "当前",
+    },
+  ],
+  hypotheses: [
+    "新版本不能降低订单提交成功率",
+    "order-api 延迟与错误率不能显著退化",
+    "支付依赖与缓存不能成为新增瓶颈",
+  ],
+  candidateChecks: [
+    check({
+      id: "candidate-memory-trend",
+      priority: "recommended",
+      criticality: "medium",
+      purpose: "识别升级后的缓慢内存爬升",
+      entity: "order-api",
+      capability: "容器资源趋势",
+      metric: "container.memory.working_set",
+      rule: "斜率低于历史同版本 P95",
+      failureAction: "延长观察窗口",
+      rationale: "历史复盘出现过长尾内存增长，但本次代码差异未触及缓存模块。",
+      sourceRefs: ["nl-intent", "metric-catalog"],
+    }),
+  ],
+  committedChecks: [
+    check({
+      id: "order-success",
+      purpose: "保护订单提交业务结果",
+      entity: "订单提交旅程",
+      capability: "业务黄金指标",
+      metric: "order.submit.success_rate",
+      rule: "下降不超过 0.20pp",
+      failureAction: "暂停发布并转 RC Agent",
+      rationale: "业务图谱将 order-api 绑定为订单提交的关键服务。",
+      sourceRefs: ["nl-intent", "order-graph", "metric-catalog"],
+    }),
+    check({
+      id: "service-golden-signals",
+      purpose: "验证服务自身没有退化",
+      entity: "order-api",
+      capability: "服务黄金信号",
+      metric: "http.error_rate + http.duration.p95",
+      rule: "错误率 ≤ 0.5%，p95 增幅 ≤ 10%",
+      failureAction: "暂停并检查新版本实例",
+      rationale: "版本升级直接改变 order-api 运行时行为。",
+      sourceRefs: ["nl-intent", "metric-catalog"],
+    }),
+    check({
+      id: "payment-dependency",
+      purpose: "验证关键下游支付确认",
+      entity: "payment-gateway",
+      capability: "Trace 依赖门禁",
+      metric: "span.client.error_rate + span.client.duration.p95",
+      rule: "无新增错误依赖，p95 增幅 ≤ 8%",
+      failureAction: "暂停并下钻支付 Trace",
+      rationale: "真实 Trace 证明订单提交同步调用 payment-gateway。",
+      sourceRefs: ["order-graph", "order-trace", "metric-catalog"],
+    }),
+    check({
+      id: "cache-health",
+      purpose: "验证订单缓存无新增饱和",
+      entity: "order-cache",
+      capability: "Redis 开箱指标",
+      metric: "redis.hit_rate + redis.command_latency",
+      rule: "命中率下降 ≤ 2%，命令 p99 ≤ 6ms",
+      failureAction: "标记条件放行并延长观察",
+      rationale: "Trace 证明 order-api 实际访问 order-cache。",
+      sourceRefs: ["order-trace", "metric-catalog"],
+    }),
+  ],
+  execution: [
+    { id: "baseline", label: "锁定变更前基线", status: "Verified", fact: "四类关键证据均新鲜可比" },
+    { id: "business", label: "验证业务黄金指标", status: "Verified", fact: "订单成功率 99.82%，较基线 +0.03pp" },
+    { id: "service", label: "验证服务与 Trace", status: "Verified", fact: "p95 +3.2%，依赖无新增错误" },
+    { id: "middleware", label: "验证缓存与拨测", status: "Verified", fact: "命中率 96.4%，多地拨测通过" },
+  ],
+  report: {
+    evidenceVerdict: "Verified",
+    action: "Proceed",
+    actionLabel: "建议继续发布",
+    title: "声明范围内未发现异常退化",
+    summary: "订单提交、支付依赖、服务黄金信号与缓存均通过确定性验证。",
+    scopeStatement: "结论覆盖订单提交与支付确认旅程，以及 Trace 证明的直接依赖。",
+    evidenceCounts: { verified: 4, violated: 0, unresolved: 0 },
+    keyEvidence: [
+      "订单提交成功率 99.82%，较基线 +0.03pp",
+      "order-api p95 186ms，较稳定版本 +3.2%",
+      "payment-gateway 无新增错误 Trace",
+    ],
+    residualRisks: ["内存趋势为建议项，未纳入本次硬门禁。"],
+    rcAgent: null,
+  },
+};
+
+const changeTicketRisk = {
+  id: "change-ticket-risk",
+  entryKind: "change-ticket",
+  eyebrow: "Journey 02 · Change ticket",
+  title: "支付配置变更巡检",
+  subtitle: "声明与运行时对账后扩大影响面，异常联动 RC Agent",
+  prompt: "电子流 CHG-84217：调整 payment-api Redis 超时，灰度 25%。",
+  declaredChange: {
+    id: "CHG-84217",
+    summary: "payment-api Redis 超时 80ms → 120ms",
+    version: "config-2026.08.06.2",
+    entities: ["payment-api"],
+    fingerprint: "config:payment-timeout@91fa",
+  },
+  observedChange: {
+    summary: "共享配置包同时作用于结算 DB 与发票异步任务",
+    entities: ["payment-api", "settlement-db", "invoice-worker"],
+    fingerprint: "config:shared-payment-stack@c2bd",
+  },
+  contextSources: [
+    { id: "change-ticket", kind: "电子流", label: "CHG-84217", detail: "声明仅调整 payment-api Redis 超时", freshness: "刚刚" },
+    { id: "runtime-diff", kind: "运行时对账", label: "Observed-Superset", detail: "共享配置 hash 影响 payment-api、settlement-db、invoice-worker", freshness: "1 分钟前" },
+    { id: "payment-graph", kind: "业务图谱", label: "支付确认旅程", detail: "支付确认依赖 settlement-db，invoice-worker 为异步账单链路", freshness: "5 小时前" },
+    { id: "payment-trace", kind: "Trace", label: "灰度调用样本", detail: "payment-api → settlement-db 连接等待升高", freshness: "2 分钟前" },
+    { id: "middleware-catalog", kind: "指标目录", label: "DB / Redis 开箱能力", detail: "连接等待、池占用、慢查询和 Redis 延迟可执行", freshness: "当前" },
+  ],
+  hypotheses: [
+    "共享配置不能造成数据库连接池饱和",
+    "支付确认成功率不能退化",
+    "发票异步积压不能扩大",
+  ],
+  candidateChecks: [
+    check({
+      id: "candidate-db-wait",
+      priority: "recommended",
+      criticality: "high",
+      purpose: "验证共享配置是否放大数据库连接等待",
+      entity: "settlement-db",
+      capability: "数据库连接池检查",
+      metric: "db.pool.wait_p95 + db.pool.utilization",
+      rule: "等待 p95 ≤ 20ms，池占用 ≤ 80%",
+      failureAction: "暂停灰度并启动 RC Agent",
+      rationale: "运行时 hash 对账发现 settlement-db 位于声明外的实际影响面。",
+      sourceRefs: ["runtime-diff", "payment-trace", "middleware-catalog"],
+    }),
+  ],
+  committedChecks: [
+    check({
+      id: "payment-success",
+      purpose: "保护支付确认业务结果",
+      entity: "支付确认旅程",
+      capability: "业务黄金指标",
+      metric: "payment.confirm.success_rate",
+      rule: "下降不超过 0.10pp",
+      failureAction: "暂停并通知支付 SRE",
+      rationale: "业务图谱将 payment-api 与支付确认结果绑定。",
+      sourceRefs: ["change-ticket", "payment-graph"],
+    }),
+    check({
+      id: "payment-service",
+      purpose: "验证 payment-api 自身稳定性",
+      entity: "payment-api",
+      capability: "服务黄金信号",
+      metric: "http.error_rate + http.duration.p95",
+      rule: "错误率 ≤ 0.3%，p95 增幅 ≤ 8%",
+      failureAction: "暂停灰度",
+      rationale: "电子流声明 payment-api 为直接变更对象。",
+      sourceRefs: ["change-ticket", "middleware-catalog"],
+    }),
+    check({
+      id: "invoice-backlog",
+      purpose: "验证异步账单链路无积压",
+      entity: "invoice-worker",
+      capability: "消息队列开箱指标",
+      metric: "invoice.queue.lag",
+      rule: "积压增长率 ≤ 5%",
+      failureAction: "条件放行并延长异步观察",
+      rationale: "Observed-Superset 证明共享配置同时作用于 invoice-worker。",
+      sourceRefs: ["runtime-diff", "payment-graph", "middleware-catalog"],
+    }),
+  ],
+  execution: [
+    { id: "reconcile", label: "验证实际变更范围", status: "Verified", fact: "发现 2 个声明外实体并已纳入计划" },
+    { id: "business", label: "验证支付黄金指标", status: "Verified", fact: "支付成功率暂未退化" },
+    { id: "database", label: "验证数据库连接等待", status: "Violated", fact: "连接池占用 96%，等待 p95 68ms" },
+    { id: "async", label: "验证发票异步链路", status: "Inconclusive", fact: "低流量窗口证据不足，需继续观察" },
+  ],
+  report: {
+    evidenceVerdict: "Violated",
+    action: "Pause",
+    actionLabel: "建议暂停在 25% 灰度",
+    title: "数据库连接等待违反关键门禁",
+    summary: "支付结果尚未退化，但 settlement-db 已出现连接池饱和，不能用业务指标暂时正常替代关键证据。",
+    scopeStatement: "结论覆盖实际配置 hash 影响的 payment-api、settlement-db 与 invoice-worker。",
+    evidenceCounts: { verified: 2, violated: 1, unresolved: 1 },
+    keyEvidence: [
+      "settlement-db 连接池占用 96%（门禁 80%）",
+      "连接等待 p95 68ms（门禁 20ms）",
+      "支付成功率当前稳定，但属于滞后结果信号",
+    ],
+    residualRisks: ["invoice-worker 当前样本不足，证据为 Inconclusive。"],
+    rcAgent: {
+      title: "RC Agent · 诊断完成",
+      rootCause: "共享配置包将 DB 连接池上限从 120 降为 60，灰度实例连接等待放大。",
+      chain: ["payment-api p95 上升", "settlement-db pool wait", "shared-payment-stack@c2bd"],
+      recommendation: "恢复连接池上限，复验通过后再继续灰度。",
+    },
+  },
+};
+
+for (const scenario of [naturalLanguagePass, changeTicketRisk]) {
+  scenario.reconciliation = reconcileChange(
+    scenario.declaredChange,
+    scenario.observedChange,
+  );
+}
+
+export const scenarios = deepFreeze([naturalLanguagePass, changeTicketRisk]);
+
+export function getScenario(scenarioId) {
+  return scenarios.find((scenario) => scenario.id === scenarioId) ?? null;
+}
