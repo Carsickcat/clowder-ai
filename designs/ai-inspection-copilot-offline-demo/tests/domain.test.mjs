@@ -79,3 +79,17 @@ test("scenario fixtures are deeply immutable", () => {
   assert.ok(Object.isFrozen(scenarios[0].committedChecks));
   assert.ok(Object.isFrozen(scenarios[0].report));
 });
+
+test("every scenario declares the four impact dimensions required by SRE review", () => {
+  for (const scenario of scenarios) {
+    assert.deepEqual(Object.keys(scenario.impactDimensions), [
+      "businessJourney",
+      "goldenMetrics",
+      "traceDependencies",
+      "middleware",
+    ]);
+    for (const dimension of Object.values(scenario.impactDimensions)) {
+      assert.ok(dimension.length > 0);
+    }
+  }
+});

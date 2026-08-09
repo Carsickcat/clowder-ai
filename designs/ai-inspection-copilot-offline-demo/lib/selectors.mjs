@@ -52,6 +52,25 @@ export function selectCommittedChecks(state) {
   return checks;
 }
 
+export function selectPlanSummary(state) {
+  const scenario = requireScenario(state);
+  const dispositions = state.candidateDisposition;
+  return {
+    required: scenario.committedChecks.filter(
+      (check) => check.priority === "required",
+    ).length,
+    recommended: scenario.candidateChecks.filter(
+      (candidate) => dispositions[candidate.id]?.status === "accepted",
+    ).length,
+    pending: scenario.candidateChecks.filter(
+      (candidate) => !dispositions[candidate.id],
+    ).length,
+    rejected: scenario.candidateChecks.filter(
+      (candidate) => dispositions[candidate.id]?.status === "rejected",
+    ).length,
+  };
+}
+
 export function selectExecutionView(state) {
   const scenario = requireScenario(state);
   return scenario.execution.map((step, index) => ({
@@ -78,6 +97,7 @@ export function selectViewModel(state) {
     scope: selectResolvedScope(state),
     readiness: selectPlanReadiness(state),
     committedChecks: selectCommittedChecks(state),
+    planSummary: selectPlanSummary(state),
     execution: selectExecutionView(state),
     report: selectReportView(state),
   };

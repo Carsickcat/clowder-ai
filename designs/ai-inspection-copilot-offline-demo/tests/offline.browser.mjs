@@ -8,7 +8,7 @@ import { launchOfflineChrome } from "./cdp-client.mjs";
 const rootDirectory = path.resolve(import.meta.dirname, "..");
 const artifactPath = path.join(
   rootDirectory,
-  "AI-Inspection-Copilot-Offline-Demo.html",
+  "index.html",
 );
 const evidenceDirectory = path.join(rootDirectory, "evidence");
 const recordEvidence = process.argv.includes("--evidence");
@@ -100,11 +100,29 @@ async function main() {
 
     await click(session, '[data-scenario-id="change-ticket-risk"]');
     await click(session, '[data-action="INPUT_CONFIRMED"]');
+    text = await bodyText(session);
+    assert.match(text, /支付确认 → 账单异步/);
+    assert.match(text, /payment\.confirm\.success_rate/);
+    assert.match(text, /payment-api → settlement-db/);
+    assert.match(text, /settlement-db · Redis · invoice queue/);
+    await screenshot(session, "04-impact-dimensions.png");
     await click(session, '[data-action="SCOPE_ACCEPTED"]');
     text = await bodyText(session);
     assert.match(text, /Observed-Superset/);
     assert.match(text, /invoice-worker/);
     assert.match(text, /settlement-db/);
+    assert.equal(
+      await session.evaluate(
+        'document.querySelector(\'[data-testid="plan-stat-required"] strong\').textContent',
+      ),
+      "3",
+    );
+    assert.equal(
+      await session.evaluate(
+        'document.querySelector(\'[data-testid="plan-stat-pending"] strong\').textContent',
+      ),
+      "1",
+    );
     assert.equal(
       await session.evaluate(
         'document.querySelector(\'[data-action="PLAN_CONFIRMED"]\').disabled',
@@ -122,6 +140,25 @@ async function main() {
       ),
       false,
     );
+    assert.equal(
+      await session.evaluate(
+        'document.querySelector(\'[data-testid="plan-stat-recommended"] strong\').textContent',
+      ),
+      "1",
+    );
+    assert.equal(
+      await session.evaluate(
+        'document.querySelector(\'[data-testid="plan-stat-pending"] strong\').textContent',
+      ),
+      "0",
+    );
+    await click(session, ".check-card summary");
+    const sourceDetail = await session.evaluate(
+      "document.querySelector('.check-card[open] .check-sources').innerText",
+    );
+    assert.match(sourceDetail, /电子流/);
+    assert.match(sourceDetail, /CHG-84217/);
+    await screenshot(session, "05-plan-contract-expanded.png");
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
     text = await bodyText(session);

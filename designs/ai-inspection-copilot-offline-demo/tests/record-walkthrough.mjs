@@ -8,7 +8,7 @@ import { launchOfflineChrome } from "./cdp-client.mjs";
 const rootDirectory = path.resolve(import.meta.dirname, "..");
 const artifactPath = path.join(
   rootDirectory,
-  "AI-Inspection-Copilot-Offline-Demo.html",
+  "index.html",
 );
 const outputPath = path.join(
   rootDirectory,

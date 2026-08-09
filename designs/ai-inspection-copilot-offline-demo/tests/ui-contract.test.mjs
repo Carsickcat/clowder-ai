@@ -32,6 +32,18 @@ test("electronic-flow plan exposes reconciliation and blocks unresolved candidat
   assert.match(html, /settlement-db/);
   assert.match(html, /数据库连接等待/);
   assert.match(html, /待处置/);
+  assert.match(
+    html,
+    /data-testid="plan-stat-required"[\s\S]*?<strong>3<\/strong>/,
+  );
+  assert.match(
+    html,
+    /data-testid="plan-stat-recommended"[\s\S]*?<strong>0<\/strong>/,
+  );
+  assert.match(
+    html,
+    /data-testid="plan-stat-pending"[\s\S]*?<strong>1<\/strong>/,
+  );
   assert.match(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
 });
 
@@ -47,10 +59,38 @@ test("accepted candidate becomes a formal check and unlocks confirmation", () =>
 
   assert.match(html, /已纳入正式计划/);
   assert.match(html, /db\.pool\.wait_p95/);
+  assert.match(
+    html,
+    /data-testid="plan-stat-recommended"[\s\S]*?<strong>1<\/strong>/,
+  );
+  assert.match(
+    html,
+    /data-testid="plan-stat-pending"[\s\S]*?<strong>0<\/strong>/,
+  );
+  assert.match(html, /<details[^>]+class="check-card[^>]*>/);
+  assert.match(html, /来源与判定依据/);
+  assert.match(html, /CHG-84217/);
+  assert.match(html, /Observed-Superset/);
   assert.doesNotMatch(
     html,
     /data-action="PLAN_CONFIRMED"[^>]+disabled/,
   );
+});
+
+test("scope presents business, metric, trace, and middleware impact dimensions together", () => {
+  let state = createDemoSession("change-ticket-risk");
+  state = dispatch(state, "INPUT_CONFIRMED");
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /data-testid="impact-matrix"/);
+  assert.match(html, /业务场景/);
+  assert.match(html, /支付确认 → 账单异步/);
+  assert.match(html, /黄金指标/);
+  assert.match(html, /payment\.confirm\.success_rate/);
+  assert.match(html, /Trace 直接依赖/);
+  assert.match(html, /payment-api → settlement-db/);
+  assert.match(html, /中间件/);
+  assert.match(html, /settlement-db · Redis · invoice queue/);
 });
 
 test("risk report leads with action while preserving evidence semantics", () => {

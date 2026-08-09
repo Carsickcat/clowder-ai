@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const artifactName = "AI-Inspection-Copilot-Offline-Demo.html";
+const artifactName = "index.html";
 const styleFiles = [
   "tokens.css",
   "layout.css",
@@ -15,6 +15,8 @@ const applicationFiles = [
   "../lib/scenarios.mjs",
   "../lib/selectors.mjs",
   "../lib/reducer.mjs",
+  "view-utils.mjs",
+  "render-plan.mjs",
   "render.mjs",
   "app.mjs",
 ];

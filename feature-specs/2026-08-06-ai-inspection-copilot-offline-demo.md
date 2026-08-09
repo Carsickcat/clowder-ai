@@ -23,7 +23,7 @@ tips_exempt:
 
 ## Finish line
 
-SRE 直接打开 `AI-Inspection-Copilot-Offline-Demo.html`，可以分别跑通：
+SRE 直接打开 `index.html`，可以分别跑通：
 
 1. **自然语言巡检**：输入服务升级意图 → 确认实体与范围 → 查看业务图谱/Trace/指标目录如何生成检查 → 审阅并确认任务 → 执行 mock 巡检 → 阅读 scoped Pass 报告。
 2. **电子流巡检**：载入变更单 → 对账声明变更与实际配置 hash → 发现 Observed-Superset 并扩大影响面 → 生成检查 → 执行 mock 巡检 → 发现数据库连接等待风险 → 联动 RC Agent → 输出 Pause 建议与证据链。
@@ -164,7 +164,7 @@ DemoSession = {
 **Files:**
 - Create: `designs/ai-inspection-copilot-offline-demo/scripts/build.mjs`
 - Create: `designs/ai-inspection-copilot-offline-demo/tests/standalone.test.mjs`
-- Create: `designs/ai-inspection-copilot-offline-demo/AI-Inspection-Copilot-Offline-Demo.html`
+- Create: `designs/ai-inspection-copilot-offline-demo/index.html`
 - Create: `designs/ai-inspection-copilot-offline-demo/package.json`
 
 1. Write RED assertions for one HTML file, inline CSS/JS, no external refs, embedded scenario labels and deterministic rebuild.
@@ -178,7 +178,7 @@ DemoSession = {
 - Create: `designs/ai-inspection-copilot-offline-demo/README.md`
 
 1. Use the local Chrome executable through a zero-dependency CDP client; no runtime server or package install.
-2. Run browser journeys against `file://.../AI-Inspection-Copilot-Offline-Demo.html`.
+2. Run browser journeys against `file://.../index.html`.
 3. Assert natural-language final `Proceed`, electronic-flow final `Pause`, RC explanation, network 0, console 0, 1440px/390px no overflow.
 4. Run `pnpm test`, `pnpm test:browser`, build reproducibility, and repository focused checks.
 

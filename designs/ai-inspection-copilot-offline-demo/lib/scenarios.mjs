@@ -29,6 +29,15 @@ const naturalLanguagePass = {
     entities: ["order-api", "payment-gateway", "order-cache"],
     fingerprint: "image:order-api@sha256:4e80",
   },
+  impactDimensions: {
+    businessJourney: ["订单提交 → 支付确认"],
+    goldenMetrics: [
+      "order.submit.success_rate",
+      "payment.confirm.success_rate",
+    ],
+    traceDependencies: ["order-api → payment-gateway"],
+    middleware: ["order-cache · Redis"],
+  },
   contextSources: [
     {
       id: "nl-intent",
@@ -167,6 +176,12 @@ const changeTicketRisk = {
     summary: "共享配置包同时作用于结算 DB 与发票异步任务",
     entities: ["payment-api", "settlement-db", "invoice-worker"],
     fingerprint: "config:shared-payment-stack@c2bd",
+  },
+  impactDimensions: {
+    businessJourney: ["支付确认 → 账单异步"],
+    goldenMetrics: ["payment.confirm.success_rate"],
+    traceDependencies: ["payment-api → settlement-db"],
+    middleware: ["settlement-db · Redis · invoice queue"],
   },
   contextSources: [
     { id: "change-ticket", kind: "电子流", label: "CHG-84217", detail: "声明仅调整 payment-api Redis 超时", freshness: "刚刚" },

@@ -11,14 +11,14 @@ created: 2026-08-06
 
 ## 直接验收
 
-双击打开 `AI-Inspection-Copilot-Offline-Demo.html`，或把该文件发送到另一台电脑后用现代浏览器打开。
+双击打开 `index.html`，或把该文件发送到另一台电脑后用现代浏览器打开。
 
 ### 旅程一：自然语言巡检 → Scoped Proceed
 
 1. 保持顶部“自然语言巡检”场景。
 2. 点击“确认理解结果”。
 3. 检查声明变更与运行时事实为 `Exact`，点击“接受范围并生成任务”。
-4. 查看四个正式 Check 的目的、实体、指标、规则、基线、失败动作、来源与理由。
+4. 查看“必查 / 建议 / 待确认”联动统计；展开正式 Check，核对实体、指标、规则、基线、失败动作、来源与理由。
 5. 点击“确认任务并开始执行”，连续运行四步 mock 检查。
 6. 验收报告应显示：证据 `Verified`，行动 `Proceed`，并明确结论边界和残余风险。
 
@@ -52,7 +52,7 @@ node tests/offline.browser.mjs --evidence
 
 ## 文件说明
 
-- `AI-Inspection-Copilot-Offline-Demo.html`：唯一交付文件。
+- `index.html`：唯一交付文件，双击即运行。
 - `ARCHITECTURE.md`：架构边界、核心契约和演进映射。
 - `lib/`：不可变 mock 场景、领域契约、状态机与派生选择器。
 - `src/`：纯渲染、高保真样式与浏览器事件适配。

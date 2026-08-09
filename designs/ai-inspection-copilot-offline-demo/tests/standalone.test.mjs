@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, rm } from "node:fs/promises";
+import { access, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -7,6 +7,10 @@ import test from "node:test";
 import { buildStandalone } from "../scripts/build.mjs";
 
 const artifactPath = path.resolve(
+  import.meta.dirname,
+  "../index.html",
+);
+const legacyArtifactPath = path.resolve(
   import.meta.dirname,
   "../AI-Inspection-Copilot-Offline-Demo.html",
 );
@@ -39,4 +43,5 @@ test("standalone build produces one deterministic offline artifact", async (t) =
   assert.doesNotMatch(shell, /<script[^>]+src=/i);
   assert.doesNotMatch(shell, /https?:\/\//i);
   assert.doesNotMatch(shell, /type=["']module["']/i);
+  await assert.rejects(access(legacyArtifactPath), /ENOENT/);
 });

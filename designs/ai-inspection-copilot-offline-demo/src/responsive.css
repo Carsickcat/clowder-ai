@@ -25,6 +25,7 @@
   .copilot-principles { display: block; }
   .primary-action { width: calc(100% - 28px); }
   .understanding-grid, .source-list, .report-columns { grid-template-columns: 1fr; }
+  .plan-stats { grid-template-columns: repeat(2, 1fr); }
   .app-footer { flex-direction: column; gap: 5px; }
 }
 
@@ -40,7 +41,10 @@
   .context-panel { padding: 15px; }
   .stage-empty { min-height: 430px; }
   .semantic-pair { grid-template-columns: 1fr; }
-  .check-card { grid-template-columns: 1fr; }
+  .impact-matrix { grid-template-columns: 1fr; }
+  .check-card summary { grid-template-columns: 34px minmax(0, 1fr); }
+  .check-toggle { grid-column: 2; }
+  .check-body { padding-left: 14px; }
   .check-card dl { grid-template-columns: 1fr; }
   .execution-item { grid-template-columns: 28px 1fr; }
   .execution-item > code { grid-column: 2; }

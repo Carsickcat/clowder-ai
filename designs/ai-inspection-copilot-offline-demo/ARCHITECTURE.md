@@ -107,7 +107,7 @@ createDemoSession
 ```text
 lib/*.mjs + src/*.mjs + src/*.css + src/index.html
                          ↓
-AI-Inspection-Copilot-Offline-Demo.html
+index.html
 ```
 
 产物没有外链脚本、样式、字体、图片和 API；运行时只依赖浏览器的本地文件能力。
