@@ -1,4 +1,4 @@
-import { scenarios } from "../lib/scenarios.mjs";
+import { renderIntake } from "./render-intake.mjs";
 import { renderInspectionPlan } from "./render-plan.mjs";
 import { escapeHtml } from "./view-utils.mjs";
 
@@ -12,26 +12,6 @@ const PHASES = [
 
 function phaseIndex(phase) {
   return PHASES.findIndex(([id]) => id === phase);
-}
-
-function renderScenarioNav(activeId) {
-  return scenarios
-    .map(
-      (scenario) => `
-        <button
-          class="scenario-tab ${scenario.id === activeId ? "is-active" : ""}"
-          data-scenario-id="${scenario.id}"
-          aria-pressed="${scenario.id === activeId}"
-          type="button"
-        >
-          <span>${scenario.entryKind === "natural-language" ? "✦" : "⌁"}</span>
-          <span>
-            <strong>${scenario.entryKind === "natural-language" ? "自然语言巡检" : "电子流巡检"}</strong>
-            <small>${escapeHtml(scenario.title)}</small>
-          </span>
-        </button>`,
-    )
-    .join("");
 }
 
 function renderProgress(state) {
@@ -78,7 +58,17 @@ function renderImpactMatrix(impactDimensions) {
 }
 
 function renderContext(vm) {
-  const { scenario, scope, state } = vm;
+  const { workspace, scope, state } = vm;
+  if (!workspace) {
+    return `
+      <section class="panel context-panel context-empty" aria-labelledby="context-title">
+        <header class="panel-heading">
+          <div><span class="module-tag">Module 01 · Input compiler</span><h2 id="context-title">输入与变更理解</h2></div>
+          <span class="source-status">等待输入</span>
+        </header>
+        <div class="context-placeholder"><span>01</span><strong>由用户定义巡检目标</strong><p>提交后，这里会展示实体理解、声明变化、运行时对账和证据边界。</p></div>
+      </section>`;
+  }
   const visible = phaseIndex(state.phase) >= 1;
   return `
     <section class="panel context-panel" aria-labelledby="context-title">
@@ -87,14 +77,14 @@ function renderContext(vm) {
         <span class="source-status ${visible ? "is-ready" : ""}">${visible ? "已确认" : "待确认"}</span>
       </header>
       <div class="prompt-card">
-        <span>${scenario.entryKind === "natural-language" ? "SRE 对话" : "变更电子流"}</span>
-        <p>“${escapeHtml(scenario.prompt)}”</p>
+        <span>${workspace.entryKind === "combined-context" ? "用户意图 + 外部上下文" : "用户巡检意图"}</span>
+        <p>“${escapeHtml(workspace.prompt)}”</p>
       </div>
       <dl class="change-facts">
-        <div><dt>声明对象</dt><dd>${escapeHtml(scenario.declaredChange.summary)}</dd></div>
-        <div><dt>声明指纹</dt><dd><code>${escapeHtml(scenario.declaredChange.fingerprint)}</code></dd></div>
-        <div><dt>实际变化</dt><dd>${visible ? escapeHtml(scenario.observedChange.summary) : "等待运行时事实对账"}</dd></div>
-        <div><dt>实际指纹</dt><dd><code>${visible ? escapeHtml(scenario.observedChange.fingerprint) : "—"}</code></dd></div>
+        <div><dt>声明对象</dt><dd>${escapeHtml(workspace.declaredChange.summary)}</dd></div>
+        <div><dt>声明指纹</dt><dd><code>${escapeHtml(workspace.declaredChange.fingerprint)}</code></dd></div>
+        <div><dt>实际变化</dt><dd>${visible ? escapeHtml(workspace.observedChange.summary) : "等待运行时事实对账"}</dd></div>
+        <div><dt>实际指纹</dt><dd><code>${visible ? escapeHtml(workspace.observedChange.fingerprint) : "—"}</code></dd></div>
       </dl>
       ${
         visible
@@ -109,32 +99,17 @@ function renderContext(vm) {
     </section>`;
 }
 
-function renderIntake(vm) {
-  return `
-    <div class="stage-empty">
-      <span class="stage-orb">✦</span>
-      <p class="stage-kicker">Copilot 已收到巡检意图</p>
-      <h2>${escapeHtml(vm.scenario.title)}</h2>
-      <p>${escapeHtml(vm.scenario.subtitle)}</p>
-      <div class="understanding-grid">
-        <div><span>服务 / 版本</span><strong>${escapeHtml(vm.scenario.declaredChange.entities[0])} · ${escapeHtml(vm.scenario.declaredChange.version)}</strong></div>
-        <div><span>旅程目标</span><strong>${escapeHtml(vm.scenario.hypotheses[0])}</strong></div>
-        <div><span>入口类型</span><strong>${vm.scenario.entryKind === "natural-language" ? "自然语言 Copilot" : "电子流自动补全"}</strong></div>
-      </div>
-    </div>`;
-}
-
 function renderScope(vm) {
   return `
     <div class="scope-stage">
       <span class="module-tag">Module 02 · Scope resolver</span>
       <h2>多源事实已经对齐</h2>
       <p>不是把图谱上的所有关系塞进任务，而是用业务目标、运行时 Trace 和已注册能力收敛检查范围。</p>
-      ${renderImpactMatrix(vm.scenario.impactDimensions)}
-      <ul class="source-list">${vm.scenario.contextSources.map(renderSource).join("")}</ul>
+      ${renderImpactMatrix(vm.workspace.impactDimensions)}
+      <ul class="source-list">${vm.workspace.contextSources.map(renderSource).join("")}</ul>
       <div class="hypothesis-block">
         <span>本次要证伪的风险假设</span>
-        <ol>${vm.scenario.hypotheses.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>
+        <ol>${vm.workspace.hypotheses.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>
       </div>
     </div>`;
 }
@@ -206,12 +181,13 @@ function renderStage(vm) {
 }
 
 function primaryAction(vm) {
+  if (!vm.workspace) return "";
   const actions = {
     intake: ["INPUT_CONFIRMED", "确认理解结果"],
     context: ["SCOPE_ACCEPTED", "接受范围并生成任务"],
     plan: ["PLAN_CONFIRMED", vm.readiness.status === "ready" ? "确认任务并开始执行" : "请先处置高风险候选"],
-    execution: ["EXECUTION_ADVANCED", vm.state.executionStep + 1 >= vm.scenario.execution.length - 1 ? "完成执行并生成报告" : "运行下一步 mock 检查"],
-    report: ["RESET", "重新演示当前旅程"],
+    execution: ["EXECUTION_ADVANCED", vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? "完成执行并生成报告" : "运行下一步 mock 检查"],
+    report: ["RESET", "新建巡检工作区"],
   };
   const [action, label] = actions[vm.state.phase];
   const disabled = vm.state.phase === "plan" && vm.readiness.status !== "ready";
@@ -219,6 +195,14 @@ function primaryAction(vm) {
 }
 
 function renderCopilot(vm) {
+  if (!vm.workspace) {
+    return `
+      <aside class="panel copilot-panel" aria-label="Copilot 解释">
+        <header><span class="copilot-mark">✦</span><div><small>NOVA COPILOT</small><strong>可信任务编译器</strong></div><span class="online">READY</span></header>
+        <div class="copilot-message"><span>产品边界</span><h3>由用户决定如何使用</h3><p>输入目标、服务和可选上下文；系统据此编译工作区，而不是让你先选一个固定场景。</p></div>
+        <div class="copilot-principles"><span>护栏</span><ul><li>示例不是产品模式</li><li>电子流只是可选事实来源</li><li>不会触发真实生产动作</li></ul></div>
+      </aside>`;
+  }
   const copy = {
     intake: ["先确认我理解得对不对", "实体不唯一或缺少版本时，我不会静默猜测。"],
     context: ["范围不是知识图谱全展开", "我只保留业务目标、运行时事实与可执行能力共同支持的关系。"],
@@ -236,20 +220,21 @@ function renderCopilot(vm) {
 }
 
 export function renderApp(vm) {
+  const eyebrow = vm.workspace?.eyebrow ?? "User-defined inspection workspace";
+  const workspaceId = vm.workspace?.id ?? "new";
   return `
-    <div class="app-shell" data-phase="${vm.state.phase}" data-scenario="${vm.scenario.id}">
+    <div class="app-shell" data-phase="${vm.state.phase}" data-workspace="${escapeHtml(workspaceId)}">
       <header class="app-header">
         <a class="brand" href="#main"><span>N</span><div><strong>NOVA</strong><small>OPS INTELLIGENCE</small></div></a>
-        <div class="title-lockup"><span>${escapeHtml(vm.scenario.eyebrow)}</span><h1>AI 巡检任务生成与解读 Copilot</h1></div>
+        <div class="title-lockup"><span>${escapeHtml(eyebrow)}</span><h1>AI 巡检任务生成与解读 Copilot</h1></div>
         <div class="offline-badge"><span>●</span> OFFLINE · MOCK ONLY</div>
       </header>
-      <nav class="scenario-nav" aria-label="验收场景">${renderScenarioNav(vm.scenario.id)}</nav>
-      <ol class="phase-rail" aria-label="旅程阶段">${renderProgress(vm.state)}</ol>
+      <ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>
       <main id="main" class="workspace">
         ${renderContext(vm)}
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
-      <footer class="app-footer"><span>AI Inspection Copilot · Offline Acceptance v0.1</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
+      <footer class="app-footer"><span>AI Inspection Copilot · Offline Product Demo v0.2</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
     </div>`;
 }

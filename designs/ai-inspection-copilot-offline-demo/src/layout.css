@@ -10,8 +10,7 @@
 .title-lockup h1 { margin: 5px 0 0; overflow: hidden; font-size: clamp(17px, 2vw, 22px); text-overflow: ellipsis; white-space: nowrap; }
 .offline-badge { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-soft); font: 600 10px/1 var(--mono); }
 .offline-badge span { color: var(--cyan); }
-.scenario-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 18px 0 14px; }
-.phase-rail { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; padding: 0 0 18px; list-style: none; }
+.phase-rail { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; padding: 18px 0; list-style: none; }
 .workspace { display: grid; grid-template-columns: minmax(240px, 0.72fr) minmax(480px, 1.85fr) minmax(270px, 0.8fr); gap: 14px; align-items: start; }
 .panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(16, 35, 61, 0.92), rgba(9, 21, 39, 0.92)); box-shadow: var(--shadow); }
 .context-panel, .copilot-panel { position: sticky; top: 14px; }

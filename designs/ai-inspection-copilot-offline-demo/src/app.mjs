@@ -1,3 +1,4 @@
+import { inspectionExamples } from "../lib/compiler.mjs";
 import { createDemoSession, demoReducer } from "../lib/reducer.mjs";
 import { selectViewModel } from "../lib/selectors.mjs";
 import { renderApp } from "./render.mjs";
@@ -19,12 +20,18 @@ function dispatch(action) {
 }
 
 root.addEventListener("click", (event) => {
-  const scenarioButton = event.target.closest("[data-scenario-id]");
-  if (scenarioButton) {
-    dispatch({
-      type: "SCENARIO_SELECTED",
-      scenarioId: scenarioButton.dataset.scenarioId,
-    });
+  const exampleButton = event.target.closest("[data-example-id]");
+  if (exampleButton) {
+    const example = inspectionExamples.find(
+      (item) => item.id === exampleButton.dataset.exampleId,
+    );
+    const form = root.querySelector("[data-intent-form]");
+    if (!example || !form) return;
+    form.elements.namedItem("inspection-intent").value = example.prompt;
+    form.elements.namedItem("target-service").value = example.targetService;
+    form.elements.namedItem("context-reference").value =
+      example.contextReference;
+    form.elements.namedItem("inspection-intent").focus();
     return;
   }
 
@@ -41,6 +48,21 @@ root.addEventListener("click", (event) => {
     return;
   }
   dispatch({ type: action });
+});
+
+root.addEventListener("submit", (event) => {
+  const form = event.target.closest("[data-intent-form]");
+  if (!form) return;
+  event.preventDefault();
+  const data = new FormData(form);
+  dispatch({
+    type: "INTENT_SUBMITTED",
+    request: {
+      prompt: data.get("inspection-intent"),
+      targetService: data.get("target-service"),
+      contextReference: data.get("context-reference"),
+    },
+  });
 });
 
 render();

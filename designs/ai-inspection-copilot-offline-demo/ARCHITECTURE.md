@@ -3,16 +3,21 @@ feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
 topics: [aiops, inspection, architecture, check-contract, evidence]
 doc_kind: architecture
 created: 2026-08-06
+updated: 2026-08-09
 ---
 
-# 架构设计：风险假设驱动的巡检任务编译与验证
+# 架构设计：用户驱动的巡检工作区编译与验证
 
 ## 1. 架构目标
 
 首期不建设新的巡检执行平台，也不把 LLM 放在安全闭环中心。Demo 证明的是一条最小、可审阅、可追溯的产品闭环：
 
 ```text
-自然语言 / 变更电子流
+用户巡检目标
+  + 可选目标服务
+  + 可选电子流 / 发布单上下文
+        ↓
+Inspection Request Compiler
         ↓
 声明变更 ↔ 运行时事实对账
         ↓
@@ -27,13 +32,13 @@ Evidence Verdict × Action Decision
 Scoped Report / RC Agent
 ```
 
-它遵守三个边界：关掉 AI 仍能安全运行；候选风险假设没有天然门禁权；缺失证据不能被总结成“正常”。
+它遵守四个边界：产品不预设用户场景；关掉 AI 仍能安全运行；候选风险假设没有天然门禁权；缺失证据不能被总结成“正常”。
 
 ## 2. 分层
 
 | 层 | 职责 | Demo 实现 | 生产映射 |
 |---|---|---|---|
-| Input Compiler | 解析意图、实体、变更类型、版本和时间窗 | `lib/scenarios.mjs` 的 mock 输入 | 电子流、发布平台、Copilot 对话 |
+| Input Compiler | 将用户目标与可选上下文编译为工作区 | `lib/compiler.mjs`；任意服务动态传播 | 电子流、发布平台、Copilot 对话 |
 | Change Reconciliation | 对账声明对象与实际版本、配置 hash、实例批次 | `Declared-Observed` 场景契约 | CI/CD 事件、运行时 diff、配置平台 |
 | Scope Resolver | 合并可靠性目标、Trace 事实、中间件依赖 | 纯派生 selector | 业务图谱、Trace、服务目录 |
 | Plan Compiler | 模板 Check + AI 候选；校验完整性和来源 | `Check Contract` + readiness selector | 巡检模板目录、LLM 语义编译器 |
@@ -89,20 +94,32 @@ Proceed / Proceed-with-conditions / Pause / Rollback
 
 ## 4. 状态与数据流
 
-会话状态只保存最小事实：当前场景、阶段、候选处置、执行进度、RC 展开状态。影响范围、计划 readiness、正式 Check、执行视图和报告均由 selector 纯派生，避免状态复制导致不同界面说法矛盾。
+产品一级对象是用户请求与编译后的工作区：
 
 ```text
-createDemoSession
+InspectionRequest { prompt, targetService?, contextReference? }
+        ↓ compileInspectionRequest
+InspectionWorkspace { scope, evidence sources, hypotheses, checks, report }
+```
+
+两个 mock fixture 藏在编译器后面，用来提供可复现的执行证据和异常结果；它们不是 session mode，也不出现在一级导航。任意未知服务会走通用 mock catalog，动态生成服务自身指标、直接下游和中间件检查。
+
+会话状态只保存最小事实：当前 workspace（未提交时为 null）、阶段、候选处置、执行进度、RC 展开状态。影响范围、计划 readiness、正式 Check、执行视图和报告均由 selector 纯派生，避免状态复制导致不同界面说法矛盾。
+
+```text
+createDemoSession (blank)
+  → INTENT_SUBMITTED(request)
+  → compileInspectionRequest(request)
   → demoReducer(action)
   → selectViewModel(state)
   → renderApp(viewModel)
 ```
 
-所有 fixture 和 reducer 输出均深冻结；切换场景会创建全新会话，避免两个验收旅程互相污染。
+所有 fixture、workspace 和 reducer 输出均深冻结；`RESET` 返回空白产品入口，新请求不会继承上一轮候选处置、执行或 RC 状态。
 
 ## 5. 离线交付架构
 
-源码保留 ES Module 边界用于测试和维护。`scripts/build.mjs` 按固定拓扑顺序内联领域、场景、selector、reducer、渲染和事件适配，再内联全部 CSS，生成字节确定的单 HTML：
+源码保留 ES Module 边界用于测试和维护。`scripts/build.mjs` 按固定拓扑顺序内联领域、fixture、request compiler、selector、reducer、渲染和事件适配，再内联全部 CSS，生成字节确定的单 HTML：
 
 ```text
 lib/*.mjs + src/*.mjs + src/*.css + src/index.html
@@ -122,4 +139,4 @@ index.html
 
 ## 7. 从 Demo 到生产的直线路径
 
-保持薄腰契约和 UI 决策路径不变，依次替换适配器：mock 场景 → 电子流与发布事实；mock Check → 已有巡检能力目录；mock evidence → 多引擎查询结果；mock RC → 现有 RC Agent。首期无需重建全局知识图谱，也无需重写现有巡检执行引擎。
+保持 `InspectionRequest / InspectionWorkspace / Check Contract / Evidence × Action` 薄腰契约与 UI 决策路径不变，依次替换适配器：mock request compiler → 真实语义解析与事实检索；mock fixture → 电子流与运行时 diff；mock Check → 已有巡检能力目录；mock evidence → 多引擎查询结果；mock RC → 现有 RC Agent。首期无需重建全局知识图谱，也无需重写现有巡检执行引擎。

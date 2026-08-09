@@ -9,20 +9,37 @@ function dispatch(state, type, payload = {}) {
   return demoReducer(state, { type, ...payload });
 }
 
-test("intake renders both acceptance journeys and the phase contract", () => {
+function paymentState() {
+  let state = createDemoSession();
+  state = dispatch(state, "INTENT_SUBMITTED", {
+    request: {
+      prompt: "调整 payment-api Redis 超时，帮我生成巡检计划。",
+      targetService: "payment-api",
+      contextReference: "CHG-84217",
+    },
+  });
+  return state;
+}
+
+test("intake is a blank user-driven product entry, not fixed journey navigation", () => {
   const html = renderApp(selectViewModel(createDemoSession()));
-  assert.match(html, /自然语言巡检/);
-  assert.match(html, /电子流巡检/);
+  assert.match(html, /创建任意巡检工作区/);
+  assert.match(html, /name="inspection-intent"/);
+  assert.match(html, /name="context-reference"/);
+  assert.match(html, /示例只负责填充/);
+  assert.match(html, /data-example-id="order-upgrade"/);
+  assert.match(html, /data-example-id="payment-config"/);
+  assert.doesNotMatch(html, /data-scenario-id=/);
+  assert.doesNotMatch(html, /aria-label="验收场景"/);
   assert.match(html, /输入理解/);
   assert.match(html, /范围对账/);
   assert.match(html, /任务草案/);
   assert.match(html, /执行取证/);
   assert.match(html, /行动报告/);
-  assert.match(html, /今晚升级 order-api v4\.8\.0/);
 });
 
 test("electronic-flow plan exposes reconciliation and blocks unresolved candidate", () => {
-  let state = createDemoSession("change-ticket-risk");
+  let state = paymentState();
   state = dispatch(state, "INPUT_CONFIRMED");
   state = dispatch(state, "SCOPE_ACCEPTED");
   const html = renderApp(selectViewModel(state));
@@ -48,7 +65,7 @@ test("electronic-flow plan exposes reconciliation and blocks unresolved candidat
 });
 
 test("accepted candidate becomes a formal check and unlocks confirmation", () => {
-  let state = createDemoSession("change-ticket-risk");
+  let state = paymentState();
   state = dispatch(state, "INPUT_CONFIRMED");
   state = dispatch(state, "SCOPE_ACCEPTED");
   state = dispatch(state, "CANDIDATE_DISPOSED", {
@@ -78,7 +95,7 @@ test("accepted candidate becomes a formal check and unlocks confirmation", () =>
 });
 
 test("scope presents business, metric, trace, and middleware impact dimensions together", () => {
-  let state = createDemoSession("change-ticket-risk");
+  let state = paymentState();
   state = dispatch(state, "INPUT_CONFIRMED");
   const html = renderApp(selectViewModel(state));
 
@@ -94,7 +111,7 @@ test("scope presents business, metric, trace, and middleware impact dimensions t
 });
 
 test("risk report leads with action while preserving evidence semantics", () => {
-  let state = createDemoSession("change-ticket-risk");
+  let state = paymentState();
   state = dispatch(state, "INPUT_CONFIRMED");
   state = dispatch(state, "SCOPE_ACCEPTED");
   state = dispatch(state, "CANDIDATE_DISPOSED", {

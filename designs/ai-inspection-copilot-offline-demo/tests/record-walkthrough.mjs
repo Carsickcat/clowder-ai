@@ -13,7 +13,7 @@ const artifactPath = path.join(
 const outputPath = path.join(
   rootDirectory,
   "evidence",
-  "04-electronic-flow-walkthrough-15s.webm",
+  "06-user-directed-risk-walkthrough-15s.webm",
 );
 
 async function click(session, selector) {
@@ -75,6 +75,7 @@ async function composeWebm(session, frames) {
         setTimeout(() => reject(new Error("MediaRecorder stop timed out")), 5000),
       ),
     ]);
+    stream.getTracks().forEach((track) => track.stop());
     const blob = new Blob(chunks, { type: mimeType });
     const bytes = new Uint8Array(await blob.arrayBuffer());
     let binary = "";
@@ -112,7 +113,10 @@ async function main() {
     await loaded;
 
     const frames = [];
-    await click(session, '[data-scenario-id="change-ticket-risk"]');
+    await click(session, '[data-example-id="payment-config"]');
+    await session.evaluate(
+      'document.querySelector("[data-intent-form]").requestSubmit()',
+    );
     frames.push(await captureFrame(session));
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     frames.push(await captureFrame(session));

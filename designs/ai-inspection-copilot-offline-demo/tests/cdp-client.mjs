@@ -145,7 +145,6 @@ export async function launchOfflineChrome() {
   return {
     session,
     async close() {
-      session.close();
       if (!child.killed) child.kill();
       if (child.exitCode === null) {
         await Promise.race([
@@ -153,6 +152,7 @@ export async function launchOfflineChrome() {
           new Promise((resolve) => setTimeout(resolve, 2_000)),
         ]);
       }
+      session.close();
       await rm(profileDirectory, {
         force: true,
         maxRetries: 5,

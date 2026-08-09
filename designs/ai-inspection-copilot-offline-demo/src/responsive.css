@@ -13,7 +13,6 @@
   .app-header { grid-template-columns: 1fr auto; gap: 12px; }
   .title-lockup { grid-column: 1 / -1; grid-row: 2; padding-bottom: 12px; }
   .offline-badge { font-size: 8px; }
-  .scenario-nav { grid-template-columns: 1fr; }
   .phase-rail { overflow-x: auto; grid-template-columns: repeat(5, minmax(104px, 1fr)); padding-bottom: 13px; }
   .workspace { grid-template-columns: 1fr; }
   .context-panel, .copilot-panel { position: static; }
@@ -35,7 +34,6 @@
   .app-header { grid-template-columns: auto 1fr; }
   .offline-badge { justify-self: end; padding: 7px 9px; }
   .title-lockup h1 { white-space: normal; line-height: 1.25; }
-  .scenario-tab { padding: 11px; }
   .phase-step strong { font-size: 9px; }
   .stage-panel { padding: 18px 14px; }
   .context-panel { padding: 15px; }
@@ -50,4 +48,5 @@
   .execution-item > code { grid-column: 2; }
   .candidate-actions { flex-direction: column; }
   .candidate-actions button { width: 100%; }
+  .intent-fields, .example-grid { grid-template-columns: 1fr; }
 }

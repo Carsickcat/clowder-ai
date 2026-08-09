@@ -13,9 +13,11 @@ const styleFiles = [
 const applicationFiles = [
   "../lib/domain.mjs",
   "../lib/scenarios.mjs",
+  "../lib/compiler.mjs",
   "../lib/selectors.mjs",
   "../lib/reducer.mjs",
   "view-utils.mjs",
+  "render-intake.mjs",
   "render-plan.mjs",
   "render.mjs",
   "app.mjs",

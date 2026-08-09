@@ -27,6 +27,25 @@ async function bodyText(session) {
   return session.evaluate("document.body.innerText");
 }
 
+async function waitForPaint(session) {
+  await session.evaluate(
+    "new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))",
+  );
+}
+
+async function submitRequest(session, request) {
+  const submitted = await session.evaluate(`(() => {
+    const form = document.querySelector("[data-intent-form]");
+    if (!form) return false;
+    form.elements.namedItem("inspection-intent").value = ${JSON.stringify(request.prompt)};
+    form.elements.namedItem("target-service").value = ${JSON.stringify(request.targetService ?? "")};
+    form.elements.namedItem("context-reference").value = ${JSON.stringify(request.contextReference ?? "")};
+    form.requestSubmit();
+    return true;
+  })()`);
+  assert.equal(submitted, true, "Expected user request form to submit");
+}
+
 async function screenshot(session, fileName) {
   if (!recordEvidence) return;
   await mkdir(evidenceDirectory, { recursive: true });
@@ -83,22 +102,51 @@ async function main() {
     await loaded;
 
     let text = await bodyText(session);
-    assert.match(text, /自然语言巡检/);
-    assert.match(text, /今晚升级 order-api v4\.8\.0/);
+    assert.match(text, /创建任意巡检工作区/);
+    assert.match(text, /示例只负责填充/);
+    assert.equal(
+      await session.evaluate(
+        'document.querySelectorAll("[data-scenario-id]").length',
+      ),
+      0,
+    );
+    await screenshot(session, "00-user-defined-intake.png");
+
+    await submitRequest(session, {
+      prompt:
+        "升级 inventory-api v2.3.1，验证库存锁定和下游调用是否正常。",
+      targetService: "inventory-api",
+      contextReference: "REL-20260809-17",
+    });
+    text = await bodyText(session);
+    assert.match(text, /inventory-api 巡检工作区/);
 
     await click(session, '[data-action="INPUT_CONFIRMED"]');
+    text = await bodyText(session);
+    assert.match(text, /REL-20260809-17/);
     await click(session, '[data-action="SCOPE_ACCEPTED"]');
     text = await bodyText(session);
-    assert.match(text, /order\.submit\.success_rate/);
+    assert.match(text, /inventory\.api\.success_rate/);
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
     text = await bodyText(session);
     assert.match(text, /Proceed/);
     assert.match(text, /Verified/);
     assert.match(text, /声明范围内未发现异常退化/);
-    await screenshot(session, "01-natural-language-proceed.png");
+    await screenshot(session, "01-user-defined-proceed.png");
 
-    await click(session, '[data-scenario-id="change-ticket-risk"]');
+    await click(session, '[data-action="RESET"]');
+    await click(session, '[data-example-id="payment-config"]');
+    assert.match(
+      await session.evaluate(
+        'document.querySelector("[name=inspection-intent]").value',
+      ),
+      /payment-api/,
+    );
+    assert.equal(
+      await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit(); true'),
+      true,
+    );
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
     assert.match(text, /支付确认 → 账单异步/);
@@ -176,6 +224,23 @@ async function main() {
       deviceScaleFactor: 1,
       mobile: true,
     });
+    const mobileLoaded = session.once("Page.loadEventFired");
+    await session.send("Page.reload");
+    await mobileLoaded;
+    await click(session, '[data-example-id="payment-config"]');
+    await session.evaluate(
+      'document.querySelector("[data-intent-form]").requestSubmit()',
+    );
+    await click(session, '[data-action="INPUT_CONFIRMED"]');
+    await click(session, '[data-action="SCOPE_ACCEPTED"]');
+    await click(
+      session,
+      '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]',
+    );
+    await click(session, '[data-action="PLAN_CONFIRMED"]');
+    await advanceExecution(session);
+    await click(session, '[data-action="RC_TOGGLED"]');
+    await waitForPaint(session);
     assert.equal(
       await session.evaluate(
         "document.documentElement.scrollWidth <= window.innerWidth + 1",
@@ -183,12 +248,19 @@ async function main() {
       true,
       "mobile layout must not overflow horizontally",
     );
+    assert.equal(
+      await session.evaluate(
+        "document.querySelector('[data-testid=final-report]').getBoundingClientRect().height > 500",
+      ),
+      true,
+      "mobile report must remain visibly laid out after viewport change",
+    );
     await screenshot(session, "03-mobile-report.png");
 
     assert.deepEqual(networkRequests, []);
     assert.deepEqual(browserErrors, []);
     process.stdout.write(
-      "Offline browser acceptance passed: 2 journeys, 0 network requests, 0 browser errors.\n",
+      "Offline browser acceptance passed: 2 user-directed journeys, 0 network requests, 0 browser errors.\n",
     );
   } finally {
     await browser.close();

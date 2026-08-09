@@ -1,24 +1,22 @@
 import { assertCheckContract } from "./domain.mjs";
-import { getScenario } from "./scenarios.mjs";
 
-function requireScenario(state) {
-  const scenario = getScenario(state.scenarioId);
-  if (!scenario) throw new Error(`Unknown scenario ${state.scenarioId}`);
-  return scenario;
+function requireWorkspace(state) {
+  if (!state.workspace) throw new Error("Inspection workspace is not compiled");
+  return state.workspace;
 }
 
 export function selectResolvedScope(state) {
-  const scenario = requireScenario(state);
+  const workspace = requireWorkspace(state);
   return {
-    status: scenario.reconciliation.status,
-    entities: scenario.reconciliation.resolvedEntities,
-    addedEntities: scenario.reconciliation.addedEntities,
+    status: workspace.reconciliation.status,
+    entities: workspace.reconciliation.resolvedEntities,
+    addedEntities: workspace.reconciliation.addedEntities,
   };
 }
 
 export function selectPlanReadiness(state) {
-  const scenario = requireScenario(state);
-  const unresolvedCandidateIds = scenario.candidateChecks
+  const workspace = requireWorkspace(state);
+  const unresolvedCandidateIds = workspace.candidateChecks
     .filter(
       (candidate) =>
         candidate.criticality === "high" &&
@@ -28,7 +26,7 @@ export function selectPlanReadiness(state) {
     )
     .map((candidate) => candidate.id);
   const reconciliationBlocked = ["Conflict", "Unverifiable"].includes(
-    scenario.reconciliation.status,
+    workspace.reconciliation.status,
   );
   return {
     status:
@@ -41,39 +39,41 @@ export function selectPlanReadiness(state) {
 }
 
 export function selectCommittedChecks(state) {
-  const scenario = requireScenario(state);
-  const acceptedCandidates = scenario.candidateChecks.filter(
+  const workspace = requireWorkspace(state);
+  const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) =>
       state.candidateDisposition[candidate.id]?.status === "accepted",
   );
-  const checks = [...scenario.committedChecks, ...acceptedCandidates];
-  const sourceIds = new Set(scenario.contextSources.map((source) => source.id));
+  const checks = [...workspace.committedChecks, ...acceptedCandidates];
+  const sourceIds = new Set(
+    workspace.contextSources.map((source) => source.id),
+  );
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
 }
 
 export function selectPlanSummary(state) {
-  const scenario = requireScenario(state);
+  const workspace = requireWorkspace(state);
   const dispositions = state.candidateDisposition;
   return {
-    required: scenario.committedChecks.filter(
+    required: workspace.committedChecks.filter(
       (check) => check.priority === "required",
     ).length,
-    recommended: scenario.candidateChecks.filter(
+    recommended: workspace.candidateChecks.filter(
       (candidate) => dispositions[candidate.id]?.status === "accepted",
     ).length,
-    pending: scenario.candidateChecks.filter(
+    pending: workspace.candidateChecks.filter(
       (candidate) => !dispositions[candidate.id],
     ).length,
-    rejected: scenario.candidateChecks.filter(
+    rejected: workspace.candidateChecks.filter(
       (candidate) => dispositions[candidate.id]?.status === "rejected",
     ).length,
   };
 }
 
 export function selectExecutionView(state) {
-  const scenario = requireScenario(state);
-  return scenario.execution.map((step, index) => ({
+  const workspace = requireWorkspace(state);
+  return workspace.execution.map((step, index) => ({
     ...step,
     progress:
       state.phase === "report" || index <= state.executionStep
@@ -85,15 +85,26 @@ export function selectExecutionView(state) {
 }
 
 export function selectReportView(state) {
-  const scenario = requireScenario(state);
-  return state.phase === "report" ? scenario.report : null;
+  const workspace = requireWorkspace(state);
+  return state.phase === "report" ? workspace.report : null;
 }
 
 export function selectViewModel(state) {
-  const scenario = requireScenario(state);
+  if (!state.workspace) {
+    return {
+      state,
+      workspace: null,
+      scope: null,
+      readiness: null,
+      committedChecks: [],
+      planSummary: null,
+      execution: [],
+      report: null,
+    };
+  }
   return {
     state,
-    scenario,
+    workspace: state.workspace,
     scope: selectResolvedScope(state),
     readiness: selectPlanReadiness(state),
     committedChecks: selectCommittedChecks(state),

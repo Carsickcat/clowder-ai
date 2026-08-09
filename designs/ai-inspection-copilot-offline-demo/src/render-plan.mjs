@@ -75,7 +75,7 @@ function renderPlanStats(summary) {
 
 export function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
-  const candidates = vm.scenario.candidateChecks
+  const candidates = vm.workspace.candidateChecks
     .map((candidate) => renderCandidate(candidate, disposition[candidate.id]))
     .join("");
   const acceptedIds = new Set(
@@ -103,7 +103,7 @@ export function renderInspectionPlan(vm) {
               renderCheck(
                 check,
                 acceptedIds.has(check.id),
-                vm.scenario.contextSources,
+                vm.workspace.contextSources,
               ),
             )
             .join("")}

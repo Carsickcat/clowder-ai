@@ -1,11 +1,10 @@
+import { compileInspectionRequest } from "./compiler.mjs";
 import { deepFreeze } from "./domain.mjs";
-import { getScenario } from "./scenarios.mjs";
 import { selectPlanReadiness } from "./selectors.mjs";
 
-export function createDemoSession(scenarioId = "natural-language-pass") {
-  if (!getScenario(scenarioId)) throw new Error(`Unknown scenario ${scenarioId}`);
+export function createDemoSession() {
   return deepFreeze({
-    scenarioId,
+    workspace: null,
     phase: "intake",
     candidateDisposition: {},
     executionStep: -1,
@@ -14,9 +13,8 @@ export function createDemoSession(scenarioId = "natural-language-pass") {
 }
 
 function disposeCandidate(state, action) {
-  if (state.phase !== "plan") return state;
-  const scenario = getScenario(state.scenarioId);
-  const candidate = scenario.candidateChecks.find(
+  if (state.phase !== "plan" || !state.workspace) return state;
+  const candidate = state.workspace.candidateChecks.find(
     (item) => item.id === action.candidateId,
   );
   if (!candidate || !["accepted", "rejected"].includes(action.disposition)) {
@@ -38,17 +36,21 @@ function disposeCandidate(state, action) {
 
 function reduceSession(state, action) {
   switch (action.type) {
-    case "SCENARIO_SELECTED":
-      return getScenario(action.scenarioId)
-        ? createDemoSession(action.scenarioId)
-        : state;
+    case "INTENT_SUBMITTED":
+      if (state.phase !== "intake") return state;
+      return {
+        ...createDemoSession(),
+        workspace: compileInspectionRequest(action.request),
+      };
     case "RESET":
-      return createDemoSession(state.scenarioId);
+      return createDemoSession();
     case "INPUT_CONFIRMED":
-      return state.phase === "intake" ? { ...state, phase: "context" } : state;
+      return state.phase === "intake" && state.workspace
+        ? { ...state, phase: "context" }
+        : state;
     case "SCOPE_ACCEPTED": {
-      if (state.phase !== "context") return state;
-      const reconciliation = getScenario(state.scenarioId).reconciliation;
+      if (state.phase !== "context" || !state.workspace) return state;
+      const { reconciliation } = state.workspace;
       return ["Conflict", "Unverifiable"].includes(reconciliation.status)
         ? state
         : { ...state, phase: "plan" };
@@ -61,16 +63,15 @@ function reduceSession(state, action) {
         ? { ...state, phase: "execution", executionStep: -1 }
         : state;
     case "EXECUTION_ADVANCED": {
-      if (state.phase !== "execution") return state;
-      const lastIndex = getScenario(state.scenarioId).execution.length - 1;
+      if (state.phase !== "execution" || !state.workspace) return state;
+      const lastIndex = state.workspace.execution.length - 1;
       const nextStep = state.executionStep + 1;
       return nextStep >= lastIndex
         ? { ...state, phase: "report", executionStep: lastIndex }
         : { ...state, executionStep: nextStep };
     }
     case "RC_TOGGLED":
-      return state.phase === "report" &&
-        getScenario(state.scenarioId).report.rcAgent
+      return state.phase === "report" && state.workspace?.report.rcAgent
         ? { ...state, rcExpanded: !state.rcExpanded }
         : state;
     default:
