@@ -103,6 +103,7 @@ import {
   startGithubReviewWatcher,
   stopGithubReviewWatcher,
 } from './infrastructure/email/index.js';
+import { createGitHubRepositoryValidator } from './infrastructure/github/GitHubRepositoryValidator.js';
 import { runSchedulerReplyUserIdBackfill } from './infrastructure/scheduler/scheduler-reply-userid-backfill.js';
 import { SocketManager } from './infrastructure/websocket/index.js';
 import { configSecretsRoutes } from './routes/config-secrets.js';
@@ -1083,25 +1084,9 @@ async function main(): Promise<void> {
     app.log.info('[api] F101 game routes registered');
   }
 
-  // Phase D (AC-D1): validate repo exists via `gh repo view` before PR tracking registration.
-  // Generic — works for any GitHub repo the caller has access to, not hardcoded to ours.
-  // Cloud P1: distinguish "repo not found" (return false) from infra failure (throw).
-  const validateRepo = async (repoFullName: string): Promise<boolean> => {
-    const { execFile } = await import('node:child_process');
-    const { promisify } = await import('node:util');
-    const execFileAsync = promisify(execFile);
-    try {
-      await execFileAsync('gh', ['repo', 'view', repoFullName, '--json', 'name'], { timeout: 10_000 });
-      return true;
-    } catch (err: unknown) {
-      // gh ran but repo not found/no access → process exit code is a number
-      if (err instanceof Error && 'code' in err && typeof (err as Record<string, unknown>).code === 'number') {
-        return false;
-      }
-      // Infrastructure failure (gh not found, timeout, auth broken) → propagate
-      throw err;
-    }
-  };
+  // Phase D (AC-D1): validate GitHub repository access before PR tracking registration.
+  // A 404 becomes "not found/not accessible"; auth, rate-limit, and transport failures remain unavailable.
+  const validateRepo = createGitHubRepositoryValidator();
 
   // F126: Create LimbRegistry + Phase B deps for device/hardware capability management
   const { LimbRegistry } = await import('./domains/limb/LimbRegistry.js');
