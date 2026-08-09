@@ -8,70 +8,90 @@ created: 2026-08-09
 # Quality Gate Report
 
 Spec: `feature-specs/2026-08-06-ai-inspection-copilot-offline-demo.md`
+
 Original request: “输出一份不需要起端口的离线可验收 Demo，要求最少 1-2 个场景可跑完全旅程，数据可以直接 mock。”
-Checked implementation commit: `dfe33e9 feat(aiops): close offline acceptance gaps`
+
+Corrected product requirement: “这是一个完成的产品……产品构建用户决定怎么使用，而不是你直接限制住两个场景给用户用。”
+
+Checked implementation commit: `09d0fa9 feat(aiops): make inspection workspace user-driven`
+
 Check time: 2026-08-09
 
 ## Vision coverage
 
-| Original need | Spec coverage | Implementation verdict |
+| Operator need | Spec coverage | Implementation verdict |
 |---|---|---|
-| 不需要起端口 | AC-01 | Pass：唯一主入口 `index.html` 通过 `file://` 运行 |
-| 离线可验收 | AC-01, AC-02 | Pass：0 个 HTTP(S) 请求、0 个浏览器错误 |
-| 1-2 个场景跑完全旅程 | AC-02, AC-06, AC-07 | Pass：自然语言 Proceed 与电子流 Pause + RC 两条旅程 |
-| 数据可以 mock | Safety boundary | Pass：fixture 深冻结，无生产连接或写入 |
-| 任务生成可审阅且可追溯 | AC-03, AC-04 | Pass：实时分类统计、正式 Check 可展开来源与判定依据 |
-| 报告压缩为 SRE 决策路径 | AC-05, AC-06, AC-07 | Pass：四维影响面、证据/行动二维语义、异常证据与 RC 联动 |
+| 产品由用户决定如何使用 | AC-02 | Pass：首次打开为空白工作区，用户自由输入目标 |
+| 不被两个验收用例限制 | AC-02, AC-03 | Pass：无固定场景导航；示例只填充表单且可编辑 |
+| 支持自然语言和电子流 | AC-03 | Pass：自然语言为主输入，电子流 / 发布单为可选 provenance |
+| 生成可审阅任务 | AC-04, AC-06 | Pass：四维影响面、计划分类、Check 来源与候选处置 |
+| 报告用于行动决策 | AC-07 | Pass：Evidence × Action 分离，风险路径联动 RC Agent |
+| 离线且可完整验收 | AC-01, AC-08 | Pass：单文件 `file://`，两条用户驱动路径、network 0 |
 
 ## Functional acceptance
 
 | AC | Result | Code | Automated evidence |
 |---|---|---|---|
-| AC-01 Offline entry | Pass | `scripts/build.mjs`, `index.html` | `standalone.test.mjs`, `offline.browser.mjs` |
-| AC-02 Two journeys | Pass | `lib/reducer.mjs`, `lib/scenarios.mjs` | `journeys.test.mjs`, browser acceptance |
-| AC-03 Plan classification | Pass | `selectPlanSummary`, `render-plan.mjs` | 必查 / 建议 / 待确认 / 已忽略统计在处置后同步更新 |
-| AC-04 Explainable checks | Pass | `render-plan.mjs`, `domain.mjs` | `<details>` 展开来源、理由、规则、基线与失败动作 |
-| AC-05 Four-dimensional impact | Pass | `impactDimensions`, `renderScope` | 同屏展示业务场景、黄金指标、Trace 直接依赖、中间件 |
-| AC-06 Distinct decisions | Pass | scenario reports + report renderer | 正常路径 `Verified + Proceed`；异常路径 `Violated + Pause` |
-| AC-07 RC evidence | Pass | `renderReport` | 异常旅程展示诊断假设、证据链与建议动作 |
-| AC-08 Responsive/testable | Pass | `responsive.css`, CDP client | 390px 无横向溢出；console/network 均为零 |
+| AC-01 Offline | Pass | `scripts/build.mjs`, `index.html` | deterministic standalone test + browser |
+| AC-02 User-defined product | Pass | `render-intake.mjs`, `compiler.mjs` | blank intake; custom `inventory-api` full journey |
+| AC-03 Composable context | Pass | `InspectionRequest` compiler | optional target service and `REL / CHG` provenance |
+| AC-04 Explainable generation | Pass | `domain.mjs`, `render-plan.mjs` | complete Check Contract + resolvable source refs |
+| AC-05 Reconciliation | Pass | `reconcileChange`, scope selector | `Observed-Superset` expands actual scope |
+| AC-06 Plan readiness | Pass | reducer + selectors | high-risk candidate blocks until accepted/rejected |
+| AC-07 Evidence/action | Pass | report renderer | custom `Verified + Proceed`; risk `Violated + Pause + RC` |
+| AC-08 Responsive/testable | Pass | CDP browser suite | native 390px risk path, no overflow/errors/network |
+
+## Product-shape guardrails
+
+- Session contains `workspace`, not `scenarioId`.
+- `INTENT_SUBMITTED` compiles the current user request.
+- Unknown services use the generic mock capability catalog and propagate their entity through scope, metrics, dependencies, Checks and report.
+- Example clicks do not create or switch a workspace; only form submission does.
+- `data-scenario-id` and the “验收场景” navigation are forbidden by tests.
 
 ## Design evidence
 
-Relevant `.pen` scan (`inspection|copilot|aiops`): none. The high-fidelity source is `DESIGN.md`, authored by 烁烁, and the implementation uses its action-first hierarchy, semantic colors, evidence capsules and safety guardrails.
+Relevant `.pen` scan (`inspection|copilot|aiops`): none. The high-fidelity source is `DESIGN.md`.
 
 | Requirement | Evidence |
 |---|---|
-| Natural-language final decision | `evidence/01-natural-language-proceed.png` |
-| Electronic-flow risk and RC decision | `evidence/02-electronic-flow-pause.png` |
-| Mobile 390px projection | `evidence/03-mobile-report.png` |
-| Four-dimensional impact scope | `evidence/04-impact-dimensions.png` |
-| Plan classification + expanded provenance | `evidence/05-plan-contract-expanded.png` |
-| 15-second end-to-end walkthrough | `evidence/04-electronic-flow-walkthrough-15s.webm` (15.047s) |
+| Blank user-defined product entry | `evidence/00-user-defined-intake.png` |
+| Arbitrary `inventory-api` request reaches scoped Proceed | `evidence/01-user-defined-proceed.png` |
+| Native 390px risk report with RC evidence | `evidence/03-mobile-report.png` |
+| 15-second user-directed risk walkthrough | `evidence/06-user-directed-risk-walkthrough-15s.webm` (15.070s) |
 
 ## Dogfood-Your-Slice
 
 Scope verdict: required and completed.
 
-End-to-end paths exercised from the built `file://` artifact:
+Paths executed from the built `file://` artifact:
 
-1. Natural language → input confirmation → scope reconciliation → plan → four mock checks → `Verified + Proceed`.
-2. Electronic flow → observed-superset reconciliation → critical candidate disposition → four mock checks → `Violated + Pause` → RC Agent evidence chain.
+1. Blank product → custom `inventory-api v2.3.1` + optional `REL-20260809-17` → compiled workspace → plan → four mock checks → `Verified + Proceed`.
+2. Blank product → editable payment example → form submit → Observed-Superset → candidate disposition → four mock checks → `Violated + Pause` → RC Agent.
 
-Dogfood found one bundle-only defect: the original offline concatenator removed import aliases, producing a blank built page even though module tests passed. The exported render symbol was made alias-free and the browser journey now protects the built artifact against regression.
+Dogfood findings fixed in this pass:
+
+- The original product navigation treated acceptance fixtures as user modes. The session and UI now center `InspectionRequest → InspectionWorkspace`.
+- CDP evidence capture could hang because WebSocket closing preceded Chrome termination; shutdown order was corrected.
+- Recording left `canvas.captureStream()` tracks active; tracks are now explicitly stopped.
+- Mid-session viewport switching produced an unreliable blank mobile screenshot; the native 390px path now reloads and reruns the complete risk workflow before capture.
 
 ## Fresh verification
 
 ```text
 pnpm check
   deterministic standalone build: exit 0
-  unit/UI/build tests: 17/17 pass
-  file:// browser journeys: 2/2 pass
+  unit/domain/compiler/UI tests: 20/20 pass
+  file:// browser paths: 2/2 pass
   HTTP(S) network requests: 0
   browser errors: 0
+  native 390px report visible and no horizontal overflow
 
 node --check lib,src,scripts,tests/**/*.mjs
   syntax errors: 0
+
+node tests/record-walkthrough.mjs
+  exit 0; 15070ms; 50112 bytes; VP9 WebM
 
 git diff --check
   whitespace errors: 0
@@ -81,12 +101,12 @@ Artifact:
 
 ```text
 path: index.html
-bytes: 63110
-sha256: AE26F99FB409E5B645F890036709D056D5F27F0057DF6380FB2D438C76021A26
+bytes: 75030
+sha256: 81D3AAC6753663E85E2D7D17BC74337CE25E98A161194F7588D12E08010C0DC2
 ```
 
-Artifact hygiene: no media/design files at repository root; all visual evidence is intentionally archived under `evidence/`.
+Artifact hygiene: no media/design files at repository root. Exactly three screenshots and one walkthrough are archived under `evidence/`.
 
 ## Delivery completeness
 
-This is a complete offline acceptance slice, not a production integration. Future production work can replace mock adapters with electronic-flow, trace, metric catalog, inspection engine and RC Agent adapters without rewriting the Check Contract or SRE decision path. Independent acceptance remains a reviewer responsibility; this report records the author-side gate only.
+This is a complete user-driven offline product slice with mock adapters. Production integration can replace the request compiler's mock catalog, evidence runner and RC adapter without rewriting the product entry, Inspection Workspace contract or SRE decision path. Independent acceptance remains a reviewer responsibility; this report is the author-side gate.
