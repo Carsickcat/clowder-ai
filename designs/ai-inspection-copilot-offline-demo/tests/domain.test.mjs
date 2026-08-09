@@ -1,15 +1,10 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import assert from 'node:assert/strict';
+import test from 'node:test';
 
-import {
-  ACTION_STATUSES,
-  EVIDENCE_VERDICTS,
-  assertCheckContract,
-  reconcileChange,
-} from "../lib/domain.mjs";
-import { scenarios } from "../lib/scenarios.mjs";
+import { ACTION_STATUSES, assertCheckContract, EVIDENCE_VERDICTS, reconcileChange } from '../lib/domain.mjs';
+import { scenarios } from '../lib/scenarios.mjs';
 
-test("every committed check is executable, explainable, and source-grounded", () => {
+test('every committed check is executable, explainable, and source-grounded', () => {
   for (const scenario of scenarios) {
     const sourceIds = new Set(scenario.contextSources.map((source) => source.id));
     for (const check of scenario.committedChecks) {
@@ -18,53 +13,29 @@ test("every committed check is executable, explainable, and source-grounded", ()
   }
 });
 
-test("a formal check rejects missing decision fields and invented sources", () => {
+test('a formal check rejects missing decision fields and invented sources', () => {
   const check = structuredClone(scenarios[0].committedChecks[0]);
   delete check.failureAction;
-  assert.throws(
-    () => assertCheckContract(check, new Set(["intent"])),
-    /failureAction/,
-  );
+  assert.throws(() => assertCheckContract(check, new Set(['intent'])), /failureAction/);
 
   assert.throws(
-    () =>
-      assertCheckContract(
-        { ...scenarios[0].committedChecks[0], sourceRefs: ["invented"] },
-        new Set(["intent"]),
-      ),
+    () => assertCheckContract({ ...scenarios[0].committedChecks[0], sourceRefs: ['invented'] }, new Set(['intent'])),
     /Unknown sourceRef/,
   );
 });
 
-test("observed superset expands the resolved scope instead of silently passing", () => {
-  const scenario = scenarios.find((item) => item.id === "change-ticket-risk");
-  const result = reconcileChange(
-    scenario.declaredChange,
-    scenario.observedChange,
-  );
+test('observed superset expands the resolved scope instead of silently passing', () => {
+  const scenario = scenarios.find((item) => item.id === 'change-ticket-risk');
+  const result = reconcileChange(scenario.declaredChange, scenario.observedChange);
 
-  assert.equal(result.status, "Observed-Superset");
-  assert.deepEqual(result.addedEntities, ["invoice-worker", "settlement-db"]);
-  assert.deepEqual(result.resolvedEntities, [
-    "invoice-worker",
-    "payment-api",
-    "settlement-db",
-  ]);
+  assert.equal(result.status, 'Observed-Superset');
+  assert.deepEqual(result.addedEntities, ['invoice-worker', 'settlement-db']);
+  assert.deepEqual(result.resolvedEntities, ['invoice-worker', 'payment-api', 'settlement-db']);
 });
 
-test("scenario evidence and action use orthogonal vocabularies", () => {
-  assert.deepEqual(EVIDENCE_VERDICTS, [
-    "Verified",
-    "Violated",
-    "Inconclusive",
-    "NotEvaluated",
-  ]);
-  assert.deepEqual(ACTION_STATUSES, [
-    "Proceed",
-    "Proceed-with-conditions",
-    "Pause",
-    "Rollback",
-  ]);
+test('scenario evidence and action use orthogonal vocabularies', () => {
+  assert.deepEqual(EVIDENCE_VERDICTS, ['Verified', 'Violated', 'Inconclusive', 'NotEvaluated']);
+  assert.deepEqual(ACTION_STATUSES, ['Proceed', 'Proceed-with-conditions', 'Pause', 'Rollback']);
 
   for (const scenario of scenarios) {
     assert.ok(EVIDENCE_VERDICTS.includes(scenario.report.evidenceVerdict));
@@ -73,20 +44,20 @@ test("scenario evidence and action use orthogonal vocabularies", () => {
   }
 });
 
-test("scenario fixtures are deeply immutable", () => {
+test('scenario fixtures are deeply immutable', () => {
   assert.ok(Object.isFrozen(scenarios));
   assert.ok(Object.isFrozen(scenarios[0]));
   assert.ok(Object.isFrozen(scenarios[0].committedChecks));
   assert.ok(Object.isFrozen(scenarios[0].report));
 });
 
-test("every scenario declares the four impact dimensions required by SRE review", () => {
+test('every scenario declares the four impact dimensions required by SRE review', () => {
   for (const scenario of scenarios) {
     assert.deepEqual(Object.keys(scenario.impactDimensions), [
-      "businessJourney",
-      "goldenMetrics",
-      "traceDependencies",
-      "middleware",
+      'businessJourney',
+      'goldenMetrics',
+      'traceDependencies',
+      'middleware',
     ]);
     for (const dimension of Object.values(scenario.impactDimensions)) {
       assert.ok(dimension.length > 0);

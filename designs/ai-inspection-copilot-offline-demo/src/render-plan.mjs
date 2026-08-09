@@ -1,15 +1,11 @@
-import { escapeHtml } from "./view-utils.mjs";
+import { escapeHtml } from './view-utils.mjs';
 
 function renderCandidate(candidate, disposition) {
-  const accepted = disposition?.status === "accepted";
-  const rejected = disposition?.status === "rejected";
-  const status = accepted
-    ? "已纳入正式计划"
-    : rejected
-      ? "已拒绝并记录理由"
-      : "待处置";
+  const accepted = disposition?.status === 'accepted';
+  const rejected = disposition?.status === 'rejected';
+  const status = accepted ? '已纳入正式计划' : rejected ? '已拒绝并记录理由' : '待处置';
   return `
-    <article class="candidate-card ${accepted ? "is-accepted" : ""} ${rejected ? "is-rejected" : ""}">
+    <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''}">
       <header><span>待确认 · ${escapeHtml(candidate.criticality)} criticality</span><strong>${status}</strong></header>
       <h4>${escapeHtml(candidate.purpose)}</h4>
       <p>${escapeHtml(candidate.rationale)}</p>
@@ -22,7 +18,7 @@ function renderCandidate(candidate, disposition) {
             </div>`
           : rejected
             ? `<small>拒绝理由：${escapeHtml(disposition.reason)}</small>`
-            : ""
+            : ''
       }
     </article>`;
 }
@@ -32,16 +28,16 @@ function renderSourceRefs(check, contextSources) {
   return check.sourceRefs
     .map((sourceId) => {
       const source = sourceById.get(sourceId);
-      return `<li><span>${escapeHtml(source?.kind ?? "未知来源")}</span><strong>${escapeHtml(source?.label ?? sourceId)}</strong></li>`;
+      return `<li><span>${escapeHtml(source?.kind ?? '未知来源')}</span><strong>${escapeHtml(source?.label ?? sourceId)}</strong></li>`;
     })
-    .join("");
+    .join('');
 }
 
 function renderCheck(check, isCandidate, contextSources) {
   return `
-    <details class="check-card ${isCandidate ? "is-candidate-check" : ""}">
+    <details class="check-card ${isCandidate ? 'is-candidate-check' : ''}">
       <summary>
-        <span class="check-index">${check.priority === "required" ? "必" : "荐"}</span>
+        <span class="check-index">${check.priority === 'required' ? '必' : '荐'}</span>
         <span class="check-summary">
           <span>${escapeHtml(check.severity)}</span>
           <strong>${escapeHtml(check.purpose)}</strong>
@@ -77,17 +73,17 @@ export function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
   const candidates = vm.workspace.candidateChecks
     .map((candidate) => renderCandidate(candidate, disposition[candidate.id]))
-    .join("");
+    .join('');
   const acceptedIds = new Set(
     Object.entries(disposition)
-      .filter(([, item]) => item.status === "accepted")
+      .filter(([, item]) => item.status === 'accepted')
       .map(([id]) => id),
   );
   return `
     <div class="plan-stage" data-testid="inspection-plan">
       <header class="stage-heading">
         <div><span class="module-tag">Module 03 · Plan compiler</span><h2>可审阅的 InspectionPlan</h2></div>
-        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === "ready" ? "Ready · 可确认" : "Blocked · 候选待处置"}</span>
+        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? 'Ready · 可确认' : 'Blocked · 候选待处置'}</span>
       </header>
       <p class="stage-lead">模板保底，多源约束，AI 只补洞。待确认项被接受前不属于正式 Check，也没有门禁权。</p>
       ${renderPlanStats(vm.planSummary)}
@@ -99,14 +95,8 @@ export function renderInspectionPlan(vm) {
         <h3 id="formal-title">正式检查</h3>
         <div class="check-stack">
           ${vm.committedChecks
-            .map((check) =>
-              renderCheck(
-                check,
-                acceptedIds.has(check.id),
-                vm.workspace.contextSources,
-              ),
-            )
-            .join("")}
+            .map((check) => renderCheck(check, acceptedIds.has(check.id), vm.workspace.contextSources))
+            .join('')}
         </div>
       </section>
     </div>`;

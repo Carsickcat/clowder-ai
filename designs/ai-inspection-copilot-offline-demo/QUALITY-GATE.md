@@ -105,8 +105,8 @@ Artifact:
 
 ```text
 path: index.html
-bytes: 79433
-sha256: 24A7E4FE52064AEECD2412D9545208E456BAC47F0203717C7E327F4C766DEA51
+bytes: 80987
+sha256: D66F2052B2BCD89DABD7E95C31B4CBEA4F8897BEE9F39F4C02F77EEA68B8C931
 ```
 
 Artifact hygiene: no media/design files at repository root. Exactly three screenshots and one walkthrough are archived under `evidence/`.

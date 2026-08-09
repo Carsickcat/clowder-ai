@@ -39,285 +39,1365 @@
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
-* { box-sizing: border-box; }
-html { min-width: 320px; scroll-behavior: smooth; }
+* {
+  box-sizing: border-box;
+}
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+}
 body {
   margin: 0;
   min-height: 100vh;
   background:
     radial-gradient(circle at 12% -10%, rgba(65, 126, 226, 0.2), transparent 34%),
-    radial-gradient(circle at 88% 0%, rgba(47, 205, 179, 0.12), transparent 30%),
-    var(--bg);
+    radial-gradient(circle at 88% 0%, rgba(47, 205, 179, 0.12), transparent 30%), var(--bg);
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
 }
-button, input, textarea { font: inherit; }
-button { color: inherit; }
-a { color: inherit; text-decoration: none; }
-code { font-family: var(--mono); }
-h1, h2, h3, h4, p { margin-top: 0; }
-button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+button,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  color: inherit;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+code {
+  font-family: var(--mono);
+}
+h1,
+h2,
+h3,
+h4,
+p {
+  margin-top: 0;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
 
-.app-shell { width: min(1760px, 100%); margin: 0 auto; padding: 20px 26px 0; }
-.app-header { min-height: 68px; display: grid; grid-template-columns: 250px 1fr auto; align-items: center; gap: 24px; border-bottom: 1px solid var(--line); }
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand > span { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(90, 231, 210, 0.38); border-radius: 11px; background: linear-gradient(145deg, rgba(90, 231, 210, 0.19), rgba(109, 145, 255, 0.14)); color: var(--cyan); font-weight: 800; box-shadow: inset 0 0 20px rgba(90, 231, 210, 0.08); }
-.brand div { display: flex; flex-direction: column; letter-spacing: 0.08em; }
-.brand strong { font-size: 15px; }
-.brand small { color: var(--text-faint); font-size: 9px; }
-.title-lockup { min-width: 0; }
-.title-lockup span { color: var(--cyan); font: 600 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
-.title-lockup h1 { margin: 5px 0 0; overflow: hidden; font-size: clamp(17px, 2vw, 22px); text-overflow: ellipsis; white-space: nowrap; }
-.offline-badge { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-soft); font: 600 10px/1 var(--mono); }
-.offline-badge span { color: var(--cyan); }
-.phase-rail { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; padding: 18px 0; list-style: none; }
-.workspace { display: grid; grid-template-columns: minmax(240px, 0.72fr) minmax(480px, 1.85fr) minmax(270px, 0.8fr); gap: 14px; align-items: start; }
-.panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(160deg, rgba(16, 35, 61, 0.92), rgba(9, 21, 39, 0.92)); box-shadow: var(--shadow); }
-.context-panel, .copilot-panel { position: sticky; top: 14px; }
-.context-panel { padding: 18px; }
-.stage-panel { min-height: 670px; padding: clamp(20px, 3vw, 34px); }
-.copilot-panel { overflow: hidden; }
-.app-footer { display: flex; justify-content: space-between; gap: 24px; margin-top: 18px; padding: 16px 2px 18px; border-top: 1px solid var(--line); color: var(--text-faint); font-size: 11px; }
-.app-footer strong { color: var(--text-soft); font-weight: 500; }
+.app-shell {
+  width: min(1760px, 100%);
+  margin: 0 auto;
+  padding: 20px 26px 0;
+}
+.app-header {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 250px 1fr auto;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand > span {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(90, 231, 210, 0.38);
+  border-radius: 11px;
+  background: linear-gradient(145deg, rgba(90, 231, 210, 0.19), rgba(109, 145, 255, 0.14));
+  color: var(--cyan);
+  font-weight: 800;
+  box-shadow: inset 0 0 20px rgba(90, 231, 210, 0.08);
+}
+.brand div {
+  display: flex;
+  flex-direction: column;
+  letter-spacing: 0.08em;
+}
+.brand strong {
+  font-size: 15px;
+}
+.brand small {
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.title-lockup {
+  min-width: 0;
+}
+.title-lockup span {
+  color: var(--cyan);
+  font: 600 10px / 1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.title-lockup h1 {
+  margin: 5px 0 0;
+  overflow: hidden;
+  font-size: clamp(17px, 2vw, 22px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.offline-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-soft);
+  font: 600 10px / 1 var(--mono);
+}
+.offline-badge span {
+  color: var(--cyan);
+}
+.phase-rail {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin: 0;
+  padding: 18px 0;
+  list-style: none;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(480px, 1.85fr) minmax(270px, 0.8fr);
+  gap: 14px;
+  align-items: start;
+}
+.panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(160deg, rgba(16, 35, 61, 0.92), rgba(9, 21, 39, 0.92));
+  box-shadow: var(--shadow);
+}
+.context-panel,
+.copilot-panel {
+  position: sticky;
+  top: 14px;
+}
+.context-panel {
+  padding: 18px;
+}
+.stage-panel {
+  min-height: 670px;
+  padding: clamp(20px, 3vw, 34px);
+}
+.copilot-panel {
+  overflow: hidden;
+}
+.app-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 18px;
+  padding: 16px 2px 18px;
+  border-top: 1px solid var(--line);
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.app-footer strong {
+  color: var(--text-soft);
+  font-weight: 500;
+}
 
-.phase-step { position: relative; display: flex; align-items: center; gap: 9px; color: var(--text-faint); font-size: 11px; }
-.phase-step::after { position: absolute; right: 12px; left: 38px; height: 1px; background: var(--line); content: ""; }
-.phase-step:last-child::after { display: none; }
-.phase-step > span { position: relative; z-index: 1; width: 27px; height: 27px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--bg-soft); font: 600 9px/1 var(--mono); }
-.phase-step.is-current { color: var(--text); }
-.phase-step.is-current > span { border-color: var(--cyan); background: var(--cyan-soft); color: var(--cyan); box-shadow: 0 0 18px rgba(90, 231, 210, 0.16); }
-.phase-step.is-done > span { border-color: rgba(114, 230, 166, 0.44); background: var(--green-soft); color: var(--green); }
-.panel-heading, .stage-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.panel-heading h2, .stage-heading h2 { margin: 5px 0 0; font-size: 17px; }
-.module-tag { color: var(--cyan); font: 600 9px/1 var(--mono); letter-spacing: 0.07em; text-transform: uppercase; }
-.source-status, .readiness { flex: 0 0 auto; padding: 6px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--text-faint); font: 600 9px/1 var(--mono); }
-.source-status.is-ready, .readiness.ready { border-color: rgba(114, 230, 166, 0.35); background: var(--green-soft); color: var(--green); }
-.readiness.blocked { border-color: rgba(246, 186, 91, 0.35); background: var(--amber-soft); color: var(--amber); }
-.prompt-card { margin: 20px 0 16px; padding: 14px; border: 1px solid rgba(109, 145, 255, 0.25); border-radius: var(--radius-sm); background: var(--blue-soft); }
-.prompt-card span, .hypothesis-block > span, .copilot-message > span, .copilot-principles > span { color: var(--blue); font: 600 9px/1 var(--mono); letter-spacing: 0.07em; text-transform: uppercase; }
-.prompt-card p { margin: 8px 0 0; color: #dbe8ff; font-size: 13px; line-height: 1.6; }
-.change-facts { display: grid; gap: 11px; margin: 0; }
-.change-facts div { min-width: 0; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-.change-facts dt { margin-bottom: 4px; color: var(--text-faint); font-size: 10px; }
-.change-facts dd { margin: 0; color: var(--text-soft); font-size: 12px; line-height: 1.45; }
-.change-facts code { overflow-wrap: anywhere; color: #bed1ff; font-size: 10px; }
-.reconciliation { margin-top: 16px; padding: 13px; border: 1px solid; border-radius: var(--radius-sm); }
-.reconciliation.is-exact { border-color: rgba(114, 230, 166, 0.3); background: var(--green-soft); }
-.reconciliation.is-expanded { border-color: rgba(246, 186, 91, 0.3); background: var(--amber-soft); }
-.reconciliation span { display: block; color: var(--text-faint); font: 600 9px/1 var(--mono); }
-.reconciliation strong { display: block; margin-top: 6px; color: var(--text); }
-.reconciliation p { margin: 5px 0 0; color: var(--text-soft); font-size: 11px; line-height: 1.5; }
-.entity-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
-.entity-cloud li { padding: 5px 7px; border: 1px solid var(--line); border-radius: 7px; color: var(--text-soft); font: 9px/1 var(--mono); }
-.context-placeholder { display: grid; min-height: 430px; place-items: center; align-content: center; padding: 24px; text-align: center; }
-.context-placeholder > span { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 14px; color: var(--text-faint); font: 700 10px/1 var(--mono); }
-.context-placeholder strong { margin-top: 16px; font-size: 13px; }
-.context-placeholder p { max-width: 220px; margin: 8px 0 0; color: var(--text-faint); font-size: 10px; line-height: 1.55; }
-.product-intake { max-width: 780px; margin: 0 auto; padding: 18px 0 8px; }
-.product-intake > .stage-orb { margin: 0 0 18px; }
-.product-intake h2 { margin: 8px 0 10px; font-size: clamp(30px, 5vw, 48px); }
-.intake-lead { max-width: 650px; margin: 0; color: var(--text-soft); line-height: 1.7; }
-.intent-form { display: grid; gap: 14px; margin-top: 28px; padding: 20px; border: 1px solid rgba(90, 231, 210, 0.24); border-radius: var(--radius-lg); background: linear-gradient(145deg, rgba(90, 231, 210, 0.08), rgba(109, 145, 255, 0.05)); }
-.intent-form label { display: grid; gap: 8px; }
-.intent-form label > span { color: var(--text-soft); font-size: 10px; font-weight: 700; }
-.intent-form textarea, .intent-form input { width: 100%; border: 1px solid var(--line-strong); border-radius: 10px; outline: 0; background: rgba(7, 16, 31, 0.72); color: var(--text); }
-.intent-form textarea { min-height: 112px; resize: vertical; padding: 14px; line-height: 1.6; }
-.intent-form input { padding: 11px 12px; }
-.intent-form textarea:focus, .intent-form input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(90, 231, 210, 0.1); }
-.intent-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.compile-button { display: flex; justify-content: space-between; align-items: center; padding: 13px 15px; border: 1px solid rgba(90, 231, 210, 0.42); border-radius: 10px; background: linear-gradient(135deg, rgba(90, 231, 210, 0.24), rgba(109, 145, 255, 0.18)); color: #ecfffc; cursor: pointer; font-weight: 800; }
-.compile-button b { color: var(--cyan); font-size: 17px; }
-.example-area { margin-top: 24px; }
-.example-area > div:first-child { display: flex; gap: 9px; align-items: baseline; }
-.example-area > div:first-child strong { font-size: 11px; }
-.example-area > div:first-child span { color: var(--text-faint); font-size: 9px; }
-.example-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-.example-fill { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.46); text-align: left; cursor: pointer; }
-.example-fill:hover { border-color: rgba(90, 231, 210, 0.38); background: var(--surface-hover); }
-.example-fill span, .example-fill strong, .example-fill small { display: block; }
-.example-fill span { color: var(--cyan); font: 700 8px/1 var(--mono); text-transform: uppercase; }
-.example-fill strong { margin: 7px 0 5px; font-size: 11px; }
-.example-fill small { overflow: hidden; color: var(--text-faint); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.edit-intent { margin-top: 16px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--text-soft); cursor: pointer; font-size: 10px; }
-.stage-empty { display: grid; min-height: 590px; place-items: center; align-content: center; text-align: center; }
-.stage-orb { width: 74px; height: 74px; display: grid; place-items: center; margin-bottom: 18px; border: 1px solid rgba(90, 231, 210, 0.38); border-radius: 24px; background: linear-gradient(145deg, rgba(90, 231, 210, 0.18), rgba(109, 145, 255, 0.16)); color: var(--cyan); font-size: 28px; box-shadow: 0 20px 60px rgba(48, 168, 170, 0.12); }
-.stage-kicker { color: var(--cyan); font: 600 10px/1 var(--mono); text-transform: uppercase; }
-.stage-empty h2 { margin-bottom: 10px; font-size: clamp(26px, 4vw, 40px); }
-.stage-empty > p:not(.stage-kicker) { max-width: 560px; color: var(--text-soft); line-height: 1.7; }
-.understanding-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; width: 100%; margin-top: 28px; text-align: left; }
-.understanding-grid div { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.45); }
-.understanding-grid span { display: block; margin-bottom: 7px; color: var(--text-faint); font-size: 9px; }
-.understanding-grid strong { font-size: 11px; line-height: 1.45; }
-.scope-stage > h2 { margin: 12px 0 8px; font-size: 30px; }
-.scope-stage > p, .stage-lead { color: var(--text-soft); line-height: 1.65; }
-.impact-block { margin: 22px 0; padding: 16px; border: 1px solid rgba(90, 231, 210, 0.24); border-radius: var(--radius); background: linear-gradient(145deg, rgba(90, 231, 210, 0.08), rgba(109, 145, 255, 0.05)); }
-.impact-block > header span { color: var(--cyan); font: 700 8px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
-.impact-block > header h3 { margin: 7px 0 0; font-size: 15px; }
-.impact-matrix { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 13px; }
-.impact-matrix article { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(7, 16, 31, 0.52); }
-.impact-matrix span, .impact-matrix small { display: block; color: var(--text-faint); font-size: 8px; }
-.impact-matrix strong { display: block; margin: 7px 0; color: #e3f7f4; font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; }
-.source-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 24px 0; padding: 0; list-style: none; }
-.source-card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.46); }
-.source-kind { display: inline-flex; margin-bottom: 10px; padding: 4px 6px; border-radius: 5px; background: var(--blue-soft); color: var(--blue); font: 600 8px/1 var(--mono); }
-.source-card strong { display: block; }
-.source-card p { margin: 7px 0; color: var(--text-soft); font-size: 11px; line-height: 1.5; }
-.source-card small { color: var(--text-faint); font-size: 9px; }
-.hypothesis-block { padding: 18px; border: 1px solid rgba(90, 231, 210, 0.22); border-radius: var(--radius); background: var(--cyan-soft); }
-.hypothesis-block ol { display: grid; gap: 10px; margin: 14px 0 0; padding-left: 22px; color: #d7f6f1; }
-.stage-heading { margin-bottom: 8px; }
-.plan-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
-.plan-stats div { padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(7, 16, 31, 0.48); }
-.plan-stats span { display: block; color: var(--text-faint); font-size: 8px; }
-.plan-stats strong { display: block; margin-top: 5px; color: var(--cyan); font: 700 18px/1 var(--mono); }
-.plan-section { margin-top: 20px; }
-.plan-section > h3 { margin: 0; color: var(--text-soft); font-size: 11px; }
-.candidate-stack, .check-stack { display: grid; gap: 10px; margin-top: 18px; }
-.candidate-card { padding: 16px; border: 1px solid rgba(246, 186, 91, 0.3); border-radius: var(--radius); background: var(--amber-soft); }
-.candidate-card.is-accepted { border-color: rgba(114, 230, 166, 0.34); background: var(--green-soft); }
-.candidate-card.is-rejected { opacity: 0.72; border-color: var(--line); background: rgba(111, 135, 163, 0.08); }
-.candidate-card header, .check-card header { display: flex; justify-content: space-between; gap: 12px; }
-.candidate-card header span { color: var(--amber); font: 600 9px/1 var(--mono); }
-.candidate-card header strong { color: var(--text-soft); font-size: 10px; }
-.candidate-card h4 { margin: 12px 0 6px; }
-.candidate-card p { color: var(--text-soft); font-size: 11px; line-height: 1.55; }
-.candidate-card code { display: block; color: #ffd99c; font-size: 10px; overflow-wrap: anywhere; }
-.candidate-actions { display: flex; gap: 8px; margin-top: 14px; }
-.candidate-actions button, .rc-button { padding: 8px 11px; border: 1px solid rgba(90, 231, 210, 0.3); border-radius: 8px; background: var(--cyan-soft); color: var(--cyan); cursor: pointer; font-size: 10px; font-weight: 700; }
-.candidate-actions .button-ghost { border-color: var(--line); background: transparent; color: var(--text-soft); }
-.check-card { display: block; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.44); overflow: hidden; }
-.check-card.is-candidate-check { border-color: rgba(114, 230, 166, 0.28); }
-.check-card summary { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px; cursor: pointer; list-style: none; }
-.check-card summary::-webkit-details-marker { display: none; }
-.check-card[open] summary { border-bottom: 1px solid var(--line); background: rgba(109, 145, 255, 0.06); }
-.check-index { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--blue-soft); color: var(--blue); font-size: 11px; font-weight: 800; }
-.check-summary { min-width: 0; }
-.check-summary > span { color: var(--red); font: 600 8px/1 var(--mono); }
-.check-summary strong { display: block; margin: 4px 0; font-size: 12px; }
-.check-summary code { display: block; color: #b9caff; font-size: 9px; overflow-wrap: anywhere; }
-.check-toggle { color: var(--cyan); font-size: 9px; white-space: nowrap; }
-.check-card[open] .check-toggle { color: var(--text-soft); }
-.check-body { min-width: 0; padding: 14px 14px 16px 60px; }
-.check-card h4 { margin: 0; font-size: 13px; }
-.check-card header span { color: var(--red); font: 600 8px/1 var(--mono); }
-.check-card p { margin: 7px 0 10px; color: var(--text-soft); font-size: 11px; line-height: 1.45; }
-.check-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
-.check-card dl div { min-width: 0; }
-.check-card dt { color: var(--text-faint); font-size: 8px; }
-.check-card dd { margin: 3px 0 0; color: var(--text-soft); font-size: 9px; line-height: 1.4; overflow-wrap: anywhere; }
-.check-card code { color: #b9caff; }
-.check-card .check-sources { grid-column: 1 / -1; }
-.check-sources ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 5px 0 0; padding: 0; list-style: none; }
-.check-sources li { display: inline-flex; gap: 5px; align-items: center; padding: 5px 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--blue-soft); }
-.check-sources li span { color: var(--blue); font-size: 8px; }
-.check-sources li strong { color: var(--text-soft); font-size: 8px; }
-.live-dot { color: var(--red); font: 700 9px/1 var(--mono); }
-.execution-list { display: grid; gap: 10px; margin: 26px 0 0; padding: 0; list-style: none; }
-.execution-item { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.44); opacity: 0.55; }
-.execution-item.complete, .execution-item.active { opacity: 1; }
-.execution-item.active { border-color: rgba(90, 231, 210, 0.34); box-shadow: inset 3px 0 var(--cyan); }
-.execution-item.violated.complete { border-color: rgba(255, 109, 127, 0.34); background: var(--red-soft); }
-.execution-number { color: var(--text-faint); font: 600 10px/1 var(--mono); }
-.execution-item strong { font-size: 12px; }
-.execution-item p { margin: 5px 0 0; color: var(--text-soft); font-size: 10px; }
-.execution-item > code { color: var(--cyan); font-size: 9px; }
-.execution-item.violated > code { color: var(--red); }
-.decision-hero { padding: 24px; border: 1px solid rgba(114, 230, 166, 0.28); border-radius: var(--radius-lg); background: linear-gradient(145deg, rgba(114, 230, 166, 0.14), rgba(90, 231, 210, 0.05)); }
-.report-stage.pause .decision-hero { border-color: rgba(255, 109, 127, 0.34); background: linear-gradient(145deg, rgba(255, 109, 127, 0.17), rgba(246, 186, 91, 0.05)); }
-.decision-hero span { color: var(--green); font: 600 9px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
-.report-stage.pause .decision-hero span { color: var(--red); }
-.decision-hero h2 { margin: 12px 0 5px; font-size: clamp(26px, 4vw, 40px); }
-.decision-hero p { margin: 0; color: var(--text-soft); }
-.semantic-pair { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 14px 0; }
-.semantic-pair div { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.5); }
-.semantic-pair span, .semantic-pair small { display: block; color: var(--text-faint); font-size: 9px; }
-.semantic-pair code { display: block; margin: 6px 0; color: var(--cyan); font-size: 15px; }
-.evidence-badges { display: flex; flex-wrap: wrap; gap: 7px; }
-.evidence-badges span { padding: 6px 8px; border-radius: 999px; font-size: 9px; font-weight: 700; }
-.evidence-badges .verified { background: var(--green-soft); color: var(--green); }
-.evidence-badges .violated { background: var(--red-soft); color: var(--red); }
-.evidence-badges .unresolved { background: var(--amber-soft); color: var(--amber); }
-.report-summary { margin: 18px 0; color: var(--text-soft); font-size: 13px; line-height: 1.7; }
-.report-columns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.report-columns section { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(7, 16, 31, 0.42); }
-.report-columns h3 { margin-bottom: 9px; font-size: 11px; }
-.report-columns p, .report-columns li { color: var(--text-soft); font-size: 10px; line-height: 1.55; }
-.report-columns ul { display: grid; gap: 6px; margin: 0; padding-left: 17px; }
-.rc-button { margin-top: 14px; }
-.rc-panel { margin-top: 10px; padding: 18px; border: 1px solid rgba(109, 145, 255, 0.28); border-radius: var(--radius); background: var(--blue-soft); }
-.rc-panel > span { color: var(--blue); font: 600 9px/1 var(--mono); }
-.rc-panel h3 { margin: 10px 0; font-size: 14px; }
-.rc-chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.rc-chain code { padding: 5px 7px; border-radius: 6px; background: rgba(7, 16, 31, 0.48); color: #cbd8ff; font-size: 9px; }
-.rc-chain i { color: var(--text-faint); }
-.rc-panel p { margin: 12px 0 0; color: var(--text-soft); font-size: 11px; }
-.copilot-panel > header { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
-.copilot-mark { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; background: var(--cyan-soft); color: var(--cyan); }
-.copilot-panel header div { display: flex; flex-direction: column; gap: 2px; }
-.copilot-panel header small { color: var(--text-faint); font: 600 8px/1 var(--mono); }
-.copilot-panel header strong { font-size: 11px; }
-.online { color: var(--green); font: 600 8px/1 var(--mono); }
-.copilot-message { margin: 14px; padding: 16px; border: 1px solid rgba(90, 231, 210, 0.18); border-radius: var(--radius); background: var(--cyan-soft); }
-.copilot-message h3 { margin: 10px 0 7px; font-size: 14px; }
-.copilot-message p { margin: 0; color: var(--text-soft); font-size: 11px; line-height: 1.6; }
-.copilot-principles { padding: 4px 18px 18px; }
-.copilot-principles ul { display: grid; gap: 8px; margin: 12px 0 0; padding-left: 17px; color: var(--text-soft); font-size: 10px; }
-.primary-action { width: calc(100% - 28px); display: flex; justify-content: space-between; align-items: center; margin: 0 14px 14px; padding: 13px 14px; border: 1px solid rgba(90, 231, 210, 0.35); border-radius: 10px; background: linear-gradient(135deg, rgba(90, 231, 210, 0.22), rgba(109, 145, 255, 0.16)); color: #eafffb; cursor: pointer; font-size: 11px; font-weight: 700; }
-.primary-action:disabled { border-color: var(--line); background: rgba(111, 135, 163, 0.08); color: var(--text-faint); cursor: not-allowed; }
-.primary-action b { color: var(--cyan); font-size: 16px; }
+.phase-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.phase-step::after {
+  position: absolute;
+  right: 12px;
+  left: 38px;
+  height: 1px;
+  background: var(--line);
+  content: "";
+}
+.phase-step:last-child::after {
+  display: none;
+}
+.phase-step > span {
+  position: relative;
+  z-index: 1;
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--bg-soft);
+  font: 600 9px / 1 var(--mono);
+}
+.phase-step.is-current {
+  color: var(--text);
+}
+.phase-step.is-current > span {
+  border-color: var(--cyan);
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  box-shadow: 0 0 18px rgba(90, 231, 210, 0.16);
+}
+.phase-step.is-done > span {
+  border-color: rgba(114, 230, 166, 0.44);
+  background: var(--green-soft);
+  color: var(--green);
+}
+.panel-heading,
+.stage-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.panel-heading h2,
+.stage-heading h2 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+.module-tag {
+  color: var(--cyan);
+  font: 600 9px / 1 var(--mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.source-status,
+.readiness {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-faint);
+  font: 600 9px / 1 var(--mono);
+}
+.source-status.is-ready,
+.readiness.ready {
+  border-color: rgba(114, 230, 166, 0.35);
+  background: var(--green-soft);
+  color: var(--green);
+}
+.readiness.blocked {
+  border-color: rgba(246, 186, 91, 0.35);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.prompt-card {
+  margin: 20px 0 16px;
+  padding: 14px;
+  border: 1px solid rgba(109, 145, 255, 0.25);
+  border-radius: var(--radius-sm);
+  background: var(--blue-soft);
+}
+.prompt-card span,
+.hypothesis-block > span,
+.copilot-message > span,
+.copilot-principles > span {
+  color: var(--blue);
+  font: 600 9px / 1 var(--mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.prompt-card p {
+  margin: 8px 0 0;
+  color: #dbe8ff;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.change-facts {
+  display: grid;
+  gap: 11px;
+  margin: 0;
+}
+.change-facts div {
+  min-width: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.change-facts dt {
+  margin-bottom: 4px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.change-facts dd {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.change-facts code {
+  overflow-wrap: anywhere;
+  color: #bed1ff;
+  font-size: 10px;
+}
+.reconciliation {
+  margin-top: 16px;
+  padding: 13px;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+}
+.reconciliation.is-exact {
+  border-color: rgba(114, 230, 166, 0.3);
+  background: var(--green-soft);
+}
+.reconciliation.is-expanded {
+  border-color: rgba(246, 186, 91, 0.3);
+  background: var(--amber-soft);
+}
+.reconciliation span {
+  display: block;
+  color: var(--text-faint);
+  font: 600 9px / 1 var(--mono);
+}
+.reconciliation strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+}
+.reconciliation p {
+  margin: 5px 0 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.entity-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.entity-cloud li {
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text-soft);
+  font: 9px / 1 var(--mono);
+}
+.context-placeholder {
+  display: grid;
+  min-height: 430px;
+  place-items: center;
+  align-content: center;
+  padding: 24px;
+  text-align: center;
+}
+.context-placeholder > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  color: var(--text-faint);
+  font: 700 10px / 1 var(--mono);
+}
+.context-placeholder strong {
+  margin-top: 16px;
+  font-size: 13px;
+}
+.context-placeholder p {
+  max-width: 220px;
+  margin: 8px 0 0;
+  color: var(--text-faint);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.product-intake {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 18px 0 8px;
+}
+.product-intake > .stage-orb {
+  margin: 0 0 18px;
+}
+.product-intake h2 {
+  margin: 8px 0 10px;
+  font-size: clamp(30px, 5vw, 48px);
+}
+.intake-lead {
+  max-width: 650px;
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.7;
+}
+.intent-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+  padding: 20px;
+  border: 1px solid rgba(90, 231, 210, 0.24);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, rgba(90, 231, 210, 0.08), rgba(109, 145, 255, 0.05));
+}
+.intent-form label {
+  display: grid;
+  gap: 8px;
+}
+.intent-form label > span {
+  color: var(--text-soft);
+  font-size: 10px;
+  font-weight: 700;
+}
+.intent-form textarea,
+.intent-form input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  outline: 0;
+  background: rgba(7, 16, 31, 0.72);
+  color: var(--text);
+}
+.intent-form textarea {
+  min-height: 112px;
+  resize: vertical;
+  padding: 14px;
+  line-height: 1.6;
+}
+.intent-form input {
+  padding: 11px 12px;
+}
+.intent-form textarea:focus,
+.intent-form input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(90, 231, 210, 0.1);
+}
+.intent-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.compile-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 15px;
+  border: 1px solid rgba(90, 231, 210, 0.42);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(90, 231, 210, 0.24), rgba(109, 145, 255, 0.18));
+  color: #ecfffc;
+  cursor: pointer;
+  font-weight: 800;
+}
+.compile-button b {
+  color: var(--cyan);
+  font-size: 17px;
+}
+.example-area {
+  margin-top: 24px;
+}
+.example-area > div:first-child {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+}
+.example-area > div:first-child strong {
+  font-size: 11px;
+}
+.example-area > div:first-child span {
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.example-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.example-fill {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.46);
+  text-align: left;
+  cursor: pointer;
+}
+.example-fill:hover {
+  border-color: rgba(90, 231, 210, 0.38);
+  background: var(--surface-hover);
+}
+.example-fill span,
+.example-fill strong,
+.example-fill small {
+  display: block;
+}
+.example-fill span {
+  color: var(--cyan);
+  font: 700 8px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.example-fill strong {
+  margin: 7px 0 5px;
+  font-size: 11px;
+}
+.example-fill small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.edit-intent {
+  margin-top: 16px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 10px;
+}
+.stage-empty {
+  display: grid;
+  min-height: 590px;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+}
+.stage-orb {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid rgba(90, 231, 210, 0.38);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(90, 231, 210, 0.18), rgba(109, 145, 255, 0.16));
+  color: var(--cyan);
+  font-size: 28px;
+  box-shadow: 0 20px 60px rgba(48, 168, 170, 0.12);
+}
+.stage-kicker {
+  color: var(--cyan);
+  font: 600 10px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.stage-empty h2 {
+  margin-bottom: 10px;
+  font-size: clamp(26px, 4vw, 40px);
+}
+.stage-empty > p:not(.stage-kicker) {
+  max-width: 560px;
+  color: var(--text-soft);
+  line-height: 1.7;
+}
+.understanding-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  width: 100%;
+  margin-top: 28px;
+  text-align: left;
+}
+.understanding-grid div {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.45);
+}
+.understanding-grid span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.understanding-grid strong {
+  font-size: 11px;
+  line-height: 1.45;
+}
+.scope-stage > h2 {
+  margin: 12px 0 8px;
+  font-size: 30px;
+}
+.scope-stage > p,
+.stage-lead {
+  color: var(--text-soft);
+  line-height: 1.65;
+}
+.impact-block {
+  margin: 22px 0;
+  padding: 16px;
+  border: 1px solid rgba(90, 231, 210, 0.24);
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, rgba(90, 231, 210, 0.08), rgba(109, 145, 255, 0.05));
+}
+.impact-block > header span {
+  color: var(--cyan);
+  font: 700 8px / 1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.impact-block > header h3 {
+  margin: 7px 0 0;
+  font-size: 15px;
+}
+.impact-matrix {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 13px;
+}
+.impact-matrix article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(7, 16, 31, 0.52);
+}
+.impact-matrix span,
+.impact-matrix small {
+  display: block;
+  color: var(--text-faint);
+  font-size: 8px;
+}
+.impact-matrix strong {
+  display: block;
+  margin: 7px 0;
+  color: #e3f7f4;
+  font-size: 10px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.source-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+.source-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.46);
+}
+.source-kind {
+  display: inline-flex;
+  margin-bottom: 10px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font: 600 8px / 1 var(--mono);
+}
+.source-card strong {
+  display: block;
+}
+.source-card p {
+  margin: 7px 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.source-card small {
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.hypothesis-block {
+  padding: 18px;
+  border: 1px solid rgba(90, 231, 210, 0.22);
+  border-radius: var(--radius);
+  background: var(--cyan-soft);
+}
+.hypothesis-block ol {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding-left: 22px;
+  color: #d7f6f1;
+}
+.stage-heading {
+  margin-bottom: 8px;
+}
+.plan-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+.plan-stats div {
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(7, 16, 31, 0.48);
+}
+.plan-stats span {
+  display: block;
+  color: var(--text-faint);
+  font-size: 8px;
+}
+.plan-stats strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--cyan);
+  font: 700 18px / 1 var(--mono);
+}
+.plan-section {
+  margin-top: 20px;
+}
+.plan-section > h3 {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.candidate-stack,
+.check-stack {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+.candidate-card {
+  padding: 16px;
+  border: 1px solid rgba(246, 186, 91, 0.3);
+  border-radius: var(--radius);
+  background: var(--amber-soft);
+}
+.candidate-card.is-accepted {
+  border-color: rgba(114, 230, 166, 0.34);
+  background: var(--green-soft);
+}
+.candidate-card.is-rejected {
+  opacity: 0.72;
+  border-color: var(--line);
+  background: rgba(111, 135, 163, 0.08);
+}
+.candidate-card header,
+.check-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.candidate-card header span {
+  color: var(--amber);
+  font: 600 9px / 1 var(--mono);
+}
+.candidate-card header strong {
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.candidate-card h4 {
+  margin: 12px 0 6px;
+}
+.candidate-card p {
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.55;
+}
+.candidate-card code {
+  display: block;
+  color: #ffd99c;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.candidate-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.candidate-actions button,
+.rc-button {
+  padding: 8px 11px;
+  border: 1px solid rgba(90, 231, 210, 0.3);
+  border-radius: 8px;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+.candidate-actions .button-ghost {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--text-soft);
+}
+.check-card {
+  display: block;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.44);
+  overflow: hidden;
+}
+.check-card.is-candidate-check {
+  border-color: rgba(114, 230, 166, 0.28);
+}
+.check-card summary {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.check-card summary::-webkit-details-marker {
+  display: none;
+}
+.check-card[open] summary {
+  border-bottom: 1px solid var(--line);
+  background: rgba(109, 145, 255, 0.06);
+}
+.check-index {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 800;
+}
+.check-summary {
+  min-width: 0;
+}
+.check-summary > span {
+  color: var(--red);
+  font: 600 8px / 1 var(--mono);
+}
+.check-summary strong {
+  display: block;
+  margin: 4px 0;
+  font-size: 12px;
+}
+.check-summary code {
+  display: block;
+  color: #b9caff;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.check-toggle {
+  color: var(--cyan);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.check-card[open] .check-toggle {
+  color: var(--text-soft);
+}
+.check-body {
+  min-width: 0;
+  padding: 14px 14px 16px 60px;
+}
+.check-card h4 {
+  margin: 0;
+  font-size: 13px;
+}
+.check-card header span {
+  color: var(--red);
+  font: 600 8px / 1 var(--mono);
+}
+.check-card p {
+  margin: 7px 0 10px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.check-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.check-card dl div {
+  min-width: 0;
+}
+.check-card dt {
+  color: var(--text-faint);
+  font-size: 8px;
+}
+.check-card dd {
+  margin: 3px 0 0;
+  color: var(--text-soft);
+  font-size: 9px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.check-card code {
+  color: #b9caff;
+}
+.check-card .check-sources {
+  grid-column: 1 / -1;
+}
+.check-sources ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.check-sources li {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--blue-soft);
+}
+.check-sources li span {
+  color: var(--blue);
+  font-size: 8px;
+}
+.check-sources li strong {
+  color: var(--text-soft);
+  font-size: 8px;
+}
+.live-dot {
+  color: var(--red);
+  font: 700 9px / 1 var(--mono);
+}
+.execution-list {
+  display: grid;
+  gap: 10px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.execution-item {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.44);
+  opacity: 0.55;
+}
+.execution-item.complete,
+.execution-item.active {
+  opacity: 1;
+}
+.execution-item.active {
+  border-color: rgba(90, 231, 210, 0.34);
+  box-shadow: inset 3px 0 var(--cyan);
+}
+.execution-item.violated.complete {
+  border-color: rgba(255, 109, 127, 0.34);
+  background: var(--red-soft);
+}
+.execution-number {
+  color: var(--text-faint);
+  font: 600 10px / 1 var(--mono);
+}
+.execution-item strong {
+  font-size: 12px;
+}
+.execution-item p {
+  margin: 5px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.execution-item > code {
+  color: var(--cyan);
+  font-size: 9px;
+}
+.execution-item.violated > code {
+  color: var(--red);
+}
+.decision-hero {
+  padding: 24px;
+  border: 1px solid rgba(114, 230, 166, 0.28);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, rgba(114, 230, 166, 0.14), rgba(90, 231, 210, 0.05));
+}
+.report-stage.pause .decision-hero {
+  border-color: rgba(255, 109, 127, 0.34);
+  background: linear-gradient(145deg, rgba(255, 109, 127, 0.17), rgba(246, 186, 91, 0.05));
+}
+.decision-hero span {
+  color: var(--green);
+  font: 600 9px / 1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.report-stage.pause .decision-hero span {
+  color: var(--red);
+}
+.decision-hero h2 {
+  margin: 12px 0 5px;
+  font-size: clamp(26px, 4vw, 40px);
+}
+.decision-hero p {
+  margin: 0;
+  color: var(--text-soft);
+}
+.semantic-pair {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 14px 0;
+}
+.semantic-pair div {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.5);
+}
+.semantic-pair span,
+.semantic-pair small {
+  display: block;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.semantic-pair code {
+  display: block;
+  margin: 6px 0;
+  color: var(--cyan);
+  font-size: 15px;
+}
+.evidence-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.evidence-badges span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+}
+.evidence-badges .verified {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.evidence-badges .violated {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.evidence-badges .unresolved {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.report-summary {
+  margin: 18px 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.report-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.report-columns section {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.42);
+}
+.report-columns h3 {
+  margin-bottom: 9px;
+  font-size: 11px;
+}
+.report-columns p,
+.report-columns li {
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.report-columns ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 17px;
+}
+.rc-button {
+  margin-top: 14px;
+}
+.rc-panel {
+  margin-top: 10px;
+  padding: 18px;
+  border: 1px solid rgba(109, 145, 255, 0.28);
+  border-radius: var(--radius);
+  background: var(--blue-soft);
+}
+.rc-panel > span {
+  color: var(--blue);
+  font: 600 9px / 1 var(--mono);
+}
+.rc-panel h3 {
+  margin: 10px 0;
+  font-size: 14px;
+}
+.rc-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.rc-chain code {
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: rgba(7, 16, 31, 0.48);
+  color: #cbd8ff;
+  font-size: 9px;
+}
+.rc-chain i {
+  color: var(--text-faint);
+}
+.rc-panel p {
+  margin: 12px 0 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.copilot-panel > header {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.copilot-mark {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+}
+.copilot-panel header div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.copilot-panel header small {
+  color: var(--text-faint);
+  font: 600 8px / 1 var(--mono);
+}
+.copilot-panel header strong {
+  font-size: 11px;
+}
+.online {
+  color: var(--green);
+  font: 600 8px / 1 var(--mono);
+}
+.copilot-message {
+  margin: 14px;
+  padding: 16px;
+  border: 1px solid rgba(90, 231, 210, 0.18);
+  border-radius: var(--radius);
+  background: var(--cyan-soft);
+}
+.copilot-message h3 {
+  margin: 10px 0 7px;
+  font-size: 14px;
+}
+.copilot-message p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.copilot-principles {
+  padding: 4px 18px 18px;
+}
+.copilot-principles ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding-left: 17px;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.primary-action {
+  width: calc(100% - 28px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 14px 14px;
+  padding: 13px 14px;
+  border: 1px solid rgba(90, 231, 210, 0.35);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(90, 231, 210, 0.22), rgba(109, 145, 255, 0.16));
+  color: #eafffb;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+.primary-action:disabled {
+  border-color: var(--line);
+  background: rgba(111, 135, 163, 0.08);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+.primary-action b {
+  color: var(--cyan);
+  font-size: 16px;
+}
 
 @media (max-width: 1180px) {
-  .workspace { grid-template-columns: minmax(230px, 0.7fr) minmax(480px, 1.5fr); }
-  .copilot-panel { position: static; grid-column: 1 / -1; }
-  .copilot-panel { display: grid; grid-template-columns: minmax(220px, 0.6fr) 1fr auto; align-items: stretch; }
-  .copilot-panel > header { border-right: 1px solid var(--line); border-bottom: 0; }
-  .copilot-message { margin: 10px; }
-  .copilot-principles { display: none; }
-  .primary-action { width: 220px; align-self: center; margin: 10px; }
+  .workspace {
+    grid-template-columns: minmax(230px, 0.7fr) minmax(480px, 1.5fr);
+  }
+  .copilot-panel {
+    position: static;
+    grid-column: 1 / -1;
+  }
+  .copilot-panel {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.6fr) 1fr auto;
+    align-items: stretch;
+  }
+  .copilot-panel > header {
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+  .copilot-message {
+    margin: 10px;
+  }
+  .copilot-principles {
+    display: none;
+  }
+  .primary-action {
+    width: 220px;
+    align-self: center;
+    margin: 10px;
+  }
 }
 
 @media (max-width: 820px) {
-  .app-shell { padding: 14px 14px 0; }
-  .app-header { grid-template-columns: 1fr auto; gap: 12px; }
-  .title-lockup { grid-column: 1 / -1; grid-row: 2; padding-bottom: 12px; }
-  .offline-badge { font-size: 8px; }
-  .phase-rail { overflow-x: auto; grid-template-columns: repeat(5, minmax(104px, 1fr)); padding-bottom: 13px; }
-  .workspace { grid-template-columns: 1fr; }
-  .context-panel, .copilot-panel { position: static; }
-  .stage-panel { min-height: 0; }
-  .context-panel { order: 1; }
-  .stage-panel { order: 2; }
-  .copilot-panel { order: 3; display: block; }
-  .copilot-panel > header { border-right: 0; border-bottom: 1px solid var(--line); }
-  .copilot-principles { display: block; }
-  .primary-action { width: calc(100% - 28px); }
-  .understanding-grid, .source-list, .report-columns { grid-template-columns: 1fr; }
-  .plan-stats { grid-template-columns: repeat(2, 1fr); }
-  .app-footer { flex-direction: column; gap: 5px; }
+  .app-shell {
+    padding: 14px 14px 0;
+  }
+  .app-header {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+  .title-lockup {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-bottom: 12px;
+  }
+  .offline-badge {
+    font-size: 8px;
+  }
+  .phase-rail {
+    overflow-x: auto;
+    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    padding-bottom: 13px;
+  }
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+  .context-panel,
+  .copilot-panel {
+    position: static;
+  }
+  .stage-panel {
+    min-height: 0;
+  }
+  .context-panel {
+    order: 1;
+  }
+  .stage-panel {
+    order: 2;
+  }
+  .copilot-panel {
+    order: 3;
+    display: block;
+  }
+  .copilot-panel > header {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .copilot-principles {
+    display: block;
+  }
+  .primary-action {
+    width: calc(100% - 28px);
+  }
+  .understanding-grid,
+  .source-list,
+  .report-columns {
+    grid-template-columns: 1fr;
+  }
+  .plan-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .app-footer {
+    flex-direction: column;
+    gap: 5px;
+  }
 }
 
 @media (max-width: 520px) {
-  .app-shell { padding-inline: 10px; }
-  .brand div { display: none; }
-  .app-header { grid-template-columns: auto 1fr; }
-  .offline-badge { justify-self: end; padding: 7px 9px; }
-  .title-lockup h1 { white-space: normal; line-height: 1.25; }
-  .phase-step strong { font-size: 9px; }
-  .stage-panel { padding: 18px 14px; }
-  .context-panel { padding: 15px; }
-  .stage-empty { min-height: 430px; }
-  .semantic-pair { grid-template-columns: 1fr; }
-  .impact-matrix { grid-template-columns: 1fr; }
-  .check-card summary { grid-template-columns: 34px minmax(0, 1fr); }
-  .check-toggle { grid-column: 2; }
-  .check-body { padding-left: 14px; }
-  .check-card dl { grid-template-columns: 1fr; }
-  .execution-item { grid-template-columns: 28px 1fr; }
-  .execution-item > code { grid-column: 2; }
-  .candidate-actions { flex-direction: column; }
-  .candidate-actions button { width: 100%; }
-  .intent-fields, .example-grid { grid-template-columns: 1fr; }
+  .app-shell {
+    padding-inline: 10px;
+  }
+  .brand div {
+    display: none;
+  }
+  .app-header {
+    grid-template-columns: auto 1fr;
+  }
+  .offline-badge {
+    justify-self: end;
+    padding: 7px 9px;
+  }
+  .title-lockup h1 {
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .phase-step strong {
+    font-size: 9px;
+  }
+  .stage-panel {
+    padding: 18px 14px;
+  }
+  .context-panel {
+    padding: 15px;
+  }
+  .stage-empty {
+    min-height: 430px;
+  }
+  .semantic-pair {
+    grid-template-columns: 1fr;
+  }
+  .impact-matrix {
+    grid-template-columns: 1fr;
+  }
+  .check-card summary {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+  .check-toggle {
+    grid-column: 2;
+  }
+  .check-body {
+    padding-left: 14px;
+  }
+  .check-card dl {
+    grid-template-columns: 1fr;
+  }
+  .execution-item {
+    grid-template-columns: 28px 1fr;
+  }
+  .execution-item > code {
+    grid-column: 2;
+  }
+  .candidate-actions {
+    flex-direction: column;
+  }
+  .candidate-actions button {
+    width: 100%;
+  }
+  .intent-fields,
+  .example-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
     </style>
@@ -327,38 +1407,28 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-
     <script>
 (() => {
 "use strict";
-const EVIDENCE_VERDICTS = Object.freeze([
-  "Verified",
-  "Violated",
-  "Inconclusive",
-  "NotEvaluated",
-]);
+const EVIDENCE_VERDICTS = Object.freeze(['Verified', 'Violated', 'Inconclusive', 'NotEvaluated']);
 
-const ACTION_STATUSES = Object.freeze([
-  "Proceed",
-  "Proceed-with-conditions",
-  "Pause",
-  "Rollback",
-]);
+const ACTION_STATUSES = Object.freeze(['Proceed', 'Proceed-with-conditions', 'Pause', 'Rollback']);
 
 const REQUIRED_CHECK_FIELDS = Object.freeze([
-  "id",
-  "priority",
-  "purpose",
-  "entity",
-  "capability",
-  "metric",
-  "window",
-  "baseline",
-  "rule",
-  "severity",
-  "failureAction",
-  "rationale",
-  "sourceRefs",
+  'id',
+  'priority',
+  'purpose',
+  'entity',
+  'capability',
+  'metric',
+  'window',
+  'baseline',
+  'rule',
+  'severity',
+  'failureAction',
+  'rationale',
+  'sourceRefs',
 ]);
 
 function deepFreeze(value) {
-  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
     return value;
   }
   for (const child of Object.values(value)) deepFreeze(child);
@@ -366,20 +1436,15 @@ function deepFreeze(value) {
 }
 
 function sortedUnique(values = []) {
-  return [...new Set(values.filter(Boolean))].sort((left, right) =>
-    left.localeCompare(right),
-  );
+  return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
 }
 
 function assertCheckContract(check, sourceIds) {
   for (const field of REQUIRED_CHECK_FIELDS) {
     const value = check?.[field];
     const missing =
-      value === undefined ||
-      value === null ||
-      value === "" ||
-      (Array.isArray(value) && value.length === 0);
-    if (missing) throw new Error(`Check ${check?.id ?? "unknown"} missing ${field}`);
+      value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
+    if (missing) throw new Error(`Check ${check?.id ?? 'unknown'} missing ${field}`);
   }
   for (const sourceRef of check.sourceRefs) {
     if (!sourceIds.has(sourceRef)) {
@@ -392,7 +1457,7 @@ function assertCheckContract(check, sourceIds) {
 function reconcileChange(declaredChange, observedChange) {
   if (!declaredChange?.entities?.length || !observedChange?.entities?.length) {
     return deepFreeze({
-      status: "Unverifiable",
+      status: 'Unverifiable',
       declaredEntities: sortedUnique(declaredChange?.entities),
       observedEntities: sortedUnique(observedChange?.entities),
       resolvedEntities: [],
@@ -408,21 +1473,21 @@ function reconcileChange(declaredChange, observedChange) {
   const addedEntities = observedEntities.filter((entity) => !declared.has(entity));
   const missingEntities = declaredEntities.filter((entity) => !observed.has(entity));
   const shared = observedEntities.filter((entity) => declared.has(entity));
-  let status = "Exact";
-  if (shared.length === 0) status = "Conflict";
+  let status = 'Exact';
+  if (shared.length === 0) status = 'Conflict';
   else if (addedEntities.length && !missingEntities.length) {
-    status = "Observed-Superset";
+    status = 'Observed-Superset';
   } else if (missingEntities.length && !addedEntities.length) {
-    status = "Observed-Subset";
+    status = 'Observed-Subset';
   } else if (addedEntities.length || missingEntities.length) {
-    status = "Conflict";
+    status = 'Conflict';
   }
 
   return deepFreeze({
     status,
     declaredEntities,
     observedEntities,
-    resolvedEntities: status === "Conflict" ? [] : observedEntities,
+    resolvedEntities: status === 'Conflict' ? [] : observedEntities,
     addedEntities,
     missingEntities,
   });
@@ -430,283 +1495,299 @@ function reconcileChange(declaredChange, observedChange) {
 
 function check(input) {
   return {
-    priority: "required",
-    window: "变更前 15 分钟 vs 变更后 15 分钟",
-    baseline: "过去 7 天同星期、同时段",
-    severity: "critical",
+    priority: 'required',
+    window: '变更前 15 分钟 vs 变更后 15 分钟',
+    baseline: '过去 7 天同星期、同时段',
+    severity: 'critical',
     ...input,
   };
 }
 
 const naturalLanguagePass = {
-  id: "natural-language-pass",
-  entryKind: "natural-language",
-  eyebrow: "Journey 01 · Natural language",
-  title: "订单服务升级验收",
-  subtitle: "从一句话生成一份值得 SRE 确认的巡检任务",
-  prompt: "今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。",
+  id: 'natural-language-pass',
+  entryKind: 'natural-language',
+  eyebrow: 'Journey 01 · Natural language',
+  title: '订单服务升级验收',
+  subtitle: '从一句话生成一份值得 SRE 确认的巡检任务',
+  prompt: '今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。',
   declaredChange: {
-    id: "MANUAL-ORDER-480",
-    summary: "order-api v4.8.0 应用代码升级",
-    version: "v4.8.0",
-    entities: ["order-api", "payment-gateway", "order-cache"],
-    fingerprint: "image:order-api@sha256:4e80",
+    id: 'MANUAL-ORDER-480',
+    summary: 'order-api v4.8.0 应用代码升级',
+    version: 'v4.8.0',
+    entities: ['order-api', 'payment-gateway', 'order-cache'],
+    fingerprint: 'image:order-api@sha256:4e80',
   },
   observedChange: {
-    summary: "运行时版本与声明一致",
-    entities: ["order-api", "payment-gateway", "order-cache"],
-    fingerprint: "image:order-api@sha256:4e80",
+    summary: '运行时版本与声明一致',
+    entities: ['order-api', 'payment-gateway', 'order-cache'],
+    fingerprint: 'image:order-api@sha256:4e80',
   },
   impactDimensions: {
-    businessJourney: ["订单提交 → 支付确认"],
-    goldenMetrics: [
-      "order.submit.success_rate",
-      "payment.confirm.success_rate",
-    ],
-    traceDependencies: ["order-api → payment-gateway"],
-    middleware: ["order-cache · Redis"],
+    businessJourney: ['订单提交 → 支付确认'],
+    goldenMetrics: ['order.submit.success_rate', 'payment.confirm.success_rate'],
+    traceDependencies: ['order-api → payment-gateway'],
+    middleware: ['order-cache · Redis'],
   },
   contextSources: [
     {
-      id: "nl-intent",
-      kind: "自然语义",
-      label: "SRE 巡检意图",
-      detail: "识别服务、版本、订单提交与支付确认两个业务目标",
-      freshness: "刚刚",
+      id: 'nl-intent',
+      kind: '自然语义',
+      label: 'SRE 巡检意图',
+      detail: '识别服务、版本、订单提交与支付确认两个业务目标',
+      freshness: '刚刚',
     },
     {
-      id: "order-graph",
-      kind: "业务图谱",
-      label: "订单黄金旅程",
-      detail: "订单提交 → 支付确认；绑定成功率与支付完成率",
-      freshness: "2 小时前",
+      id: 'order-graph',
+      kind: '业务图谱',
+      label: '订单黄金旅程',
+      detail: '订单提交 → 支付确认；绑定成功率与支付完成率',
+      freshness: '2 小时前',
     },
     {
-      id: "order-trace",
-      kind: "Trace",
-      label: "近 24h 真实调用",
-      detail: "order-api → payment-gateway；order-api → order-cache",
-      freshness: "3 分钟前",
+      id: 'order-trace',
+      kind: 'Trace',
+      label: '近 24h 真实调用',
+      detail: 'order-api → payment-gateway；order-api → order-cache',
+      freshness: '3 分钟前',
     },
     {
-      id: "metric-catalog",
-      kind: "指标目录",
-      label: "已注册执行能力",
-      detail: "业务、服务、缓存与拨测指标均可直接执行",
-      freshness: "当前",
+      id: 'metric-catalog',
+      kind: '指标目录',
+      label: '已注册执行能力',
+      detail: '业务、服务、缓存与拨测指标均可直接执行',
+      freshness: '当前',
     },
   ],
-  hypotheses: [
-    "新版本不能降低订单提交成功率",
-    "order-api 延迟与错误率不能显著退化",
-    "支付依赖与缓存不能成为新增瓶颈",
-  ],
+  hypotheses: ['新版本不能降低订单提交成功率', 'order-api 延迟与错误率不能显著退化', '支付依赖与缓存不能成为新增瓶颈'],
   candidateChecks: [
     check({
-      id: "candidate-memory-trend",
-      priority: "recommended",
-      criticality: "medium",
-      purpose: "识别升级后的缓慢内存爬升",
-      entity: "order-api",
-      capability: "容器资源趋势",
-      metric: "container.memory.working_set",
-      rule: "斜率低于历史同版本 P95",
-      failureAction: "延长观察窗口",
-      rationale: "历史复盘出现过长尾内存增长，但本次代码差异未触及缓存模块。",
-      sourceRefs: ["nl-intent", "metric-catalog"],
+      id: 'candidate-memory-trend',
+      priority: 'recommended',
+      criticality: 'medium',
+      purpose: '识别升级后的缓慢内存爬升',
+      entity: 'order-api',
+      capability: '容器资源趋势',
+      metric: 'container.memory.working_set',
+      rule: '斜率低于历史同版本 P95',
+      failureAction: '延长观察窗口',
+      rationale: '历史复盘出现过长尾内存增长，但本次代码差异未触及缓存模块。',
+      sourceRefs: ['nl-intent', 'metric-catalog'],
     }),
   ],
   committedChecks: [
     check({
-      id: "order-success",
-      purpose: "保护订单提交业务结果",
-      entity: "订单提交旅程",
-      capability: "业务黄金指标",
-      metric: "order.submit.success_rate",
-      rule: "下降不超过 0.20pp",
-      failureAction: "暂停发布并转 RC Agent",
-      rationale: "业务图谱将 order-api 绑定为订单提交的关键服务。",
-      sourceRefs: ["nl-intent", "order-graph", "metric-catalog"],
+      id: 'order-success',
+      purpose: '保护订单提交业务结果',
+      entity: '订单提交旅程',
+      capability: '业务黄金指标',
+      metric: 'order.submit.success_rate',
+      rule: '下降不超过 0.20pp',
+      failureAction: '暂停发布并转 RC Agent',
+      rationale: '业务图谱将 order-api 绑定为订单提交的关键服务。',
+      sourceRefs: ['nl-intent', 'order-graph', 'metric-catalog'],
     }),
     check({
-      id: "service-golden-signals",
-      purpose: "验证服务自身没有退化",
-      entity: "order-api",
-      capability: "服务黄金信号",
-      metric: "http.error_rate + http.duration.p95",
-      rule: "错误率 ≤ 0.5%，p95 增幅 ≤ 10%",
-      failureAction: "暂停并检查新版本实例",
-      rationale: "版本升级直接改变 order-api 运行时行为。",
-      sourceRefs: ["nl-intent", "metric-catalog"],
+      id: 'service-golden-signals',
+      purpose: '验证服务自身没有退化',
+      entity: 'order-api',
+      capability: '服务黄金信号',
+      metric: 'http.error_rate + http.duration.p95',
+      rule: '错误率 ≤ 0.5%，p95 增幅 ≤ 10%',
+      failureAction: '暂停并检查新版本实例',
+      rationale: '版本升级直接改变 order-api 运行时行为。',
+      sourceRefs: ['nl-intent', 'metric-catalog'],
     }),
     check({
-      id: "payment-dependency",
-      purpose: "验证关键下游支付确认",
-      entity: "payment-gateway",
-      capability: "Trace 依赖门禁",
-      metric: "span.client.error_rate + span.client.duration.p95",
-      rule: "无新增错误依赖，p95 增幅 ≤ 8%",
-      failureAction: "暂停并下钻支付 Trace",
-      rationale: "真实 Trace 证明订单提交同步调用 payment-gateway。",
-      sourceRefs: ["order-graph", "order-trace", "metric-catalog"],
+      id: 'payment-dependency',
+      purpose: '验证关键下游支付确认',
+      entity: 'payment-gateway',
+      capability: 'Trace 依赖门禁',
+      metric: 'span.client.error_rate + span.client.duration.p95',
+      rule: '无新增错误依赖，p95 增幅 ≤ 8%',
+      failureAction: '暂停并下钻支付 Trace',
+      rationale: '真实 Trace 证明订单提交同步调用 payment-gateway。',
+      sourceRefs: ['order-graph', 'order-trace', 'metric-catalog'],
     }),
     check({
-      id: "cache-health",
-      purpose: "验证订单缓存无新增饱和",
-      entity: "order-cache",
-      capability: "Redis 开箱指标",
-      metric: "redis.hit_rate + redis.command_latency",
-      rule: "命中率下降 ≤ 2%，命令 p99 ≤ 6ms",
-      failureAction: "标记条件放行并延长观察",
-      rationale: "Trace 证明 order-api 实际访问 order-cache。",
-      sourceRefs: ["order-trace", "metric-catalog"],
+      id: 'cache-health',
+      purpose: '验证订单缓存无新增饱和',
+      entity: 'order-cache',
+      capability: 'Redis 开箱指标',
+      metric: 'redis.hit_rate + redis.command_latency',
+      rule: '命中率下降 ≤ 2%，命令 p99 ≤ 6ms',
+      failureAction: '标记条件放行并延长观察',
+      rationale: 'Trace 证明 order-api 实际访问 order-cache。',
+      sourceRefs: ['order-trace', 'metric-catalog'],
     }),
   ],
   execution: [
-    { id: "baseline", label: "锁定变更前基线", status: "Verified", fact: "四类关键证据均新鲜可比" },
-    { id: "business", label: "验证业务黄金指标", status: "Verified", fact: "订单成功率 99.82%，较基线 +0.03pp" },
-    { id: "service", label: "验证服务与 Trace", status: "Verified", fact: "p95 +3.2%，依赖无新增错误" },
-    { id: "middleware", label: "验证缓存与拨测", status: "Verified", fact: "命中率 96.4%，多地拨测通过" },
+    { id: 'baseline', label: '锁定变更前基线', status: 'Verified', fact: '四类关键证据均新鲜可比' },
+    { id: 'business', label: '验证业务黄金指标', status: 'Verified', fact: '订单成功率 99.82%，较基线 +0.03pp' },
+    { id: 'service', label: '验证服务与 Trace', status: 'Verified', fact: 'p95 +3.2%，依赖无新增错误' },
+    { id: 'middleware', label: '验证缓存与拨测', status: 'Verified', fact: '命中率 96.4%，多地拨测通过' },
   ],
   report: {
-    evidenceVerdict: "Verified",
-    action: "Proceed",
-    actionLabel: "建议继续发布",
-    title: "声明范围内未发现异常退化",
-    summary: "订单提交、支付依赖、服务黄金信号与缓存均通过确定性验证。",
-    scopeStatement: "结论覆盖订单提交与支付确认旅程，以及 Trace 证明的直接依赖。",
+    evidenceVerdict: 'Verified',
+    action: 'Proceed',
+    actionLabel: '建议继续发布',
+    title: '声明范围内未发现异常退化',
+    summary: '订单提交、支付依赖、服务黄金信号与缓存均通过确定性验证。',
+    scopeStatement: '结论覆盖订单提交与支付确认旅程，以及 Trace 证明的直接依赖。',
     evidenceCounts: { verified: 4, violated: 0, unresolved: 0 },
     keyEvidence: [
-      "订单提交成功率 99.82%，较基线 +0.03pp",
-      "order-api p95 186ms，较稳定版本 +3.2%",
-      "payment-gateway 无新增错误 Trace",
+      '订单提交成功率 99.82%，较基线 +0.03pp',
+      'order-api p95 186ms，较稳定版本 +3.2%',
+      'payment-gateway 无新增错误 Trace',
     ],
-    residualRisks: ["内存趋势为建议项，未纳入本次硬门禁。"],
+    residualRisks: ['内存趋势为建议项，未纳入本次硬门禁。'],
     rcAgent: null,
   },
 };
 
 const changeTicketRisk = {
-  id: "change-ticket-risk",
-  entryKind: "change-ticket",
-  eyebrow: "Journey 02 · Change ticket",
-  title: "支付配置变更巡检",
-  subtitle: "声明与运行时对账后扩大影响面，异常联动 RC Agent",
-  prompt: "电子流 CHG-84217：调整 payment-api Redis 超时，灰度 25%。",
+  id: 'change-ticket-risk',
+  entryKind: 'change-ticket',
+  eyebrow: 'Journey 02 · Change ticket',
+  title: '支付配置变更巡检',
+  subtitle: '声明与运行时对账后扩大影响面，异常联动 RC Agent',
+  prompt: '电子流 CHG-84217：调整 payment-api Redis 超时，灰度 25%。',
   declaredChange: {
-    id: "CHG-84217",
-    summary: "payment-api Redis 超时 80ms → 120ms",
-    version: "config-2026.08.06.2",
-    entities: ["payment-api"],
-    fingerprint: "config:payment-timeout@91fa",
+    id: 'CHG-84217',
+    summary: 'payment-api Redis 超时 80ms → 120ms',
+    version: 'config-2026.08.06.2',
+    entities: ['payment-api'],
+    fingerprint: 'config:payment-timeout@91fa',
   },
   observedChange: {
-    summary: "共享配置包同时作用于结算 DB 与发票异步任务",
-    entities: ["payment-api", "settlement-db", "invoice-worker"],
-    fingerprint: "config:shared-payment-stack@c2bd",
+    summary: '共享配置包同时作用于结算 DB 与发票异步任务',
+    entities: ['payment-api', 'settlement-db', 'invoice-worker'],
+    fingerprint: 'config:shared-payment-stack@c2bd',
   },
   impactDimensions: {
-    businessJourney: ["支付确认 → 账单异步"],
-    goldenMetrics: ["payment.confirm.success_rate"],
-    traceDependencies: ["payment-api → settlement-db"],
-    middleware: ["settlement-db · Redis · invoice queue"],
+    businessJourney: ['支付确认 → 账单异步'],
+    goldenMetrics: ['payment.confirm.success_rate'],
+    traceDependencies: ['payment-api → settlement-db'],
+    middleware: ['settlement-db · Redis · invoice queue'],
   },
   contextSources: [
-    { id: "change-ticket", kind: "电子流", label: "CHG-84217", detail: "声明仅调整 payment-api Redis 超时", freshness: "刚刚" },
-    { id: "runtime-diff", kind: "运行时对账", label: "Observed-Superset", detail: "共享配置 hash 影响 payment-api、settlement-db、invoice-worker", freshness: "1 分钟前" },
-    { id: "payment-graph", kind: "业务图谱", label: "支付确认旅程", detail: "支付确认依赖 settlement-db，invoice-worker 为异步账单链路", freshness: "5 小时前" },
-    { id: "payment-trace", kind: "Trace", label: "灰度调用样本", detail: "payment-api → settlement-db 连接等待升高", freshness: "2 分钟前" },
-    { id: "middleware-catalog", kind: "指标目录", label: "DB / Redis 开箱能力", detail: "连接等待、池占用、慢查询和 Redis 延迟可执行", freshness: "当前" },
+    {
+      id: 'change-ticket',
+      kind: '电子流',
+      label: 'CHG-84217',
+      detail: '声明仅调整 payment-api Redis 超时',
+      freshness: '刚刚',
+    },
+    {
+      id: 'runtime-diff',
+      kind: '运行时对账',
+      label: 'Observed-Superset',
+      detail: '共享配置 hash 影响 payment-api、settlement-db、invoice-worker',
+      freshness: '1 分钟前',
+    },
+    {
+      id: 'payment-graph',
+      kind: '业务图谱',
+      label: '支付确认旅程',
+      detail: '支付确认依赖 settlement-db，invoice-worker 为异步账单链路',
+      freshness: '5 小时前',
+    },
+    {
+      id: 'payment-trace',
+      kind: 'Trace',
+      label: '灰度调用样本',
+      detail: 'payment-api → settlement-db 连接等待升高',
+      freshness: '2 分钟前',
+    },
+    {
+      id: 'middleware-catalog',
+      kind: '指标目录',
+      label: 'DB / Redis 开箱能力',
+      detail: '连接等待、池占用、慢查询和 Redis 延迟可执行',
+      freshness: '当前',
+    },
   ],
-  hypotheses: [
-    "共享配置不能造成数据库连接池饱和",
-    "支付确认成功率不能退化",
-    "发票异步积压不能扩大",
-  ],
+  hypotheses: ['共享配置不能造成数据库连接池饱和', '支付确认成功率不能退化', '发票异步积压不能扩大'],
   candidateChecks: [
     check({
-      id: "candidate-db-wait",
-      priority: "recommended",
-      criticality: "high",
-      purpose: "验证共享配置是否放大数据库连接等待",
-      entity: "settlement-db",
-      capability: "数据库连接池检查",
-      metric: "db.pool.wait_p95 + db.pool.utilization",
-      rule: "等待 p95 ≤ 20ms，池占用 ≤ 80%",
-      failureAction: "暂停灰度并启动 RC Agent",
-      rationale: "运行时 hash 对账发现 settlement-db 位于声明外的实际影响面。",
-      sourceRefs: ["runtime-diff", "payment-trace", "middleware-catalog"],
+      id: 'candidate-db-wait',
+      priority: 'recommended',
+      criticality: 'high',
+      purpose: '验证共享配置是否放大数据库连接等待',
+      entity: 'settlement-db',
+      capability: '数据库连接池检查',
+      metric: 'db.pool.wait_p95 + db.pool.utilization',
+      rule: '等待 p95 ≤ 20ms，池占用 ≤ 80%',
+      failureAction: '暂停灰度并启动 RC Agent',
+      rationale: '运行时 hash 对账发现 settlement-db 位于声明外的实际影响面。',
+      sourceRefs: ['runtime-diff', 'payment-trace', 'middleware-catalog'],
     }),
   ],
   committedChecks: [
     check({
-      id: "payment-success",
-      purpose: "保护支付确认业务结果",
-      entity: "支付确认旅程",
-      capability: "业务黄金指标",
-      metric: "payment.confirm.success_rate",
-      rule: "下降不超过 0.10pp",
-      failureAction: "暂停并通知支付 SRE",
-      rationale: "业务图谱将 payment-api 与支付确认结果绑定。",
-      sourceRefs: ["change-ticket", "payment-graph"],
+      id: 'payment-success',
+      purpose: '保护支付确认业务结果',
+      entity: '支付确认旅程',
+      capability: '业务黄金指标',
+      metric: 'payment.confirm.success_rate',
+      rule: '下降不超过 0.10pp',
+      failureAction: '暂停并通知支付 SRE',
+      rationale: '业务图谱将 payment-api 与支付确认结果绑定。',
+      sourceRefs: ['change-ticket', 'payment-graph'],
     }),
     check({
-      id: "payment-service",
-      purpose: "验证 payment-api 自身稳定性",
-      entity: "payment-api",
-      capability: "服务黄金信号",
-      metric: "http.error_rate + http.duration.p95",
-      rule: "错误率 ≤ 0.3%，p95 增幅 ≤ 8%",
-      failureAction: "暂停灰度",
-      rationale: "电子流声明 payment-api 为直接变更对象。",
-      sourceRefs: ["change-ticket", "middleware-catalog"],
+      id: 'payment-service',
+      purpose: '验证 payment-api 自身稳定性',
+      entity: 'payment-api',
+      capability: '服务黄金信号',
+      metric: 'http.error_rate + http.duration.p95',
+      rule: '错误率 ≤ 0.3%，p95 增幅 ≤ 8%',
+      failureAction: '暂停灰度',
+      rationale: '电子流声明 payment-api 为直接变更对象。',
+      sourceRefs: ['change-ticket', 'middleware-catalog'],
     }),
     check({
-      id: "invoice-backlog",
-      purpose: "验证异步账单链路无积压",
-      entity: "invoice-worker",
-      capability: "消息队列开箱指标",
-      metric: "invoice.queue.lag",
-      rule: "积压增长率 ≤ 5%",
-      failureAction: "条件放行并延长异步观察",
-      rationale: "Observed-Superset 证明共享配置同时作用于 invoice-worker。",
-      sourceRefs: ["runtime-diff", "payment-graph", "middleware-catalog"],
+      id: 'invoice-backlog',
+      purpose: '验证异步账单链路无积压',
+      entity: 'invoice-worker',
+      capability: '消息队列开箱指标',
+      metric: 'invoice.queue.lag',
+      rule: '积压增长率 ≤ 5%',
+      failureAction: '条件放行并延长异步观察',
+      rationale: 'Observed-Superset 证明共享配置同时作用于 invoice-worker。',
+      sourceRefs: ['runtime-diff', 'payment-graph', 'middleware-catalog'],
     }),
   ],
   execution: [
-    { id: "reconcile", label: "验证实际变更范围", status: "Verified", fact: "发现 2 个声明外实体并已纳入计划" },
-    { id: "business", label: "验证支付黄金指标", status: "Verified", fact: "支付成功率暂未退化" },
-    { id: "database", label: "验证数据库连接等待", status: "Violated", fact: "连接池占用 96%，等待 p95 68ms" },
-    { id: "async", label: "验证发票异步链路", status: "Inconclusive", fact: "低流量窗口证据不足，需继续观察" },
+    { id: 'reconcile', label: '验证实际变更范围', status: 'Verified', fact: '发现 2 个声明外实体并已纳入计划' },
+    { id: 'business', label: '验证支付黄金指标', status: 'Verified', fact: '支付成功率暂未退化' },
+    { id: 'database', label: '验证数据库连接等待', status: 'Violated', fact: '连接池占用 96%，等待 p95 68ms' },
+    { id: 'async', label: '验证发票异步链路', status: 'Inconclusive', fact: '低流量窗口证据不足，需继续观察' },
   ],
   report: {
-    evidenceVerdict: "Violated",
-    action: "Pause",
-    actionLabel: "建议暂停在 25% 灰度",
-    title: "数据库连接等待违反关键门禁",
-    summary: "支付结果尚未退化，但 settlement-db 已出现连接池饱和，不能用业务指标暂时正常替代关键证据。",
-    scopeStatement: "结论覆盖实际配置 hash 影响的 payment-api、settlement-db 与 invoice-worker。",
+    evidenceVerdict: 'Violated',
+    action: 'Pause',
+    actionLabel: '建议暂停在 25% 灰度',
+    title: '数据库连接等待违反关键门禁',
+    summary: '支付结果尚未退化，但 settlement-db 已出现连接池饱和，不能用业务指标暂时正常替代关键证据。',
+    scopeStatement: '结论覆盖实际配置 hash 影响的 payment-api、settlement-db 与 invoice-worker。',
     evidenceCounts: { verified: 2, violated: 1, unresolved: 1 },
     keyEvidence: [
-      "settlement-db 连接池占用 96%（门禁 80%）",
-      "连接等待 p95 68ms（门禁 20ms）",
-      "支付成功率当前稳定，但属于滞后结果信号",
+      'settlement-db 连接池占用 96%（门禁 80%）',
+      '连接等待 p95 68ms（门禁 20ms）',
+      '支付成功率当前稳定，但属于滞后结果信号',
     ],
-    residualRisks: ["invoice-worker 当前样本不足，证据为 Inconclusive。"],
+    residualRisks: ['invoice-worker 当前样本不足，证据为 Inconclusive。'],
     rcAgent: {
-      title: "RC Agent · 诊断完成",
-      rootCause: "共享配置包将 DB 连接池上限从 120 降为 60，灰度实例连接等待放大。",
-      chain: ["payment-api p95 上升", "settlement-db pool wait", "shared-payment-stack@c2bd"],
-      recommendation: "恢复连接池上限，复验通过后再继续灰度。",
+      title: 'RC Agent · 诊断完成',
+      rootCause: '共享配置包将 DB 连接池上限从 120 降为 60，灰度实例连接等待放大。',
+      chain: ['payment-api p95 上升', 'settlement-db pool wait', 'shared-payment-stack@c2bd'],
+      recommendation: '恢复连接池上限，复验通过后再继续灰度。',
     },
   },
 };
 
 for (const scenario of [naturalLanguagePass, changeTicketRisk]) {
-  scenario.reconciliation = reconcileChange(
-    scenario.declaredChange,
-    scenario.observedChange,
-  );
+  scenario.reconciliation = reconcileChange(scenario.declaredChange, scenario.observedChange);
 }
 
 const scenarios = deepFreeze([naturalLanguagePass, changeTicketRisk]);
@@ -717,19 +1798,18 @@ function getScenario(scenarioId) {
 
 const inspectionExamples = deepFreeze([
   {
-    id: "order-upgrade",
-    label: "服务升级示例",
-    prompt:
-      "今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。",
-    targetService: "order-api",
-    contextReference: "",
+    id: 'order-upgrade',
+    label: '服务升级示例',
+    prompt: '今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。',
+    targetService: 'order-api',
+    contextReference: '',
   },
   {
-    id: "payment-config",
-    label: "配置变更示例",
-    prompt: "调整 payment-api Redis 超时，帮我生成巡检计划。",
-    targetService: "payment-api",
-    contextReference: "CHG-84217",
+    id: 'payment-config',
+    label: '配置变更示例',
+    prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
+    targetService: 'payment-api',
+    contextReference: 'CHG-84217',
   },
 ]);
 
@@ -739,10 +1819,10 @@ function cloneFixture(id) {
 
 function genericCheck(input) {
   return {
-    priority: "required",
-    window: "变更前 15 分钟 vs 变更后 15 分钟",
-    baseline: "过去 7 天同星期、同时段",
-    severity: "critical",
+    priority: 'required',
+    window: '变更前 15 分钟 vs 变更后 15 分钟',
+    baseline: '过去 7 天同星期、同时段',
+    severity: 'critical',
     ...input,
   };
 }
@@ -751,74 +1831,71 @@ function extractService(prompt) {
   return (
     prompt.match(/\b[a-z][a-z0-9-]*(?:-api|-service|-worker|-gateway)\b/i)?.[0] ??
     prompt.match(/\b[a-z][a-z0-9]+-[a-z0-9-]+\b/i)?.[0] ??
-    "target-service"
+    'target-service'
   );
 }
 
 function extractVersion(prompt) {
-  return prompt.match(/\bv\d+(?:\.\d+)+\b/i)?.[0] ?? "待确认版本";
+  return prompt.match(/\bv\d+(?:\.\d+)+\b/i)?.[0] ?? '待确认版本';
 }
 
 function normalizeRequest(request) {
-  const prompt = request?.prompt?.trim() ?? "";
-  if (!prompt) throw new Error("Inspection intent is required");
+  const prompt = request?.prompt?.trim() ?? '';
+  if (!prompt) throw new Error('Inspection intent is required');
   return {
     prompt,
-    targetService:
-      request?.targetService?.trim() || extractService(prompt),
-    contextReference: request?.contextReference?.trim() ?? "",
+    targetService: request?.targetService?.trim() || extractService(prompt),
+    contextReference: request?.contextReference?.trim() ?? '',
   };
 }
 
 function compileGenericWorkspace(request) {
   const service = request.targetService;
   const version = extractVersion(request.prompt);
-  const metricPrefix = service.replaceAll("-", ".");
+  const metricPrefix = service.replaceAll('-', '.');
   const downstream = `${service}-downstream`;
   const cache = `${service}-cache`;
   const declaredEntities = [service, downstream, cache];
-  const changeSourceRef = request.contextReference
-    ? "attached-context"
-    : "user-intent";
+  const changeSourceRef = request.contextReference ? 'attached-context' : 'user-intent';
   const contextSources = [
     {
-      id: "user-intent",
-      kind: "用户意图",
+      id: 'user-intent',
+      kind: '用户意图',
       label: `${service} 当前巡检目标`,
       detail: request.prompt,
-      freshness: "刚刚",
+      freshness: '刚刚',
     },
   ];
   if (request.contextReference) {
     contextSources.push({
-      id: "attached-context",
-      kind: "可选上下文",
+      id: 'attached-context',
+      kind: '可选上下文',
       label: request.contextReference,
       detail: `${service} 关联电子流 / 发布单，作为变更事实补全来源`,
-      freshness: "刚刚",
+      freshness: '刚刚',
     });
   }
   contextSources.push(
     {
-      id: "service-catalog",
-      kind: "服务目录",
+      id: 'service-catalog',
+      kind: '服务目录',
       label: `${service} 可靠性目标`,
       detail: `${service} 核心业务目标及负责人映射`,
-      freshness: "当前",
+      freshness: '当前',
     },
     {
-      id: "runtime-trace",
-      kind: "Trace",
+      id: 'runtime-trace',
+      kind: 'Trace',
       label: `${service} 近 24h 真实调用`,
       detail: `${service} → ${downstream}；${service} → ${cache}`,
-      freshness: "3 分钟前",
+      freshness: '3 分钟前',
     },
     {
-      id: "metric-catalog",
-      kind: "指标目录",
+      id: 'metric-catalog',
+      kind: '指标目录',
       label: `${service} 已注册执行能力`,
       detail: `${service} 业务、服务、依赖与缓存指标均可直接执行`,
-      freshness: "当前",
+      freshness: '当前',
     },
   );
 
@@ -837,21 +1914,16 @@ function compileGenericWorkspace(request) {
 
   return {
     id: `workspace-${service}`,
-    entryKind: request.contextReference
-      ? "combined-context"
-      : "user-intent",
-    eyebrow: "User-defined inspection workspace",
+    entryKind: request.contextReference ? 'combined-context' : 'user-intent',
+    eyebrow: 'User-defined inspection workspace',
     title: `${service} 巡检工作区`,
-    subtitle: "由用户目标与可选运行上下文动态编译，不受示例场景限制",
+    subtitle: '由用户目标与可选运行上下文动态编译，不受示例场景限制',
     prompt: request.prompt,
     declaredChange,
     observedChange,
     impactDimensions: {
       businessJourney: [`${service} 核心业务目标`],
-      goldenMetrics: [
-        `${metricPrefix}.success_rate`,
-        `${metricPrefix}.downstream_success_rate`,
-      ],
+      goldenMetrics: [`${metricPrefix}.success_rate`, `${metricPrefix}.downstream_success_rate`],
       traceDependencies: [`${service} → ${downstream}`],
       middleware: [`${cache} · Mock runtime catalog`],
     },
@@ -863,94 +1935,94 @@ function compileGenericWorkspace(request) {
     ],
     candidateChecks: [
       genericCheck({
-        id: "candidate-memory-trend",
-        priority: "recommended",
-        criticality: "medium",
+        id: 'candidate-memory-trend',
+        priority: 'recommended',
+        criticality: 'medium',
         purpose: `识别 ${service} 升级后的缓慢内存爬升`,
         entity: service,
-        capability: "容器资源趋势",
-        metric: "container.memory.working_set",
-        rule: "斜率低于历史同版本 P95",
+        capability: '容器资源趋势',
+        metric: 'container.memory.working_set',
+        rule: '斜率低于历史同版本 P95',
         failureAction: `延长 ${service} 观察窗口`,
         rationale: `${service} 的资源趋势属于补充证据，不直接制造发布门禁。`,
-        sourceRefs: [changeSourceRef, "metric-catalog"],
+        sourceRefs: [changeSourceRef, 'metric-catalog'],
       }),
     ],
     committedChecks: [
       genericCheck({
-        id: "business-outcome",
+        id: 'business-outcome',
         purpose: `保护 ${service} 核心业务结果`,
         entity: `${service} 核心业务目标`,
-        capability: "业务黄金指标",
+        capability: '业务黄金指标',
         metric: `${metricPrefix}.success_rate`,
-        rule: "下降不超过 0.20pp",
+        rule: '下降不超过 0.20pp',
         failureAction: `暂停 ${service} 发布并转 RC Agent`,
         rationale: `服务目录将 ${service} 绑定为当前可靠性目标的责任实体。`,
-        sourceRefs: [changeSourceRef, "service-catalog", "metric-catalog"],
+        sourceRefs: [changeSourceRef, 'service-catalog', 'metric-catalog'],
       }),
       genericCheck({
-        id: "service-golden-signals",
+        id: 'service-golden-signals',
         purpose: `验证 ${service} 自身没有退化`,
         entity: service,
-        capability: "服务黄金信号",
-        metric: "http.error_rate + http.duration.p95",
-        rule: "错误率 ≤ 0.5%，p95 增幅 ≤ 10%",
+        capability: '服务黄金信号',
+        metric: 'http.error_rate + http.duration.p95',
+        rule: '错误率 ≤ 0.5%，p95 增幅 ≤ 10%',
         failureAction: `暂停并检查 ${service} 新版本实例`,
         rationale: `本次变更直接改变 ${service} 的运行时行为。`,
-        sourceRefs: [changeSourceRef, "metric-catalog"],
+        sourceRefs: [changeSourceRef, 'metric-catalog'],
       }),
       genericCheck({
-        id: "downstream-dependency",
+        id: 'downstream-dependency',
         purpose: `验证 ${service} 的关键下游依赖`,
         entity: downstream,
-        capability: "Trace 依赖门禁",
-        metric: "span.client.error_rate + span.client.duration.p95",
-        rule: "无新增错误依赖，p95 增幅 ≤ 8%",
+        capability: 'Trace 依赖门禁',
+        metric: 'span.client.error_rate + span.client.duration.p95',
+        rule: '无新增错误依赖，p95 增幅 ≤ 8%',
         failureAction: `暂停并下钻 ${service} 依赖 Trace`,
         rationale: `运行时 Trace 证明 ${service} 实际调用 ${downstream}。`,
-        sourceRefs: ["service-catalog", "runtime-trace", "metric-catalog"],
+        sourceRefs: ['service-catalog', 'runtime-trace', 'metric-catalog'],
       }),
       genericCheck({
-        id: "middleware-health",
+        id: 'middleware-health',
         purpose: `验证 ${service} 缓存无新增饱和`,
         entity: cache,
-        capability: "Redis 开箱指标",
-        metric: "redis.hit_rate + redis.command_latency",
-        rule: "命中率下降 ≤ 2%，命令 p99 ≤ 6ms",
+        capability: 'Redis 开箱指标',
+        metric: 'redis.hit_rate + redis.command_latency',
+        rule: '命中率下降 ≤ 2%，命令 p99 ≤ 6ms',
         failureAction: `延长 ${service} 观察窗口并人工确认`,
         rationale: `运行时 Trace 证明 ${service} 实际访问 ${cache}。`,
-        sourceRefs: ["runtime-trace", "metric-catalog"],
+        sourceRefs: ['runtime-trace', 'metric-catalog'],
       }),
     ],
     execution: [
       {
-        id: "baseline",
+        id: 'baseline',
         label: `锁定 ${service} 变更前基线`,
-        status: "Verified",
+        status: 'Verified',
         fact: `${service} 四类关键证据均新鲜可比`,
       },
       {
-        id: "business",
+        id: 'business',
         label: `验证 ${service} 业务黄金指标`,
-        status: "Verified",
+        status: 'Verified',
         fact: `${service} 成功率较基线 +0.03pp`,
       },
       {
-        id: "service",
+        id: 'service',
         label: `验证 ${service} 服务与 Trace`,
-        status: "Verified",
+        status: 'Verified',
         fact: `${service} p95 +3.2%，依赖无新增错误`,
       },
       {
-        id: "middleware",
+        id: 'middleware',
         label: `验证 ${service} 缓存与拨测`,
-        status: "Verified",
+        status: 'Verified',
         fact: `${cache} 命中率 96.4%，多地拨测通过`,
       },
     ],
     report: {
-      evidenceVerdict: "Verified",
-      action: "Proceed",
+      evidenceVerdict: 'Verified',
+      action: 'Proceed',
       actionLabel: `建议继续 ${service} 发布`,
       title: `${service} 声明范围内未发现异常退化`,
       summary: `${service} 核心业务结果、服务黄金信号、下游依赖与缓存均通过确定性验证。`,
@@ -969,17 +2041,15 @@ function compileGenericWorkspace(request) {
 
 function compileKnownWorkspace(request) {
   const isPaymentRisk =
-    request.contextReference === "CHG-84217" ||
+    request.contextReference === 'CHG-84217' ||
     (/payment-api/i.test(request.prompt) && /redis|超时/i.test(request.prompt));
   if (isPaymentRisk) {
-    const workspace = cloneFixture("change-ticket-risk");
+    const workspace = cloneFixture('change-ticket-risk');
     workspace.prompt = request.prompt;
-    workspace.eyebrow = "User-defined inspection workspace";
+    workspace.eyebrow = 'User-defined inspection workspace';
     workspace.title = `${request.targetService} 巡检工作区`;
-    workspace.subtitle = "用户目标与运行时对账共同编译的高风险验证工作区";
-    workspace.entryKind = request.contextReference
-      ? "combined-context"
-      : "user-intent";
+    workspace.subtitle = '用户目标与运行时对账共同编译的高风险验证工作区';
+    workspace.entryKind = request.contextReference ? 'combined-context' : 'user-intent';
     if (request.contextReference) {
       workspace.declaredChange.id = request.contextReference;
       workspace.contextSources[0].label = request.contextReference;
@@ -987,14 +2057,12 @@ function compileKnownWorkspace(request) {
     return workspace;
   }
   if (/order-api/i.test(request.prompt)) {
-    const workspace = cloneFixture("natural-language-pass");
+    const workspace = cloneFixture('natural-language-pass');
     workspace.prompt = request.prompt;
-    workspace.eyebrow = "User-defined inspection workspace";
+    workspace.eyebrow = 'User-defined inspection workspace';
     workspace.title = `${request.targetService} 巡检工作区`;
-    workspace.subtitle = "用户目标动态编译的服务升级验证工作区";
-    workspace.entryKind = request.contextReference
-      ? "combined-context"
-      : "user-intent";
+    workspace.subtitle = '用户目标动态编译的服务升级验证工作区';
+    workspace.entryKind = request.contextReference ? 'combined-context' : 'user-intent';
     return workspace;
   }
   return null;
@@ -1004,15 +2072,12 @@ function compileInspectionRequest(input) {
   const request = normalizeRequest(input);
   const workspace = compileKnownWorkspace(request) ?? compileGenericWorkspace(request);
   workspace.request = request;
-  workspace.reconciliation = reconcileChange(
-    workspace.declaredChange,
-    workspace.observedChange,
-  );
+  workspace.reconciliation = reconcileChange(workspace.declaredChange, workspace.observedChange);
   return deepFreeze(workspace);
 }
 
 function requireWorkspace(state) {
-  if (!state.workspace) throw new Error("Inspection workspace is not compiled");
+  if (!state.workspace) throw new Error('Inspection workspace is not compiled');
   return state.workspace;
 }
 
@@ -1030,20 +2095,13 @@ function selectPlanReadiness(state) {
   const unresolvedCandidateIds = workspace.candidateChecks
     .filter(
       (candidate) =>
-        candidate.criticality === "high" &&
-        !["accepted", "rejected"].includes(
-          state.candidateDisposition[candidate.id]?.status,
-        ),
+        candidate.criticality === 'high' &&
+        !['accepted', 'rejected'].includes(state.candidateDisposition[candidate.id]?.status),
     )
     .map((candidate) => candidate.id);
-  const reconciliationBlocked = ["Conflict", "Unverifiable"].includes(
-    workspace.reconciliation.status,
-  );
+  const reconciliationBlocked = ['Conflict', 'Unverifiable'].includes(workspace.reconciliation.status);
   return {
-    status:
-      reconciliationBlocked || unresolvedCandidateIds.length
-        ? "blocked"
-        : "ready",
+    status: reconciliationBlocked || unresolvedCandidateIds.length ? 'blocked' : 'ready',
     unresolvedCandidateIds,
     reconciliationBlocked,
   };
@@ -1052,13 +2110,10 @@ function selectPlanReadiness(state) {
 function selectCommittedChecks(state) {
   const workspace = requireWorkspace(state);
   const acceptedCandidates = workspace.candidateChecks.filter(
-    (candidate) =>
-      state.candidateDisposition[candidate.id]?.status === "accepted",
+    (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
   const checks = [...workspace.committedChecks, ...acceptedCandidates];
-  const sourceIds = new Set(
-    workspace.contextSources.map((source) => source.id),
-  );
+  const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
 }
@@ -1067,18 +2122,11 @@ function selectPlanSummary(state) {
   const workspace = requireWorkspace(state);
   const dispositions = state.candidateDisposition;
   return {
-    required: workspace.committedChecks.filter(
-      (check) => check.priority === "required",
-    ).length,
-    recommended: workspace.candidateChecks.filter(
-      (candidate) => dispositions[candidate.id]?.status === "accepted",
-    ).length,
-    pending: workspace.candidateChecks.filter(
-      (candidate) => !dispositions[candidate.id],
-    ).length,
-    rejected: workspace.candidateChecks.filter(
-      (candidate) => dispositions[candidate.id]?.status === "rejected",
-    ).length,
+    required: workspace.committedChecks.filter((check) => check.priority === 'required').length,
+    recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
+      .length,
+    pending: workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]).length,
+    rejected: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'rejected').length,
   };
 }
 
@@ -1087,17 +2135,17 @@ function selectExecutionView(state) {
   return workspace.execution.map((step, index) => ({
     ...step,
     progress:
-      state.phase === "report" || index <= state.executionStep
-        ? "complete"
-        : index === state.executionStep + 1 && state.phase === "execution"
-          ? "active"
-          : "queued",
+      state.phase === 'report' || index <= state.executionStep
+        ? 'complete'
+        : index === state.executionStep + 1 && state.phase === 'execution'
+          ? 'active'
+          : 'queued',
   }));
 }
 
 function selectReportView(state) {
   const workspace = requireWorkspace(state);
-  return state.phase === "report" ? workspace.report : null;
+  return state.phase === 'report' ? workspace.report : null;
 }
 
 function selectViewModel(state) {
@@ -1128,7 +2176,7 @@ function selectViewModel(state) {
 function createDemoSession() {
   return deepFreeze({
     workspace: null,
-    phase: "intake",
+    phase: 'intake',
     candidateDisposition: {},
     executionStep: -1,
     rcExpanded: false,
@@ -1136,15 +2184,13 @@ function createDemoSession() {
 }
 
 function disposeCandidate(state, action) {
-  if (state.phase !== "plan" || !state.workspace) return state;
-  const candidate = state.workspace.candidateChecks.find(
-    (item) => item.id === action.candidateId,
-  );
-  if (!candidate || !["accepted", "rejected"].includes(action.disposition)) {
+  if (state.phase !== 'plan' || !state.workspace) return state;
+  const candidate = state.workspace.candidateChecks.find((item) => item.id === action.candidateId);
+  if (!candidate || !['accepted', 'rejected'].includes(action.disposition)) {
     return state;
   }
-  const reason = action.reason?.trim() ?? "";
-  if (action.disposition === "rejected" && !reason) return state;
+  const reason = action.reason?.trim() ?? '';
+  if (action.disposition === 'rejected' && !reason) return state;
   return {
     ...state,
     candidateDisposition: {
@@ -1159,42 +2205,37 @@ function disposeCandidate(state, action) {
 
 function reduceSession(state, action) {
   switch (action.type) {
-    case "INTENT_SUBMITTED":
-      if (state.phase !== "intake") return state;
+    case 'INTENT_SUBMITTED':
+      if (state.phase !== 'intake') return state;
       return {
         ...createDemoSession(),
         workspace: compileInspectionRequest(action.request),
       };
-    case "RESET":
+    case 'RESET':
       return createDemoSession();
-    case "INPUT_CONFIRMED":
-      return state.phase === "intake" && state.workspace
-        ? { ...state, phase: "context" }
-        : state;
-    case "SCOPE_ACCEPTED": {
-      if (state.phase !== "context" || !state.workspace) return state;
+    case 'INPUT_CONFIRMED':
+      return state.phase === 'intake' && state.workspace ? { ...state, phase: 'context' } : state;
+    case 'SCOPE_ACCEPTED': {
+      if (state.phase !== 'context' || !state.workspace) return state;
       const { reconciliation } = state.workspace;
-      return ["Conflict", "Unverifiable"].includes(reconciliation.status)
-        ? state
-        : { ...state, phase: "plan" };
+      return ['Conflict', 'Unverifiable'].includes(reconciliation.status) ? state : { ...state, phase: 'plan' };
     }
-    case "CANDIDATE_DISPOSED":
+    case 'CANDIDATE_DISPOSED':
       return disposeCandidate(state, action);
-    case "PLAN_CONFIRMED":
-      return state.phase === "plan" &&
-        selectPlanReadiness(state).status === "ready"
-        ? { ...state, phase: "execution", executionStep: -1 }
+    case 'PLAN_CONFIRMED':
+      return state.phase === 'plan' && selectPlanReadiness(state).status === 'ready'
+        ? { ...state, phase: 'execution', executionStep: -1 }
         : state;
-    case "EXECUTION_ADVANCED": {
-      if (state.phase !== "execution" || !state.workspace) return state;
+    case 'EXECUTION_ADVANCED': {
+      if (state.phase !== 'execution' || !state.workspace) return state;
       const lastIndex = state.workspace.execution.length - 1;
       const nextStep = state.executionStep + 1;
       return nextStep >= lastIndex
-        ? { ...state, phase: "report", executionStep: lastIndex }
+        ? { ...state, phase: 'report', executionStep: lastIndex }
         : { ...state, executionStep: nextStep };
     }
-    case "RC_TOGGLED":
-      return state.phase === "report" && state.workspace?.report.rcAgent
+    case 'RC_TOGGLED':
+      return state.phase === 'report' && state.workspace?.report.rcAgent
         ? { ...state, rcExpanded: !state.rcExpanded }
         : state;
     default:
@@ -1206,13 +2247,13 @@ function demoReducer(state, action) {
   return deepFreeze(reduceSession(state, action));
 }
 
-function escapeHtml(value = "") {
+function escapeHtml(value = '') {
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 function renderExamples() {
@@ -1225,7 +2266,7 @@ function renderExamples() {
           <small>${escapeHtml(example.prompt)}</small>
         </button>`,
     )
-    .join("");
+    .join('');
 }
 
 function renderComposer() {
@@ -1270,7 +2311,7 @@ function renderUnderstanding(vm) {
       <div class="understanding-grid">
         <div><span>服务 / 版本</span><strong>${escapeHtml(workspace.declaredChange.entities[0])} · ${escapeHtml(workspace.declaredChange.version)}</strong></div>
         <div><span>可靠性目标</span><strong>${escapeHtml(workspace.hypotheses[0])}</strong></div>
-        <div><span>上下文组合</span><strong>${workspace.entryKind === "combined-context" ? "用户意图 + 电子流补全" : "用户意图"}</strong></div>
+        <div><span>上下文组合</span><strong>${workspace.entryKind === 'combined-context' ? '用户意图 + 电子流补全' : '用户意图'}</strong></div>
       </div>
       <button class="edit-intent" data-action="RESET" type="button">返回修改输入</button>
     </div>`;
@@ -1281,15 +2322,11 @@ function renderIntake(vm) {
 }
 
 function renderCandidate(candidate, disposition) {
-  const accepted = disposition?.status === "accepted";
-  const rejected = disposition?.status === "rejected";
-  const status = accepted
-    ? "已纳入正式计划"
-    : rejected
-      ? "已拒绝并记录理由"
-      : "待处置";
+  const accepted = disposition?.status === 'accepted';
+  const rejected = disposition?.status === 'rejected';
+  const status = accepted ? '已纳入正式计划' : rejected ? '已拒绝并记录理由' : '待处置';
   return `
-    <article class="candidate-card ${accepted ? "is-accepted" : ""} ${rejected ? "is-rejected" : ""}">
+    <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''}">
       <header><span>待确认 · ${escapeHtml(candidate.criticality)} criticality</span><strong>${status}</strong></header>
       <h4>${escapeHtml(candidate.purpose)}</h4>
       <p>${escapeHtml(candidate.rationale)}</p>
@@ -1302,7 +2339,7 @@ function renderCandidate(candidate, disposition) {
             </div>`
           : rejected
             ? `<small>拒绝理由：${escapeHtml(disposition.reason)}</small>`
-            : ""
+            : ''
       }
     </article>`;
 }
@@ -1312,16 +2349,16 @@ function renderSourceRefs(check, contextSources) {
   return check.sourceRefs
     .map((sourceId) => {
       const source = sourceById.get(sourceId);
-      return `<li><span>${escapeHtml(source?.kind ?? "未知来源")}</span><strong>${escapeHtml(source?.label ?? sourceId)}</strong></li>`;
+      return `<li><span>${escapeHtml(source?.kind ?? '未知来源')}</span><strong>${escapeHtml(source?.label ?? sourceId)}</strong></li>`;
     })
-    .join("");
+    .join('');
 }
 
 function renderCheck(check, isCandidate, contextSources) {
   return `
-    <details class="check-card ${isCandidate ? "is-candidate-check" : ""}">
+    <details class="check-card ${isCandidate ? 'is-candidate-check' : ''}">
       <summary>
-        <span class="check-index">${check.priority === "required" ? "必" : "荐"}</span>
+        <span class="check-index">${check.priority === 'required' ? '必' : '荐'}</span>
         <span class="check-summary">
           <span>${escapeHtml(check.severity)}</span>
           <strong>${escapeHtml(check.purpose)}</strong>
@@ -1357,17 +2394,17 @@ function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
   const candidates = vm.workspace.candidateChecks
     .map((candidate) => renderCandidate(candidate, disposition[candidate.id]))
-    .join("");
+    .join('');
   const acceptedIds = new Set(
     Object.entries(disposition)
-      .filter(([, item]) => item.status === "accepted")
+      .filter(([, item]) => item.status === 'accepted')
       .map(([id]) => id),
   );
   return `
     <div class="plan-stage" data-testid="inspection-plan">
       <header class="stage-heading">
         <div><span class="module-tag">Module 03 · Plan compiler</span><h2>可审阅的 InspectionPlan</h2></div>
-        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === "ready" ? "Ready · 可确认" : "Blocked · 候选待处置"}</span>
+        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? 'Ready · 可确认' : 'Blocked · 候选待处置'}</span>
       </header>
       <p class="stage-lead">模板保底，多源约束，AI 只补洞。待确认项被接受前不属于正式 Check，也没有门禁权。</p>
       ${renderPlanStats(vm.planSummary)}
@@ -1379,25 +2416,19 @@ function renderInspectionPlan(vm) {
         <h3 id="formal-title">正式检查</h3>
         <div class="check-stack">
           ${vm.committedChecks
-            .map((check) =>
-              renderCheck(
-                check,
-                acceptedIds.has(check.id),
-                vm.workspace.contextSources,
-              ),
-            )
-            .join("")}
+            .map((check) => renderCheck(check, acceptedIds.has(check.id), vm.workspace.contextSources))
+            .join('')}
         </div>
       </section>
     </div>`;
 }
 
 const PHASES = [
-  ["intake", "输入理解", "01"],
-  ["context", "范围对账", "02"],
-  ["plan", "任务草案", "03"],
-  ["execution", "执行取证", "04"],
-  ["report", "行动报告", "05"],
+  ['intake', '输入理解', '01'],
+  ['context', '范围对账', '02'],
+  ['plan', '任务草案', '03'],
+  ['execution', '执行取证', '04'],
+  ['report', '行动报告', '05'],
 ];
 
 function phaseIndex(phase) {
@@ -1408,11 +2439,11 @@ function renderProgress(state) {
   const current = phaseIndex(state.phase);
   return PHASES.map(
     ([id, label, number], index) => `
-      <li class="phase-step ${index < current ? "is-done" : ""} ${id === state.phase ? "is-current" : ""}">
-        <span>${index < current ? "✓" : number}</span>
+      <li class="phase-step ${index < current ? 'is-done' : ''} ${id === state.phase ? 'is-current' : ''}">
+        <span>${index < current ? '✓' : number}</span>
         <strong>${label}</strong>
       </li>`,
-  ).join("");
+  ).join('');
 }
 
 function renderSource(source) {
@@ -1426,10 +2457,10 @@ function renderSource(source) {
 }
 
 const IMPACT_LABELS = {
-  businessJourney: ["业务场景", "用户结果"],
-  goldenMetrics: ["黄金指标", "业务门禁"],
-  traceDependencies: ["Trace 直接依赖", "运行时事实"],
-  middleware: ["中间件", "资源依赖"],
+  businessJourney: ['业务场景', '用户结果'],
+  goldenMetrics: ['黄金指标', '业务门禁'],
+  traceDependencies: ['Trace 直接依赖', '运行时事实'],
+  middleware: ['中间件', '资源依赖'],
 };
 
 function renderImpactMatrix(impactDimensions) {
@@ -1440,9 +2471,9 @@ function renderImpactMatrix(impactDimensions) {
         ${Object.entries(impactDimensions)
           .map(([dimension, values]) => {
             const [label, hint] = IMPACT_LABELS[dimension];
-            return `<article><span>${label}</span><strong>${values.map(escapeHtml).join(" · ")}</strong><small>${hint}</small></article>`;
+            return `<article><span>${label}</span><strong>${values.map(escapeHtml).join(' · ')}</strong><small>${hint}</small></article>`;
           })
-          .join("")}
+          .join('')}
       </div>
     </section>`;
 }
@@ -1464,27 +2495,27 @@ function renderContext(vm) {
     <section class="panel context-panel" aria-labelledby="context-title">
       <header class="panel-heading">
         <div><span class="module-tag">Module 01 · Input compiler</span><h2 id="context-title">输入与变更理解</h2></div>
-        <span class="source-status ${visible ? "is-ready" : ""}">${visible ? "已确认" : "待确认"}</span>
+        <span class="source-status ${visible ? 'is-ready' : ''}">${visible ? '已确认' : '待确认'}</span>
       </header>
       <div class="prompt-card">
-        <span>${workspace.entryKind === "combined-context" ? "用户意图 + 外部上下文" : "用户巡检意图"}</span>
+        <span>${workspace.entryKind === 'combined-context' ? '用户意图 + 外部上下文' : '用户巡检意图'}</span>
         <p>“${escapeHtml(workspace.prompt)}”</p>
       </div>
       <dl class="change-facts">
         <div><dt>声明对象</dt><dd>${escapeHtml(workspace.declaredChange.summary)}</dd></div>
         <div><dt>声明指纹</dt><dd><code>${escapeHtml(workspace.declaredChange.fingerprint)}</code></dd></div>
-        <div><dt>实际变化</dt><dd>${visible ? escapeHtml(workspace.observedChange.summary) : "等待运行时事实对账"}</dd></div>
-        <div><dt>实际指纹</dt><dd><code>${visible ? escapeHtml(workspace.observedChange.fingerprint) : "—"}</code></dd></div>
+        <div><dt>实际变化</dt><dd>${visible ? escapeHtml(workspace.observedChange.summary) : '等待运行时事实对账'}</dd></div>
+        <div><dt>实际指纹</dt><dd><code>${visible ? escapeHtml(workspace.observedChange.fingerprint) : '—'}</code></dd></div>
       </dl>
       ${
         visible
-          ? `<div class="reconciliation ${scope.status === "Exact" ? "is-exact" : "is-expanded"}">
+          ? `<div class="reconciliation ${scope.status === 'Exact' ? 'is-exact' : 'is-expanded'}">
               <span>Change Reconciliation</span>
               <strong>${scope.status}</strong>
-              <p>${scope.status === "Exact" ? "声明与运行时事实一致。" : `发现 ${scope.addedEntities.length} 个声明外实体，已扩大巡检范围。`}</p>
+              <p>${scope.status === 'Exact' ? '声明与运行时事实一致。' : `发现 ${scope.addedEntities.length} 个声明外实体，已扩大巡检范围。`}</p>
             </div>
-            <ul class="entity-cloud">${scope.entities.map((entity) => `<li>${escapeHtml(entity)}</li>`).join("")}</ul>`
-          : ""
+            <ul class="entity-cloud">${scope.entities.map((entity) => `<li>${escapeHtml(entity)}</li>`).join('')}</ul>`
+          : ''
       }
     </section>`;
 }
@@ -1496,10 +2527,10 @@ function renderScope(vm) {
       <h2>多源事实已经对齐</h2>
       <p>不是把图谱上的所有关系塞进任务，而是用业务目标、运行时 Trace 和已注册能力收敛检查范围。</p>
       ${renderImpactMatrix(vm.workspace.impactDimensions)}
-      <ul class="source-list">${vm.workspace.contextSources.map(renderSource).join("")}</ul>
+      <ul class="source-list">${vm.workspace.contextSources.map(renderSource).join('')}</ul>
       <div class="hypothesis-block">
         <span>本次要证伪的风险假设</span>
-        <ol>${vm.workspace.hypotheses.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol>
+        <ol>${vm.workspace.hypotheses.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>
       </div>
     </div>`;
 }
@@ -1513,12 +2544,12 @@ function renderExecution(vm) {
         ${vm.execution
           .map(
             (step, index) => `<li class="execution-item ${step.progress} ${step.status.toLowerCase()}">
-              <span class="execution-number">${String(index + 1).padStart(2, "0")}</span>
-              <div><strong>${escapeHtml(step.label)}</strong><p>${step.progress === "complete" ? escapeHtml(step.fact) : step.progress === "active" ? "等待运行下一步 mock 证据" : "排队等待前置检查"}</p></div>
-              <code>${step.progress === "complete" ? step.status : step.progress}</code>
+              <span class="execution-number">${String(index + 1).padStart(2, '0')}</span>
+              <div><strong>${escapeHtml(step.label)}</strong><p>${step.progress === 'complete' ? escapeHtml(step.fact) : step.progress === 'active' ? '等待运行下一步 mock 证据' : '排队等待前置检查'}</p></div>
+              <code>${step.progress === 'complete' ? step.status : step.progress}</code>
             </li>`,
           )
-          .join("")}
+          .join('')}
       </ol>
     </div>`;
 }
@@ -1543,18 +2574,18 @@ function renderReport(vm) {
       </div>
       <p class="report-summary">${escapeHtml(report.summary)}</p>
       <div class="report-columns">
-        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
-        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>
+        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
+        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
       </div>
       ${
         report.rcAgent
-          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? "收起 RC Agent" : "启动 RC Agent"}</button>
+          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
             ${
               vm.state.rcExpanded
-                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join("<i>→</i>")}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
-                : ""
+                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
+                : ''
             }`
-          : ""
+          : ''
       }
     </div>`;
 }
@@ -1571,17 +2602,20 @@ function renderStage(vm) {
 }
 
 function primaryAction(vm) {
-  if (!vm.workspace) return "";
+  if (!vm.workspace) return '';
   const actions = {
-    intake: ["INPUT_CONFIRMED", "确认理解结果"],
-    context: ["SCOPE_ACCEPTED", "接受范围并生成任务"],
-    plan: ["PLAN_CONFIRMED", vm.readiness.status === "ready" ? "确认任务并开始执行" : "请先处置高风险候选"],
-    execution: ["EXECUTION_ADVANCED", vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? "完成执行并生成报告" : "运行下一步 mock 检查"],
-    report: ["RESET", "新建巡检工作区"],
+    intake: ['INPUT_CONFIRMED', '确认理解结果'],
+    context: ['SCOPE_ACCEPTED', '接受范围并生成任务'],
+    plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '确认任务并开始执行' : '请先处置高风险候选'],
+    execution: [
+      'EXECUTION_ADVANCED',
+      vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? '完成执行并生成报告' : '运行下一步 mock 检查',
+    ],
+    report: ['RESET', '新建巡检工作区'],
   };
   const [action, label] = actions[vm.state.phase];
-  const disabled = vm.state.phase === "plan" && vm.readiness.status !== "ready";
-  return `<button class="primary-action" data-action="${action}" ${disabled ? "disabled" : ""} type="button"><span>${escapeHtml(label)}</span><b>→</b></button>`;
+  const disabled = vm.state.phase === 'plan' && vm.readiness.status !== 'ready';
+  return `<button class="primary-action" data-action="${action}" ${disabled ? 'disabled' : ''} type="button"><span>${escapeHtml(label)}</span><b>→</b></button>`;
 }
 
 function renderCopilot(vm) {
@@ -1594,11 +2628,14 @@ function renderCopilot(vm) {
       </aside>`;
   }
   const copy = {
-    intake: ["先确认我理解得对不对", "实体不唯一或缺少版本时，我不会静默猜测。"],
-    context: ["范围不是知识图谱全展开", "我只保留业务目标、运行时事实与可执行能力共同支持的关系。"],
-    plan: ["候选不是正式任务", vm.readiness.status === "ready" ? "当前计划已满足确认条件。" : "高关键度候选仍未处置，计划不能确认。"],
-    execution: ["执行与解释分开", "确定性引擎产生证据；Copilot 只组织理由和下一步。"],
-    report: ["结论有边界", vm.report?.scopeStatement ?? "报告尚未生成"],
+    intake: ['先确认我理解得对不对', '实体不唯一或缺少版本时，我不会静默猜测。'],
+    context: ['范围不是知识图谱全展开', '我只保留业务目标、运行时事实与可执行能力共同支持的关系。'],
+    plan: [
+      '候选不是正式任务',
+      vm.readiness.status === 'ready' ? '当前计划已满足确认条件。' : '高关键度候选仍未处置，计划不能确认。',
+    ],
+    execution: ['执行与解释分开', '确定性引擎产生证据；Copilot 只组织理由和下一步。'],
+    report: ['结论有边界', vm.report?.scopeStatement ?? '报告尚未生成'],
   }[vm.state.phase];
   return `
     <aside class="panel copilot-panel" aria-label="Copilot 解释">
@@ -1610,8 +2647,8 @@ function renderCopilot(vm) {
 }
 
 function renderApp(vm) {
-  const eyebrow = vm.workspace?.eyebrow ?? "User-defined inspection workspace";
-  const workspaceId = vm.workspace?.id ?? "new";
+  const eyebrow = vm.workspace?.eyebrow ?? 'User-defined inspection workspace';
+  const workspaceId = vm.workspace?.id ?? 'new';
   return `
     <div class="app-shell" data-phase="${vm.state.phase}" data-workspace="${escapeHtml(workspaceId)}">
       <header class="app-header">
@@ -1629,7 +2666,7 @@ function renderApp(vm) {
     </div>`;
 }
 
-const root = document.querySelector("#app");
+const root = document.querySelector('#app');
 let state = createDemoSession();
 
 function render() {
@@ -1641,30 +2678,27 @@ function dispatch(action) {
   if (next !== state) {
     state = next;
     render();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
 
-root.addEventListener("click", (event) => {
-  const exampleButton = event.target.closest("[data-example-id]");
+root.addEventListener('click', (event) => {
+  const exampleButton = event.target.closest('[data-example-id]');
   if (exampleButton) {
-    const example = inspectionExamples.find(
-      (item) => item.id === exampleButton.dataset.exampleId,
-    );
-    const form = root.querySelector("[data-intent-form]");
+    const example = inspectionExamples.find((item) => item.id === exampleButton.dataset.exampleId);
+    const form = root.querySelector('[data-intent-form]');
     if (!example || !form) return;
-    form.elements.namedItem("inspection-intent").value = example.prompt;
-    form.elements.namedItem("target-service").value = example.targetService;
-    form.elements.namedItem("context-reference").value =
-      example.contextReference;
-    form.elements.namedItem("inspection-intent").focus();
+    form.elements.namedItem('inspection-intent').value = example.prompt;
+    form.elements.namedItem('target-service').value = example.targetService;
+    form.elements.namedItem('context-reference').value = example.contextReference;
+    form.elements.namedItem('inspection-intent').focus();
     return;
   }
 
-  const actionButton = event.target.closest("[data-action]");
+  const actionButton = event.target.closest('[data-action]');
   if (!actionButton || actionButton.disabled) return;
   const { action } = actionButton.dataset;
-  if (action === "CANDIDATE_DISPOSED") {
+  if (action === 'CANDIDATE_DISPOSED') {
     dispatch({
       type: action,
       candidateId: actionButton.dataset.candidateId,
@@ -1676,17 +2710,17 @@ root.addEventListener("click", (event) => {
   dispatch({ type: action });
 });
 
-root.addEventListener("submit", (event) => {
-  const form = event.target.closest("[data-intent-form]");
+root.addEventListener('submit', (event) => {
+  const form = event.target.closest('[data-intent-form]');
   if (!form) return;
   event.preventDefault();
   const data = new FormData(form);
   dispatch({
-    type: "INTENT_SUBMITTED",
+    type: 'INTENT_SUBMITTED',
     request: {
-      prompt: data.get("inspection-intent"),
-      targetService: data.get("target-service"),
-      contextReference: data.get("context-reference"),
+      prompt: data.get('inspection-intent'),
+      targetService: data.get('target-service'),
+      contextReference: data.get('context-reference'),
     },
   });
 });

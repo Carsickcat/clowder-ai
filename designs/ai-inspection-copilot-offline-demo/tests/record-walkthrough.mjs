@@ -1,20 +1,13 @@
-import assert from "node:assert/strict";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
+import assert from 'node:assert/strict';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-import { launchOfflineChrome } from "./cdp-client.mjs";
+import { launchOfflineChrome } from './cdp-client.mjs';
 
-const rootDirectory = path.resolve(import.meta.dirname, "..");
-const artifactPath = path.join(
-  rootDirectory,
-  "index.html",
-);
-const outputPath = path.join(
-  rootDirectory,
-  "evidence",
-  "06-user-directed-risk-walkthrough-15s.webm",
-);
+const rootDirectory = path.resolve(import.meta.dirname, '..');
+const artifactPath = path.join(rootDirectory, 'index.html');
+const outputPath = path.join(rootDirectory, 'evidence', '06-user-directed-risk-walkthrough-15s.webm');
 
 async function click(session, selector) {
   const clicked = await session.evaluate(`(() => {
@@ -27,8 +20,8 @@ async function click(session, selector) {
 }
 
 async function captureFrame(session) {
-  const result = await session.send("Page.captureScreenshot", {
-    format: "jpeg",
+  const result = await session.send('Page.captureScreenshot', {
+    format: 'jpeg',
     quality: 72,
     captureBeyondViewport: false,
   });
@@ -97,35 +90,30 @@ async function main() {
   const { session } = browser;
   try {
     await Promise.all([
-      session.send("Page.enable"),
-      session.send("Runtime.enable"),
-      session.send("Emulation.setDeviceMetricsOverride", {
+      session.send('Page.enable'),
+      session.send('Runtime.enable'),
+      session.send('Emulation.setDeviceMetricsOverride', {
         width: 1440,
         height: 1000,
         deviceScaleFactor: 1,
         mobile: false,
       }),
     ]);
-    const loaded = session.once("Page.loadEventFired");
-    await session.send("Page.navigate", {
+    const loaded = session.once('Page.loadEventFired');
+    await session.send('Page.navigate', {
       url: pathToFileURL(artifactPath).href,
     });
     await loaded;
 
     const frames = [];
     await click(session, '[data-example-id="payment-config"]');
-    await session.evaluate(
-      'document.querySelector("[data-intent-form]").requestSubmit()',
-    );
+    await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
     frames.push(await captureFrame(session));
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     frames.push(await captureFrame(session));
     await click(session, '[data-action="SCOPE_ACCEPTED"]');
     frames.push(await captureFrame(session));
-    await click(
-      session,
-      '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]',
-    );
+    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
     frames.push(await captureFrame(session));
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     for (let index = 0; index < 4; index += 1) {
@@ -136,13 +124,10 @@ async function main() {
     frames.push(await captureFrame(session));
 
     const recording = await composeWebm(session, frames);
-    assert.ok(recording.elapsedMs >= 14_500, "recording must be at least 14.5 seconds");
-    assert.ok(
-      recording.size > 10_000,
-      `recording must contain meaningful frames (received ${recording.size} bytes)`,
-    );
+    assert.ok(recording.elapsedMs >= 14_500, 'recording must be at least 14.5 seconds');
+    assert.ok(recording.size > 10_000, `recording must contain meaningful frames (received ${recording.size} bytes)`);
     await mkdir(path.dirname(outputPath), { recursive: true });
-    await writeFile(outputPath, Buffer.from(recording.base64, "base64"));
+    await writeFile(outputPath, Buffer.from(recording.base64, 'base64'));
     process.stdout.write(
       `Recorded ${outputPath} (${recording.elapsedMs}ms, ${recording.size} bytes, ${recording.mimeType}).\n`,
     );

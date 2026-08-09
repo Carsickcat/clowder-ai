@@ -1,13 +1,13 @@
-import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import path from "node:path";
-import { promisify } from "node:util";
-import test from "node:test";
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import path from 'node:path';
+import test from 'node:test';
+import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
-const rootDirectory = path.resolve(import.meta.dirname, "..");
+const rootDirectory = path.resolve(import.meta.dirname, '..');
 
-test("offline Chrome evidence process closes without orphaned stdio handles", async () => {
+test('offline Chrome evidence process closes without orphaned stdio handles', async () => {
   const script = `
     import { launchOfflineChrome } from "./tests/cdp-client.mjs";
     const browser = await launchOfflineChrome();
@@ -20,15 +20,11 @@ test("offline Chrome evidence process closes without orphaned stdio handles", as
     process.stdout.write("closed\\n");
   `;
 
-  const { stdout } = await execFileAsync(
-    process.execPath,
-    ["--input-type=module", "--eval", script],
-    {
-      cwd: rootDirectory,
-      timeout: 8_000,
-      windowsHide: true,
-    },
-  );
+  const { stdout } = await execFileAsync(process.execPath, ['--input-type=module', '--eval', script], {
+    cwd: rootDirectory,
+    timeout: 8_000,
+    windowsHide: true,
+  });
 
   assert.match(stdout, /closed/);
 });

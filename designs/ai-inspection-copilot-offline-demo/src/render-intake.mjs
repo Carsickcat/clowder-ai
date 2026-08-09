@@ -1,5 +1,5 @@
-import { inspectionExamples } from "../lib/compiler.mjs";
-import { escapeHtml } from "./view-utils.mjs";
+import { inspectionExamples } from '../lib/compiler.mjs';
+import { escapeHtml } from './view-utils.mjs';
 
 function renderExamples() {
   return inspectionExamples
@@ -11,7 +11,7 @@ function renderExamples() {
           <small>${escapeHtml(example.prompt)}</small>
         </button>`,
     )
-    .join("");
+    .join('');
 }
 
 function renderComposer() {
@@ -56,7 +56,7 @@ function renderUnderstanding(vm) {
       <div class="understanding-grid">
         <div><span>服务 / 版本</span><strong>${escapeHtml(workspace.declaredChange.entities[0])} · ${escapeHtml(workspace.declaredChange.version)}</strong></div>
         <div><span>可靠性目标</span><strong>${escapeHtml(workspace.hypotheses[0])}</strong></div>
-        <div><span>上下文组合</span><strong>${workspace.entryKind === "combined-context" ? "用户意图 + 电子流补全" : "用户意图"}</strong></div>
+        <div><span>上下文组合</span><strong>${workspace.entryKind === 'combined-context' ? '用户意图 + 电子流补全' : '用户意图'}</strong></div>
       </div>
       <button class="edit-intent" data-action="RESET" type="button">返回修改输入</button>
     </div>`;

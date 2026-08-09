@@ -1,24 +1,19 @@
-import { execFile, spawn } from "node:child_process";
-import { once } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
+import { execFile, spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
-const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
 async function terminateProcessTree(child) {
   if (child.exitCode !== null || child.killed) return;
-  if (process.platform !== "win32") {
+  if (process.platform !== 'win32') {
     child.kill();
     return;
   }
   await new Promise((resolve) => {
-    execFile(
-      "taskkill.exe",
-      ["/PID", String(child.pid), "/T", "/F"],
-      { windowsHide: true },
-      () => resolve(),
-    );
+    execFile('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true }, () => resolve());
   });
 }
 
@@ -42,9 +37,9 @@ class CdpSession {
 
   async connect() {
     const ready = deferred();
-    this.socket.addEventListener("open", ready.resolve, { once: true });
-    this.socket.addEventListener("error", ready.reject, { once: true });
-    this.socket.addEventListener("message", (event) => {
+    this.socket.addEventListener('open', ready.resolve, { once: true });
+    this.socket.addEventListener('error', ready.reject, { once: true });
+    this.socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data);
       if (message.id) {
         const request = this.pending.get(message.id);
@@ -90,7 +85,7 @@ class CdpSession {
   }
 
   async evaluate(expression) {
-    const response = await this.send("Runtime.evaluate", {
+    const response = await this.send('Runtime.evaluate', {
       expression,
       returnByValue: true,
       awaitPromise: true,
@@ -108,12 +103,9 @@ class CdpSession {
 
 async function waitForDevTools(child) {
   const response = deferred();
-  let buffer = "";
-  const timeout = setTimeout(
-    () => response.reject(new Error("Chrome DevTools endpoint timed out")),
-    10_000,
-  );
-  child.stderr.on("data", (chunk) => {
+  let buffer = '';
+  const timeout = setTimeout(() => response.reject(new Error('Chrome DevTools endpoint timed out')), 10_000);
+  child.stderr.on('data', (chunk) => {
     buffer += chunk.toString();
     const match = buffer.match(/DevTools listening on (ws:\/\/[^\s]+)/);
     if (match) {
@@ -121,7 +113,7 @@ async function waitForDevTools(child) {
       response.resolve(match[1]);
     }
   });
-  child.once("exit", (code) => {
+  child.once('exit', (code) => {
     clearTimeout(timeout);
     response.reject(new Error(`Chrome exited before DevTools was ready (${code})`));
   });
@@ -129,36 +121,32 @@ async function waitForDevTools(child) {
 }
 
 export async function launchOfflineChrome() {
-  const profileDirectory = await mkdtemp(
-    path.join(os.tmpdir(), "ai-inspection-cdp-"),
-  );
+  const profileDirectory = await mkdtemp(path.join(os.tmpdir(), 'ai-inspection-cdp-'));
   const child = spawn(
     chromePath,
     [
-      "--headless",
-      "--disable-background-timer-throttling",
-      "--disable-backgrounding-occluded-windows",
-      "--disable-breakpad",
-      "--disable-crash-reporter",
-      "--disable-gpu",
-      "--disable-renderer-backgrounding",
-      "--no-sandbox",
-      "--no-first-run",
-      "--no-default-browser-check",
+      '--headless',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-breakpad',
+      '--disable-crash-reporter',
+      '--disable-gpu',
+      '--disable-renderer-backgrounding',
+      '--no-sandbox',
+      '--no-first-run',
+      '--no-default-browser-check',
       `--user-data-dir=${profileDirectory}`,
-      "--remote-debugging-port=0",
-      "about:blank",
+      '--remote-debugging-port=0',
+      'about:blank',
     ],
-    { stdio: ["ignore", "ignore", "pipe"] },
+    { stdio: ['ignore', 'ignore', 'pipe'] },
   );
   const browserWebSocket = await waitForDevTools(child);
   child.stderr?.destroy();
   const { hostname, port } = new URL(browserWebSocket);
-  const targets = await fetch(`http://${hostname}:${port}/json/list`).then(
-    (response) => response.json(),
-  );
-  const pageTarget = targets.find((target) => target.type === "page");
-  if (!pageTarget) throw new Error("Chrome did not expose a page target");
+  const targets = await fetch(`http://${hostname}:${port}/json/list`).then((response) => response.json());
+  const pageTarget = targets.find((target) => target.type === 'page');
+  if (!pageTarget) throw new Error('Chrome did not expose a page target');
   const session = await new CdpSession(pageTarget.webSocketDebuggerUrl).connect();
 
   return {
@@ -168,10 +156,7 @@ export async function launchOfflineChrome() {
       child.stderr?.destroy();
       await terminateProcessTree(child);
       if (child.exitCode === null) {
-        await Promise.race([
-          once(child, "exit"),
-          new Promise((resolve) => setTimeout(resolve, 2_000)),
-        ]);
+        await Promise.race([once(child, 'exit'), new Promise((resolve) => setTimeout(resolve, 2_000))]);
       }
       await rm(profileDirectory, {
         force: true,

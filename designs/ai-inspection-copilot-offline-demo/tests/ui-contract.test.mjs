@@ -1,9 +1,9 @@
-import assert from "node:assert/strict";
-import test from "node:test";
+import assert from 'node:assert/strict';
+import test from 'node:test';
 
-import { createDemoSession, demoReducer } from "../lib/reducer.mjs";
-import { selectViewModel } from "../lib/selectors.mjs";
-import { renderApp } from "../src/render.mjs";
+import { createDemoSession, demoReducer } from '../lib/reducer.mjs';
+import { selectViewModel } from '../lib/selectors.mjs';
+import { renderApp } from '../src/render.mjs';
 
 function dispatch(state, type, payload = {}) {
   return demoReducer(state, { type, ...payload });
@@ -11,17 +11,17 @@ function dispatch(state, type, payload = {}) {
 
 function paymentState() {
   let state = createDemoSession();
-  state = dispatch(state, "INTENT_SUBMITTED", {
+  state = dispatch(state, 'INTENT_SUBMITTED', {
     request: {
-      prompt: "调整 payment-api Redis 超时，帮我生成巡检计划。",
-      targetService: "payment-api",
-      contextReference: "CHG-84217",
+      prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
+      targetService: 'payment-api',
+      contextReference: 'CHG-84217',
     },
   });
   return state;
 }
 
-test("intake is a blank user-driven product entry, not fixed journey navigation", () => {
+test('intake is a blank user-driven product entry, not fixed journey navigation', () => {
   const html = renderApp(selectViewModel(createDemoSession()));
   assert.match(html, /创建任意巡检工作区/);
   assert.match(html, /name="inspection-intent"/);
@@ -38,10 +38,10 @@ test("intake is a blank user-driven product entry, not fixed journey navigation"
   assert.match(html, /行动报告/);
 });
 
-test("electronic-flow plan exposes reconciliation and blocks unresolved candidate", () => {
+test('electronic-flow plan exposes reconciliation and blocks unresolved candidate', () => {
   let state = paymentState();
-  state = dispatch(state, "INPUT_CONFIRMED");
-  state = dispatch(state, "SCOPE_ACCEPTED");
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dispatch(state, 'SCOPE_ACCEPTED');
   const html = renderApp(selectViewModel(state));
 
   assert.match(html, /Observed-Superset/);
@@ -49,54 +49,36 @@ test("electronic-flow plan exposes reconciliation and blocks unresolved candidat
   assert.match(html, /settlement-db/);
   assert.match(html, /数据库连接等待/);
   assert.match(html, /待处置/);
-  assert.match(
-    html,
-    /data-testid="plan-stat-required"[\s\S]*?<strong>3<\/strong>/,
-  );
-  assert.match(
-    html,
-    /data-testid="plan-stat-recommended"[\s\S]*?<strong>0<\/strong>/,
-  );
-  assert.match(
-    html,
-    /data-testid="plan-stat-pending"[\s\S]*?<strong>1<\/strong>/,
-  );
+  assert.match(html, /data-testid="plan-stat-required"[\s\S]*?<strong>3<\/strong>/);
+  assert.match(html, /data-testid="plan-stat-recommended"[\s\S]*?<strong>0<\/strong>/);
+  assert.match(html, /data-testid="plan-stat-pending"[\s\S]*?<strong>1<\/strong>/);
   assert.match(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
 });
 
-test("accepted candidate becomes a formal check and unlocks confirmation", () => {
+test('accepted candidate becomes a formal check and unlocks confirmation', () => {
   let state = paymentState();
-  state = dispatch(state, "INPUT_CONFIRMED");
-  state = dispatch(state, "SCOPE_ACCEPTED");
-  state = dispatch(state, "CANDIDATE_DISPOSED", {
-    candidateId: "candidate-db-wait",
-    disposition: "accepted",
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  state = dispatch(state, 'CANDIDATE_DISPOSED', {
+    candidateId: 'candidate-db-wait',
+    disposition: 'accepted',
   });
   const html = renderApp(selectViewModel(state));
 
   assert.match(html, /已纳入正式计划/);
   assert.match(html, /db\.pool\.wait_p95/);
-  assert.match(
-    html,
-    /data-testid="plan-stat-recommended"[\s\S]*?<strong>1<\/strong>/,
-  );
-  assert.match(
-    html,
-    /data-testid="plan-stat-pending"[\s\S]*?<strong>0<\/strong>/,
-  );
+  assert.match(html, /data-testid="plan-stat-recommended"[\s\S]*?<strong>1<\/strong>/);
+  assert.match(html, /data-testid="plan-stat-pending"[\s\S]*?<strong>0<\/strong>/);
   assert.match(html, /<details[^>]+class="check-card[^>]*>/);
   assert.match(html, /来源与判定依据/);
   assert.match(html, /CHG-84217/);
   assert.match(html, /Observed-Superset/);
-  assert.doesNotMatch(
-    html,
-    /data-action="PLAN_CONFIRMED"[^>]+disabled/,
-  );
+  assert.doesNotMatch(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
 });
 
-test("scope presents business, metric, trace, and middleware impact dimensions together", () => {
+test('scope presents business, metric, trace, and middleware impact dimensions together', () => {
   let state = paymentState();
-  state = dispatch(state, "INPUT_CONFIRMED");
+  state = dispatch(state, 'INPUT_CONFIRMED');
   const html = renderApp(selectViewModel(state));
 
   assert.match(html, /data-testid="impact-matrix"/);
@@ -110,17 +92,17 @@ test("scope presents business, metric, trace, and middleware impact dimensions t
   assert.match(html, /settlement-db · Redis · invoice queue/);
 });
 
-test("risk report leads with action while preserving evidence semantics", () => {
+test('risk report leads with action while preserving evidence semantics', () => {
   let state = paymentState();
-  state = dispatch(state, "INPUT_CONFIRMED");
-  state = dispatch(state, "SCOPE_ACCEPTED");
-  state = dispatch(state, "CANDIDATE_DISPOSED", {
-    candidateId: "candidate-db-wait",
-    disposition: "accepted",
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  state = dispatch(state, 'CANDIDATE_DISPOSED', {
+    candidateId: 'candidate-db-wait',
+    disposition: 'accepted',
   });
-  state = dispatch(state, "PLAN_CONFIRMED");
+  state = dispatch(state, 'PLAN_CONFIRMED');
   for (let index = 0; index < 4; index += 1) {
-    state = dispatch(state, "EXECUTION_ADVANCED");
+    state = dispatch(state, 'EXECUTION_ADVANCED');
   }
   const html = renderApp(selectViewModel(state));
 
