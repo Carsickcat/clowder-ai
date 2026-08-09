@@ -13,7 +13,7 @@ Original request: “输出一份不需要起端口的离线可验收 Demo，要
 
 Corrected product requirement: “这是一个完成的产品……产品构建用户决定怎么使用，而不是你直接限制住两个场景给用户用。”
 
-Checked implementation: user-driven product commit `09d0fa9` plus Terra P1 repair in the current review delta.
+Checked implementation: user-driven product commit `09d0fa9` plus Terra P1 repair `2c2933d`.
 
 Check time: 2026-08-09
 

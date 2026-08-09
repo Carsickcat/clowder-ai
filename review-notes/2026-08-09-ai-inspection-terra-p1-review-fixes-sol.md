@@ -2,6 +2,7 @@
 
 Review-Target-ID: `feat-ai-inspection-offline-demo`
 Branch: `feat/ai-inspection-offline-demo`
+Fix commit: `2c2933d fix(aiops): isolate generic inspection domains`
 
 ## Finding disposition
 

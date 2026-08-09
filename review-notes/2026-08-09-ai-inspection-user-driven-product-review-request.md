@@ -2,7 +2,7 @@
 
 Review-Target-ID: `feat-ai-inspection-offline-demo`
 Branch: `feat/ai-inspection-offline-demo`
-Target commit: `22450c9947c9e3e06c0ce9d5dbbc617f31d0f71a`
+Target commit: `2c2933d fix(aiops): isolate generic inspection domains`
 Delta base: `2cf6bd4e334fce95526ec3ee543731b8453f785f`
 
 ## What
@@ -70,7 +70,7 @@ Why: 在既有离线 Demo 边界内，将固定 Scenario 状态模型替换为 `
 
 1. 从空白入口输入一个非预置服务（建议 `inventory-api v2.3.1`），关联任意电子流编号，完整走到报告；
 2. 新建工作区，点击高风险示例确认它只填表且仍可编辑，再走到 `Pause -> RC Agent`；
-3. 运行 `pnpm check`，核验构建、20 项测试、两条浏览器旅程、零网络请求与移动端无横向溢出；
+3. 运行 `pnpm check`，核验构建、22 项测试、两条浏览器旅程、零网络请求与移动端无横向溢出；
 4. 返回 `APPROVE` 或 `REQUEST_CHANGES`，并列出 P1/P2/P3。
 
 ## Review Sandbox（必填）
@@ -100,13 +100,13 @@ pnpm check
 作者本轮结果：
 
 - 构建成功；
-- 20/20 测试通过；
-- 浏览器完成两条用户驱动旅程：自定义 `inventory-api` 为 `Verified -> Proceed`，风险请求为 `Violated -> Pause -> RC Agent`；
+- 22/22 测试通过；
+- 浏览器完成两条用户驱动旅程：非 fixture 的 `fulfillment-service` 为 `Verified -> Proceed`，风险请求为 `Violated -> Pause -> RC Agent`；
 - HTTP(S) 请求 0，浏览器错误 0；
 - 390px 原生移动视口无横向溢出；
 - `git diff --check` 通过；
-- `index.html` 75,030 bytes；
-- SHA-256：`81D3AAC6753663E85E2D7D17BC74337CE25E98A161194F7588D12E08010C0DC2`。
+- `index.html` 79,433 bytes；
+- SHA-256：`24A7E4FE52064AEECD2412D9545208E456BAC47F0203717C7E327F4C766DEA51`。
 
 ### 浏览器证据
 
