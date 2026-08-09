@@ -34,6 +34,7 @@ describe('Callback Routes', () => {
   let taskStore;
   let backlogStore;
   let featIndexProvider;
+  let validateRepo;
 
   beforeEach(async () => {
     const { InvocationRegistry } = await import(
@@ -67,6 +68,7 @@ describe('Callback Routes', () => {
       transition: async () => {},
     };
     featIndexProvider = undefined;
+    validateRepo = undefined;
   });
 
   async function createApp() {
@@ -89,6 +91,9 @@ describe('Callback Routes', () => {
     }
     if (featIndexProvider) {
       options.featIndexProvider = featIndexProvider;
+    }
+    if (validateRepo) {
+      options.validateRepo = validateRepo;
     }
     await app.register(callbacksRoutes, options);
     return app;
@@ -2009,6 +2014,38 @@ describe('Callback Routes', () => {
     const found = taskStore.getBySubject('pr:zts212653/cat-cafe#99');
     assert.ok(found, 'task must be stored');
     assert.equal(found.threadId, 'thread-pr');
+  });
+
+  test('POST register-pr-tracking returns 422 when repository validation reports a missing repository', async () => {
+    validateRepo = async () => false;
+    const app = await createApp();
+    const { invocationId, callbackToken } = registry.create('user-1', 'opus', 'thread-pr');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/callbacks/register-pr-tracking',
+      payload: { invocationId, callbackToken, repoFullName: 'missing-owner/missing-repo', prNumber: 99 },
+    });
+
+    assert.equal(response.statusCode, 422);
+    assert.match(response.body, /does not exist or is not accessible/);
+  });
+
+  test('POST register-pr-tracking returns 503 when repository validation is unavailable', async () => {
+    validateRepo = async () => {
+      throw new Error('GitHub unavailable');
+    };
+    const app = await createApp();
+    const { invocationId, callbackToken } = registry.create('user-1', 'opus', 'thread-pr');
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/callbacks/register-pr-tracking',
+      payload: { invocationId, callbackToken, repoFullName: 'octo-org/hello-world', prNumber: 99 },
+    });
+
+    assert.equal(response.statusCode, 503);
+    assert.match(response.body, /validation unavailable/);
   });
 
   test('POST register-pr-tracking rejects invalid credentials', async () => {
