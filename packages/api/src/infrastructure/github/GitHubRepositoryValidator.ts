@@ -35,10 +35,12 @@ function repositoryUrl(repoFullName: string): string {
  */
 export function createGitHubRepositoryValidator(options: GitHubRepositoryValidatorOptions = {}) {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
-  const token = options.token ?? process.env.GITHUB_TOKEN ?? process.env.GITHUB_MCP_PAT;
   const timeoutMs = options.timeoutMs ?? 10_000;
 
   return async (repoFullName: string): Promise<boolean> => {
+    // GITHUB_MCP_PAT is runtime-editable through the connector secret updater,
+    // so resolve it per validation rather than freezing startup credentials.
+    const token = options.token ?? process.env.GITHUB_MCP_PAT ?? process.env.GITHUB_TOKEN;
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'CatCafe-PR-Tracking/1.0',

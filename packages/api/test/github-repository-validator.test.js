@@ -29,6 +29,33 @@ describe('GitHubRepositoryValidator', () => {
     assert.ok(received.init.signal instanceof AbortSignal);
   });
 
+  test('reads a runtime-updated GitHub MCP PAT for each validation', async () => {
+    const originalToken = process.env.GITHUB_TOKEN;
+    const originalMcpPat = process.env.GITHUB_MCP_PAT;
+    let received;
+
+    try {
+      process.env.GITHUB_TOKEN = 'startup-fallback-token';
+      delete process.env.GITHUB_MCP_PAT;
+      const validateRepository = createGitHubRepositoryValidator({
+        fetchImpl: async (_url, init) => {
+          received = init;
+          return response(200, 'OK');
+        },
+      });
+
+      process.env.GITHUB_MCP_PAT = 'runtime-updated-mcp-pat';
+
+      assert.equal(await validateRepository('octo-org/private-repo'), true);
+      assert.equal(received.headers.Authorization, 'Bearer runtime-updated-mcp-pat');
+    } finally {
+      if (originalToken === undefined) delete process.env.GITHUB_TOKEN;
+      else process.env.GITHUB_TOKEN = originalToken;
+      if (originalMcpPat === undefined) delete process.env.GITHUB_MCP_PAT;
+      else process.env.GITHUB_MCP_PAT = originalMcpPat;
+    }
+  });
+
   test('returns false only when GitHub reports the repository is not found', async () => {
     const validateRepository = createGitHubRepositoryValidator({
       fetchImpl: async () => response(404, 'Not Found'),
