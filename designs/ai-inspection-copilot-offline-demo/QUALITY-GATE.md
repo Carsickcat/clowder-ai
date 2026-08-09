@@ -13,7 +13,7 @@ Original request: “输出一份不需要起端口的离线可验收 Demo，要
 
 Corrected product requirement: “这是一个完成的产品……产品构建用户决定怎么使用，而不是你直接限制住两个场景给用户用。”
 
-Checked implementation commit: `09d0fa9 feat(aiops): make inspection workspace user-driven`
+Checked implementation: user-driven product commit `09d0fa9` plus Terra P1 repair in the current review delta.
 
 Check time: 2026-08-09
 
@@ -33,7 +33,7 @@ Check time: 2026-08-09
 | AC | Result | Code | Automated evidence |
 |---|---|---|---|
 | AC-01 Offline | Pass | `scripts/build.mjs`, `index.html` | deterministic standalone test + browser |
-| AC-02 User-defined product | Pass | `render-intake.mjs`, `compiler.mjs` | blank intake; custom `inventory-api` full journey |
+| AC-02 User-defined product | Pass | `render-intake.mjs`, `compiler.mjs` | blank intake; non-fixture `fulfillment-service` full journey |
 | AC-03 Composable context | Pass | `InspectionRequest` compiler | optional target service and `REL / CHG` provenance |
 | AC-04 Explainable generation | Pass | `domain.mjs`, `render-plan.mjs` | complete Check Contract + resolvable source refs |
 | AC-05 Reconciliation | Pass | `reconcileChange`, scope selector | `Observed-Superset` expands actual scope |
@@ -46,6 +46,8 @@ Check time: 2026-08-09
 - Session contains `workspace`, not `scenarioId`.
 - `INTENT_SUBMITTED` compiles the current user request.
 - Unknown services use the generic mock capability catalog and propagate their entity through scope, metrics, dependencies, Checks and report.
+- Generic workspaces are constructed from the normalized request and generic catalogs; they never clone or rewrite a domain fixture.
+- A recursive contract test rejects any order/payment fixture residue in a non-fixture workspace.
 - Example clicks do not create or switch a workspace; only form submission does.
 - `data-scenario-id` and the “验收场景” navigation are forbidden by tests.
 
@@ -56,7 +58,7 @@ Relevant `.pen` scan (`inspection|copilot|aiops`): none. The high-fidelity sourc
 | Requirement | Evidence |
 |---|---|
 | Blank user-defined product entry | `evidence/00-user-defined-intake.png` |
-| Arbitrary `inventory-api` request reaches scoped Proceed | `evidence/01-user-defined-proceed.png` |
+| Non-fixture `fulfillment-service` request reaches scoped Proceed | `evidence/01-user-defined-proceed.png` |
 | Native 390px risk report with RC evidence | `evidence/03-mobile-report.png` |
 | 15-second user-directed risk walkthrough | `evidence/06-user-directed-risk-walkthrough-15s.webm` (15.070s) |
 
@@ -66,7 +68,7 @@ Scope verdict: required and completed.
 
 Paths executed from the built `file://` artifact:
 
-1. Blank product → custom `inventory-api v2.3.1` + optional `REL-20260809-17` → compiled workspace → plan → four mock checks → `Verified + Proceed`.
+1. Blank product → custom `fulfillment-service v7.2.0` + optional `REL-FUL-72` → compiled workspace → expand every Check Contract → confirm no order/payment residue → four mock checks → `Verified + Proceed`.
 2. Blank product → editable payment example → form submit → Observed-Superset → candidate disposition → four mock checks → `Violated + Pause` → RC Agent.
 
 Dogfood findings fixed in this pass:
@@ -75,13 +77,15 @@ Dogfood findings fixed in this pass:
 - CDP evidence capture could hang because WebSocket closing preceded Chrome termination; shutdown order was corrected.
 - Recording left `canvas.captureStream()` tracks active; tracks are now explicitly stopped.
 - Mid-session viewport switching produced an unreliable blank mobile screenshot; the native 390px path now reloads and reruns the complete risk workflow before capture.
+- Terra review P1 found that the generic compiler cloned the order fixture and missed ten domain-bearing fields. The generic branch now constructs every source, Check, execution fact and report field from the current service context.
+- Fresh evidence capture exposed Windows Chrome descendants retaining inherited stdio/profile handles. The CDP harness now terminates the exact headless process tree; a child-process timeout regression passed three consecutive runs.
 
 ## Fresh verification
 
 ```text
 pnpm check
   deterministic standalone build: exit 0
-  unit/domain/compiler/UI tests: 20/20 pass
+  unit/domain/compiler/UI/harness tests: 22/22 pass
   file:// browser paths: 2/2 pass
   HTTP(S) network requests: 0
   browser errors: 0
@@ -101,8 +105,8 @@ Artifact:
 
 ```text
 path: index.html
-bytes: 75030
-sha256: 81D3AAC6753663E85E2D7D17BC74337CE25E98A161194F7588D12E08010C0DC2
+bytes: 79433
+sha256: 24A7E4FE52064AEECD2412D9545208E456BAC47F0203717C7E327F4C766DEA51
 ```
 
 Artifact hygiene: no media/design files at repository root. Exactly three screenshots and one walkthrough are archived under `evidence/`.

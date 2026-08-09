@@ -1,10 +1,26 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+
+async function terminateProcessTree(child) {
+  if (child.exitCode !== null || child.killed) return;
+  if (process.platform !== "win32") {
+    child.kill();
+    return;
+  }
+  await new Promise((resolve) => {
+    execFile(
+      "taskkill.exe",
+      ["/PID", String(child.pid), "/T", "/F"],
+      { windowsHide: true },
+      () => resolve(),
+    );
+  });
+}
 
 function deferred() {
   let resolve;
@@ -122,6 +138,8 @@ export async function launchOfflineChrome() {
       "--headless",
       "--disable-background-timer-throttling",
       "--disable-backgrounding-occluded-windows",
+      "--disable-breakpad",
+      "--disable-crash-reporter",
       "--disable-gpu",
       "--disable-renderer-backgrounding",
       "--no-sandbox",
@@ -134,6 +152,7 @@ export async function launchOfflineChrome() {
     { stdio: ["ignore", "ignore", "pipe"] },
   );
   const browserWebSocket = await waitForDevTools(child);
+  child.stderr?.destroy();
   const { hostname, port } = new URL(browserWebSocket);
   const targets = await fetch(`http://${hostname}:${port}/json/list`).then(
     (response) => response.json(),
@@ -145,14 +164,15 @@ export async function launchOfflineChrome() {
   return {
     session,
     async close() {
-      if (!child.killed) child.kill();
+      session.close();
+      child.stderr?.destroy();
+      await terminateProcessTree(child);
       if (child.exitCode === null) {
         await Promise.race([
           once(child, "exit"),
           new Promise((resolve) => setTimeout(resolve, 2_000)),
         ]);
       }
-      session.close();
       await rm(profileDirectory, {
         force: true,
         maxRetries: 5,

@@ -114,19 +114,27 @@ async function main() {
 
     await submitRequest(session, {
       prompt:
-        "升级 inventory-api v2.3.1，验证库存锁定和下游调用是否正常。",
-      targetService: "inventory-api",
-      contextReference: "REL-20260809-17",
+        "升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。",
+      targetService: "fulfillment-service",
+      contextReference: "REL-FUL-72",
     });
     text = await bodyText(session);
-    assert.match(text, /inventory-api 巡检工作区/);
+    assert.match(text, /fulfillment-service 巡检工作区/);
 
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
-    assert.match(text, /REL-20260809-17/);
+    assert.match(text, /REL-FUL-72/);
     await click(session, '[data-action="SCOPE_ACCEPTED"]');
     text = await bodyText(session);
-    assert.match(text, /inventory\.api\.success_rate/);
+    assert.match(text, /fulfillment\.service\.success_rate/);
+    const genericPlanText = await session.evaluate(`(() => {
+      document.querySelectorAll(".check-card").forEach((check) => {
+        check.open = true;
+      });
+      return document.querySelector(".check-stack").innerText;
+    })()`);
+    assert.doesNotMatch(genericPlanText, /order|payment|订单|支付/i);
+    assert.match(genericPlanText, /fulfillment-service/);
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
     text = await bodyText(session);

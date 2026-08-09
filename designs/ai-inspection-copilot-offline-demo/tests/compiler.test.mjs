@@ -36,6 +36,24 @@ test("an arbitrary user request compiles a service-specific workspace", () => {
   );
 });
 
+test("a generic workspace contains no domain fixture residue", () => {
+  const workspace = compileInspectionRequest({
+    prompt:
+      "升级 fulfillment-service v7.2.0，验证履约状态和下游调用。",
+    targetService: "fulfillment-service",
+    contextReference: "REL-FUL-72",
+  });
+
+  const serialized = JSON.stringify(workspace);
+  assert.doesNotMatch(serialized, /order|payment|订单|支付/i);
+  assert.match(serialized, /fulfillment-service/);
+  assert.ok(
+    workspace.committedChecks.every((check) =>
+      check.failureAction.includes("fulfillment-service"),
+    ),
+  );
+});
+
 test("known high-risk context still compiles the risk fixture semantics", () => {
   const workspace = compileInspectionRequest({
     prompt: "调整 payment-api Redis 超时，帮我生成巡检计划。",
