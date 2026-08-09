@@ -2,8 +2,9 @@
 
 Review-Target-ID: `feat-ai-inspection-offline-demo`
 Branch: `feat/ai-inspection-offline-demo`
-Target commit: `2c2933d fix(aiops): isolate generic inspection domains`
-Delta base: `2cf6bd4e334fce95526ec3ee543731b8453f785f`
+Target commit: exact HEAD supplied in the A2A handoff
+Continuity base: `a9810bd` (Terra's last explicit APPROVE)
+Gate-format commit: `87cbb19 style(aiops): satisfy repository format gate`
 
 ## What
 
@@ -15,6 +16,10 @@ Delta base: `2cf6bd4e334fce95526ec3ee543731b8453f785f`
 - 两个原有场景降级为可编辑的示例填充与验收 fixture，不再决定产品信息架构；
 - `RESET` 新建空白工作区，不再切回某个固定场景；
 - 离线单文件、Mock 数据、证据下钻、RC Agent 联动继续保留。
+
+### Merge-gate continuity delta
+
+Terra 放行 `a9810bd` 后，latest-main `pnpm gate` 发现本 Demo 的新增源码尚未经过根仓 Biome。`87cbb19` 仅执行仓库标准 formatter、重建确定性 `index.html`，并刷新本文与 `QUALITY-GATE.md` 中的 bytes/SHA-256；产品 22 项测试与两条 `file://` 浏览器旅程保持全绿。
 
 ## Why
 
@@ -66,12 +71,11 @@ Why: 在既有离线 Demo 边界内，将固定 Scenario 状态模型替换为 `
 
 ## Next Action
 
-请独立打开提交后的 `index.html`，不要只看作者截图：
+请对当前 A2A 消息给出的 exact HEAD 做 scoped continuity review：
 
-1. 从空白入口输入一个非预置服务（建议 `inventory-api v2.3.1`），关联任意电子流编号，完整走到报告；
-2. 新建工作区，点击高风险示例确认它只填表且仍可编辑，再走到 `Pause -> RC Agent`；
-3. 运行 `pnpm check`，核验构建、22 项测试、两条浏览器旅程、零网络请求与移动端无横向溢出；
-4. 返回 `APPROVE` 或 `REQUEST_CHANGES`，并列出 P1/P2/P3。
+1. 核对 `a9810bd..HEAD` 除 canonical Biome 格式、重建产物、证据哈希与本 continuity addendum 外无行为 delta；
+2. 如需独立复跑，执行 package `pnpm check`，确认 22/22 与双 `file://` 旅程仍绿；
+3. 明确写出“放行延续到 `{HEAD}`”或给出剩余阻断项。
 
 ## Review Sandbox（必填）
 
@@ -105,6 +109,7 @@ pnpm check
 - HTTP(S) 请求 0，浏览器错误 0；
 - 390px 原生移动视口无横向溢出；
 - `git diff --check` 通过；
+- latest-main 根仓 `pnpm gate` 在 `87cbb19` 通过：check、lint、build、Windows smoke、startup acceptance 全绿；
 - `index.html` 80,987 bytes；
 - SHA-256：`D66F2052B2BCD89DABD7E95C31B4CBEA4F8897BEE9F39F4C02F77EEA68B8C931`。
 
@@ -117,6 +122,6 @@ pnpm check
 
 ### 工作树说明
 
-`designs/ai-inspection-copilot-offline-demo/ACCEPTANCE.md` 是共享工作树中另一位猫留下的未跟踪验收草稿，不属于本轮目标提交，且内容早于本次产品形态纠正；作者未修改、未删除、未把它作为当前验收真相源。请 reviewer 以本请求、feature spec 和 `QUALITY-GATE.md` 为准独立验收。
+旧 `ACCEPTANCE.md` 内容早于本次产品形态纠正，已原样保留到工作树外的 `E:\ClowderAI\local-artifacts\ai-inspection-offline-demo\ACCEPTANCE.pre-final-review.md`（SHA-256 `C5697B3967939D6C90A21FCE4F311D792B5A4B7F39FF61C47281542C6971DE67`），未纳入提交或当前验收真相源。请 reviewer 以本请求、feature spec 和 `QUALITY-GATE.md` 为准。
 
 [丢丢/gpt-5.6-sol🐾]
