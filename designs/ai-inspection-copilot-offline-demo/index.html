@@ -490,6 +490,12 @@ a:focus-visible {
   color: var(--cyan);
   font-size: 17px;
 }
+.compile-button:disabled {
+  border-color: var(--line);
+  background: rgba(111, 135, 163, 0.08);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
 .example-area {
   margin-top: 24px;
 }
@@ -616,6 +622,162 @@ a:focus-visible {
 .scope-stage > h2 {
   margin: 12px 0 8px;
   font-size: 30px;
+}
+.playbook-match {
+  margin-bottom: 28px;
+  padding: 20px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  background: rgba(7, 16, 31, 0.48);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+.playbook-match.exact {
+  border-color: rgba(114, 230, 166, 0.34);
+  background: linear-gradient(145deg, var(--green-soft), rgba(7, 16, 31, 0.48));
+}
+.playbook-match.minor-drift {
+  border-color: rgba(246, 186, 91, 0.38);
+  background: linear-gradient(145deg, var(--amber-soft), rgba(7, 16, 31, 0.48));
+}
+.playbook-match.major-drift {
+  border-color: rgba(255, 109, 127, 0.42);
+  background: linear-gradient(145deg, var(--red-soft), rgba(7, 16, 31, 0.5));
+}
+.playbook-match-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+.playbook-match-header h2 {
+  margin: 8px 0 0;
+  font-size: clamp(20px, 2.2vw, 27px);
+}
+.playbook-signals,
+.playbook-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.playbook-signals .readiness {
+  border-color: var(--line-strong);
+  background: rgba(7, 16, 31, 0.36);
+}
+.playbook-identity {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  margin-top: 19px;
+}
+.playbook-identity > span {
+  color: var(--text-faint);
+  font: 600 9px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.playbook-identity > strong {
+  font-size: 14px;
+}
+.playbook-summary,
+.playbook-freshness {
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+.playbook-summary {
+  margin: 9px 0 15px;
+}
+.playbook-freshness {
+  margin: 16px 0;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+}
+.playbook-validation {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.38);
+}
+.playbook-validation summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 700;
+}
+.playbook-validation summary span {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.playbook-validation ul,
+.playbook-difference-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.playbook-validation ul {
+  padding: 0 14px 14px;
+}
+.playbook-validation li,
+.playbook-difference-list li {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(7, 16, 31, 0.42);
+}
+.playbook-validation li span,
+.playbook-difference-list li span {
+  color: var(--text-faint);
+  font: 600 9px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.playbook-validation li strong,
+.playbook-difference-list li strong {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.playbook-difference-list li.review span {
+  color: var(--amber);
+}
+.playbook-difference-list li.blocking span {
+  color: var(--red);
+}
+.playbook-drawer {
+  display: none;
+}
+.playbook-reviewed {
+  margin: 11px 0 0;
+  color: var(--green);
+  font-size: 10px;
+}
+.playbook-review-drift,
+.playbook-dismiss,
+.playbook-proposal-action {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.playbook-review-drift {
+  margin-top: 11px;
+  padding: 0;
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 700;
+}
+.playbook-primary {
+  min-width: 225px;
+}
+.playbook-dismiss {
+  padding: 9px 4px;
+  color: var(--text-soft);
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .scope-stage > p,
 .stage-lead {
@@ -1113,6 +1275,50 @@ a:focus-visible {
   margin: 0;
   padding-left: 17px;
 }
+.playbook-proposal {
+  display: grid;
+  gap: 11px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.42);
+}
+.playbook-proposal h3 {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.playbook-proposal p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.playbook-proposal-action {
+  justify-self: start;
+  padding: 8px 0;
+  color: var(--cyan);
+  font-size: 10px;
+  font-weight: 700;
+}
+.playbook-proposal-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+.playbook-proposal-status span {
+  padding: 6px 8px;
+  border: 1px solid rgba(246, 186, 91, 0.32);
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font: 600 9px / 1 var(--mono);
+}
+.playbook-proposal-status strong {
+  color: var(--text-soft);
+  font-size: 10px;
+}
 .rc-button {
   margin-top: 14px;
 }
@@ -1204,6 +1410,30 @@ a:focus-visible {
 }
 .copilot-principles {
   padding: 4px 18px 18px;
+}
+.playbook-reference {
+  margin: 0 14px 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 109, 127, 0.28);
+  border-radius: var(--radius-sm);
+  background: var(--red-soft);
+}
+.playbook-reference span {
+  display: block;
+  color: var(--red);
+  font: 600 9px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.playbook-reference strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+}
+.playbook-reference p {
+  margin: 7px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.55;
 }
 .copilot-principles ul {
   display: grid;
@@ -1332,6 +1562,14 @@ a:focus-visible {
     flex-direction: column;
     gap: 5px;
   }
+  .playbook-match-header,
+  .playbook-identity {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .playbook-signals {
+    width: 100%;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1397,6 +1635,46 @@ a:focus-visible {
   .intent-fields,
   .example-grid {
     grid-template-columns: 1fr;
+  }
+  .playbook-match {
+    margin: -4px -2px 22px;
+    padding: 15px;
+  }
+  .playbook-match-header h2 {
+    font-size: 20px;
+  }
+  .playbook-signals .readiness:last-child {
+    display: none;
+  }
+  .playbook-differences-desktop {
+    display: none;
+  }
+  .playbook-drawer {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: rgba(7, 16, 31, 0.4);
+  }
+  .playbook-drawer summary {
+    padding: 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .playbook-drawer-body {
+    max-height: 330px;
+    overflow-y: auto;
+    padding: 0 12px 12px;
+  }
+  .playbook-actions,
+  .playbook-primary,
+  .playbook-dismiss,
+  .playbook-proposal-action {
+    width: 100%;
+  }
+  .playbook-dismiss {
+    text-align: left;
   }
 }
 
@@ -1835,6 +2113,11 @@ function extractService(prompt) {
   );
 }
 
+function extractServices(prompt) {
+  const servicePattern = /\b[a-z][a-z0-9-]*(?:-api|-service|-worker|-gateway)\b/gi;
+  return [...new Set([...prompt.matchAll(servicePattern)].map(([service]) => service.toLowerCase()))];
+}
+
 function extractVersion(prompt) {
   return prompt.match(/\bv\d+(?:\.\d+)+\b/i)?.[0] ?? '待确认版本';
 }
@@ -1853,7 +2136,8 @@ function compileGenericWorkspace(request) {
   const service = request.targetService;
   const version = extractVersion(request.prompt);
   const metricPrefix = service.replaceAll('-', '.');
-  const downstream = `${service}-downstream`;
+  const downstream =
+    extractServices(request.prompt).find((candidate) => candidate !== service.toLowerCase()) ?? `${service}-downstream`;
   const cache = `${service}-cache`;
   const declaredEntities = [service, downstream, cache];
   const changeSourceRef = request.contextReference ? 'attached-context' : 'user-intent';
@@ -2076,6 +2360,150 @@ function compileInspectionRequest(input) {
   return deepFreeze(workspace);
 }
 
+const inspectionPlaybooks = deepFreeze([
+  {
+    id: 'order-release-verification',
+    version: 4,
+    title: '订单发布后验证',
+    scenarioKey: 'order-release',
+    matchRules: ['order-api', 'release'],
+    checkIds: ['business-outcome', 'service-golden-signals', 'downstream-dependency'],
+    approvedAt: '2026-08-01T09:30:00Z',
+    lastUsedAt: '2026-08-10T03:20:00Z',
+  },
+  {
+    id: 'payment-config-verification',
+    version: 3,
+    title: '支付配置变更巡检',
+    scenarioKey: 'payment-config',
+    matchRules: ['payment-api', 'config-change'],
+    checkIds: ['payment-business', 'redis-latency', 'invoice-async'],
+    approvedAt: '2026-07-28T08:00:00Z',
+    lastUsedAt: '2026-08-10T07:45:00Z',
+  },
+]);
+
+const VALIDATION_LABELS = deepFreeze({
+  entity: '实体',
+  metric: '指标',
+  dependency: '依赖',
+  permission: '权限',
+  template: '模板',
+});
+
+function validation(dimension, status = 'passed', detail = '当前事实与方案版本一致') {
+  return {
+    dimension,
+    label: VALIDATION_LABELS[dimension],
+    status,
+    detail,
+  };
+}
+
+function snapshot(playbook, input) {
+  return deepFreeze({
+    playbookRef: { id: playbook.id, version: playbook.version },
+    title: playbook.title,
+    lastUsedLabel: '3 天前',
+    ...input,
+  });
+}
+
+function exactOrderMatch(playbook) {
+  return snapshot(playbook, {
+    status: 'exact',
+    score: 98,
+    summary: '证据框架仍有效，五项现场校验全部通过',
+    validations: [
+      validation('entity'),
+      validation('metric'),
+      validation('dependency'),
+      validation('permission'),
+      validation('template'),
+    ],
+    differences: [],
+  });
+}
+
+function minorPaymentMatch(playbook) {
+  return snapshot(playbook, {
+    status: 'minor-drift',
+    score: 92,
+    summary: '方案结构仍可复用，2 项当前差异需要确认',
+    validations: [
+      validation('entity'),
+      validation('metric', 'changed', '支付成功率指标口径已升级'),
+      validation('dependency', 'changed', '运行时发现新的数据库只读实例'),
+      validation('permission'),
+      validation('template'),
+    ],
+    differences: [
+      {
+        id: 'payment-read-replica',
+        dimension: 'dependency',
+        label: '依赖',
+        direction: 'added',
+        severity: 'review',
+        summary: 'settlement-db 新增只读实例，已扩大本次影响面',
+      },
+      {
+        id: 'payment-success-vocabulary',
+        dimension: 'metric',
+        label: '指标',
+        direction: 'changed',
+        severity: 'review',
+        summary: '支付成功率口径 v2 → v3，判定阈值保持不变',
+      },
+    ],
+  });
+}
+
+function majorPaymentMatch(playbook) {
+  return snapshot(playbook, {
+    status: 'major-drift',
+    score: 61,
+    summary: '场景边界已改变，旧方案只能作为重新生成的参考',
+    validations: [
+      validation('entity', 'blocking', '核心服务已发生拆分'),
+      validation('metric', 'blocking', '旧检查无法覆盖新实体'),
+      validation('dependency', 'changed', '调用路径新增 risk-api'),
+      validation('permission'),
+      validation('template', 'blocking', '3 项检查缺少当前实体绑定'),
+    ],
+    differences: [
+      {
+        id: 'payment-service-split',
+        dimension: 'entity',
+        label: '实体',
+        direction: 'changed',
+        severity: 'blocking',
+        summary: 'payment-api 已拆分为 payment-api + risk-api',
+      },
+      {
+        id: 'payment-unbound-checks',
+        dimension: 'template',
+        label: '模板',
+        direction: 'removed',
+        severity: 'blocking',
+        summary: '3 项关键检查在当前服务目录中没有对应实体',
+      },
+    ],
+  });
+}
+
+function matchInspectionPlaybook(workspace) {
+  const service = workspace?.request?.targetService?.toLowerCase() ?? '';
+  const prompt = workspace?.request?.prompt?.toLowerCase() ?? '';
+  if (service === 'order-api' || prompt.includes('order-api')) {
+    return exactOrderMatch(inspectionPlaybooks[0]);
+  }
+  if (service === 'payment-api' || prompt.includes('payment-api')) {
+    const majorDrift = prompt.includes('risk-api') || prompt.includes('拆分');
+    return majorDrift ? majorPaymentMatch(inspectionPlaybooks[1]) : minorPaymentMatch(inspectionPlaybooks[1]);
+  }
+  return null;
+}
+
 function requireWorkspace(state) {
   if (!state.workspace) throw new Error('Inspection workspace is not compiled');
   return state.workspace;
@@ -2148,6 +2576,19 @@ function selectReportView(state) {
   return state.phase === 'report' ? workspace.report : null;
 }
 
+function selectPlaybookView(state) {
+  const matchVisible =
+    state.phase === 'context' && Boolean(state.playbookMatch) && state.playbookDecision !== 'dismissed';
+  return {
+    match: matchVisible ? state.playbookMatch : null,
+    reference: state.playbookDecision === 'regenerated' ? state.playbookMatch : null,
+    decision: state.playbookDecision,
+    driftReviewed: state.playbookDriftReviewed,
+    taskInstance: state.taskInstance,
+    proposal: state.playbookProposal,
+  };
+}
+
 function selectViewModel(state) {
   if (!state.workspace) {
     return {
@@ -2159,6 +2600,7 @@ function selectViewModel(state) {
       planSummary: null,
       execution: [],
       report: null,
+      playbook: selectPlaybookView(state),
     };
   }
   return {
@@ -2170,17 +2612,56 @@ function selectViewModel(state) {
     planSummary: selectPlanSummary(state),
     execution: selectExecutionView(state),
     report: selectReportView(state),
+    playbook: selectPlaybookView(state),
   };
 }
 
-function createDemoSession() {
+function createDemoSession(options = {}) {
   return deepFreeze({
     workspace: null,
     phase: 'intake',
     candidateDisposition: {},
     executionStep: -1,
     rcExpanded: false,
+    playbookMatch: null,
+    playbookDecision: null,
+    playbookDriftReviewed: false,
+    playbookProposal: null,
+    taskInstance: null,
+    nextTaskOrdinal: options.nextTaskOrdinal ?? 48,
   });
+}
+
+function taskId(ordinal) {
+  return `INS-${String(ordinal).padStart(4, '0')}`;
+}
+
+function createTaskInstance(ordinal) {
+  const id = taskId(ordinal);
+  return {
+    id,
+    status: 'draft',
+    sourcePlaybookRef: null,
+    referencePlaybookRef: null,
+    auditTrail: [{ type: 'task-created', taskInstanceId: id }],
+  };
+}
+
+function updateTaskInstance(taskInstance, patch, auditEvent) {
+  if (!taskInstance || taskInstance.status === 'locked') return taskInstance;
+  return {
+    ...taskInstance,
+    ...patch,
+    auditTrail: auditEvent ? [...taskInstance.auditTrail, auditEvent] : taskInstance.auditTrail,
+  };
+}
+
+function playbookRef(match) {
+  return match ? { ...match.playbookRef } : null;
+}
+
+function reconciliationAllowsExecution(workspace) {
+  return workspace && !['Conflict', 'Unverifiable'].includes(workspace.reconciliation.status);
 }
 
 function disposeCandidate(state, action) {
@@ -2203,44 +2684,180 @@ function disposeCandidate(state, action) {
   };
 }
 
-function reduceSession(state, action) {
-  switch (action.type) {
-    case 'INTENT_SUBMITTED':
-      if (state.phase !== 'intake') return state;
-      return {
-        ...createDemoSession(),
-        workspace: compileInspectionRequest(action.request),
-      };
-    case 'RESET':
-      return createDemoSession();
-    case 'INPUT_CONFIRMED':
-      return state.phase === 'intake' && state.workspace ? { ...state, phase: 'context' } : state;
-    case 'SCOPE_ACCEPTED': {
-      if (state.phase !== 'context' || !state.workspace) return state;
-      const { reconciliation } = state.workspace;
-      return ['Conflict', 'Unverifiable'].includes(reconciliation.status) ? state : { ...state, phase: 'plan' };
-    }
-    case 'CANDIDATE_DISPOSED':
-      return disposeCandidate(state, action);
-    case 'PLAN_CONFIRMED':
-      return state.phase === 'plan' && selectPlanReadiness(state).status === 'ready'
-        ? { ...state, phase: 'execution', executionStep: -1 }
-        : state;
-    case 'EXECUTION_ADVANCED': {
-      if (state.phase !== 'execution' || !state.workspace) return state;
-      const lastIndex = state.workspace.execution.length - 1;
-      const nextStep = state.executionStep + 1;
-      return nextStep >= lastIndex
-        ? { ...state, phase: 'report', executionStep: lastIndex }
-        : { ...state, executionStep: nextStep };
-    }
-    case 'RC_TOGGLED':
-      return state.phase === 'report' && state.workspace?.report.rcAgent
-        ? { ...state, rcExpanded: !state.rcExpanded }
-        : state;
-    default:
-      return state;
+function submitIntent(state, action) {
+  if (state.phase !== 'intake') return state;
+  const workspace = compileInspectionRequest(action.request);
+  const ordinal = state.nextTaskOrdinal;
+  return {
+    ...createDemoSession({ nextTaskOrdinal: ordinal + 1 }),
+    workspace,
+    playbookMatch: matchInspectionPlaybook(workspace),
+    taskInstance: createTaskInstance(ordinal),
+  };
+}
+
+function confirmInput(state) {
+  return state.phase === 'intake' && state.workspace ? { ...state, phase: 'context' } : state;
+}
+
+function dismissPlaybook(state) {
+  if (state.phase !== 'context' || !state.playbookMatch || state.playbookDecision) return state;
+  return {
+    ...state,
+    playbookDecision: 'dismissed',
+    taskInstance: updateTaskInstance(
+      state.taskInstance,
+      {},
+      { type: 'playbook-dismissed', playbookRef: playbookRef(state.playbookMatch) },
+    ),
+  };
+}
+
+function startPlaybookExecution(state) {
+  if (
+    state.phase !== 'context' ||
+    state.playbookMatch?.status !== 'exact' ||
+    state.playbookDecision ||
+    !reconciliationAllowsExecution(state.workspace)
+  ) {
+    return state;
   }
+  return {
+    ...state,
+    phase: 'execution',
+    playbookDecision: 'applied',
+    taskInstance: updateTaskInstance(
+      state.taskInstance,
+      { status: 'executing', sourcePlaybookRef: playbookRef(state.playbookMatch) },
+      { type: 'playbook-applied', playbookRef: playbookRef(state.playbookMatch) },
+    ),
+  };
+}
+
+function confirmPlaybookDifference(state) {
+  if (
+    state.phase !== 'context' ||
+    state.playbookMatch?.status !== 'minor-drift' ||
+    state.playbookDecision ||
+    !reconciliationAllowsExecution(state.workspace)
+  ) {
+    return state;
+  }
+  return {
+    ...state,
+    phase: 'plan',
+    playbookDecision: 'accepted-with-diff',
+    taskInstance: updateTaskInstance(
+      state.taskInstance,
+      { sourcePlaybookRef: playbookRef(state.playbookMatch) },
+      {
+        type: 'playbook-differences-confirmed',
+        playbookRef: playbookRef(state.playbookMatch),
+        differenceIds: state.playbookMatch.differences.map((difference) => difference.id),
+      },
+    ),
+  };
+}
+
+function reviewPlaybookDrift(state) {
+  return state.phase === 'context' && state.playbookMatch?.status === 'major-drift'
+    ? { ...state, playbookDriftReviewed: true }
+    : state;
+}
+
+function regenerateFromPlaybook(state) {
+  if (
+    state.phase !== 'context' ||
+    state.playbookMatch?.status !== 'major-drift' ||
+    state.playbookDecision ||
+    !state.playbookDriftReviewed
+  ) {
+    return state;
+  }
+  return {
+    ...state,
+    phase: 'plan',
+    playbookDecision: 'regenerated',
+    taskInstance: updateTaskInstance(
+      state.taskInstance,
+      { referencePlaybookRef: playbookRef(state.playbookMatch) },
+      { type: 'playbook-regenerated', referencePlaybookRef: playbookRef(state.playbookMatch) },
+    ),
+  };
+}
+
+function acceptScope(state) {
+  if (state.phase !== 'context' || !state.workspace) return state;
+  if (state.playbookMatch && state.playbookDecision !== 'dismissed') return state;
+  const { reconciliation } = state.workspace;
+  return ['Conflict', 'Unverifiable'].includes(reconciliation.status) ? state : { ...state, phase: 'plan' };
+}
+
+function confirmPlan(state) {
+  if (state.phase !== 'plan' || selectPlanReadiness(state).status !== 'ready') return state;
+  return {
+    ...state,
+    phase: 'execution',
+    executionStep: -1,
+    taskInstance: updateTaskInstance(state.taskInstance, { status: 'executing' }, { type: 'plan-confirmed' }),
+  };
+}
+
+function advanceExecution(state) {
+  if (state.phase !== 'execution' || !state.workspace) return state;
+  const lastIndex = state.workspace.execution.length - 1;
+  const nextStep = state.executionStep + 1;
+  return nextStep >= lastIndex
+    ? {
+        ...state,
+        phase: 'report',
+        executionStep: lastIndex,
+        taskInstance: updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' }),
+      }
+    : { ...state, executionStep: nextStep };
+}
+
+function toggleRootCause(state) {
+  return state.phase === 'report' && state.workspace?.report.rcAgent
+    ? { ...state, rcExpanded: !state.rcExpanded }
+    : state;
+}
+
+function submitPlaybookProposal(state) {
+  if (state.phase !== 'report' || state.taskInstance?.status !== 'locked' || state.playbookProposal) return state;
+  const source = state.taskInstance.sourcePlaybookRef;
+  return {
+    ...state,
+    playbookProposal: {
+      id: `PB-PROP-${state.taskInstance.id}`,
+      kind: source ? 'update' : 'create',
+      sourceTaskInstanceId: state.taskInstance.id,
+      sourcePlaybookRef: source ? { ...source } : null,
+      targetVersion: source ? source.version + 1 : 1,
+      status: 'pending-approval',
+    },
+  };
+}
+
+const sessionHandlers = {
+  INTENT_SUBMITTED: submitIntent,
+  RESET: (state) => createDemoSession({ nextTaskOrdinal: state.nextTaskOrdinal }),
+  INPUT_CONFIRMED: confirmInput,
+  PLAYBOOK_DISMISSED: dismissPlaybook,
+  PLAYBOOK_EXECUTION_STARTED: startPlaybookExecution,
+  PLAYBOOK_DIFF_CONFIRMED: confirmPlaybookDifference,
+  PLAYBOOK_DRIFT_REVIEWED: reviewPlaybookDrift,
+  PLAYBOOK_REGENERATED: regenerateFromPlaybook,
+  SCOPE_ACCEPTED: acceptScope,
+  CANDIDATE_DISPOSED: disposeCandidate,
+  PLAN_CONFIRMED: confirmPlan,
+  EXECUTION_ADVANCED: advanceExecution,
+  RC_TOGGLED: toggleRootCause,
+  PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
+};
+
+function reduceSession(state, action) {
+  return (sessionHandlers[action.type] ?? ((currentState) => currentState))(state, action);
 }
 
 function demoReducer(state, action) {
@@ -2423,6 +3040,135 @@ function renderInspectionPlan(vm) {
     </div>`;
 }
 
+const STATUS_COPY = {
+  exact: {
+    eyebrow: 'Approved playbook · exact',
+    title: '当前事实与已审批方案一致',
+    action: 'PLAYBOOK_EXECUTION_STARTED',
+    actionLabel: '按方案直跑',
+  },
+  'minor-drift': {
+    eyebrow: 'Approved playbook · review',
+    title: '方案结构可复用，先确认当前差异',
+    action: 'PLAYBOOK_DIFF_CONFIRMED',
+    actionLabel: '确认差异并继续',
+  },
+  'major-drift': {
+    eyebrow: 'Reference only · blocked',
+    title: '旧方案不再适用',
+    action: 'PLAYBOOK_REGENERATED',
+    actionLabel: '重新生成（参考旧方案）',
+  },
+};
+
+const DIRECTION_LABELS = {
+  added: '新增',
+  changed: '变更',
+  removed: '失效',
+};
+
+function renderValidation(validation) {
+  return `<li class="${escapeHtml(validation.status)}"><span>${escapeHtml(validation.label)}</span><strong>${escapeHtml(validation.detail)}</strong></li>`;
+}
+
+function renderDifferences(match) {
+  return `<ul class="playbook-difference-list">
+    ${match.differences
+      .map(
+        (
+          difference,
+        ) => `<li data-difference-dimension="${escapeHtml(difference.dimension)}" class="${escapeHtml(difference.severity)}">
+          <span>${escapeHtml(difference.label)} · ${escapeHtml(DIRECTION_LABELS[difference.direction])}</span>
+          <strong>${escapeHtml(difference.summary)}</strong>
+        </li>`,
+      )
+      .join('')}
+  </ul>`;
+}
+
+function renderDriftReview(match, driftReviewed) {
+  if (match.status !== 'major-drift') return '';
+  return driftReviewed
+    ? '<p class="playbook-reviewed">✓ 已确认看完全部当前差异</p>'
+    : `<button class="playbook-review-drift" data-action="PLAYBOOK_DRIFT_REVIEWED" type="button">我已看完 ${match.differences.length} 项差异</button>`;
+}
+
+function renderMatchDetails(match, driftReviewed) {
+  if (match.status === 'exact') {
+    return `<details class="playbook-validation">
+      <summary>五项现场校验全部通过 <span>展开详情</span></summary>
+      <ul>${match.validations.map(renderValidation).join('')}</ul>
+    </details>`;
+  }
+  const content = `${renderDifferences(match)}${renderDriftReview(match, driftReviewed)}`;
+  return `<div class="playbook-differences-desktop">${content}</div>
+    <details class="playbook-drawer">
+      <summary>查看 ${match.differences.length} 项当前差异</summary>
+      <div class="playbook-drawer-body">${content}</div>
+    </details>`;
+}
+
+function renderMatchActions(match, driftReviewed) {
+  const copy = STATUS_COPY[match.status];
+  const disabled = match.status === 'major-drift' && !driftReviewed;
+  const secondary =
+    match.status === 'major-drift'
+      ? ''
+      : '<button class="playbook-dismiss" data-action="PLAYBOOK_DISMISSED" type="button">不用方案，重新生成</button>';
+  return `<div class="playbook-actions">
+    <button class="compile-button playbook-primary" data-action="${copy.action}" ${disabled ? 'disabled' : ''} type="button">
+      <span>${disabled ? '看完差异后可重新生成' : copy.actionLabel}</span><b>→</b>
+    </button>
+    ${secondary}
+  </div>`;
+}
+
+function renderPlaybookMatch(playbookView) {
+  const match = playbookView?.match;
+  if (!match) return '';
+  const copy = STATUS_COPY[match.status];
+  return `<section class="playbook-match ${match.status}" data-testid="playbook-match" data-match-status="${match.status}" aria-labelledby="playbook-match-title">
+    <header class="playbook-match-header">
+      <div><span class="module-tag">${copy.eyebrow}</span><h2 id="playbook-match-title">${copy.title}</h2></div>
+      <div class="playbook-signals"><span class="readiness">匹配 ${match.score}%</span><span class="readiness">${escapeHtml(match.lastUsedLabel)}</span><span class="readiness">${match.differences.length} 项差异</span></div>
+    </header>
+    <div class="playbook-identity"><span>场景巡检方案</span><strong>${escapeHtml(match.title)} · v${match.playbookRef.version}</strong></div>
+    <p class="playbook-summary">${escapeHtml(match.summary)}</p>
+    ${renderMatchDetails(match, playbookView.driftReviewed)}
+    <p class="playbook-freshness">复用的是检查结构；实体、指标、Trace、权限与模板均按本次请求现场校验，证据将重新采集。</p>
+    ${renderMatchActions(match, playbookView.driftReviewed)}
+  </section>`;
+}
+
+function renderPlaybookReference(playbookView) {
+  const reference = playbookView?.reference;
+  if (!reference) return '';
+  return `<section class="playbook-reference" data-testid="playbook-reference">
+    <span>旧方案仅作参考</span>
+    <strong>${escapeHtml(reference.playbookRef.id)} · v${reference.playbookRef.version}</strong>
+    <p>${escapeHtml(reference.summary)}</p>
+  </section>`;
+}
+
+function renderPlaybookProposal(playbookView) {
+  const task = playbookView?.taskInstance;
+  if (!task || task.status !== 'locked') return '';
+  const proposal = playbookView.proposal;
+  const source = task.sourcePlaybookRef;
+  const targetVersion = source ? source.version + 1 : 1;
+  return `<section class="playbook-proposal" data-testid="playbook-proposal">
+    <div><span class="module-tag">Playbook learning loop</span><h3>方案沉淀</h3></div>
+    <p>本次任务已沉淀为不可变实例 ${escapeHtml(task.id)}（审计锁定）。方案版本只引用本次结构与留痕，不改写历史实例。</p>
+    ${
+      proposal
+        ? `<div class="playbook-proposal-status"><span>${proposal.kind === 'update' ? '方案更新' : '新方案'} v${proposal.targetVersion} · 待审批</span><strong>审批通过后，下次匹配才会生效</strong></div>`
+        : `<button class="playbook-proposal-action" data-action="PLAYBOOK_PROPOSAL_SUBMITTED" type="button">${
+            source ? `提交方案更新 → v${targetVersion}` : `保存为新方案 v${targetVersion}`
+          }</button>`
+    }
+  </section>`;
+}
+
 const PHASES = [
   ['intake', '输入理解', '01'],
   ['context', '范围对账', '02'],
@@ -2523,6 +3269,7 @@ function renderContext(vm) {
 function renderScope(vm) {
   return `
     <div class="scope-stage">
+      ${renderPlaybookMatch(vm.playbook)}
       <span class="module-tag">Module 02 · Scope resolver</span>
       <h2>多源事实已经对齐</h2>
       <p>不是把图谱上的所有关系塞进任务，而是用业务目标、运行时 Trace 和已注册能力收敛检查范围。</p>
@@ -2577,6 +3324,7 @@ function renderReport(vm) {
         <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
         <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
       </div>
+      ${renderPlaybookProposal(vm.playbook)}
       ${
         report.rcAgent
           ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
@@ -2603,6 +3351,7 @@ function renderStage(vm) {
 
 function primaryAction(vm) {
   if (!vm.workspace) return '';
+  if (vm.state.phase === 'context' && vm.playbook.match) return '';
   const actions = {
     intake: ['INPUT_CONFIRMED', '确认理解结果'],
     context: ['SCOPE_ACCEPTED', '接受范围并生成任务'],
@@ -2642,6 +3391,7 @@ function renderCopilot(vm) {
       <header><span class="copilot-mark">✦</span><div><small>NOVA COPILOT</small><strong>可信任务编译器</strong></div><span class="online">ONLINE</span></header>
       <div class="copilot-message"><span>当前判断</span><h3>${escapeHtml(copy[0])}</h3><p>${escapeHtml(copy[1])}</p></div>
       <div class="copilot-principles"><span>护栏</span><ul><li>不生成任意生产查询</li><li>不把缺失证据写成正常</li><li>不代替 SRE 执行发布动作</li></ul></div>
+      ${renderPlaybookReference(vm.playbook)}
       ${primaryAction(vm)}
     </aside>`;
 }
@@ -2662,7 +3412,7 @@ function renderApp(vm) {
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
-      <footer class="app-footer"><span>AI Inspection Copilot · Offline Product Demo v0.2</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
+      <footer class="app-footer"><span>AI Inspection Copilot · Offline Product Demo v0.3</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
     </div>`;
 }
 

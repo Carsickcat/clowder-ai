@@ -15,6 +15,7 @@ const applicationFiles = [
   'view-utils.mjs',
   'render-intake.mjs',
   'render-plan.mjs',
+  'render-playbook.mjs',
   'render.mjs',
   'app.mjs',
 ];

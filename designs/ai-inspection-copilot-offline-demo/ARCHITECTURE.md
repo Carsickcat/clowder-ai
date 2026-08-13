@@ -1,9 +1,9 @@
 ---
-feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
+feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, architecture, check-contract, evidence]
 doc_kind: architecture
 created: 2026-08-06
-updated: 2026-08-09
+updated: 2026-08-13
 ---
 
 # 架构设计：用户驱动的巡检工作区编译与验证
@@ -140,3 +140,25 @@ index.html
 ## 7. 从 Demo 到生产的直线路径
 
 保持 `InspectionRequest / InspectionWorkspace / Check Contract / Evidence × Action` 薄腰契约与 UI 决策路径不变，依次替换适配器：mock request compiler → 真实语义解析与事实检索；mock fixture → 电子流与运行时 diff；mock Check → 已有巡检能力目录；mock evidence → 多引擎查询结果；mock RC → 现有 RC Agent。首期无需重建全局知识图谱，也无需重写现有巡检执行引擎。
+
+## 8. Playbook reuse architecture delta
+
+```text
+InspectionRequest → current InspectionWorkspace
+                         ↓
+               pure Playbook Matcher
+                         ↓
+             immutable Match Snapshot
+                         ↓
+      exact / minor-drift / major-drift decision
+                         ↓
+                 new Task Instance
+                         ↓
+              newly collected Evidence
+                         ↓
+          optional pending Playbook Proposal
+```
+
+四个状态对象只有一个写入 owner：只读 catalog 拥有 `PlaybookDefinition`；`INTENT_SUBMITTED` 一次性生成 `PlaybookMatchSnapshot`；session reducer 独占 `TaskInstance` 生命周期；report reducer 只追加一个幂等 `PlaybookProposal`。UI 与 selector 不持久化派生状态。
+
+`TaskInstance.sourcePlaybookRef` 仅用于 exact/minor 复用；major drift 的旧方案只能写入 `referencePlaybookRef`。最终执行步把任务锁定，此后方案沉淀不得改变任务、证据或审计轨迹。Demo catalog 与 proposal 都是内存 mock；生产化时可替换为版本化存储和审批适配器，不改变 matcher、任务不可变性或现有执行引擎边界。

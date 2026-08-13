@@ -1,8 +1,9 @@
 ---
-feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
+feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, quality-gate, acceptance-evidence]
 doc_kind: verification
 created: 2026-08-09
+updated: 2026-08-13
 ---
 
 # Quality Gate Report
@@ -109,8 +110,38 @@ bytes: 80987
 sha256: D66F2052B2BCD89DABD7E95C31B4CBEA4F8897BEE9F39F4C02F77EEA68B8C931
 ```
 
-Artifact hygiene: no media/design files at repository root. Exactly three screenshots and one walkthrough are archived under `evidence/`.
+Artifact hygiene: no media/design files at repository root. Nine screenshots and one walkthrough are archived under `evidence/`.
 
 ## Delivery completeness
 
 This is a complete user-driven offline product slice with mock adapters. Production integration can replace the request compiler's mock catalog, evidence runner and RC adapter without rewriting the product entry, Inspection Workspace contract or SRE decision path. Independent acceptance remains a reviewer responsibility; this report is the author-side gate.
+
+## 2026-08-13 Playbook reuse addendum
+
+Design truth: `DESIGN-PLAYBOOK.md`，由烁烁主导。Implementation plan: `feature-specs/2026-08-13-ai-inspection-playbook-reuse-implementation.md`。
+
+| AC | Author-side result | Evidence |
+|---|---|---|
+| AC-P1 无匹配零打扰 | Pass | unmatched UI contract + browser journey |
+| AC-P2 精准匹配直跑 | Pass | exact reducer/UI/browser journey；新任务与新证据 |
+| AC-P3 小幅差异确认 | Pass | diff IDs 写入 audit；amber card；适配计划 |
+| AC-P4 重大漂移重生成 | Pass | 直跑 no-op；差异确认门禁；`risk-api` 进入 scope/Check |
+| AC-P5 审计不可变 | Pass | locked task deep-equality；proposal pending approval |
+| AC-P6 空白入口主权 | Pass | 未新增 dashboard；可 dismiss 走普通生成 |
+| AC-P7 390px | Pass | major drawer/report；overflow 0 |
+| AC-P8 RESET 隔离 | Pass | 新 task ID；match/decision/reference/proposal 全清空 |
+
+Fresh author evidence:
+
+```text
+pnpm test: 38/38 pass
+offline browser: unmatched/exact/minor/major pass
+HTTP(S) requests: 0
+browser errors: 0
+390px horizontal overflow: 0
+walkthrough: 15074ms, 53272 bytes, VP9 WebM
+```
+
+Visual evidence: `evidence/06-playbook-exact-match.png`, `07-playbook-exact-report.png`, `04-impact-dimensions.png`, `09-playbook-major-desktop.png`, `10-playbook-major-mobile-drawer.png`, `08-playbook-major-mobile-report.png`。
+
+Final artifact: `103149` bytes, SHA-256 `688006707A26F9196E8F84E317102FA386CC4A321F607C0E815C9813686471B1`; two consecutive builds produced the same bytes.

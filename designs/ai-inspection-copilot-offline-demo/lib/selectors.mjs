@@ -72,6 +72,19 @@ export function selectReportView(state) {
   return state.phase === 'report' ? workspace.report : null;
 }
 
+export function selectPlaybookView(state) {
+  const matchVisible =
+    state.phase === 'context' && Boolean(state.playbookMatch) && state.playbookDecision !== 'dismissed';
+  return {
+    match: matchVisible ? state.playbookMatch : null,
+    reference: state.playbookDecision === 'regenerated' ? state.playbookMatch : null,
+    decision: state.playbookDecision,
+    driftReviewed: state.playbookDriftReviewed,
+    taskInstance: state.taskInstance,
+    proposal: state.playbookProposal,
+  };
+}
+
 export function selectViewModel(state) {
   if (!state.workspace) {
     return {
@@ -83,6 +96,7 @@ export function selectViewModel(state) {
       planSummary: null,
       execution: [],
       report: null,
+      playbook: selectPlaybookView(state),
     };
   }
   return {
@@ -94,5 +108,6 @@ export function selectViewModel(state) {
     planSummary: selectPlanSummary(state),
     execution: selectExecutionView(state),
     report: selectReportView(state),
+    playbook: selectPlaybookView(state),
   };
 }

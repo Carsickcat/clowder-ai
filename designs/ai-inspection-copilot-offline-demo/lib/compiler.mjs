@@ -40,6 +40,11 @@ function extractService(prompt) {
   );
 }
 
+function extractServices(prompt) {
+  const servicePattern = /\b[a-z][a-z0-9-]*(?:-api|-service|-worker|-gateway)\b/gi;
+  return [...new Set([...prompt.matchAll(servicePattern)].map(([service]) => service.toLowerCase()))];
+}
+
 function extractVersion(prompt) {
   return prompt.match(/\bv\d+(?:\.\d+)+\b/i)?.[0] ?? '待确认版本';
 }
@@ -58,7 +63,8 @@ function compileGenericWorkspace(request) {
   const service = request.targetService;
   const version = extractVersion(request.prompt);
   const metricPrefix = service.replaceAll('-', '.');
-  const downstream = `${service}-downstream`;
+  const downstream =
+    extractServices(request.prompt).find((candidate) => candidate !== service.toLowerCase()) ?? `${service}-downstream`;
   const cache = `${service}-cache`;
   const declaredEntities = [service, downstream, cache];
   const changeSourceRef = request.contextReference ? 'attached-context' : 'user-intent';

@@ -1,5 +1,5 @@
 ---
-feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
+feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [nova, inspection, copilot, offline-demo, observability]
 doc_kind: plan
 created: 2026-08-06
@@ -140,3 +140,16 @@ DemoSession = {
 - UI 契约：空白产品入口、无场景导航、示例只填充。
 - 浏览器验收：用户自定义 Proceed 与可编辑示例 Pause + RC。
 - 单文件确定性构建、network 0、console 0、390px 无溢出。
+
+## 2026-08-13 extension: reusable inspection playbooks
+
+历史任务实例保持不可变；一次已完成巡检可以提出一个待审批的版本化 `Inspection Playbook`。相同业务场景再次发起时，系统仍先编译当前请求、重取当前实体/指标/Trace/依赖/权限/模板事实，再用方案匹配卡决定加速路径。方案复用判断结构，不复用旧证据或旧任务快照。
+
+- **AC-P1 — Zero disruption:** 无匹配时不渲染任何 Playbook DOM，原空白入口与普通五阶段旅程不变。
+- **AC-P2 — Exact reuse:** 精准匹配显示当前校验结果与唯一主 CTA；确认后创建新任务实例并直达执行，证据全部重新采集。
+- **AC-P3 — Minor drift:** 小幅差异按维度显式列出；用户确认后，差异及方案来源进入新任务审计，再进入适配后的计划。
+- **AC-P4 — Major drift:** 重大漂移禁止直跑；用户看完差异后才能重新生成，旧方案只能作为参考。新增实体必须进入新 scope 与正式 Check。
+- **AC-P5 — Immutable audit:** 历史方案版本与完成任务不可改写；执行完成后只允许创建 `pending-approval` 的新建/更新提案。
+- **AC-P6 — User sovereignty:** 不新增方案 Dashboard 或模板中心作为第一入口；用户仍可放弃复用并按普通流程重新生成。
+- **AC-P7 — Responsive:** 1440px 使用 context 顶部匹配卡；390px 使用全宽卡与差异抽屉，无横向溢出，重大漂移 CTA 在差异确认前禁用。
+- **AC-P8 — Reset isolation:** 新请求获得新任务 ID；RESET 清空匹配、决策、引用与提案，状态不得跨请求串联。

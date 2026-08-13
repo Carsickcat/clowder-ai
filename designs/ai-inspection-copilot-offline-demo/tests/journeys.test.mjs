@@ -176,6 +176,10 @@ test('major drift rejects direct execution and keeps the old playbook reference-
   const forbidden = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
   assert.deepEqual(forbidden, state);
 
+  const hiddenRegenerate = dispatch(state, 'PLAYBOOK_REGENERATED');
+  assert.deepEqual(hiddenRegenerate, state);
+  state = dispatch(state, 'PLAYBOOK_DRIFT_REVIEWED');
+  assert.equal(state.playbookDriftReviewed, true);
   state = dispatch(state, 'PLAYBOOK_REGENERATED');
   assert.equal(state.phase, 'plan');
   assert.equal(state.playbookDecision, 'regenerated');
@@ -184,6 +188,8 @@ test('major drift rejects direct execution and keeps the old playbook reference-
     id: 'payment-config-verification',
     version: 3,
   });
+  assert.ok(selectResolvedScope(state).entities.includes('risk-api'));
+  assert.ok(selectCommittedChecks(state).some((check) => check.entity === 'risk-api'));
 });
 
 test('reset clears playbook state and assigns a new task instance to the next request', () => {

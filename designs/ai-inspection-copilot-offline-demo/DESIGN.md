@@ -1,8 +1,9 @@
 ---
-feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
+feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, design-spec, hi-fi]
 doc_kind: design
 created: 2026-08-08
+updated: 2026-08-13
 ---
 
 # AI 巡检 Copilot 离线产品 · 高保真设计规格
@@ -62,3 +63,17 @@ SRE 第一次打开页面的 3 秒内必须知道：**我可以直接描述自�
 ## 与方案的映射
 
 本设计同时实现两条原则：入口是“用户定义巡检”，报告是“裁决书”。产品不替用户挑场景；系统只把用户目标编译成可审阅、可执行、可追溯的工作区。
+
+## Playbook 复用高保真增量
+
+详细节点规格与五态规则以 `DESIGN-PLAYBOOK.md` 为准。设计立场是“方案是加速器，不是入口”：匹配能力只在 context 顶部以一张卡出现，不新增方案 Dashboard，不改变 intake 的用户主权。
+
+| 状态 | 现场表现 | CTA 层级 |
+|---|---|---|
+| 无匹配 | 不渲染 Playbook DOM | 保持原流程 |
+| 精准匹配 | green 卡；校验详情默认收起 | 唯一实心“按方案直跑” |
+| 小幅差异 | amber 卡；差异 chips 展开 | 唯一实心“确认差异并继续” |
+| 重大漂移 | red 卡；旧方案标记 reference only | 看完差异后才解锁“重新生成” |
+| 执行完成 | report 内次级学习区 | ghost“保存方案/提交更新” |
+
+桌面复用既有三栏与语义 token；390px 变为全宽卡和详情抽屉。每张匹配卡最多一个实心 CTA，次级路径使用文本动作。复用的是结构，实体、指标、Trace、权限、模板校验与证据全部属于当次任务。

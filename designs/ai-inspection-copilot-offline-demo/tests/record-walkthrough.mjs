@@ -111,7 +111,7 @@ async function main() {
     frames.push(await captureFrame(session));
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     frames.push(await captureFrame(session));
-    await click(session, '[data-action="SCOPE_ACCEPTED"]');
+    await click(session, '[data-action="PLAYBOOK_DIFF_CONFIRMED"]');
     frames.push(await captureFrame(session));
     await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
     frames.push(await captureFrame(session));

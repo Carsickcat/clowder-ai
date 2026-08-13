@@ -1,5 +1,6 @@
 import { renderIntake } from './render-intake.mjs';
 import { renderInspectionPlan } from './render-plan.mjs';
+import { renderPlaybookMatch, renderPlaybookProposal, renderPlaybookReference } from './render-playbook.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 const PHASES = [
@@ -102,6 +103,7 @@ function renderContext(vm) {
 function renderScope(vm) {
   return `
     <div class="scope-stage">
+      ${renderPlaybookMatch(vm.playbook)}
       <span class="module-tag">Module 02 · Scope resolver</span>
       <h2>多源事实已经对齐</h2>
       <p>不是把图谱上的所有关系塞进任务，而是用业务目标、运行时 Trace 和已注册能力收敛检查范围。</p>
@@ -156,6 +158,7 @@ function renderReport(vm) {
         <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
         <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
       </div>
+      ${renderPlaybookProposal(vm.playbook)}
       ${
         report.rcAgent
           ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
@@ -182,6 +185,7 @@ function renderStage(vm) {
 
 function primaryAction(vm) {
   if (!vm.workspace) return '';
+  if (vm.state.phase === 'context' && vm.playbook.match) return '';
   const actions = {
     intake: ['INPUT_CONFIRMED', '确认理解结果'],
     context: ['SCOPE_ACCEPTED', '接受范围并生成任务'],
@@ -221,6 +225,7 @@ function renderCopilot(vm) {
       <header><span class="copilot-mark">✦</span><div><small>NOVA COPILOT</small><strong>可信任务编译器</strong></div><span class="online">ONLINE</span></header>
       <div class="copilot-message"><span>当前判断</span><h3>${escapeHtml(copy[0])}</h3><p>${escapeHtml(copy[1])}</p></div>
       <div class="copilot-principles"><span>护栏</span><ul><li>不生成任意生产查询</li><li>不把缺失证据写成正常</li><li>不代替 SRE 执行发布动作</li></ul></div>
+      ${renderPlaybookReference(vm.playbook)}
       ${primaryAction(vm)}
     </aside>`;
 }
@@ -241,6 +246,6 @@ export function renderApp(vm) {
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
-      <footer class="app-footer"><span>AI Inspection Copilot · Offline Product Demo v0.2</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
+      <footer class="app-footer"><span>AI Inspection Copilot · Offline Product Demo v0.3</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
     </div>`;
 }

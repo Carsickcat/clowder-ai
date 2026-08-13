@@ -283,6 +283,12 @@
   color: var(--cyan);
   font-size: 17px;
 }
+.compile-button:disabled {
+  border-color: var(--line);
+  background: rgba(111, 135, 163, 0.08);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
 .example-area {
   margin-top: 24px;
 }
@@ -409,6 +415,162 @@
 .scope-stage > h2 {
   margin: 12px 0 8px;
   font-size: 30px;
+}
+.playbook-match {
+  margin-bottom: 28px;
+  padding: 20px;
+  border: 1px solid;
+  border-radius: var(--radius);
+  background: rgba(7, 16, 31, 0.48);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+.playbook-match.exact {
+  border-color: rgba(114, 230, 166, 0.34);
+  background: linear-gradient(145deg, var(--green-soft), rgba(7, 16, 31, 0.48));
+}
+.playbook-match.minor-drift {
+  border-color: rgba(246, 186, 91, 0.38);
+  background: linear-gradient(145deg, var(--amber-soft), rgba(7, 16, 31, 0.48));
+}
+.playbook-match.major-drift {
+  border-color: rgba(255, 109, 127, 0.42);
+  background: linear-gradient(145deg, var(--red-soft), rgba(7, 16, 31, 0.5));
+}
+.playbook-match-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+.playbook-match-header h2 {
+  margin: 8px 0 0;
+  font-size: clamp(20px, 2.2vw, 27px);
+}
+.playbook-signals,
+.playbook-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.playbook-signals .readiness {
+  border-color: var(--line-strong);
+  background: rgba(7, 16, 31, 0.36);
+}
+.playbook-identity {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  margin-top: 19px;
+}
+.playbook-identity > span {
+  color: var(--text-faint);
+  font: 600 9px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.playbook-identity > strong {
+  font-size: 14px;
+}
+.playbook-summary,
+.playbook-freshness {
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+.playbook-summary {
+  margin: 9px 0 15px;
+}
+.playbook-freshness {
+  margin: 16px 0;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+}
+.playbook-validation {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.38);
+}
+.playbook-validation summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 700;
+}
+.playbook-validation summary span {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.playbook-validation ul,
+.playbook-difference-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.playbook-validation ul {
+  padding: 0 14px 14px;
+}
+.playbook-validation li,
+.playbook-difference-list li {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(7, 16, 31, 0.42);
+}
+.playbook-validation li span,
+.playbook-difference-list li span {
+  color: var(--text-faint);
+  font: 600 9px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.playbook-validation li strong,
+.playbook-difference-list li strong {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.playbook-difference-list li.review span {
+  color: var(--amber);
+}
+.playbook-difference-list li.blocking span {
+  color: var(--red);
+}
+.playbook-drawer {
+  display: none;
+}
+.playbook-reviewed {
+  margin: 11px 0 0;
+  color: var(--green);
+  font-size: 10px;
+}
+.playbook-review-drift,
+.playbook-dismiss,
+.playbook-proposal-action {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.playbook-review-drift {
+  margin-top: 11px;
+  padding: 0;
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 700;
+}
+.playbook-primary {
+  min-width: 225px;
+}
+.playbook-dismiss {
+  padding: 9px 4px;
+  color: var(--text-soft);
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .scope-stage > p,
 .stage-lead {
@@ -906,6 +1068,50 @@
   margin: 0;
   padding-left: 17px;
 }
+.playbook-proposal {
+  display: grid;
+  gap: 11px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.42);
+}
+.playbook-proposal h3 {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.playbook-proposal p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.playbook-proposal-action {
+  justify-self: start;
+  padding: 8px 0;
+  color: var(--cyan);
+  font-size: 10px;
+  font-weight: 700;
+}
+.playbook-proposal-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+.playbook-proposal-status span {
+  padding: 6px 8px;
+  border: 1px solid rgba(246, 186, 91, 0.32);
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font: 600 9px / 1 var(--mono);
+}
+.playbook-proposal-status strong {
+  color: var(--text-soft);
+  font-size: 10px;
+}
 .rc-button {
   margin-top: 14px;
 }
@@ -997,6 +1203,30 @@
 }
 .copilot-principles {
   padding: 4px 18px 18px;
+}
+.playbook-reference {
+  margin: 0 14px 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 109, 127, 0.28);
+  border-radius: var(--radius-sm);
+  background: var(--red-soft);
+}
+.playbook-reference span {
+  display: block;
+  color: var(--red);
+  font: 600 9px / 1 var(--mono);
+  text-transform: uppercase;
+}
+.playbook-reference strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+}
+.playbook-reference p {
+  margin: 7px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.55;
 }
 .copilot-principles ul {
   display: grid;

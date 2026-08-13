@@ -130,6 +130,27 @@ async function main() {
     await screenshot(session, '01-user-defined-proceed.png');
 
     await click(session, '[data-action="RESET"]');
+    await click(session, '[data-example-id="order-upgrade"]');
+    await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
+    await click(session, '[data-action="INPUT_CONFIRMED"]');
+    assert.equal(
+      await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),
+      'exact',
+    );
+    assert.match(await bodyText(session), /订单发布后验证 · v4/);
+    assert.equal(await session.evaluate('document.querySelectorAll(".playbook-primary").length'), 1);
+    await screenshot(session, '06-playbook-exact-match.png');
+    await click(session, '[data-action="PLAYBOOK_EXECUTION_STARTED"]');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    await advanceExecution(session);
+    text = await bodyText(session);
+    assert.match(text, /不可变实例 INS-/);
+    assert.match(text, /提交方案更新 → v5/);
+    await click(session, '[data-action="PLAYBOOK_PROPOSAL_SUBMITTED"]');
+    assert.match(await bodyText(session), /方案更新 v5 · 待审批/);
+    await screenshot(session, '07-playbook-exact-report.png');
+
+    await click(session, '[data-action="RESET"]');
     await click(session, '[data-example-id="payment-config"]');
     assert.match(await session.evaluate('document.querySelector("[name=inspection-intent]").value'), /payment-api/);
     assert.equal(await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit(); true'), true);
@@ -139,8 +160,10 @@ async function main() {
     assert.match(text, /payment\.confirm\.success_rate/);
     assert.match(text, /payment-api → settlement-db/);
     assert.match(text, /settlement-db · Redis · invoice queue/);
+    assert.match(text, /支付配置变更巡检 · v3/);
+    assert.match(text, /2 项当前差异需要确认/);
     await screenshot(session, '04-impact-dimensions.png');
-    await click(session, '[data-action="SCOPE_ACCEPTED"]');
+    await click(session, '[data-action="PLAYBOOK_DIFF_CONFIRMED"]');
     text = await bodyText(session);
     assert.match(text, /Observed-Superset/);
     assert.match(text, /invoice-worker/);
@@ -181,6 +204,19 @@ async function main() {
     assert.match(text, /共享配置包将 DB 连接池上限从 120 降为 60/);
     await screenshot(session, '02-electronic-flow-pause.png');
 
+    await click(session, '[data-action="RESET"]');
+    await submitRequest(session, {
+      prompt: 'payment-api 拆分出 risk-api，重新验证支付确认链路。',
+      targetService: 'payment-api',
+      contextReference: 'CHG-84501',
+    });
+    await click(session, '[data-action="INPUT_CONFIRMED"]');
+    assert.equal(
+      await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),
+      'major-drift',
+    );
+    await screenshot(session, '09-playbook-major-desktop.png');
+
     await session.send('Emulation.setDeviceMetricsOverride', {
       width: 390,
       height: 844,
@@ -190,14 +226,34 @@ async function main() {
     const mobileLoaded = session.once('Page.loadEventFired');
     await session.send('Page.reload');
     await mobileLoaded;
-    await click(session, '[data-example-id="payment-config"]');
-    await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
+    await submitRequest(session, {
+      prompt: 'payment-api 拆分出 risk-api，重新验证支付确认链路。',
+      targetService: 'payment-api',
+      contextReference: 'CHG-84501',
+    });
     await click(session, '[data-action="INPUT_CONFIRMED"]');
-    await click(session, '[data-action="SCOPE_ACCEPTED"]');
-    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
+    assert.equal(
+      await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),
+      'major-drift',
+    );
+    assert.equal(await session.evaluate('document.querySelector("[data-action=PLAYBOOK_REGENERATED]").disabled'), true);
+    await session.evaluate(`(() => {
+      const drawer = document.querySelector('.playbook-drawer');
+      drawer.open = true;
+      const body = drawer.querySelector('.playbook-drawer-body');
+      body.scrollTop = body.scrollHeight;
+    })()`);
+    await waitForPaint(session);
+    await screenshot(session, '10-playbook-major-mobile-drawer.png');
+    await click(session, '.playbook-drawer [data-action="PLAYBOOK_DRIFT_REVIEWED"]');
+    assert.equal(
+      await session.evaluate('document.querySelector("[data-action=PLAYBOOK_REGENERATED]").disabled'),
+      false,
+    );
+    await click(session, '[data-action="PLAYBOOK_REGENERATED"]');
+    assert.match(await bodyText(session), /旧方案仅作参考/);
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
-    await click(session, '[data-action="RC_TOGGLED"]');
     await waitForPaint(session);
     assert.equal(
       await session.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'),
@@ -211,12 +267,12 @@ async function main() {
       true,
       'mobile report must remain visibly laid out after viewport change',
     );
-    await screenshot(session, '03-mobile-report.png');
+    await screenshot(session, '08-playbook-major-mobile-report.png');
 
     assert.deepEqual(networkRequests, []);
     assert.deepEqual(browserErrors, []);
     process.stdout.write(
-      'Offline browser acceptance passed: 2 user-directed journeys, 0 network requests, 0 browser errors.\n',
+      'Offline browser acceptance passed: unmatched, exact, minor-drift, and major-drift journeys; 0 network requests, 0 browser errors.\n',
     );
   } finally {
     await browser.close();

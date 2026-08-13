@@ -1,5 +1,5 @@
 ---
-feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
+feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, offline-demo, acceptance]
 doc_kind: guide
 created: 2026-08-06
@@ -33,6 +33,15 @@ created: 2026-08-06
 6. 连续运行四步 mock 检查；报告应显示：证据 `Violated`，行动 `Pause`。
 7. 点击“启动 RC Agent”，查看共享配置包导致数据库连接池退化的诊断链。
 
+## 方案复用验收
+
+- 订单升级示例：命中 `订单发布后验证 · v4`，确认后直接执行，但创建新的任务实例并重新采集证据。
+- 支付配置示例：命中 `支付配置变更巡检 · v3`，先确认当前依赖与指标差异，再进入适配计划。
+- 输入“payment-api 拆分出 risk-api，重新验证支付确认链路”：旧方案因重大漂移只能作为参考；看完差异后重新生成，`risk-api` 会进入当前 scope 与正式 Check。
+- 报告阶段的“保存方案/提交更新”只创建待审批的新版本提案，不修改已锁定任务或历史方案。
+
+无匹配时页面不出现方案区域，普通用户自定义旅程保持原样。
+
 ## 本地可重复验证
 
 要求：Node.js 24+、本机 Chrome。没有第三方 npm 依赖。
@@ -43,7 +52,7 @@ pnpm test
 pnpm test:browser
 ```
 
-浏览器验收会从 `file://` 打开产物，自动走完“任意自定义请求”和“可编辑风险示例”两条用户驱动路径，并校验：0 个 HTTP(S) 网络请求、0 个浏览器错误、手机视口无横向溢出。
+浏览器验收会从 `file://` 打开产物，自动走完无匹配、精准匹配、小幅差异和重大漂移四类用户驱动路径，并校验：0 个 HTTP(S) 网络请求、0 个浏览器错误、手机视口无横向溢出。
 
 需要重录验收截图时运行：
 

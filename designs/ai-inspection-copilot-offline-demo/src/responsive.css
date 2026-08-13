@@ -91,6 +91,14 @@
     flex-direction: column;
     gap: 5px;
   }
+  .playbook-match-header,
+  .playbook-identity {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .playbook-signals {
+    width: 100%;
+  }
 }
 
 @media (max-width: 520px) {
@@ -156,5 +164,45 @@
   .intent-fields,
   .example-grid {
     grid-template-columns: 1fr;
+  }
+  .playbook-match {
+    margin: -4px -2px 22px;
+    padding: 15px;
+  }
+  .playbook-match-header h2 {
+    font-size: 20px;
+  }
+  .playbook-signals .readiness:last-child {
+    display: none;
+  }
+  .playbook-differences-desktop {
+    display: none;
+  }
+  .playbook-drawer {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: rgba(7, 16, 31, 0.4);
+  }
+  .playbook-drawer summary {
+    padding: 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .playbook-drawer-body {
+    max-height: 330px;
+    overflow-y: auto;
+    padding: 0 12px 12px;
+  }
+  .playbook-actions,
+  .playbook-primary,
+  .playbook-dismiss,
+  .playbook-proposal-action {
+    width: 100%;
+  }
+  .playbook-dismiss {
+    text-align: left;
   }
 }
