@@ -117,4 +117,4 @@ plan → execution → report（既有五阶段不变）
 
 ## ⑦ Pencil 说明
 
-当前环境未挂载 Pencil MCP 工具，无法产出 .pen 文件。替代交付：本文件 §③ 的线框为节点级规格（容器/组件/层级/CTA 全部映射到现有 CSS class），丢丢可直接按 §④ 复用表实现；若后续需要 .pen 存档，我可在 Pencil 可用的 session 里按本规格补画。
+设计时环境未挂载 Pencil MCP 工具，因此本 feature 不设 `.pen` 交付要求。本文件 §③ 的节点级规格（容器/组件/层级/CTA 全部映射到现有 CSS class）与实现态浏览器截图共同构成高保真真相源。

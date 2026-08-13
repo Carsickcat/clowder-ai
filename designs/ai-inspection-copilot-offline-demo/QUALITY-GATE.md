@@ -140,8 +140,11 @@ HTTP(S) requests: 0
 browser errors: 0
 390px horizontal overflow: 0
 walkthrough: 15074ms, 53272 bytes, VP9 WebM
+root `pnpm gate`: exit 0 (Biome, feature truth, lint, build, tests, public startup acceptance)
 ```
 
 Visual evidence: `evidence/06-playbook-exact-match.png`, `07-playbook-exact-report.png`, `04-impact-dimensions.png`, `09-playbook-major-desktop.png`, `10-playbook-major-mobile-drawer.png`, `08-playbook-major-mobile-report.png`。
 
 Final artifact: `103149` bytes, SHA-256 `688006707A26F9196E8F84E317102FA386CC4A321F607C0E815C9813686471B1`; two consecutive builds produced the same bytes.
+
+Design draft scan: the only repository `.pen` is `designs/f070-project-setup-card.pen`, unrelated to this feature. Playbook design truth is the Kimi-led `DESIGN-PLAYBOOK.md` plus browser screenshots. Root artifact hygiene checks returned no matches. Capability tips are explicitly exempt because this is a standalone offline acceptance artifact, not a Cat Café runtime capability or guide.

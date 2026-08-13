@@ -3,6 +3,8 @@ feature_ids: [AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, playbook, implementation-plan, tdd]
 doc_kind: implementation-plan
 created: 2026-08-13
+tips_exempt:
+  reason: Standalone offline acceptance artifact; it is not a discoverable Cat Café runtime capability or guide.
 ---
 
 # Inspection Playbook Reuse Implementation Plan
