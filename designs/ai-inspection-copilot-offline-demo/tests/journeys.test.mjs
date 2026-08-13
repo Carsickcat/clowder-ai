@@ -23,10 +23,23 @@ const paymentRequest = {
   contextReference: 'CHG-84217',
 };
 
+const majorDriftRequest = {
+  prompt: 'payment-api 拆分出 risk-api，重新验证支付确认链路。',
+  targetService: 'payment-api',
+  contextReference: 'CHG-84501',
+};
+
+const fulfillmentRequest = {
+  prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+  targetService: 'fulfillment-service',
+  contextReference: 'REL-FUL-72',
+};
+
 function advanceToPlan(request) {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request });
   state = dispatch(state, 'INPUT_CONFIRMED');
+  if (state.playbookMatch) state = dispatch(state, 'PLAYBOOK_DISMISSED');
   state = dispatch(state, 'SCOPE_ACCEPTED');
   return state;
 }
@@ -99,8 +112,9 @@ test('starting a new request clears workspace, dispositions, execution, and RC s
   state = dispatch(state, 'RC_TOGGLED');
   assert.equal(state.rcExpanded, true);
 
+  const nextTaskOrdinal = state.nextTaskOrdinal;
   state = dispatch(state, 'RESET');
-  assert.deepEqual(state, createDemoSession());
+  assert.deepEqual(state, createDemoSession({ nextTaskOrdinal }));
   assert.equal(state.workspace, null);
   assert.deepEqual(state.candidateDisposition, {});
   assert.equal(state.executionStep, -1);
@@ -112,4 +126,105 @@ test('resolved scope is derived from reconciliation, not duplicated session stat
   state = dispatch(state, 'INTENT_SUBMITTED', { request: paymentRequest });
   assert.deepEqual(selectResolvedScope(state).entities, ['invoice-worker', 'payment-api', 'settlement-db']);
   assert.equal(Object.hasOwn(state, 'resolvedScope'), false);
+});
+
+test('exact playbook runs after one confirmation while current reconciliation remains authoritative', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: orderRequest });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+
+  assert.equal(state.phase, 'context');
+  assert.equal(state.playbookMatch.status, 'exact');
+  assert.equal(state.workspace.reconciliation.status, 'Exact');
+
+  state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
+
+  assert.equal(state.phase, 'execution');
+  assert.equal(state.taskInstance.status, 'executing');
+  assert.deepEqual(state.taskInstance.sourcePlaybookRef, {
+    id: 'order-release-verification',
+    version: 4,
+  });
+  assert.ok(state.taskInstance.auditTrail.some((event) => event.type === 'playbook-applied'));
+});
+
+test('minor playbook drift records the acknowledged differences before adapting the plan', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: paymentRequest });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+
+  assert.equal(state.playbookMatch.status, 'minor-drift');
+  state = dispatch(state, 'PLAYBOOK_DIFF_CONFIRMED');
+
+  assert.equal(state.phase, 'plan');
+  assert.equal(state.playbookDecision, 'accepted-with-diff');
+  assert.deepEqual(state.taskInstance.sourcePlaybookRef, {
+    id: 'payment-config-verification',
+    version: 3,
+  });
+  const audit = state.taskInstance.auditTrail.find((event) => event.type === 'playbook-differences-confirmed');
+  assert.deepEqual(audit.differenceIds, ['payment-read-replica', 'payment-success-vocabulary']);
+  assert.ok(selectResolvedScope(state).entities.includes('settlement-db'));
+});
+
+test('major drift rejects direct execution and keeps the old playbook reference-only', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: majorDriftRequest });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+
+  assert.equal(state.playbookMatch.status, 'major-drift');
+  const forbidden = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
+  assert.deepEqual(forbidden, state);
+
+  state = dispatch(state, 'PLAYBOOK_REGENERATED');
+  assert.equal(state.phase, 'plan');
+  assert.equal(state.playbookDecision, 'regenerated');
+  assert.equal(state.taskInstance.sourcePlaybookRef, null);
+  assert.deepEqual(state.taskInstance.referencePlaybookRef, {
+    id: 'payment-config-verification',
+    version: 3,
+  });
+});
+
+test('reset clears playbook state and assigns a new task instance to the next request', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: orderRequest });
+  const firstTaskId = state.taskInstance.id;
+  assert.equal(state.playbookMatch.status, 'exact');
+
+  state = dispatch(state, 'RESET');
+  assert.equal(state.workspace, null);
+  assert.equal(state.playbookMatch, null);
+  assert.equal(state.playbookDecision, null);
+  assert.equal(state.taskInstance, null);
+  assert.equal(state.playbookProposal, null);
+
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: fulfillmentRequest });
+  assert.notEqual(state.taskInstance.id, firstTaskId);
+  assert.equal(state.playbookMatch, null);
+});
+
+test('locked task remains immutable while a report submits one idempotent playbook proposal', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: orderRequest });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
+  for (let index = 0; index < state.workspace.execution.length; index += 1) {
+    state = dispatch(state, 'EXECUTION_ADVANCED');
+  }
+
+  assert.equal(state.phase, 'report');
+  assert.equal(state.taskInstance.status, 'locked');
+  const lockedTask = state.taskInstance;
+
+  state = dispatch(state, 'PLAYBOOK_PROPOSAL_SUBMITTED');
+  assert.deepEqual(state.taskInstance, lockedTask);
+  assert.equal(state.playbookProposal.kind, 'update');
+  assert.equal(state.playbookProposal.targetVersion, 5);
+  assert.equal(state.playbookProposal.status, 'pending-approval');
+  assert.equal(state.playbookProposal.sourceTaskInstanceId, lockedTask.id);
+
+  const proposed = state;
+  state = dispatch(state, 'PLAYBOOK_PROPOSAL_SUBMITTED');
+  assert.equal(state, proposed);
 });

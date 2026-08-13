@@ -9,6 +9,7 @@ const applicationFiles = [
   '../lib/domain.mjs',
   '../lib/scenarios.mjs',
   '../lib/compiler.mjs',
+  '../lib/playbooks.mjs',
   '../lib/selectors.mjs',
   '../lib/reducer.mjs',
   'view-utils.mjs',

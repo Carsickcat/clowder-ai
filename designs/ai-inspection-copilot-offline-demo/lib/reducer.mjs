@@ -1,15 +1,53 @@
 import { compileInspectionRequest } from './compiler.mjs';
 import { deepFreeze } from './domain.mjs';
+import { matchInspectionPlaybook } from './playbooks.mjs';
 import { selectPlanReadiness } from './selectors.mjs';
 
-export function createDemoSession() {
+export function createDemoSession(options = {}) {
   return deepFreeze({
     workspace: null,
     phase: 'intake',
     candidateDisposition: {},
     executionStep: -1,
     rcExpanded: false,
+    playbookMatch: null,
+    playbookDecision: null,
+    playbookProposal: null,
+    taskInstance: null,
+    nextTaskOrdinal: options.nextTaskOrdinal ?? 48,
   });
+}
+
+function taskId(ordinal) {
+  return `INS-${String(ordinal).padStart(4, '0')}`;
+}
+
+function createTaskInstance(ordinal) {
+  const id = taskId(ordinal);
+  return {
+    id,
+    status: 'draft',
+    sourcePlaybookRef: null,
+    referencePlaybookRef: null,
+    auditTrail: [{ type: 'task-created', taskInstanceId: id }],
+  };
+}
+
+function updateTaskInstance(taskInstance, patch, auditEvent) {
+  if (!taskInstance || taskInstance.status === 'locked') return taskInstance;
+  return {
+    ...taskInstance,
+    ...patch,
+    auditTrail: auditEvent ? [...taskInstance.auditTrail, auditEvent] : taskInstance.auditTrail,
+  };
+}
+
+function playbookRef(match) {
+  return match ? { ...match.playbookRef } : null;
+}
+
+function reconciliationAllowsExecution(workspace) {
+  return workspace && !['Conflict', 'Unverifiable'].includes(workspace.reconciliation.status);
 }
 
 function disposeCandidate(state, action) {
@@ -36,16 +74,89 @@ function reduceSession(state, action) {
   switch (action.type) {
     case 'INTENT_SUBMITTED':
       if (state.phase !== 'intake') return state;
-      return {
-        ...createDemoSession(),
-        workspace: compileInspectionRequest(action.request),
-      };
+      {
+        const workspace = compileInspectionRequest(action.request);
+        const ordinal = state.nextTaskOrdinal;
+        return {
+          ...createDemoSession({ nextTaskOrdinal: ordinal + 1 }),
+          workspace,
+          playbookMatch: matchInspectionPlaybook(workspace),
+          taskInstance: createTaskInstance(ordinal),
+        };
+      }
     case 'RESET':
-      return createDemoSession();
+      return createDemoSession({ nextTaskOrdinal: state.nextTaskOrdinal });
     case 'INPUT_CONFIRMED':
       return state.phase === 'intake' && state.workspace ? { ...state, phase: 'context' } : state;
+    case 'PLAYBOOK_DISMISSED':
+      if (state.phase !== 'context' || !state.playbookMatch || state.playbookDecision) return state;
+      return {
+        ...state,
+        playbookDecision: 'dismissed',
+        taskInstance: updateTaskInstance(state.taskInstance, {}, {
+          type: 'playbook-dismissed',
+          playbookRef: playbookRef(state.playbookMatch),
+        }),
+      };
+    case 'PLAYBOOK_EXECUTION_STARTED':
+      if (
+        state.phase !== 'context' ||
+        state.playbookMatch?.status !== 'exact' ||
+        state.playbookDecision ||
+        !reconciliationAllowsExecution(state.workspace)
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        phase: 'execution',
+        playbookDecision: 'applied',
+        taskInstance: updateTaskInstance(
+          state.taskInstance,
+          { status: 'executing', sourcePlaybookRef: playbookRef(state.playbookMatch) },
+          { type: 'playbook-applied', playbookRef: playbookRef(state.playbookMatch) },
+        ),
+      };
+    case 'PLAYBOOK_DIFF_CONFIRMED':
+      if (
+        state.phase !== 'context' ||
+        state.playbookMatch?.status !== 'minor-drift' ||
+        state.playbookDecision ||
+        !reconciliationAllowsExecution(state.workspace)
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        phase: 'plan',
+        playbookDecision: 'accepted-with-diff',
+        taskInstance: updateTaskInstance(
+          state.taskInstance,
+          { sourcePlaybookRef: playbookRef(state.playbookMatch) },
+          {
+            type: 'playbook-differences-confirmed',
+            playbookRef: playbookRef(state.playbookMatch),
+            differenceIds: state.playbookMatch.differences.map((difference) => difference.id),
+          },
+        ),
+      };
+    case 'PLAYBOOK_REGENERATED':
+      if (state.phase !== 'context' || state.playbookMatch?.status !== 'major-drift' || state.playbookDecision) {
+        return state;
+      }
+      return {
+        ...state,
+        phase: 'plan',
+        playbookDecision: 'regenerated',
+        taskInstance: updateTaskInstance(
+          state.taskInstance,
+          { referencePlaybookRef: playbookRef(state.playbookMatch) },
+          { type: 'playbook-regenerated', referencePlaybookRef: playbookRef(state.playbookMatch) },
+        ),
+      };
     case 'SCOPE_ACCEPTED': {
       if (state.phase !== 'context' || !state.workspace) return state;
+      if (state.playbookMatch && state.playbookDecision !== 'dismissed') return state;
       const { reconciliation } = state.workspace;
       return ['Conflict', 'Unverifiable'].includes(reconciliation.status) ? state : { ...state, phase: 'plan' };
     }
@@ -53,20 +164,55 @@ function reduceSession(state, action) {
       return disposeCandidate(state, action);
     case 'PLAN_CONFIRMED':
       return state.phase === 'plan' && selectPlanReadiness(state).status === 'ready'
-        ? { ...state, phase: 'execution', executionStep: -1 }
+        ? {
+            ...state,
+            phase: 'execution',
+            executionStep: -1,
+            taskInstance: updateTaskInstance(
+              state.taskInstance,
+              { status: 'executing' },
+              { type: 'plan-confirmed' },
+            ),
+          }
         : state;
     case 'EXECUTION_ADVANCED': {
       if (state.phase !== 'execution' || !state.workspace) return state;
       const lastIndex = state.workspace.execution.length - 1;
       const nextStep = state.executionStep + 1;
       return nextStep >= lastIndex
-        ? { ...state, phase: 'report', executionStep: lastIndex }
+        ? {
+            ...state,
+            phase: 'report',
+            executionStep: lastIndex,
+            taskInstance: updateTaskInstance(
+              state.taskInstance,
+              { status: 'locked' },
+              { type: 'task-locked' },
+            ),
+          }
         : { ...state, executionStep: nextStep };
     }
     case 'RC_TOGGLED':
       return state.phase === 'report' && state.workspace?.report.rcAgent
         ? { ...state, rcExpanded: !state.rcExpanded }
         : state;
+    case 'PLAYBOOK_PROPOSAL_SUBMITTED': {
+      if (state.phase !== 'report' || state.taskInstance?.status !== 'locked' || state.playbookProposal) {
+        return state;
+      }
+      const source = state.taskInstance.sourcePlaybookRef;
+      return {
+        ...state,
+        playbookProposal: {
+          id: `PB-PROP-${state.taskInstance.id}`,
+          kind: source ? 'update' : 'create',
+          sourceTaskInstanceId: state.taskInstance.id,
+          sourcePlaybookRef: source ? { ...source } : null,
+          targetVersion: source ? source.version + 1 : 1,
+          status: 'pending-approval',
+        },
+      };
+    }
     default:
       return state;
   }
