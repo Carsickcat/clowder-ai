@@ -35,15 +35,6 @@ const naturalLanguagePass = {
     traceDependencies: ['order-api → payment-gateway'],
     middleware: ['order-cache · Redis'],
   },
-  impactDimensions: {
-    businessJourney: ["订单提交 → 支付确认"],
-    goldenMetrics: [
-      "order.submit.success_rate",
-      "payment.confirm.success_rate",
-    ],
-    traceDependencies: ["order-api → payment-gateway"],
-    middleware: ["order-cache · Redis"],
-  },
   contextSources: [
     {
       id: 'nl-intent',
@@ -184,12 +175,6 @@ const changeTicketRisk = {
     goldenMetrics: ['payment.confirm.success_rate'],
     traceDependencies: ['payment-api → settlement-db'],
     middleware: ['settlement-db · Redis · invoice queue'],
-  },
-  impactDimensions: {
-    businessJourney: ["支付确认 → 账单异步"],
-    goldenMetrics: ["payment.confirm.success_rate"],
-    traceDependencies: ["payment-api → settlement-db"],
-    middleware: ["settlement-db · Redis · invoice queue"],
   },
   contextSources: [
     {
