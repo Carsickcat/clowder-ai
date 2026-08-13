@@ -9,14 +9,21 @@ tips_exempt:
 
 # Inspection Playbook Reuse Implementation Plan
 
-**Feature:** AI_INSPECTION_PLAYBOOK_REUSE — `designs/ai-inspection-copilot-offline-demo/DESIGN-PLAYBOOK.md`  
-**Goal:** 在不改变空白发起主权和五阶段巡检闭环的前提下，让相同业务场景复用经审批的巡检判断结构，同时对当次运行事实重新对账并生成新的不可变任务实例。  
-**Acceptance Criteria:** AC-P1 零打扰；AC-P2 精准直跑；AC-P3 差异确认；AC-P4 漂移拦截；AC-P5 审计不可变；AC-P6 空白入口主权；AC-P7 390px 横幅/抽屉；AC-P8 重置不串态。  
-**Architecture cell:** Inspection Request Compiler / Plan Compiler / Evidence Ledger  
-**Map delta:** update required  
-**Map delta why:** `ARCHITECTURE.md` 需要增加 Playbook Matcher、Task Instance 和 Playbook Proposal 的生命周期边界；不新增执行引擎或持久化服务。  
-**Architecture:** 在编译后的当前 `InspectionWorkspace` 上运行纯匹配器，产出不可变 `PlaybookMatchSnapshot`。Reducer 是当前 Task Instance、匹配决策与 Proposal 的唯一 lifecycle owner；UI 只消费 selector 投影。复用只继承 Check 结构，证据、对账和任务 ID 始终属于本次执行。  
-**Tech Stack:** 原生 ES modules、纯 reducer/selectors、HTML/CSS、Node test runner、离线 CDP browser harness。  
+**Feature:** AI_INSPECTION_PLAYBOOK_REUSE — `designs/ai-inspection-copilot-offline-demo/DESIGN-PLAYBOOK.md`
+
+**Goal:** 在不改变空白发起主权和五阶段巡检闭环的前提下，让相同业务场景复用经审批的巡检判断结构，同时对当次运行事实重新对账并生成新的不可变任务实例。
+
+**Acceptance Criteria:** AC-P1 零打扰；AC-P2 精准直跑；AC-P3 差异确认；AC-P4 漂移拦截；AC-P5 审计不可变；AC-P6 空白入口主权；AC-P7 390px 横幅/抽屉；AC-P8 重置不串态。
+
+**Architecture cell:** Inspection Request Compiler / Plan Compiler / Evidence Ledger
+
+**Map delta:** update required
+
+**Map delta why:** `ARCHITECTURE.md` 需要增加 Playbook Matcher、Task Instance 和 Playbook Proposal 的生命周期边界；不新增执行引擎或持久化服务。
+
+**Architecture:** 在编译后的当前 `InspectionWorkspace` 上运行纯匹配器，产出不可变 `PlaybookMatchSnapshot`。Reducer 是当前 Task Instance、匹配决策与 Proposal 的唯一 lifecycle owner；UI 只消费 selector 投影。复用只继承 Check 结构，证据、对账和任务 ID 始终属于本次执行。
+
+**Tech Stack:** 原生 ES modules、纯 reducer/selectors、HTML/CSS、Node test runner、离线 CDP browser harness。
 **前端验证:** Yes — 必须在 1440px 与 390px 实测 exact / minor drift / major drift / report proposal，且 network、console error 与横向溢出均为 0。
 
 ---
@@ -175,4 +182,3 @@ PlaybookProposal = {
 
 - **技术 OQ:** major drift 的“已看完”在离线 DOM 中用显式按钮投影，不模拟复杂 scroll observer；可回滚，按可测试性自决。
 - **价值 OQ:** 无。operator 已决定 Playbook 复用进入高保真实现，且烁烁已主导设计边界。
-
