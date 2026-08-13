@@ -33,10 +33,18 @@ export function selectPlanReadiness(state) {
 
 export function selectCommittedChecks(state) {
   const workspace = requireWorkspace(state);
+  if (state.taskInstance?.inspectionPlan) {
+    const checks = state.taskInstance.inspectionPlan.checks;
+    const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
+    for (const check of checks) assertCheckContract(check, sourceIds);
+    return checks;
+  }
+  const baseChecks =
+    state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
-  const checks = [...workspace.committedChecks, ...acceptedCandidates];
+  const checks = [...baseChecks, ...acceptedCandidates];
   const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
@@ -45,8 +53,10 @@ export function selectCommittedChecks(state) {
 export function selectPlanSummary(state) {
   const workspace = requireWorkspace(state);
   const dispositions = state.candidateDisposition;
+  const baseChecks =
+    state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
   return {
-    required: workspace.committedChecks.filter((check) => check.priority === 'required').length,
+    required: baseChecks.filter((check) => check.priority === 'required').length,
     recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
       .length,
     pending: workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]).length,

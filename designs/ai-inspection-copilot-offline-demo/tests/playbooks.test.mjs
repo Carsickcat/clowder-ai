@@ -57,6 +57,50 @@ test('catalog match rules, not hard-coded service branches, select the latest ap
   assert.equal(selected.version, 5);
 });
 
+test('match snapshot resolves the approved catalog check structure against the current workspace', () => {
+  const workspace = compile({
+    prompt: 'release order-api v4.8.0',
+    targetService: 'order-api',
+  });
+  const revised = {
+    ...inspectionPlaybooks[0],
+    version: 5,
+    checkIds: ['service-golden-signals'],
+    lastUsedAt: '2026-08-12T12:00:00Z',
+  };
+
+  const match = matchInspectionPlaybook(workspace, [...inspectionPlaybooks, revised]);
+
+  assert.deepEqual(match.checkIds, ['service-golden-signals']);
+  assert.deepEqual(
+    match.checks.map((check) => check.id),
+    ['service-golden-signals'],
+  );
+  assert.equal(Object.isFrozen(match.checkIds), true);
+  assert.equal(Object.isFrozen(match.checks), true);
+  assert.equal(Object.hasOwn(match.checks[0], 'evidence'), false);
+  assert.equal(match.lastUsedAt, revised.lastUsedAt);
+  assert.equal(match.lastUsedLabel, '1 天前');
+});
+
+test('an approved check that cannot bind to the current workspace blocks reuse as major drift', () => {
+  const workspace = compile({
+    prompt: 'release order-api v4.8.0',
+    targetService: 'order-api',
+  });
+  const incompatible = {
+    ...inspectionPlaybooks[0],
+    version: 5,
+    checkIds: ['retired-order-check'],
+  };
+
+  const match = matchInspectionPlaybook(workspace, [...inspectionPlaybooks, incompatible]);
+
+  assert.equal(match.status, 'major-drift');
+  assert.deepEqual(match.unresolvedCheckIds, ['retired-order-check']);
+  assert.ok(match.differences.some((difference) => difference.severity === 'blocking'));
+});
+
 test('a known service without the catalog intent signals remains unmatched', () => {
   const workspace = compile({
     prompt: 'inspect order-api error rate',

@@ -134,7 +134,7 @@ Design truth: `DESIGN-PLAYBOOK.md`，由烁烁主导。Implementation plan: `fea
 Fresh author evidence:
 
 ```text
-pnpm test: 41/41 pass
+pnpm test: 44/44 pass
 offline browser: unmatched/exact/minor/major pass
 HTTP(S) requests: 0
 browser errors: 0
@@ -153,6 +153,8 @@ Fresh-context findings on `b3c6ec7` were closed before formal review:
 - FC-2 (P3): runtime selection now consumes structured catalog `matchRules`, chooses the latest applicable version, and leaves a known service unmatched when its intent signals do not qualify. The request compiler remains the workspace compiler rather than a second playbook matcher.
 - FC-3 (P3): implementation-plan trailing whitespace and the extra EOF line were removed; `git diff --check origin/main...HEAD` is clean.
 
-Final artifact: `104175` bytes, SHA-256 `80EB14A8FE8977B1CC6CB7B1D46938437E4386A49212FAD253532AA60A224BF8`; two consecutive builds produced the same bytes.
+Formal review P2 closure: catalog `checkIds` now resolve, in catalog order, to current-workspace Check Contracts; exact/minor acceptance freezes that structure into the new Task Instance `inspectionPlan`. A revised catalog version changes only the next task plan, while a completed historical task remains deeply equal. Unresolved approved checks downgrade to major drift, and catalog timestamps now drive snapshot freshness metadata instead of a hard-coded label.
+
+Final artifact: `107938` bytes, SHA-256 `77C0332F1330778A4EF7EBA54CC5E0AFD34CB353B4AB4B45B05BA22DCC5CC0FA`; two consecutive builds produced the same bytes.
 
 Design draft scan: the only repository `.pen` is `designs/f070-project-setup-card.pen`, unrelated to this feature. Playbook design truth is the Kimi-led `DESIGN-PLAYBOOK.md` plus browser screenshots. Root artifact hygiene checks returned no matches. Capability tips are explicitly exempt because this is a standalone offline acceptance artifact, not a Cat Café runtime capability or guide.

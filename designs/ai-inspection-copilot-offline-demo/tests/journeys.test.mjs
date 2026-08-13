@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createDemoSession, demoReducer } from '../lib/reducer.mjs';
+import { inspectionPlaybooks } from '../lib/playbooks.mjs';
+import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import {
   selectCommittedChecks,
   selectPlanReadiness,
@@ -145,7 +146,39 @@ test('exact playbook runs after one confirmation while current reconciliation re
     id: 'order-release-verification',
     version: 4,
   });
+  assert.deepEqual(state.taskInstance.inspectionPlan.checkIds, inspectionPlaybooks[0].checkIds);
+  assert.ok(state.taskInstance.inspectionPlan.checks.every((check) => !Object.hasOwn(check, 'evidence')));
   assert.ok(state.taskInstance.auditTrail.some((event) => event.type === 'playbook-applied'));
+});
+
+test('each reused task snapshots the selected catalog checks without rewriting a locked historical task', () => {
+  let historical = createDemoSession();
+  historical = dispatch(historical, 'INTENT_SUBMITTED', { request: orderRequest });
+  historical = dispatch(historical, 'INPUT_CONFIRMED');
+  historical = dispatch(historical, 'PLAYBOOK_EXECUTION_STARTED');
+  historical = finishJourney(historical);
+  const lockedTask = structuredClone(historical.taskInstance);
+
+  assert.deepEqual(historical.taskInstance.inspectionPlan.checkIds, inspectionPlaybooks[0].checkIds);
+
+  const revised = {
+    ...inspectionPlaybooks[0],
+    version: 5,
+    checkIds: ['service-golden-signals'],
+  };
+  const revisedReducer = createDemoReducer({ playbookCatalog: [...inspectionPlaybooks, revised] });
+  let current = createDemoSession({ nextTaskOrdinal: historical.nextTaskOrdinal });
+  current = revisedReducer(current, { type: 'INTENT_SUBMITTED', request: orderRequest });
+  current = revisedReducer(current, { type: 'INPUT_CONFIRMED' });
+  current = revisedReducer(current, { type: 'PLAYBOOK_EXECUTION_STARTED' });
+
+  assert.equal(current.taskInstance.sourcePlaybookRef.version, 5);
+  assert.deepEqual(current.taskInstance.inspectionPlan.checkIds, ['service-golden-signals']);
+  assert.deepEqual(
+    current.taskInstance.inspectionPlan.checks.map((check) => check.id),
+    ['service-golden-signals'],
+  );
+  assert.deepEqual(historical.taskInstance, lockedTask);
 });
 
 test('minor playbook drift records the acknowledged differences before adapting the plan', () => {
@@ -162,9 +195,23 @@ test('minor playbook drift records the acknowledged differences before adapting 
     id: 'payment-config-verification',
     version: 3,
   });
+  assert.deepEqual(
+    selectCommittedChecks(state).map((check) => check.id),
+    inspectionPlaybooks[1].checkIds,
+  );
   const audit = state.taskInstance.auditTrail.find((event) => event.type === 'playbook-differences-confirmed');
   assert.deepEqual(audit.differenceIds, ['payment-read-replica', 'payment-success-vocabulary']);
   assert.ok(selectResolvedScope(state).entities.includes('settlement-db'));
+
+  state = dispatch(state, 'CANDIDATE_DISPOSED', {
+    candidateId: 'candidate-db-wait',
+    disposition: 'accepted',
+  });
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  assert.deepEqual(state.taskInstance.inspectionPlan.checkIds, [
+    ...inspectionPlaybooks[1].checkIds,
+    'candidate-db-wait',
+  ]);
 });
 
 test('major drift rejects direct execution and keeps the old playbook reference-only', () => {

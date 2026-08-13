@@ -161,4 +161,6 @@ InspectionRequest → current InspectionWorkspace
 
 四个状态对象只有一个写入 owner：只读 catalog 拥有 `PlaybookDefinition`；`INTENT_SUBMITTED` 一次性生成 `PlaybookMatchSnapshot`；session reducer 独占 `TaskInstance` 生命周期；report reducer 只追加一个幂等 `PlaybookProposal`。UI 与 selector 不持久化派生状态。
 
+目录中的 `checkIds` 是审批结构的来源与顺序；matcher 必须将它们显式映射到当前 `InspectionWorkspace.committedChecks`，把当前实体、规则和事实来源写入不可变 match snapshot。任一 ID 无当前绑定时只能进入 major drift。exact/minor 被采纳后，reducer 将该结构冻结为新 Task Instance 的 `inspectionPlan`；因此目录升级会影响下一次新任务，但不会回写已锁定任务，也不会携带历史 evidence。
+
 `TaskInstance.sourcePlaybookRef` 仅用于 exact/minor 复用；major drift 的旧方案只能写入 `referencePlaybookRef`。最终执行步把任务锁定，此后方案沉淀不得改变任务、证据或审计轨迹。Demo catalog 与 proposal 都是内存 mock；生产化时可替换为版本化存储和审批适配器，不改变 matcher、任务不可变性或现有执行引擎边界。

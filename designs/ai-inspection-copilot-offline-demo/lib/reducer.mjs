@@ -1,7 +1,7 @@
 import { compileInspectionRequest } from './compiler.mjs';
 import { deepFreeze } from './domain.mjs';
-import { matchInspectionPlaybook } from './playbooks.mjs';
-import { selectPlanReadiness } from './selectors.mjs';
+import { inspectionPlaybooks, matchInspectionPlaybook } from './playbooks.mjs';
+import { selectCommittedChecks, selectPlanReadiness } from './selectors.mjs';
 
 export function createDemoSession(options = {}) {
   return deepFreeze({
@@ -30,6 +30,7 @@ function createTaskInstance(ordinal) {
     status: 'draft',
     sourcePlaybookRef: null,
     referencePlaybookRef: null,
+    inspectionPlan: null,
     auditTrail: [{ type: 'task-created', taskInstanceId: id }],
   };
 }
@@ -45,6 +46,19 @@ function updateTaskInstance(taskInstance, patch, auditEvent) {
 
 function playbookRef(match) {
   return match ? { ...match.playbookRef } : null;
+}
+
+function snapshotChecks(checks) {
+  return checks.map((check) => ({ ...check, sourceRefs: [...check.sourceRefs] }));
+}
+
+function createInspectionPlan(checks, sourcePlaybookRef = null) {
+  return {
+    source: sourcePlaybookRef ? 'approved-playbook' : 'generated',
+    sourcePlaybookRef: sourcePlaybookRef ? { ...sourcePlaybookRef } : null,
+    checkIds: checks.map((check) => check.id),
+    checks: snapshotChecks(checks),
+  };
 }
 
 function reconciliationAllowsExecution(workspace) {
@@ -71,14 +85,14 @@ function disposeCandidate(state, action) {
   };
 }
 
-function submitIntent(state, action) {
+function submitIntent(state, action, playbookCatalog) {
   if (state.phase !== 'intake') return state;
   const workspace = compileInspectionRequest(action.request);
   const ordinal = state.nextTaskOrdinal;
   return {
     ...createDemoSession({ nextTaskOrdinal: ordinal + 1 }),
     workspace,
-    playbookMatch: matchInspectionPlaybook(workspace),
+    playbookMatch: matchInspectionPlaybook(workspace, playbookCatalog),
     taskInstance: createTaskInstance(ordinal),
   };
 }
@@ -115,7 +129,11 @@ function startPlaybookExecution(state) {
     playbookDecision: 'applied',
     taskInstance: updateTaskInstance(
       state.taskInstance,
-      { status: 'executing', sourcePlaybookRef: playbookRef(state.playbookMatch) },
+      {
+        status: 'executing',
+        sourcePlaybookRef: playbookRef(state.playbookMatch),
+        inspectionPlan: createInspectionPlan(state.playbookMatch.checks, playbookRef(state.playbookMatch)),
+      },
       { type: 'playbook-applied', playbookRef: playbookRef(state.playbookMatch) },
     ),
   };
@@ -182,11 +200,19 @@ function acceptScope(state) {
 
 function confirmPlan(state) {
   if (state.phase !== 'plan' || selectPlanReadiness(state).status !== 'ready') return state;
+  const checks = selectCommittedChecks(state);
   return {
     ...state,
     phase: 'execution',
     executionStep: -1,
-    taskInstance: updateTaskInstance(state.taskInstance, { status: 'executing' }, { type: 'plan-confirmed' }),
+    taskInstance: updateTaskInstance(
+      state.taskInstance,
+      {
+        status: 'executing',
+        inspectionPlan: createInspectionPlan(checks, state.taskInstance.sourcePlaybookRef),
+      },
+      { type: 'plan-confirmed', checkIds: checks.map((check) => check.id) },
+    ),
   };
 }
 
@@ -226,27 +252,30 @@ function submitPlaybookProposal(state) {
   };
 }
 
-const sessionHandlers = {
-  INTENT_SUBMITTED: submitIntent,
-  RESET: (state) => createDemoSession({ nextTaskOrdinal: state.nextTaskOrdinal }),
-  INPUT_CONFIRMED: confirmInput,
-  PLAYBOOK_DISMISSED: dismissPlaybook,
-  PLAYBOOK_EXECUTION_STARTED: startPlaybookExecution,
-  PLAYBOOK_DIFF_CONFIRMED: confirmPlaybookDifference,
-  PLAYBOOK_DRIFT_REVIEWED: reviewPlaybookDrift,
-  PLAYBOOK_REGENERATED: regenerateFromPlaybook,
-  SCOPE_ACCEPTED: acceptScope,
-  CANDIDATE_DISPOSED: disposeCandidate,
-  PLAN_CONFIRMED: confirmPlan,
-  EXECUTION_ADVANCED: advanceExecution,
-  RC_TOGGLED: toggleRootCause,
-  PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
-};
-
-function reduceSession(state, action) {
-  return (sessionHandlers[action.type] ?? ((currentState) => currentState))(state, action);
+export function createDemoReducer(options = {}) {
+  const playbookCatalog = options.playbookCatalog ?? inspectionPlaybooks;
+  const sessionHandlers = {
+    INTENT_SUBMITTED: (state, action) => submitIntent(state, action, playbookCatalog),
+    RESET: (state) => createDemoSession({ nextTaskOrdinal: state.nextTaskOrdinal }),
+    INPUT_CONFIRMED: confirmInput,
+    PLAYBOOK_DISMISSED: dismissPlaybook,
+    PLAYBOOK_EXECUTION_STARTED: startPlaybookExecution,
+    PLAYBOOK_DIFF_CONFIRMED: confirmPlaybookDifference,
+    PLAYBOOK_DRIFT_REVIEWED: reviewPlaybookDrift,
+    PLAYBOOK_REGENERATED: regenerateFromPlaybook,
+    SCOPE_ACCEPTED: acceptScope,
+    CANDIDATE_DISPOSED: disposeCandidate,
+    PLAN_CONFIRMED: confirmPlan,
+    EXECUTION_ADVANCED: advanceExecution,
+    RC_TOGGLED: toggleRootCause,
+    PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
+  };
+  return (state, action) =>
+    deepFreeze((sessionHandlers[action.type] ?? ((currentState) => currentState))(state, action));
 }
 
+const defaultReducer = createDemoReducer();
+
 export function demoReducer(state, action) {
-  return deepFreeze(reduceSession(state, action));
+  return defaultReducer(state, action);
 }

@@ -46,7 +46,9 @@ PlaybookDefinition = {
 PlaybookMatchSnapshot = {
   playbookRef: { id, version },
   status: "exact" | "minor-drift" | "major-drift",
-  score, lastUsedLabel, validations[], differences[]
+  score, approvedAt, lastUsedAt, lastUsedLabel,
+  checkIds[], checks[], unresolvedCheckIds[],
+  validations[], differences[]
 }
 
 TaskInstance = {
@@ -54,6 +56,11 @@ TaskInstance = {
   status: "draft" | "executing" | "locked",
   sourcePlaybookRef: null | { id, version },
   referencePlaybookRef: null | { id, version },
+  inspectionPlan: null | {
+    source: "approved-playbook" | "generated",
+    sourcePlaybookRef,
+    checkIds[], checks[]
+  },
   auditTrail[]
 }
 
@@ -67,7 +74,7 @@ PlaybookProposal = {
 }
 ```
 
-`PlaybookDefinition` 与历史任务 fixture 是不可变真相源；`PlaybookMatchSnapshot` 只在 `INTENT_SUBMITTED` 时生成一次；匹配卡展开态属于 UI 行为，不持久化为业务状态。
+`PlaybookDefinition` 与历史任务 fixture 是不可变真相源；`checkIds` 按目录顺序映射到当前 workspace 的 Check Contract，无法映射即降级为 major drift。`PlaybookMatchSnapshot` 只在 `INTENT_SUBMITTED` 时生成一次；采纳后，解析出的 Check 结构冻结到新 Task Instance 的 `inspectionPlan`，后续目录版本不得改写历史任务。匹配卡展开态属于 UI 行为，不持久化为业务状态。
 
 ## Stateful Object Gate
 
