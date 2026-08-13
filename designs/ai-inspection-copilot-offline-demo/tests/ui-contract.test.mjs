@@ -201,11 +201,13 @@ test('major drift blocks regeneration until the current differences are explicit
   assert.match(html, /场景边界已改变/);
   assert.match(html, /payment-api 已拆分为 payment-api \+ risk-api/);
   assert.match(html, /data-action="PLAYBOOK_DRIFT_REVIEWED"/);
+  assert.match(html, />确认已查看 2 项差异<\/button>/);
   assert.match(html, /data-action="PLAYBOOK_REGENERATED"[^>]+disabled/);
   assert.doesNotMatch(html, /PLAYBOOK_EXECUTION_STARTED/);
 
   state = dispatch(state, 'PLAYBOOK_DRIFT_REVIEWED');
   html = renderApp(selectViewModel(state));
+  assert.match(html, /class="playbook-reviewed">✓ 已确认看完全部当前差异<\/p>/);
   assert.doesNotMatch(html, /data-action="PLAYBOOK_REGENERATED"[^>]+disabled/);
 });
 

@@ -558,7 +558,7 @@
 .playbook-review-drift {
   margin-top: 11px;
   padding: 0;
-  color: var(--red);
+  color: var(--text-soft);
   font-size: 10px;
   font-weight: 700;
 }

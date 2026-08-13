@@ -50,7 +50,7 @@ function renderDriftReview(match, driftReviewed) {
   if (match.status !== 'major-drift') return '';
   return driftReviewed
     ? '<p class="playbook-reviewed">✓ 已确认看完全部当前差异</p>'
-    : `<button class="playbook-review-drift" data-action="PLAYBOOK_DRIFT_REVIEWED" type="button">我已看完 ${match.differences.length} 项差异</button>`;
+    : `<button class="playbook-review-drift" data-action="PLAYBOOK_DRIFT_REVIEWED" type="button">确认已查看 ${match.differences.length} 项差异</button>`;
 }
 
 function renderMatchDetails(match, driftReviewed) {

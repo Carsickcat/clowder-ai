@@ -145,6 +145,8 @@ root `pnpm gate`: exit 0 (Biome, feature truth, lint, build, tests, public start
 
 Visual evidence: `evidence/06-playbook-exact-match.png`, `07-playbook-exact-report.png`, `04-impact-dimensions.png`, `09-playbook-major-desktop.png`, `10-playbook-major-mobile-drawer.png`, `08-playbook-major-mobile-report.png`。
 
-Final artifact: `103149` bytes, SHA-256 `688006707A26F9196E8F84E317102FA386CC4A321F607C0E815C9813686471B1`; two consecutive builds produced the same bytes.
+Kimi-led design review: **DESIGN APPROVE** on 2026-08-13, with no P1/P2. The single P3 ambiguity was closed in the same round: the unconfirmed S4 gate now uses neutral “确认已查看 N 项差异” copy, while the completed state remains green with a `✓`; this keeps pending and completed semantics distinct.
+
+Final artifact: `103158` bytes, SHA-256 `74B1D246CB8C22DA684F3240CA4BF1804FC03AE61FD4027541EB4B8D67324428`; two consecutive builds produced the same bytes.
 
 Design draft scan: the only repository `.pen` is `designs/f070-project-setup-card.pen`, unrelated to this feature. Playbook design truth is the Kimi-led `DESIGN-PLAYBOOK.md` plus browser screenshots. Root artifact hygiene checks returned no matches. Capability tips are explicitly exempt because this is a standalone offline acceptance artifact, not a Cat Café runtime capability or guide.
