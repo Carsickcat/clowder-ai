@@ -2,11 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { compileInspectionRequest } from '../lib/compiler.mjs';
-import {
-  inspectionPlaybooks,
-  matchInspectionPlaybook,
-  selectInspectionPlaybookDefinition,
-} from '../lib/playbooks.mjs';
+import { inspectionPlaybooks, matchInspectionPlaybook, selectInspectionPlaybookDefinition } from '../lib/playbooks.mjs';
 
 function compile(request) {
   return compileInspectionRequest(request);
