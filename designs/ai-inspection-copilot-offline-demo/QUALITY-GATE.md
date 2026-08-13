@@ -134,7 +134,7 @@ Design truth: `DESIGN-PLAYBOOK.md`，由烁烁主导。Implementation plan: `fea
 Fresh author evidence:
 
 ```text
-pnpm test: 38/38 pass
+pnpm test: 41/41 pass
 offline browser: unmatched/exact/minor/major pass
 HTTP(S) requests: 0
 browser errors: 0
@@ -147,6 +147,12 @@ Visual evidence: `evidence/06-playbook-exact-match.png`, `07-playbook-exact-repo
 
 Kimi-led design review: **DESIGN APPROVE** on 2026-08-13, with no P1/P2. The single P3 ambiguity was closed in the same round: the unconfirmed S4 gate now uses neutral “确认已查看 N 项差异” copy, while the completed state remains green with a `✓`; this keeps pending and completed semantics distinct.
 
-Final artifact: `103158` bytes, SHA-256 `74B1D246CB8C22DA684F3240CA4BF1804FC03AE61FD4027541EB4B8D67324428`; two consecutive builds produced the same bytes.
+Fresh-context findings on `b3c6ec7` were closed before formal review:
+
+- FC-1 (P2): the generated `index.html` checkout is now pinned to LF by a package-local `.gitattributes` contract; a regression test verifies the attribute, and two consecutive builds leave identical bytes.
+- FC-2 (P3): runtime selection now consumes structured catalog `matchRules`, chooses the latest applicable version, and leaves a known service unmatched when its intent signals do not qualify. The request compiler remains the workspace compiler rather than a second playbook matcher.
+- FC-3 (P3): implementation-plan trailing whitespace and the extra EOF line were removed; `git diff --check origin/main...HEAD` is clean.
+
+Final artifact: `104175` bytes, SHA-256 `80EB14A8FE8977B1CC6CB7B1D46938437E4386A49212FAD253532AA60A224BF8`; two consecutive builds produced the same bytes.
 
 Design draft scan: the only repository `.pen` is `designs/f070-project-setup-card.pen`, unrelated to this feature. Playbook design truth is the Kimi-led `DESIGN-PLAYBOOK.md` plus browser screenshots. Root artifact hygiene checks returned no matches. Capability tips are explicitly exempt because this is a standalone offline acceptance artifact, not a Cat Café runtime capability or guide.

@@ -2,7 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { compileInspectionRequest } from '../lib/compiler.mjs';
-import { inspectionPlaybooks, matchInspectionPlaybook } from '../lib/playbooks.mjs';
+import {
+  inspectionPlaybooks,
+  matchInspectionPlaybook,
+  selectInspectionPlaybookDefinition,
+} from '../lib/playbooks.mjs';
 
 function compile(request) {
   return compileInspectionRequest(request);
@@ -36,6 +40,34 @@ test('known order release produces an exact immutable match snapshot', () => {
   assert.equal(Object.isFrozen(match.validations), true);
   assert.equal(Object.hasOwn(match, 'evidence'), false);
   assert.equal(Object.hasOwn(match, 'historicalEvidence'), false);
+});
+
+test('catalog match rules, not hard-coded service branches, select the latest applicable version', () => {
+  const workspace = compile({
+    prompt: 'release order-api v4.8.0',
+    targetService: 'order-api',
+  });
+  const revised = {
+    ...inspectionPlaybooks[0],
+    version: 5,
+    matchRules: {
+      targetServices: ['order-api'],
+      promptSignals: ['release'],
+    },
+  };
+
+  const selected = selectInspectionPlaybookDefinition(workspace, [...inspectionPlaybooks, revised]);
+
+  assert.equal(selected.version, 5);
+});
+
+test('a known service without the catalog intent signals remains unmatched', () => {
+  const workspace = compile({
+    prompt: 'inspect order-api error rate',
+    targetService: 'order-api',
+  });
+
+  assert.equal(matchInspectionPlaybook(workspace), null);
 });
 
 test('payment configuration change exposes current dependency and metric drift', () => {
@@ -78,6 +110,9 @@ test('approved playbook catalog is immutable and contains structure but no evide
   assert.ok(inspectionPlaybooks.length >= 2);
   for (const playbook of inspectionPlaybooks) {
     assert.equal(Object.isFrozen(playbook), true);
+    assert.equal(Object.isFrozen(playbook.matchRules), true);
+    assert.equal(Object.isFrozen(playbook.matchRules.targetServices), true);
+    assert.equal(Object.isFrozen(playbook.matchRules.promptSignals), true);
     assert.ok(playbook.checkIds.length > 0);
     assert.equal(Object.hasOwn(playbook, 'evidence'), false);
     assert.equal(Object.hasOwn(playbook, 'report'), false);

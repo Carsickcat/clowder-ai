@@ -7,7 +7,13 @@ import test from 'node:test';
 import { buildStandalone } from '../scripts/build.mjs';
 
 const artifactPath = path.resolve(import.meta.dirname, '../index.html');
+const attributesPath = path.resolve(import.meta.dirname, '../.gitattributes');
 const legacyArtifactPath = path.resolve(import.meta.dirname, '../AI-Inspection-Copilot-Offline-Demo.html');
+
+test('generated artifact checkout is pinned to LF on every platform', async () => {
+  const attributes = await readFile(attributesPath, 'utf8');
+  assert.match(attributes, /^index\.html text eol=lf$/m);
+});
 
 test('standalone build produces one deterministic offline artifact', async (t) => {
   const outputPath = path.join(os.tmpdir(), `ai-inspection-copilot-${process.pid}.html`);

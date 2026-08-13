@@ -38,7 +38,8 @@ tips_exempt:
 
 ```js
 PlaybookDefinition = {
-  id, version, title, scenarioKey, matchRules,
+  id, version, title, scenarioKey,
+  matchRules: { targetServices[], promptSignals[] },
   checkIds, approvedAt, lastUsedAt
 }
 

@@ -6,7 +6,10 @@ export const inspectionPlaybooks = deepFreeze([
     version: 4,
     title: '订单发布后验证',
     scenarioKey: 'order-release',
-    matchRules: ['order-api', 'release'],
+    matchRules: {
+      targetServices: ['order-api'],
+      promptSignals: ['升级', '发布', 'release', 'deploy'],
+    },
     checkIds: ['business-outcome', 'service-golden-signals', 'downstream-dependency'],
     approvedAt: '2026-08-01T09:30:00Z',
     lastUsedAt: '2026-08-10T03:20:00Z',
@@ -16,7 +19,10 @@ export const inspectionPlaybooks = deepFreeze([
     version: 3,
     title: '支付配置变更巡检',
     scenarioKey: 'payment-config',
-    matchRules: ['payment-api', 'config-change'],
+    matchRules: {
+      targetServices: ['payment-api'],
+      promptSignals: ['Redis', '超时', '配置', 'config', 'risk-api', '拆分'],
+    },
     checkIds: ['payment-business', 'redis-latency', 'invoice-async'],
     approvedAt: '2026-07-28T08:00:00Z',
     lastUsedAt: '2026-08-10T07:45:00Z',
@@ -131,15 +137,35 @@ function majorPaymentMatch(playbook) {
   });
 }
 
-export function matchInspectionPlaybook(workspace) {
+function matchesPlaybookDefinition(playbook, workspace) {
   const service = workspace?.request?.targetService?.toLowerCase() ?? '';
   const prompt = workspace?.request?.prompt?.toLowerCase() ?? '';
-  if (service === 'order-api' || prompt.includes('order-api')) {
-    return exactOrderMatch(inspectionPlaybooks[0]);
+  const targetServices = playbook.matchRules?.targetServices ?? [];
+  const promptSignals = playbook.matchRules?.promptSignals ?? [];
+  return (
+    targetServices.some((candidate) => candidate.toLowerCase() === service) &&
+    (promptSignals.length === 0 || promptSignals.some((signal) => prompt.includes(signal.toLowerCase())))
+  );
+}
+
+export function selectInspectionPlaybookDefinition(workspace, catalog = inspectionPlaybooks) {
+  let selected = null;
+  for (const playbook of catalog) {
+    if (!matchesPlaybookDefinition(playbook, workspace)) continue;
+    if (!selected || playbook.version > selected.version) selected = playbook;
   }
-  if (service === 'payment-api' || prompt.includes('payment-api')) {
+  return selected;
+}
+
+export function matchInspectionPlaybook(workspace, catalog = inspectionPlaybooks) {
+  const playbook = selectInspectionPlaybookDefinition(workspace, catalog);
+  if (!playbook) return null;
+
+  if (playbook.scenarioKey === 'order-release') return exactOrderMatch(playbook);
+  if (playbook.scenarioKey === 'payment-config') {
+    const prompt = workspace?.request?.prompt?.toLowerCase() ?? '';
     const majorDrift = prompt.includes('risk-api') || prompt.includes('拆分');
-    return majorDrift ? majorPaymentMatch(inspectionPlaybooks[1]) : minorPaymentMatch(inspectionPlaybooks[1]);
+    return majorDrift ? majorPaymentMatch(playbook) : minorPaymentMatch(playbook);
   }
   return null;
 }
