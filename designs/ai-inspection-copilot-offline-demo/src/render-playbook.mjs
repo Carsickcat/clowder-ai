@@ -2,24 +2,31 @@ import { escapeHtml } from './view-utils.mjs';
 
 const STATUS_COPY = {
   exact: {
-    eyebrow: 'Approved playbook · exact',
-    title: '当前事实与已审批方案一致',
+    stateLabel: '精准匹配',
     action: 'PLAYBOOK_EXECUTION_STARTED',
     actionLabel: '按方案直跑',
   },
   'minor-drift': {
-    eyebrow: 'Approved playbook · review',
-    title: '方案结构可复用，先确认当前差异',
+    stateLabel: '需确认差异',
     action: 'PLAYBOOK_DIFF_CONFIRMED',
     actionLabel: '确认差异并继续',
   },
   'major-drift': {
-    eyebrow: 'Reference only · blocked',
-    title: '旧方案不再适用',
+    stateLabel: '禁止直跑',
     action: 'PLAYBOOK_REGENERATED',
     actionLabel: '重新生成（参考旧方案）',
   },
 };
+
+function renderMatchTitle(match) {
+  if (match.status === 'exact') {
+    return `命中方案：${escapeHtml(match.title)} · v${match.playbookRef.version}`;
+  }
+  if (match.status === 'major-drift') {
+    return `方案 v${match.playbookRef.version} 不适用：${match.differences.length} 项重大差异`;
+  }
+  return '确认方案差异';
+}
 
 const DIRECTION_LABELS = {
   added: '新增',
@@ -56,7 +63,7 @@ function renderDriftReview(match, driftReviewed) {
 function renderMatchDetails(match, driftReviewed) {
   if (match.status === 'exact') {
     return `<details class="playbook-validation">
-      <summary>五项现场校验全部通过 <span>展开详情</span></summary>
+      <summary>五项校验通过 <span>查看详情</span></summary>
       <ul>${match.validations.map(renderValidation).join('')}</ul>
     </details>`;
   }
@@ -89,13 +96,16 @@ export function renderPlaybookMatch(playbookView) {
   const copy = STATUS_COPY[match.status];
   return `<section class="playbook-match ${match.status}" data-testid="playbook-match" data-match-status="${match.status}" aria-labelledby="playbook-match-title">
     <header class="playbook-match-header">
-      <div><span class="module-tag">${copy.eyebrow}</span><h2 id="playbook-match-title">${copy.title}</h2></div>
+      <div><span class="match-state">${copy.stateLabel}</span><h2 id="playbook-match-title">${renderMatchTitle(match)}</h2></div>
       <div class="playbook-signals"><span class="readiness">匹配 ${match.score}%</span><span class="readiness">${escapeHtml(match.lastUsedLabel)}</span><span class="readiness">${match.differences.length} 项差异</span></div>
     </header>
-    <div class="playbook-identity"><span>场景巡检方案</span><strong>${escapeHtml(match.title)} · v${match.playbookRef.version}</strong></div>
-    <p class="playbook-summary">${escapeHtml(match.summary)}</p>
+    ${
+      match.status === 'exact'
+        ? '<div class="playbook-structure-note"><span class="info-tip" tabindex="0" aria-label="复用检查结构，证据重新采集" title="复用检查结构，证据重新采集">ⓘ</span><span>检查结构</span></div>'
+        : `<div class="playbook-identity"><span>巡检方案</span><strong>${escapeHtml(match.title)} · v${match.playbookRef.version}</strong></div>`
+    }
+    ${match.status === 'minor-drift' ? `<p class="playbook-summary single-line-note" title="${escapeHtml(match.summary)}">${escapeHtml(match.summary)}</p>` : ''}
     ${renderMatchDetails(match, playbookView.driftReviewed)}
-    <p class="playbook-freshness">复用的是检查结构；实体、指标、Trace、权限与模板均按本次请求现场校验，证据将重新采集。</p>
     ${renderMatchActions(match, playbookView.driftReviewed)}
   </section>`;
 }
@@ -117,8 +127,8 @@ export function renderPlaybookProposal(playbookView) {
   const source = task.sourcePlaybookRef;
   const targetVersion = source ? source.version + 1 : 1;
   return `<section class="playbook-proposal" data-testid="playbook-proposal">
-    <div><span class="module-tag">Playbook learning loop</span><h3>方案沉淀</h3></div>
-    <p>本次任务已沉淀为不可变实例 ${escapeHtml(task.id)}（审计锁定）。方案版本只引用本次结构与留痕，不改写历史实例。</p>
+    <div><h3>保存方案</h3></div>
+    <p class="single-line-note" title="历史任务 ${escapeHtml(task.id)} 已锁定">历史实例不受影响</p>
     ${
       proposal
         ? `<div class="playbook-proposal-status"><span>${proposal.kind === 'update' ? '方案更新' : '新方案'} v${proposal.targetVersion} · 待审批</span><strong>审批通过后，下次匹配才会生效</strong></div>`

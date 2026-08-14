@@ -8,18 +8,16 @@
   }
   .copilot-panel {
     display: grid;
-    grid-template-columns: minmax(220px, 0.6fr) 1fr auto;
+    grid-template-columns: minmax(190px, 0.7fr) minmax(160px, 1fr) auto;
     align-items: stretch;
   }
   .copilot-panel > header {
     border-right: 1px solid var(--line);
     border-bottom: 0;
   }
-  .copilot-message {
-    margin: 10px;
-  }
-  .copilot-principles {
-    display: none;
+  .copilot-status {
+    align-self: center;
+    margin: 10px 14px;
   }
   .primary-action {
     width: 220px;
@@ -73,8 +71,9 @@
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
-  .copilot-principles {
-    display: block;
+  .copilot-status {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
   }
   .primary-action {
     width: calc(100% - 28px);
@@ -129,7 +128,7 @@
     padding: 15px;
   }
   .stage-empty {
-    min-height: 430px;
+    min-height: 320px;
   }
   .semantic-pair {
     grid-template-columns: 1fr;
@@ -170,7 +169,7 @@
     padding: 15px;
   }
   .playbook-match-header h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
   .playbook-signals .readiness:last-child {
     display: none;

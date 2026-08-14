@@ -94,8 +94,15 @@ async function main() {
     await loaded;
 
     let text = await bodyText(session);
-    assert.match(text, /创建任意巡检工作区/);
-    assert.match(text, /示例只负责填充/);
+    assert.match(text, /创建巡检/);
+    assert.match(text, /填入后可修改/);
+    assert.deepEqual(
+      await session.evaluate(`(() => {
+        const title = document.querySelector('[data-stage-title]');
+        return { text: title.textContent.trim(), fontSize: getComputedStyle(title).fontSize };
+      })()`),
+      { text: '创建巡检', fontSize: '18px' },
+    );
     assert.equal(await session.evaluate('document.querySelectorAll("[data-scenario-id]").length'), 0);
     await screenshot(session, '00-user-defined-intake.png');
 
@@ -105,7 +112,8 @@ async function main() {
       contextReference: 'REL-FUL-72',
     });
     text = await bodyText(session);
-    assert.match(text, /fulfillment-service 巡检工作区/);
+    assert.match(text, /确认变更信息/);
+    assert.match(text, /fulfillment-service · v7.2.0/);
 
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
@@ -144,7 +152,7 @@ async function main() {
     assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
     await advanceExecution(session);
     text = await bodyText(session);
-    assert.match(text, /不可变实例 INS-/);
+    assert.match(text, /历史实例不受影响/);
     assert.match(text, /提交方案更新 → v5/);
     await click(session, '[data-action="PLAYBOOK_PROPOSAL_SUBMITTED"]');
     assert.match(await bodyText(session), /方案更新 v5 · 待审批/);
@@ -266,6 +274,21 @@ async function main() {
       ),
       true,
       'mobile report must remain visibly laid out after viewport change',
+    );
+    assert.equal(
+      await session.evaluate(`(() => [...document.querySelectorAll('.single-line-note')].every((node) => {
+        const style = getComputedStyle(node);
+        return style.whiteSpace === 'nowrap' && node.scrollHeight <= Math.ceil(parseFloat(style.lineHeight)) + 1;
+      }))()`),
+      true,
+      'concise card notes must remain single-line at 390px',
+    );
+    assert.equal(
+      await session.evaluate(
+        "parseFloat(getComputedStyle(document.querySelector('.decision-hero h2')).fontSize) >= 26",
+      ),
+      true,
+      'the final action remains the only report hero',
     );
     await screenshot(session, '08-playbook-major-mobile-report.png');
 

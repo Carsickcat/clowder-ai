@@ -6,9 +6,9 @@ function renderCandidate(candidate, disposition) {
   const status = accepted ? '已纳入正式计划' : rejected ? '已拒绝并记录理由' : '待处置';
   return `
     <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''}">
-      <header><span>待确认 · ${escapeHtml(candidate.criticality)} criticality</span><strong>${status}</strong></header>
+      <header><span>${candidate.criticality === 'high' ? '高风险候选' : '候选检查'}</span><strong>${status}</strong></header>
       <h4>${escapeHtml(candidate.purpose)}</h4>
-      <p>${escapeHtml(candidate.rationale)}</p>
+      <p class="single-line-note" title="${escapeHtml(candidate.rationale)}">${escapeHtml(candidate.rationale)}</p>
       <code>${escapeHtml(candidate.metric)}</code>
       ${
         !accepted && !rejected
@@ -82,10 +82,9 @@ export function renderInspectionPlan(vm) {
   return `
     <div class="plan-stage" data-testid="inspection-plan">
       <header class="stage-heading">
-        <div><span class="module-tag">Module 03 · Plan compiler</span><h2>可审阅的 InspectionPlan</h2></div>
-        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? 'Ready · 可确认' : 'Blocked · 候选待处置'}</span>
+        <div><h2 data-stage-title>巡检任务</h2></div>
+        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? '可确认' : '候选待处置'}</span>
       </header>
-      <p class="stage-lead">模板保底，多源约束，AI 只补洞。待确认项被接受前不属于正式 Check，也没有门禁权。</p>
       ${renderPlanStats(vm.planSummary)}
       <section class="plan-section" aria-labelledby="pending-title">
         <h3 id="pending-title">待确认项</h3>

@@ -50,9 +50,10 @@
   text-transform: uppercase;
 }
 .title-lockup h1 {
-  margin: 5px 0 0;
+  margin: 0;
   overflow: hidden;
-  font-size: clamp(17px, 2vw, 22px);
+  font-size: 18px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -98,7 +99,7 @@
   padding: 18px;
 }
 .stage-panel {
-  min-height: 670px;
+  min-height: 600px;
   padding: clamp(20px, 3vw, 34px);
 }
 .copilot-panel {

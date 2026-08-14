@@ -136,9 +136,10 @@ a:focus-visible {
   text-transform: uppercase;
 }
 .title-lockup h1 {
-  margin: 5px 0 0;
+  margin: 0;
   overflow: hidden;
-  font-size: clamp(17px, 2vw, 22px);
+  font-size: 18px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -184,7 +185,7 @@ a:focus-visible {
   padding: 18px;
 }
 .stage-panel {
-  min-height: 670px;
+  min-height: 600px;
   padding: clamp(20px, 3vw, 34px);
 }
 .copilot-panel {
@@ -415,27 +416,25 @@ a:focus-visible {
   margin: 0 auto;
   padding: 18px 0 8px;
 }
-.product-intake > .stage-orb {
-  margin: 0 0 18px;
-}
 .product-intake h2 {
-  margin: 8px 0 10px;
-  font-size: clamp(30px, 5vw, 48px);
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
 }
 .intake-lead {
   max-width: 650px;
   margin: 0;
   color: var(--text-soft);
-  line-height: 1.7;
+  line-height: 1.5;
 }
 .intent-form {
   display: grid;
   gap: 14px;
-  margin-top: 28px;
-  padding: 20px;
+  margin-top: 18px;
+  padding: 18px;
   border: 1px solid rgba(90, 231, 210, 0.24);
   border-radius: var(--radius-lg);
-  background: linear-gradient(145deg, rgba(90, 231, 210, 0.08), rgba(109, 145, 255, 0.05));
+  background: rgba(7, 16, 31, 0.42);
 }
 .intent-form label {
   display: grid;
@@ -563,7 +562,7 @@ a:focus-visible {
 }
 .stage-empty {
   display: grid;
-  min-height: 590px;
+  min-height: 420px;
   place-items: center;
   align-content: center;
   text-align: center;
@@ -588,7 +587,8 @@ a:focus-visible {
 }
 .stage-empty h2 {
   margin-bottom: 10px;
-  font-size: clamp(26px, 4vw, 40px);
+  font-size: 18px;
+  font-weight: 600;
 }
 .stage-empty > p:not(.stage-kicker) {
   max-width: 560px;
@@ -620,8 +620,9 @@ a:focus-visible {
   line-height: 1.45;
 }
 .scope-stage > h2 {
-  margin: 12px 0 8px;
-  font-size: 30px;
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 600;
 }
 .playbook-match {
   margin-bottom: 28px;
@@ -650,8 +651,14 @@ a:focus-visible {
   align-items: flex-start;
 }
 .playbook-match-header h2 {
-  margin: 8px 0 0;
-  font-size: clamp(20px, 2.2vw, 27px);
+  margin: 7px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.match-state {
+  color: var(--text-faint);
+  font-size: 9px;
+  font-weight: 700;
 }
 .playbook-signals,
 .playbook-actions {
@@ -682,6 +689,24 @@ a:focus-visible {
 .playbook-freshness {
   color: var(--text-soft);
   line-height: 1.6;
+}
+.playbook-structure-note {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin: 14px 0 10px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.info-tip {
+  color: var(--cyan);
+  cursor: help;
+}
+.single-line-note {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .playbook-summary {
   margin: 9px 0 15px;
@@ -789,7 +814,7 @@ a:focus-visible {
   padding: 16px;
   border: 1px solid rgba(90, 231, 210, 0.24);
   border-radius: var(--radius);
-  background: linear-gradient(145deg, rgba(90, 231, 210, 0.08), rgba(109, 145, 255, 0.05));
+  background: rgba(7, 16, 31, 0.42);
 }
 .impact-block > header span {
   color: var(--cyan);
@@ -798,7 +823,7 @@ a:focus-visible {
   text-transform: uppercase;
 }
 .impact-block > header h3 {
-  margin: 7px 0 0;
+  margin: 0;
   font-size: 15px;
 }
 .impact-matrix {
@@ -1285,7 +1310,7 @@ a:focus-visible {
   background: rgba(7, 16, 31, 0.42);
 }
 .playbook-proposal h3 {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: 13px;
 }
 .playbook-proposal p {
@@ -1363,12 +1388,12 @@ a:focus-visible {
   grid-template-columns: 34px 1fr auto;
   gap: 10px;
   align-items: center;
-  padding: 16px;
+  padding: 13px 14px;
   border-bottom: 1px solid var(--line);
 }
 .copilot-mark {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 10px;
@@ -1389,7 +1414,19 @@ a:focus-visible {
 }
 .online {
   color: var(--green);
-  font: 600 8px / 1 var(--mono);
+  font: 600 10px / 1 var(--mono);
+}
+.copilot-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 14px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.copilot-status strong {
+  color: var(--text);
+  font-weight: 600;
 }
 .copilot-message {
   margin: 14px;
@@ -1479,18 +1516,16 @@ a:focus-visible {
   }
   .copilot-panel {
     display: grid;
-    grid-template-columns: minmax(220px, 0.6fr) 1fr auto;
+    grid-template-columns: minmax(190px, 0.7fr) minmax(160px, 1fr) auto;
     align-items: stretch;
   }
   .copilot-panel > header {
     border-right: 1px solid var(--line);
     border-bottom: 0;
   }
-  .copilot-message {
-    margin: 10px;
-  }
-  .copilot-principles {
-    display: none;
+  .copilot-status {
+    align-self: center;
+    margin: 10px 14px;
   }
   .primary-action {
     width: 220px;
@@ -1544,8 +1579,9 @@ a:focus-visible {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
-  .copilot-principles {
-    display: block;
+  .copilot-status {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
   }
   .primary-action {
     width: calc(100% - 28px);
@@ -1600,7 +1636,7 @@ a:focus-visible {
     padding: 15px;
   }
   .stage-empty {
-    min-height: 430px;
+    min-height: 320px;
   }
   .semantic-pair {
     grid-template-columns: 1fr;
@@ -1641,7 +1677,7 @@ a:focus-visible {
     padding: 15px;
   }
   .playbook-match-header h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
   .playbook-signals .readiness:last-child {
     display: none;
@@ -1786,7 +1822,7 @@ const naturalLanguagePass = {
   entryKind: 'natural-language',
   eyebrow: 'Journey 01 · Natural language',
   title: '订单服务升级验收',
-  subtitle: '从一句话生成一份值得 SRE 确认的巡检任务',
+  subtitle: '订单发布验证',
   prompt: '今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。',
   declaredChange: {
     id: 'MANUAL-ORDER-480',
@@ -2443,7 +2479,7 @@ function exactOrderMatch(playbook, workspace) {
   return snapshot(playbook, workspace, {
     status: 'exact',
     score: 98,
-    summary: '证据框架仍有效，五项现场校验全部通过',
+    summary: '五项校验通过',
     validations: [
       validation('entity'),
       validation('metric'),
@@ -2492,7 +2528,7 @@ function majorPaymentMatch(playbook, workspace) {
   return snapshot(playbook, workspace, {
     status: 'major-drift',
     score: 61,
-    summary: '场景边界已改变，旧方案只能作为重新生成的参考',
+    summary: '2 项重大差异',
     validations: [
       validation('entity', 'blocking', '核心服务已发生拆分'),
       validation('metric', 'blocking', '旧检查无法覆盖新实体'),
@@ -2526,7 +2562,7 @@ function incompatibleStructureMatch(playbook, workspace) {
   return snapshot(playbook, workspace, {
     status: 'major-drift',
     score: 58,
-    summary: '当前场景无法绑定已审批的检查结构，旧方案只能作为重新生成的参考',
+    summary: '检查结构不可用',
     validations: [
       validation('entity'),
       validation('metric'),
@@ -3011,10 +3047,8 @@ function renderExamples() {
 function renderComposer() {
   return `
     <div class="product-intake">
-      <span class="stage-orb">✦</span>
-      <p class="stage-kicker">User-defined inspection</p>
-      <h2>创建任意巡检工作区</h2>
-      <p class="intake-lead">描述你要验证的对象和目标；电子流、发布单只是可选上下文，不是产品模式。</p>
+      <h2 data-stage-title>创建巡检</h2>
+      <p class="intake-lead">描述对象和验证目标；发布单可选。</p>
       <form class="intent-form" data-intent-form>
         <label class="intent-main">
           <span>你想验证什么？</span>
@@ -3030,10 +3064,10 @@ function renderComposer() {
             <input name="context-reference" placeholder="CHG / REL / 发布批次" />
           </label>
         </div>
-        <button class="compile-button" type="submit"><span>编译巡检工作区</span><b>→</b></button>
+        <button class="compile-button" type="submit"><span>生成工作区</span><b>→</b></button>
       </form>
       <div class="example-area">
-        <div><strong>需要灵感？</strong><span>示例只负责填充，内容可随意修改。</span></div>
+        <div><strong>示例</strong><span>填入后可修改</span></div>
         <div class="example-grid">${renderExamples()}</div>
       </div>
     </div>`;
@@ -3043,16 +3077,13 @@ function renderUnderstanding(vm) {
   const workspace = vm.workspace;
   return `
     <div class="stage-empty compiled-intake">
-      <span class="stage-orb">✓</span>
-      <p class="stage-kicker">Copilot 已编译用户目标</p>
-      <h2>${escapeHtml(workspace.title)}</h2>
-      <p>${escapeHtml(workspace.subtitle)}</p>
+      <h2 data-stage-title>确认变更信息</h2>
       <div class="understanding-grid">
         <div><span>服务 / 版本</span><strong>${escapeHtml(workspace.declaredChange.entities[0])} · ${escapeHtml(workspace.declaredChange.version)}</strong></div>
         <div><span>可靠性目标</span><strong>${escapeHtml(workspace.hypotheses[0])}</strong></div>
         <div><span>上下文组合</span><strong>${workspace.entryKind === 'combined-context' ? '用户意图 + 电子流补全' : '用户意图'}</strong></div>
       </div>
-      <button class="edit-intent" data-action="RESET" type="button">返回修改输入</button>
+      <button class="edit-intent" data-action="RESET" type="button">修改输入</button>
     </div>`;
 }
 
@@ -3066,9 +3097,9 @@ function renderCandidate(candidate, disposition) {
   const status = accepted ? '已纳入正式计划' : rejected ? '已拒绝并记录理由' : '待处置';
   return `
     <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''}">
-      <header><span>待确认 · ${escapeHtml(candidate.criticality)} criticality</span><strong>${status}</strong></header>
+      <header><span>${candidate.criticality === 'high' ? '高风险候选' : '候选检查'}</span><strong>${status}</strong></header>
       <h4>${escapeHtml(candidate.purpose)}</h4>
-      <p>${escapeHtml(candidate.rationale)}</p>
+      <p class="single-line-note" title="${escapeHtml(candidate.rationale)}">${escapeHtml(candidate.rationale)}</p>
       <code>${escapeHtml(candidate.metric)}</code>
       ${
         !accepted && !rejected
@@ -3142,10 +3173,9 @@ function renderInspectionPlan(vm) {
   return `
     <div class="plan-stage" data-testid="inspection-plan">
       <header class="stage-heading">
-        <div><span class="module-tag">Module 03 · Plan compiler</span><h2>可审阅的 InspectionPlan</h2></div>
-        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? 'Ready · 可确认' : 'Blocked · 候选待处置'}</span>
+        <div><h2 data-stage-title>巡检任务</h2></div>
+        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? '可确认' : '候选待处置'}</span>
       </header>
-      <p class="stage-lead">模板保底，多源约束，AI 只补洞。待确认项被接受前不属于正式 Check，也没有门禁权。</p>
       ${renderPlanStats(vm.planSummary)}
       <section class="plan-section" aria-labelledby="pending-title">
         <h3 id="pending-title">待确认项</h3>
@@ -3164,24 +3194,31 @@ function renderInspectionPlan(vm) {
 
 const STATUS_COPY = {
   exact: {
-    eyebrow: 'Approved playbook · exact',
-    title: '当前事实与已审批方案一致',
+    stateLabel: '精准匹配',
     action: 'PLAYBOOK_EXECUTION_STARTED',
     actionLabel: '按方案直跑',
   },
   'minor-drift': {
-    eyebrow: 'Approved playbook · review',
-    title: '方案结构可复用，先确认当前差异',
+    stateLabel: '需确认差异',
     action: 'PLAYBOOK_DIFF_CONFIRMED',
     actionLabel: '确认差异并继续',
   },
   'major-drift': {
-    eyebrow: 'Reference only · blocked',
-    title: '旧方案不再适用',
+    stateLabel: '禁止直跑',
     action: 'PLAYBOOK_REGENERATED',
     actionLabel: '重新生成（参考旧方案）',
   },
 };
+
+function renderMatchTitle(match) {
+  if (match.status === 'exact') {
+    return `命中方案：${escapeHtml(match.title)} · v${match.playbookRef.version}`;
+  }
+  if (match.status === 'major-drift') {
+    return `方案 v${match.playbookRef.version} 不适用：${match.differences.length} 项重大差异`;
+  }
+  return '确认方案差异';
+}
 
 const DIRECTION_LABELS = {
   added: '新增',
@@ -3218,7 +3255,7 @@ function renderDriftReview(match, driftReviewed) {
 function renderMatchDetails(match, driftReviewed) {
   if (match.status === 'exact') {
     return `<details class="playbook-validation">
-      <summary>五项现场校验全部通过 <span>展开详情</span></summary>
+      <summary>五项校验通过 <span>查看详情</span></summary>
       <ul>${match.validations.map(renderValidation).join('')}</ul>
     </details>`;
   }
@@ -3251,13 +3288,16 @@ function renderPlaybookMatch(playbookView) {
   const copy = STATUS_COPY[match.status];
   return `<section class="playbook-match ${match.status}" data-testid="playbook-match" data-match-status="${match.status}" aria-labelledby="playbook-match-title">
     <header class="playbook-match-header">
-      <div><span class="module-tag">${copy.eyebrow}</span><h2 id="playbook-match-title">${copy.title}</h2></div>
+      <div><span class="match-state">${copy.stateLabel}</span><h2 id="playbook-match-title">${renderMatchTitle(match)}</h2></div>
       <div class="playbook-signals"><span class="readiness">匹配 ${match.score}%</span><span class="readiness">${escapeHtml(match.lastUsedLabel)}</span><span class="readiness">${match.differences.length} 项差异</span></div>
     </header>
-    <div class="playbook-identity"><span>场景巡检方案</span><strong>${escapeHtml(match.title)} · v${match.playbookRef.version}</strong></div>
-    <p class="playbook-summary">${escapeHtml(match.summary)}</p>
+    ${
+      match.status === 'exact'
+        ? '<div class="playbook-structure-note"><span class="info-tip" tabindex="0" aria-label="复用检查结构，证据重新采集" title="复用检查结构，证据重新采集">ⓘ</span><span>检查结构</span></div>'
+        : `<div class="playbook-identity"><span>巡检方案</span><strong>${escapeHtml(match.title)} · v${match.playbookRef.version}</strong></div>`
+    }
+    ${match.status === 'minor-drift' ? `<p class="playbook-summary single-line-note" title="${escapeHtml(match.summary)}">${escapeHtml(match.summary)}</p>` : ''}
     ${renderMatchDetails(match, playbookView.driftReviewed)}
-    <p class="playbook-freshness">复用的是检查结构；实体、指标、Trace、权限与模板均按本次请求现场校验，证据将重新采集。</p>
     ${renderMatchActions(match, playbookView.driftReviewed)}
   </section>`;
 }
@@ -3279,8 +3319,8 @@ function renderPlaybookProposal(playbookView) {
   const source = task.sourcePlaybookRef;
   const targetVersion = source ? source.version + 1 : 1;
   return `<section class="playbook-proposal" data-testid="playbook-proposal">
-    <div><span class="module-tag">Playbook learning loop</span><h3>方案沉淀</h3></div>
-    <p>本次任务已沉淀为不可变实例 ${escapeHtml(task.id)}（审计锁定）。方案版本只引用本次结构与留痕，不改写历史实例。</p>
+    <div><h3>保存方案</h3></div>
+    <p class="single-line-note" title="历史任务 ${escapeHtml(task.id)} 已锁定">历史实例不受影响</p>
     ${
       proposal
         ? `<div class="playbook-proposal-status"><span>${proposal.kind === 'update' ? '方案更新' : '新方案'} v${proposal.targetVersion} · 待审批</span><strong>审批通过后，下次匹配才会生效</strong></div>`
@@ -3319,8 +3359,8 @@ function renderSource(source) {
     <li class="source-card">
       <span class="source-kind">${escapeHtml(source.kind)}</span>
       <strong>${escapeHtml(source.label)}</strong>
-      <p>${escapeHtml(source.detail)}</p>
-      <small>新鲜度 · ${escapeHtml(source.freshness)}</small>
+      <p class="single-line-note" title="${escapeHtml(source.detail)}">${escapeHtml(source.detail)}</p>
+      <small>更新 · ${escapeHtml(source.freshness)}</small>
     </li>`;
 }
 
@@ -3334,7 +3374,7 @@ const IMPACT_LABELS = {
 function renderImpactMatrix(impactDimensions) {
   return `
     <section class="impact-block" aria-labelledby="impact-title">
-      <header><span>Blast radius</span><h3 id="impact-title">本次影响面四维视图</h3></header>
+      <header><h3 id="impact-title">影响面</h3></header>
       <div class="impact-matrix" data-testid="impact-matrix">
         ${Object.entries(impactDimensions)
           .map(([dimension, values]) => {
@@ -3352,17 +3392,17 @@ function renderContext(vm) {
     return `
       <section class="panel context-panel context-empty" aria-labelledby="context-title">
         <header class="panel-heading">
-          <div><span class="module-tag">Module 01 · Input compiler</span><h2 id="context-title">输入与变更理解</h2></div>
+          <div><h2 id="context-title">变更信息</h2></div>
           <span class="source-status">等待输入</span>
         </header>
-        <div class="context-placeholder"><span>01</span><strong>由用户定义巡检目标</strong><p>提交后，这里会展示实体理解、声明变化、运行时对账和证据边界。</p></div>
+        <div class="context-placeholder"><strong>等待巡检目标</strong></div>
       </section>`;
   }
   const visible = phaseIndex(state.phase) >= 1;
   return `
     <section class="panel context-panel" aria-labelledby="context-title">
       <header class="panel-heading">
-        <div><span class="module-tag">Module 01 · Input compiler</span><h2 id="context-title">输入与变更理解</h2></div>
+        <div><h2 id="context-title">变更信息</h2></div>
         <span class="source-status ${visible ? 'is-ready' : ''}">${visible ? '已确认' : '待确认'}</span>
       </header>
       <div class="prompt-card">
@@ -3378,7 +3418,7 @@ function renderContext(vm) {
       ${
         visible
           ? `<div class="reconciliation ${scope.status === 'Exact' ? 'is-exact' : 'is-expanded'}">
-              <span>Change Reconciliation</span>
+              <span>变化对账</span>
               <strong>${scope.status}</strong>
               <p>${scope.status === 'Exact' ? '声明与运行时事实一致。' : `发现 ${scope.addedEntities.length} 个声明外实体，已扩大巡检范围。`}</p>
             </div>
@@ -3392,9 +3432,7 @@ function renderScope(vm) {
   return `
     <div class="scope-stage">
       ${renderPlaybookMatch(vm.playbook)}
-      <span class="module-tag">Module 02 · Scope resolver</span>
-      <h2>多源事实已经对齐</h2>
-      <p>不是把图谱上的所有关系塞进任务，而是用业务目标、运行时 Trace 和已注册能力收敛检查范围。</p>
+      <h2 data-stage-title>确认巡检范围</h2>
       ${renderImpactMatrix(vm.workspace.impactDimensions)}
       <ul class="source-list">${vm.workspace.contextSources.map(renderSource).join('')}</ul>
       <div class="hypothesis-block">
@@ -3407,14 +3445,13 @@ function renderScope(vm) {
 function renderExecution(vm) {
   return `
     <div class="execution-stage">
-      <header class="stage-heading"><div><span class="module-tag">Deterministic execution</span><h2>现有巡检引擎正在取证</h2></div><span class="live-dot">● MOCK LIVE</span></header>
-      <p class="stage-lead">页面只播放确定性 mock；每一步都绑定 Check Contract，不生成生产查询。</p>
+      <header class="stage-heading"><div><h2 data-stage-title>执行检查</h2></div><span class="live-dot">● MOCK</span></header>
       <ol class="execution-list">
         ${vm.execution
           .map(
             (step, index) => `<li class="execution-item ${step.progress} ${step.status.toLowerCase()}">
               <span class="execution-number">${String(index + 1).padStart(2, '0')}</span>
-              <div><strong>${escapeHtml(step.label)}</strong><p>${step.progress === 'complete' ? escapeHtml(step.fact) : step.progress === 'active' ? '等待运行下一步 mock 证据' : '排队等待前置检查'}</p></div>
+              <div><strong>${escapeHtml(step.label)}</strong><p class="single-line-note" title="${step.progress === 'complete' ? escapeHtml(step.fact) : ''}">${step.progress === 'complete' ? escapeHtml(step.fact) : step.progress === 'active' ? '等待结果' : '排队'}</p></div>
               <code>${step.progress === 'complete' ? step.status : step.progress}</code>
             </li>`,
           )
@@ -3428,20 +3465,19 @@ function renderReport(vm) {
   return `
     <div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report">
       <div class="decision-hero">
-        <span>Action first · ${report.action}</span>
         <h2>${escapeHtml(report.actionLabel)}</h2>
         <p>${escapeHtml(report.title)}</p>
       </div>
       <div class="semantic-pair">
-        <div><span>证据结论</span><code>${report.evidenceVerdict}</code><small>系统知道了什么</small></div>
-        <div><span>行动决策</span><code>${report.action}</code><small>SRE 现在该做什么</small></div>
+        <div><span>证据结论</span><code>${report.evidenceVerdict}</code></div>
+        <div><span>行动决策</span><code>${report.action}</code></div>
       </div>
       <div class="evidence-badges">
         <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
         <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
         <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
       </div>
-      <p class="report-summary">${escapeHtml(report.summary)}</p>
+      <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
       <div class="report-columns">
         <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
         <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
@@ -3475,12 +3511,12 @@ function primaryAction(vm) {
   if (!vm.workspace) return '';
   if (vm.state.phase === 'context' && vm.playbook.match) return '';
   const actions = {
-    intake: ['INPUT_CONFIRMED', '确认理解结果'],
-    context: ['SCOPE_ACCEPTED', '接受范围并生成任务'],
-    plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '确认任务并开始执行' : '请先处置高风险候选'],
+    intake: ['INPUT_CONFIRMED', '确认变更信息'],
+    context: ['SCOPE_ACCEPTED', '生成任务'],
+    plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '开始执行' : '请先处置高风险候选'],
     execution: [
       'EXECUTION_ADVANCED',
-      vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? '完成执行并生成报告' : '运行下一步 mock 检查',
+      vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? '生成报告' : '运行下一项',
     ],
     report: ['RESET', '新建巡检工作区'],
   };
@@ -3490,43 +3526,32 @@ function primaryAction(vm) {
 }
 
 function renderCopilot(vm) {
-  if (!vm.workspace) {
-    return `
-      <aside class="panel copilot-panel" aria-label="Copilot 解释">
-        <header><span class="copilot-mark">✦</span><div><small>NOVA COPILOT</small><strong>可信任务编译器</strong></div><span class="online">READY</span></header>
-        <div class="copilot-message"><span>产品边界</span><h3>由用户决定如何使用</h3><p>输入目标、服务和可选上下文；系统据此编译工作区，而不是让你先选一个固定场景。</p></div>
-        <div class="copilot-principles"><span>护栏</span><ul><li>示例不是产品模式</li><li>电子流只是可选事实来源</li><li>不会触发真实生产动作</li></ul></div>
-      </aside>`;
-  }
-  const copy = {
-    intake: ['先确认我理解得对不对', '实体不唯一或缺少版本时，我不会静默猜测。'],
-    context: ['范围不是知识图谱全展开', '我只保留业务目标、运行时事实与可执行能力共同支持的关系。'],
-    plan: [
-      '候选不是正式任务',
-      vm.readiness.status === 'ready' ? '当前计划已满足确认条件。' : '高关键度候选仍未处置，计划不能确认。',
-    ],
-    execution: ['执行与解释分开', '确定性引擎产生证据；Copilot 只组织理由和下一步。'],
-    report: ['结论有边界', vm.report?.scopeStatement ?? '报告尚未生成'],
-  }[vm.state.phase];
+  const status = !vm.workspace
+    ? '等待输入'
+    : {
+        intake: '待确认',
+        context: vm.playbook.match ? '方案待选择' : '范围待确认',
+        plan: vm.readiness.status === 'ready' ? '可执行' : '候选待处置',
+        execution: '执行中',
+        report: '报告已生成',
+      }[vm.state.phase];
   return `
     <aside class="panel copilot-panel" aria-label="Copilot 解释">
-      <header><span class="copilot-mark">✦</span><div><small>NOVA COPILOT</small><strong>可信任务编译器</strong></div><span class="online">ONLINE</span></header>
-      <div class="copilot-message"><span>当前判断</span><h3>${escapeHtml(copy[0])}</h3><p>${escapeHtml(copy[1])}</p></div>
-      <div class="copilot-principles"><span>护栏</span><ul><li>不生成任意生产查询</li><li>不把缺失证据写成正常</li><li>不代替 SRE 执行发布动作</li></ul></div>
+      <header><span class="copilot-mark">✦</span><div><strong>巡检助手</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
+      <div class="copilot-status"><span>状态</span><strong>${escapeHtml(status)}</strong></div>
       ${renderPlaybookReference(vm.playbook)}
       ${primaryAction(vm)}
     </aside>`;
 }
 
 function renderApp(vm) {
-  const eyebrow = vm.workspace?.eyebrow ?? 'User-defined inspection workspace';
   const workspaceId = vm.workspace?.id ?? 'new';
   return `
     <div class="app-shell" data-phase="${vm.state.phase}" data-workspace="${escapeHtml(workspaceId)}">
       <header class="app-header">
-        <a class="brand" href="#main"><span>N</span><div><strong>NOVA</strong><small>OPS INTELLIGENCE</small></div></a>
-        <div class="title-lockup"><span>${escapeHtml(eyebrow)}</span><h1>AI 巡检任务生成与解读 Copilot</h1></div>
-        <div class="offline-badge"><span>●</span> OFFLINE · MOCK ONLY</div>
+        <a class="brand" href="#main"><span>N</span><div><strong>NOVA</strong><small>巡检工作台</small></div></a>
+        <div class="title-lockup"><h1>AI 巡检 Copilot</h1></div>
+        <div class="offline-badge"><span>●</span> 离线演示</div>
       </header>
       <ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>
       <main id="main" class="workspace">
@@ -3534,7 +3559,7 @@ function renderApp(vm) {
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
-      <footer class="app-footer"><span>AI Inspection Copilot · Offline Product Demo v0.3</span><strong>所有数据均为 mock，不会触发真实生产动作</strong></footer>
+      <footer class="app-footer"><span>NOVA 巡检 Copilot · v0.3</span><strong><span class="info-tip" title="离线演示不连接生产数据源">ⓘ</span> 所有数据均为 mock，不会触发真实生产动作</strong></footer>
     </div>`;
 }
 
