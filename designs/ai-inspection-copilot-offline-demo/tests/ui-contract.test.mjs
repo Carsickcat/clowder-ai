@@ -50,10 +50,10 @@ function dismissMatchedPlaybook(state) {
 
 test('intake is a blank user-driven product entry, not fixed journey navigation', () => {
   const html = renderApp(selectViewModel(createDemoSession()));
-  assert.match(html, /创建任意巡检工作区/);
+  assert.match(html, /创建巡检/);
   assert.match(html, /name="inspection-intent"/);
   assert.match(html, /name="context-reference"/);
-  assert.match(html, /示例只负责填充/);
+  assert.match(html, /填入后可修改/);
   assert.match(html, /data-example-id="order-upgrade"/);
   assert.match(html, /data-example-id="payment-config"/);
   assert.doesNotMatch(html, /data-scenario-id=/);
@@ -158,7 +158,7 @@ test('unmatched context renders no playbook product surface', () => {
 
   assert.doesNotMatch(html, /data-testid="playbook-match"/);
   assert.doesNotMatch(html, /场景巡检方案/);
-  assert.match(html, /多源事实已经对齐/);
+  assert.match(html, /确认巡检范围/);
 });
 
 test('exact playbook is a green in-context accelerator with one primary action', () => {
@@ -170,7 +170,7 @@ test('exact playbook is a green in-context accelerator with one primary action',
   assert.match(html, /data-match-status="exact"/);
   assert.match(html, /订单发布后验证 · v4/);
   assert.match(html, /匹配 98%/);
-  assert.match(html, /五项现场校验全部通过/);
+  assert.match(html, /五项校验通过/);
   assert.match(html, /data-action="PLAYBOOK_EXECUTION_STARTED"/);
   assert.match(html, /按方案直跑/);
   assert.match(html, /data-action="PLAYBOOK_DISMISSED"/);
@@ -198,7 +198,7 @@ test('major drift blocks regeneration until the current differences are explicit
   let html = renderApp(selectViewModel(state));
 
   assert.match(html, /data-match-status="major-drift"/);
-  assert.match(html, /场景边界已改变/);
+  assert.match(html, /方案 v3 不适用：2 项重大差异/);
   assert.match(html, /payment-api 已拆分为 payment-api \+ risk-api/);
   assert.match(html, /data-action="PLAYBOOK_DRIFT_REVIEWED"/);
   assert.match(html, />确认已查看 2 项差异<\/button>/);
@@ -233,7 +233,8 @@ test('report keeps the task locked and offers a secondary versioned proposal', (
   let html = renderApp(selectViewModel(state));
 
   assert.match(html, /data-testid="playbook-proposal"/);
-  assert.match(html, new RegExp(`不可变实例 ${state.taskInstance.id}`));
+  assert.match(html, /历史实例不受影响/);
+  assert.match(html, new RegExp(`title="历史任务 ${state.taskInstance.id} 已锁定"`));
   assert.match(html, /提交方案更新 → v5/);
   assert.match(html, /data-action="PLAYBOOK_PROPOSAL_SUBMITTED"/);
 
@@ -241,4 +242,61 @@ test('report keeps the task locked and offers a secondary versioned proposal', (
   html = renderApp(selectViewModel(state));
   assert.match(html, /v5 · 待审批/);
   assert.doesNotMatch(html, /data-action="PLAYBOOK_PROPOSAL_SUBMITTED"/);
+});
+
+test('the product uses concise task copy instead of slogans or decorative module labels', () => {
+  const states = [createDemoSession()];
+
+  let state = paymentState();
+  states.push(state);
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  states.push(state);
+  state = dismissMatchedPlaybook(state);
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  states.push(state);
+  state = dispatch(state, 'CANDIDATE_DISPOSED', {
+    candidateId: 'candidate-db-wait',
+    disposition: 'accepted',
+  });
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  states.push(state);
+  for (let index = 0; index < 4; index += 1) {
+    state = dispatch(state, 'EXECUTION_ADVANCED');
+  }
+  states.push(state);
+
+  const html = states.map((item) => renderApp(selectViewModel(item))).join('\n');
+  const forbiddenCopy = [
+    '不是把',
+    '我只保留',
+    '确定性引擎产生',
+    '不会静默猜测',
+    '值得 SRE 确认',
+    'Module 0',
+    'Blast radius',
+    'Action first',
+    'learning loop',
+  ];
+
+  for (const copy of forbiddenCopy) {
+    assert.doesNotMatch(html, new RegExp(copy, 'i'));
+  }
+  assert.match(html, /确认变更信息/);
+  assert.match(html, /确认巡检范围/);
+  assert.match(html, /执行检查/);
+  assert.match(html, /<div class="decision-hero">[\s\S]*?建议暂停在 25% 灰度/);
+});
+
+test('the copilot rail stays operational and does not repeat judgement or guardrail speeches', () => {
+  let state = paymentState();
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dismissMatchedPlaybook(state);
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /data-action="PLAN_CONFIRMED"/);
+  assert.doesNotMatch(html, />当前判断</);
+  assert.doesNotMatch(html, />护栏</);
+  assert.doesNotMatch(html, /class="copilot-message"/);
+  assert.doesNotMatch(html, /class="copilot-principles"/);
 });

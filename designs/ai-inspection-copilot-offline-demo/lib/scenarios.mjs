@@ -15,7 +15,7 @@ const naturalLanguagePass = {
   entryKind: 'natural-language',
   eyebrow: 'Journey 01 · Natural language',
   title: '订单服务升级验收',
-  subtitle: '从一句话生成一份值得 SRE 确认的巡检任务',
+  subtitle: '订单发布验证',
   prompt: '今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。',
   declaredChange: {
     id: 'MANUAL-ORDER-480',

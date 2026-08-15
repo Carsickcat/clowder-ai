@@ -83,7 +83,7 @@ function exactOrderMatch(playbook, workspace) {
   return snapshot(playbook, workspace, {
     status: 'exact',
     score: 98,
-    summary: '证据框架仍有效，五项现场校验全部通过',
+    summary: '五项校验通过',
     validations: [
       validation('entity'),
       validation('metric'),
@@ -132,7 +132,7 @@ function majorPaymentMatch(playbook, workspace) {
   return snapshot(playbook, workspace, {
     status: 'major-drift',
     score: 61,
-    summary: '场景边界已改变，旧方案只能作为重新生成的参考',
+    summary: '2 项重大差异',
     validations: [
       validation('entity', 'blocking', '核心服务已发生拆分'),
       validation('metric', 'blocking', '旧检查无法覆盖新实体'),
@@ -166,7 +166,7 @@ function incompatibleStructureMatch(playbook, workspace) {
   return snapshot(playbook, workspace, {
     status: 'major-drift',
     score: 58,
-    summary: '当前场景无法绑定已审批的检查结构，旧方案只能作为重新生成的参考',
+    summary: '检查结构不可用',
     validations: [
       validation('entity'),
       validation('metric'),
