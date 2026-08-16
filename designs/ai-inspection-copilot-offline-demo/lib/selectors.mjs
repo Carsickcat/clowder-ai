@@ -41,13 +41,23 @@ export function selectCommittedChecks(state) {
   }
   const baseChecks =
     state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+  const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
-  const checks = [...baseChecks, ...acceptedCandidates];
+  const checks = [...selectedBaseChecks, ...acceptedCandidates];
   const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
+}
+
+export function selectChecksForContext(state, checks) {
+  const signalOptions = state.contextOptions.filter((item) => item.kind === 'signal');
+  if (!signalOptions.length) return checks;
+  const selectedSignalIds = new Set(
+    signalOptions.filter((item) => item.selected).map((item) => item.id.slice('signal:'.length)),
+  );
+  return checks.filter((check) => selectedSignalIds.has(check.id));
 }
 
 export function selectPlanSummary(state) {
@@ -55,8 +65,9 @@ export function selectPlanSummary(state) {
   const dispositions = state.candidateDisposition;
   const baseChecks =
     state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+  const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   return {
-    required: baseChecks.filter((check) => check.priority === 'required').length,
+    required: selectedBaseChecks.filter((check) => check.priority === 'required').length,
     recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
       .length,
     pending: workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]).length,

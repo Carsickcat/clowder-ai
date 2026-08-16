@@ -10,10 +10,12 @@ import {
   mergeInspectionLibraries,
   toggleContextSelection,
 } from './saved-inspections.mjs';
-import { selectCommittedChecks, selectPlanReadiness } from './selectors.mjs';
+import { selectChecksForContext, selectCommittedChecks, selectPlanReadiness } from './selectors.mjs';
 
 export function createDemoSession(options = {}) {
-  const library = options.library ?? createEmptyInspectionLibrary();
+  const library = options.library
+    ? mergeInspectionLibraries(createEmptyInspectionLibrary(), options.library)
+    : createEmptyInspectionLibrary();
   return deepFreeze({
     workspace: null,
     phase: 'intake',
@@ -36,6 +38,7 @@ export function createDemoSession(options = {}) {
     savedDefinitionId: null,
     storageError: null,
     toast: null,
+    actorId: normalizeActorId(options.actorId),
     nextTaskOrdinal:
       options.nextTaskOrdinal ??
       nextOrdinal(
@@ -62,30 +65,39 @@ export function createDemoSession(options = {}) {
 
 function nextOrdinal(ids, prefix, fallback) {
   const ordinals = ids
-    .map((id) => new RegExp(`^${prefix}-(\\d+)$`).exec(String(id))?.[1])
+    .map((id) => new RegExp(`^${prefix}-(\\d+)(?:$|-)`).exec(String(id))?.[1])
     .filter(Boolean)
     .map(Number);
   return ordinals.length ? Math.max(...ordinals) + 1 : fallback;
 }
 
-function taskId(ordinal) {
-  return `INS-${String(ordinal).padStart(4, '0')}`;
+function normalizeActorId(actorId) {
+  return typeof actorId === 'string' ? actorId.replace(/[^a-zA-Z0-9]/g, '') : '';
 }
 
-function runId(ordinal) {
-  return `RUN-${String(ordinal).padStart(4, '0')}`;
+function scopedId(prefix, ordinal, width, actorId) {
+  const base = `${prefix}-${String(ordinal).padStart(width, '0')}`;
+  return actorId ? `${base}-${actorId}` : base;
 }
 
-function savedInspectionId(ordinal) {
-  return `SAVED-${String(ordinal).padStart(3, '0')}`;
+function taskId(ordinal, actorId) {
+  return scopedId('INS', ordinal, 4, actorId);
+}
+
+function runId(ordinal, actorId) {
+  return scopedId('RUN', ordinal, 4, actorId);
+}
+
+function savedInspectionId(ordinal, actorId) {
+  return scopedId('SAVED', ordinal, 3, actorId);
 }
 
 function demoTimestamp(ordinal, offset = 0) {
   return new Date(Date.UTC(2026, 7, 16, 6, ordinal + offset)).toISOString();
 }
 
-function createTaskInstance(ordinal, sourceSavedInspectionId = null) {
-  const id = taskId(ordinal);
+function createTaskInstance(ordinal, sourceSavedInspectionId = null, actorId = '') {
+  const id = taskId(ordinal, actorId);
   return {
     id,
     status: 'draft',
@@ -156,6 +168,7 @@ function submitIntent(state, action, playbookCatalog, compileIntent) {
   return {
     ...createDemoSession({
       library: state.library,
+      actorId: state.actorId,
       nextTaskOrdinal: ordinal + 1,
       nextRunOrdinal: state.nextRunOrdinal,
       nextSavedOrdinal: state.nextSavedOrdinal,
@@ -168,7 +181,7 @@ function submitIntent(state, action, playbookCatalog, compileIntent) {
     ],
     activeRequest: { ...action.request },
     playbookMatch: matchInspectionPlaybook(workspace, playbookCatalog),
-    taskInstance: createTaskInstance(ordinal),
+    taskInstance: createTaskInstance(ordinal, null, state.actorId),
   };
 }
 
@@ -205,6 +218,7 @@ function startPlaybookExecution(state) {
   ) {
     return state;
   }
+  const checks = selectChecksForContext(state, state.playbookMatch.checks);
   return {
     ...state,
     phase: 'execution',
@@ -214,7 +228,7 @@ function startPlaybookExecution(state) {
       {
         status: 'executing',
         sourcePlaybookRef: playbookRef(state.playbookMatch),
-        inspectionPlan: createInspectionPlan(state.playbookMatch.checks, playbookRef(state.playbookMatch)),
+        inspectionPlan: createInspectionPlan(checks, playbookRef(state.playbookMatch)),
       },
       { type: 'playbook-applied', playbookRef: playbookRef(state.playbookMatch) },
     ),
@@ -308,7 +322,7 @@ function advanceExecution(state) {
   const nextStep = state.executionStep + 1;
   if (nextStep < lastIndex) return { ...state, executionStep: nextStep };
   const taskInstance = updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' });
-  const id = runId(state.nextRunOrdinal);
+  const id = runId(state.nextRunOrdinal, state.actorId);
   const run = createInspectionRun({
     id,
     taskInstance,
@@ -366,7 +380,7 @@ function createPersonalSavedInspection(state, action) {
   }
   const currentRun = state.library.runs.find((run) => run.id === state.currentRunId);
   if (!currentRun) return state;
-  const id = savedInspectionId(state.nextSavedOrdinal);
+  const id = savedInspectionId(state.nextSavedOrdinal, state.actorId);
   let definition;
   try {
     definition = createSavedInspectionDefinition({
@@ -420,10 +434,15 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
   if (state.phase !== 'intake' || state.workspace) return state;
   const definition = state.library.savedInspections.find((item) => item.id === action.definitionId);
   if (!definition) return state;
-  const workspace = compileSavedDefinition(definition.request);
+  let workspace;
+  try {
+    workspace = compileSavedDefinition(definition.request);
+  } catch {
+    return state;
+  }
   const refresh = classifySavedInspectionRefresh(definition, workspace);
   const ordinal = state.nextTaskOrdinal;
-  let taskInstance = createTaskInstance(ordinal, definition.id);
+  let taskInstance = createTaskInstance(ordinal, definition.id, state.actorId);
   let phase = 'context';
   if (refresh.status === 'exact') {
     phase = 'execution';
@@ -436,6 +455,7 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
   return {
     ...createDemoSession({
       library: state.library,
+      actorId: state.actorId,
       nextTaskOrdinal: ordinal + 1,
       nextRunOrdinal: state.nextRunOrdinal,
       nextSavedOrdinal: state.nextSavedOrdinal,
@@ -475,6 +495,7 @@ function regenerateSavedInspection(state) {
   if (!definition) return state;
   return createDemoSession({
     library: state.library,
+    actorId: state.actorId,
     nextTaskOrdinal: state.nextTaskOrdinal,
     nextRunOrdinal: state.nextRunOrdinal,
     nextSavedOrdinal: state.nextSavedOrdinal,
@@ -485,6 +506,7 @@ function regenerateSavedInspection(state) {
 function resetSession(state) {
   return createDemoSession({
     library: state.library,
+    actorId: state.actorId,
     nextTaskOrdinal: state.nextTaskOrdinal,
     nextRunOrdinal: state.nextRunOrdinal,
     nextSavedOrdinal: state.nextSavedOrdinal,
@@ -495,6 +517,7 @@ function hydrateLibrary(state, action) {
   if (state.phase !== 'intake' || state.workspace || state.library.revision > 0) return state;
   return createDemoSession({
     library: action.library,
+    actorId: state.actorId,
   });
 }
 

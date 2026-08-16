@@ -4,6 +4,7 @@ import test from 'node:test';
 import { compileInspectionRequest } from '../lib/compiler.mjs';
 import { inspectionPlaybooks } from '../lib/playbooks.mjs';
 import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reducer.mjs';
+import { mergeInspectionLibraries } from '../lib/saved-inspections.mjs';
 import {
   selectCommittedChecks,
   selectPlanReadiness,
@@ -285,8 +286,8 @@ test('locked task remains immutable while a report submits one idempotent playbo
   assert.equal(state, proposed);
 });
 
-function completePersonalInspection(reducer = demoReducer) {
-  let state = createDemoSession();
+function completePersonalInspection(reducer = demoReducer, sessionOptions = {}) {
+  let state = createDemoSession(sessionOptions);
   state = reducer(state, { type: 'INTENT_SUBMITTED', request: fulfillmentRequest });
   const deselectedId = state.contextOptions[0].id;
   state = reducer(state, { type: 'CONTEXT_ITEM_TOGGLED', contextId: deselectedId });
@@ -332,6 +333,24 @@ test('first-use selected context flows into one immutable run and an immediately
   assert.equal(state.workspace, null);
   assert.equal(state.library.savedInspections.length, 1);
   assert.equal(state.library.runs.length, 1);
+});
+
+test('deselected signal is removed from the generated inspection plan', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: fulfillmentRequest });
+  const signal = state.contextOptions.find((item) => item.kind === 'signal');
+  assert.ok(signal);
+
+  state = dispatch(state, 'CONTEXT_ITEM_TOGGLED', { contextId: signal.id });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+
+  assert.equal(
+    selectCommittedChecks(state).some((check) => `signal:${check.id}` === signal.id),
+    false,
+  );
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  assert.equal(state.taskInstance.inspectionPlan.checkIds.includes(signal.id.slice('signal:'.length)), false);
 });
 
 test('saved inspection exact direct-run bypasses intent compilation and creates a new immutable run', () => {
@@ -391,6 +410,55 @@ test('hydrated saved inspections continue task, run, and definition identifiers 
   }
   assert.notEqual(hydrated.currentRunId, historicalRunId);
   assert.equal(new Set(hydrated.library.runs.map((run) => run.id)).size, 2);
+});
+
+test('concurrent browser actors create unique tasks, runs, and merged audit records', () => {
+  let { state } = completePersonalInspection();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  const definitionId = state.library.savedInspections[0].id;
+  const commonLibrary = state.library;
+
+  function completeDirectRun(actorId) {
+    let tab = createDemoSession({ library: commonLibrary, actorId });
+    tab = dispatch(tab, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
+    const taskInstanceId = tab.taskInstance.id;
+    for (let index = 0; index < tab.workspace.execution.length; index += 1) {
+      tab = dispatch(tab, 'EXECUTION_ADVANCED');
+    }
+    return { tab, taskInstanceId };
+  }
+
+  const left = completeDirectRun('tab-a');
+  const right = completeDirectRun('tab-b');
+  assert.notEqual(left.taskInstanceId, right.taskInstanceId);
+  assert.notEqual(left.tab.currentRunId, right.tab.currentRunId);
+
+  const merged = mergeInspectionLibraries(left.tab.library, right.tab.library);
+  assert.equal(merged.runs.length, commonLibrary.runs.length + 2);
+  assert.equal(new Set(merged.runs.map((run) => run.id)).size, merged.runs.length);
+});
+
+test('concurrent browser actors also create merge-safe saved definition IDs', () => {
+  function completeAndSave(actorId, name) {
+    let { state } = completePersonalInspection(demoReducer, { actorId });
+    state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+      name,
+      now: '2026-08-16T06:10:00.000Z',
+    });
+    return state.library;
+  }
+
+  const left = completeAndSave('tab-a', '标签 A 巡检');
+  const right = completeAndSave('tab-b', '标签 B 巡检');
+  assert.notEqual(left.savedInspections[0].id, right.savedInspections[0].id);
+
+  const merged = mergeInspectionLibraries(left, right);
+  assert.equal(merged.savedInspections.length, 2);
+  assert.equal(new Set(merged.savedInspections.map((item) => item.id)).size, 2);
+  assert.equal(merged.runs.length, 2);
 });
 
 test('saved inspection minor drift requires acknowledgement and major drift cannot enter execution', () => {

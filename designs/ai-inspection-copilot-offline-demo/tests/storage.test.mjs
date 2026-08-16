@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createEmptyInspectionLibrary } from '../lib/saved-inspections.mjs';
+import { compileInspectionRequest } from '../lib/compiler.mjs';
+import {
+  createContextOptions,
+  createEmptyInspectionLibrary,
+  createInspectionRun,
+  createSavedInspectionDefinition,
+} from '../lib/saved-inspections.mjs';
 import { createInspectionLibraryStorage, INSPECTION_LIBRARY_STORAGE_KEY } from '../src/storage.mjs';
 
 function memoryStorage(initial = {}) {
@@ -19,12 +25,57 @@ function memoryStorage(initial = {}) {
   };
 }
 
+const request = { prompt: '巡检 fulfillment-service', targetService: 'fulfillment-service' };
+
+function recordFixtures({
+  definitionId = 'SAVED-001',
+  runId = 'RUN-0048',
+  name = '履约巡检',
+  updatedAt = '2026-08-16T06:00:00.000Z',
+} = {}) {
+  const workspace = compileInspectionRequest(request);
+  const taskInstance = {
+    id: `INS-${runId}`,
+    status: 'locked',
+    inspectionPlan: {
+      source: 'generated',
+      sourcePlaybookRef: null,
+      checkIds: workspace.committedChecks.map((check) => check.id),
+      checks: structuredClone(workspace.committedChecks),
+    },
+    auditTrail: [{ type: 'task-locked' }],
+  };
+  const selectedContext = createContextOptions(workspace);
+  return {
+    definition: createSavedInspectionDefinition({
+      id: definitionId,
+      name,
+      request,
+      workspace,
+      selectedContext,
+      taskInstance,
+      sourceRunId: runId,
+      now: updatedAt,
+    }),
+    run: createInspectionRun({
+      id: runId,
+      definitionId,
+      taskInstance,
+      selectedContext,
+      report: workspace.report,
+      startedAt: updatedAt,
+      completedAt: updatedAt,
+    }),
+  };
+}
+
 test('storage adapter hydrates a valid versioned library and treats corrupt data as empty', () => {
+  const fixtures = recordFixtures();
   const valid = JSON.stringify({
     schemaVersion: 1,
     revision: 3,
-    savedInspections: [{ id: 'SAVED-001', name: '订单巡检', version: 1, updatedAt: '2026-08-16T06:00:00.000Z' }],
-    runs: [],
+    savedInspections: [fixtures.definition],
+    runs: [fixtures.run],
   });
   assert.equal(
     createInspectionLibraryStorage(memoryStorage({ [INSPECTION_LIBRARY_STORAGE_KEY]: valid })).load().revision,
@@ -67,17 +118,24 @@ test('storage adapter reports unavailable and quota failures without throwing', 
 
 test('storage event payload merges with the current library instead of replacing runs', () => {
   const adapter = createInspectionLibraryStorage(memoryStorage());
+  const left = recordFixtures({ definitionId: 'SAVED-A', runId: 'RUN-A', name: 'A' });
+  const right = recordFixtures({
+    definitionId: 'SAVED-B',
+    runId: 'RUN-B',
+    name: 'B',
+    updatedAt: '2026-08-16T06:05:00.000Z',
+  });
   const current = {
     schemaVersion: 1,
     revision: 2,
-    savedInspections: [{ id: 'SAVED-A', version: 1, name: 'A', updatedAt: '2026-08-16T06:00:00.000Z' }],
-    runs: [{ id: 'RUN-A', status: 'locked' }],
+    savedInspections: [left.definition],
+    runs: [left.run],
   };
   const incoming = JSON.stringify({
     schemaVersion: 1,
     revision: 4,
-    savedInspections: [{ id: 'SAVED-B', version: 1, name: 'B', updatedAt: '2026-08-16T06:05:00.000Z' }],
-    runs: [{ id: 'RUN-B', status: 'locked' }],
+    savedInspections: [right.definition],
+    runs: [right.run],
   });
 
   const merged = adapter.merge(current, incoming);

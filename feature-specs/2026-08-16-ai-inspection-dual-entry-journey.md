@@ -99,7 +99,7 @@ InspectionLibraryEnvelope = {
 
 - **INV-1:** A locked `InspectionRun` and locked `taskInstance` are never mutated. Test by snapshotting before save, reset, reload, catalog change, and rerun.
 - **INV-2:** A saved definition contains inspection structure only; it never contains evidence values or a report. Test by recursive property scan.
-- **INV-3:** Every generated or direct execution receives a new task ID and run ID. Test two runs of one definition.
+- **INV-3:** Every generated or direct execution receives a new task ID and run ID, and concurrent browser actors cannot mint the same ID. Test two runs of one definition plus two tabs starting from the same persisted revision.
 - **INV-4:** `RESET` preserves saved definitions and run ledger. Test reducer transitions and reload.
 - **INV-5:** Direct run never calls the natural-language compiler used by `INTENT_SUBMITTED`; it uses the stored request contract plus current-fact refresh. Test with a throwing NLP compiler spy.
 - **INV-6:** Major drift cannot produce an executing task; minor drift requires an explicit acknowledgement audit event. Test forbidden event sequences.
@@ -107,7 +107,7 @@ InspectionLibraryEnvelope = {
 - **INV-8:** Invalid/corrupt persisted data degrades to an empty valid library and never prevents the workbench from opening. Test malformed JSON and unknown schema.
 - **INV-9:** Duplicate save/final execution events are idempotent. Test repeated actions by identity and collection length.
 - **INV-10:** Unknown/deleted definition IDs cannot run. Test direct-run events against an absent record.
-- **INV-11:** Concurrent storage envelopes merge by stable ID without losing unique runs or definitions. Test A/B envelopes with overlapping and disjoint records.
+- **INV-11:** Concurrent storage envelopes merge by stable globally unique ID without losing unique runs or definitions. Test A/B envelopes with overlapping and disjoint records, including two tabs that begin with identical ordinals.
 - **INV-12:** The interface truthfully labels storage as local mock persistence and makes no production claim. Test rendered copy.
 
 ## Adversarial Matrix
@@ -209,15 +209,15 @@ InspectionLibraryEnvelope = {
 
 ## Resolved Questions
 
-- **Technical:** Deterministic IDs survive hydration by advancing counters from persisted definitions, tasks and runs; fixed fixture timestamps keep the standalone artifact reproducible.
+- **Technical:** Hydration advances counters from persisted definitions and runs, while a per-tab actor suffix prevents two tabs at the same revision from minting colliding task, run or saved-definition IDs. Tests inject fixed actor IDs and timestamps so the standalone artifact remains reproducible.
 - **Value:** Personal saved inspections are immediately available for direct run. Team Playbook approval remains a separate governance layer.
 
 ## Delivery Evidence
 
-- Domain and persistence: versioned local library, immutable definitions/runs, corrupt-storage recovery, concurrent merge and exact/minor/major refresh classification.
+- Domain and persistence: versioned local library, immutable definitions/runs, strict rejection of partial records, actor-scoped concurrent IDs, lossless concurrent merge and exact/minor/major refresh classification.
 - First-use journey: right-side request → selectable current context → task draft → execution → report → editable save.
 - Revisit journey: saved-inspection home → current-fact refresh → direct execution without intent compilation or task-draft confirmation.
-- Automated verification: 67/67 Node tests; offline Chrome journeys pass with zero HTTP(S) requests and zero browser errors.
+- Automated verification: 70/70 Node tests; offline Chrome journeys pass with zero HTTP(S) requests and zero browser errors.
 - Responsive verification: 390px saved-inspection home uses the full content width; the compact composer is fixed to the bottom without obscuring the primary action.
 - Visual evidence: `evidence/11-dual-entry-context-selection.png`, `12-saved-inspection-home.png`, `13-saved-direct-run.png`, `14-mobile-saved-home.png`.
 - Walkthrough: `evidence/15-dual-entry-inspection-journey-15s.webm` (16+ seconds).

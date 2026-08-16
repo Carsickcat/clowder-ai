@@ -24,22 +24,100 @@ function sortedUnique(values = []) {
   return [...new Set(values.filter(Boolean))].sort();
 }
 
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function stringArray(value, { allowEmpty = true } = {}) {
+  return Array.isArray(value) && (allowEmpty || value.length > 0) && value.every(nonEmptyString);
+}
+
+function validRequest(request) {
+  return (
+    request &&
+    typeof request === 'object' &&
+    nonEmptyString(request.prompt) &&
+    (request.targetService === undefined || typeof request.targetService === 'string') &&
+    (request.contextReference === undefined || typeof request.contextReference === 'string')
+  );
+}
+
+function validContextItem(item) {
+  return (
+    item &&
+    typeof item === 'object' &&
+    nonEmptyString(item.id) &&
+    nonEmptyString(item.kind) &&
+    nonEmptyString(item.label) &&
+    typeof item.detail === 'string'
+  );
+}
+
+function validPlan(plan) {
+  if (
+    !plan ||
+    typeof plan !== 'object' ||
+    !stringArray(plan.checkIds, { allowEmpty: false }) ||
+    !Array.isArray(plan.checks) ||
+    plan.checks.length !== plan.checkIds.length
+  ) {
+    return false;
+  }
+  const checkIds = new Set(plan.checkIds);
+  return plan.checks.every(
+    (check) =>
+      check &&
+      typeof check === 'object' &&
+      nonEmptyString(check.id) &&
+      checkIds.has(check.id) &&
+      stringArray(check.sourceRefs),
+  );
+}
+
+function validBaseline(baseline) {
+  return (
+    baseline &&
+    typeof baseline === 'object' &&
+    nonEmptyString(baseline.fingerprint) &&
+    stringArray(baseline.entities, { allowEmpty: false }) &&
+    stringArray(baseline.checkIds, { allowEmpty: false })
+  );
+}
+
 function validDefinition(definition) {
   return (
     definition &&
     typeof definition === 'object' &&
-    typeof definition.id === 'string' &&
-    definition.id.length > 0 &&
+    nonEmptyString(definition.id) &&
     Number.isInteger(definition.version) &&
     definition.version > 0 &&
-    typeof definition.name === 'string' &&
-    definition.name.trim().length > 0 &&
-    typeof definition.updatedAt === 'string'
+    nonEmptyString(definition.name) &&
+    nonEmptyString(definition.createdAt) &&
+    nonEmptyString(definition.updatedAt) &&
+    nonEmptyString(definition.sourceRunId) &&
+    validRequest(definition.request) &&
+    Array.isArray(definition.selectedContext) &&
+    definition.selectedContext.length > 0 &&
+    definition.selectedContext.every(validContextItem) &&
+    validPlan(definition.inspectionPlan) &&
+    validBaseline(definition.baseline)
   );
 }
 
 function validRun(run) {
-  return run && typeof run === 'object' && typeof run.id === 'string' && run.id.length > 0 && run.status === 'locked';
+  return (
+    run &&
+    typeof run === 'object' &&
+    nonEmptyString(run.id) &&
+    nonEmptyString(run.taskInstanceId) &&
+    run.status === 'locked' &&
+    nonEmptyString(run.startedAt) &&
+    nonEmptyString(run.completedAt) &&
+    Array.isArray(run.selectedContextResults) &&
+    validPlan(run.inspectionPlan) &&
+    run.report &&
+    typeof run.report === 'object'
+  );
 }
 
 function normalizeLibrary(value) {
@@ -115,6 +193,13 @@ export function toggleContextSelection(options, contextId) {
   const target = options.find((option) => option.id === contextId);
   if (!target) return options;
   if (target.selected && options.filter((option) => option.selected).length === 1) return options;
+  if (
+    target.selected &&
+    target.kind === 'signal' &&
+    options.filter((option) => option.kind === 'signal' && option.selected).length === 1
+  ) {
+    return options;
+  }
   return deepFreeze(
     options.map((option) => (option.id === contextId ? { ...option, selected: !option.selected } : option)),
   );

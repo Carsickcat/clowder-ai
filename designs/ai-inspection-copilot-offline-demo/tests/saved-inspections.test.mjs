@@ -34,6 +34,43 @@ function task(workspace) {
   };
 }
 
+function definitionFixture({
+  id = 'SAVED-001',
+  name = '履约巡检',
+  version = 1,
+  sourceRunId = 'RUN-0048',
+  updatedAt = '2026-08-16T06:00:00.000Z',
+} = {}) {
+  const workspace = compileInspectionRequest(request);
+  return {
+    ...createSavedInspectionDefinition({
+      id,
+      name,
+      request,
+      workspace,
+      selectedContext: createContextOptions(workspace),
+      taskInstance: task(workspace),
+      sourceRunId,
+      now: updatedAt,
+      version,
+    }),
+    updatedAt,
+  };
+}
+
+function runFixture({ id = 'RUN-0048', definitionId = 'SAVED-001', completedAt = '2026-08-16T06:01:00.000Z' } = {}) {
+  const workspace = compileInspectionRequest(request);
+  return createInspectionRun({
+    id,
+    definitionId,
+    taskInstance: task(workspace),
+    selectedContext: createContextOptions(workspace),
+    report: workspace.report,
+    startedAt: '2026-08-16T06:00:00.000Z',
+    completedAt,
+  });
+}
+
 test('empty library and corrupt payloads always hydrate to a valid versioned envelope', () => {
   assert.deepEqual(createEmptyInspectionLibrary(), {
     schemaVersion: 1,
@@ -66,6 +103,17 @@ test('context options expose current changes, related services, and signals with
 
   const onlyOne = options.map((option, index) => ({ ...option, selected: index === 0 }));
   assert.equal(toggleContextSelection(onlyOne, onlyOne[0].id), onlyOne, 'at least one context item stays selected');
+
+  const signalIds = new Set(options.filter((option) => option.kind === 'signal').map((option) => option.id));
+  const oneSignal = options.map((option) => ({
+    ...option,
+    selected: option.kind !== 'signal' || option.id === [...signalIds][0],
+  }));
+  assert.equal(
+    toggleContextSelection(oneSignal, [...signalIds][0]),
+    oneSignal,
+    'a runnable draft retains at least one selected signal',
+  );
 });
 
 test('a saved definition snapshots reusable structure without evidence or report payloads', () => {
@@ -129,13 +177,32 @@ test('library serialization round-trips valid snapshots and rejects partial reco
   const library = {
     schemaVersion: 1,
     revision: 3,
-    savedInspections: [{ id: 'SAVED-001', version: 1, name: '巡检', updatedAt: '2026-08-16T06:00:00.000Z' }],
-    runs: [{ id: 'RUN-001', status: 'locked' }],
+    savedInspections: [definitionFixture({ name: '巡检' })],
+    runs: [runFixture()],
   };
   const serialized = serializeInspectionLibrary(library);
   assert.deepEqual(parseInspectionLibrary(serialized), library);
   assert.deepEqual(
     parseInspectionLibrary(JSON.stringify({ ...library, savedInspections: [{ name: 'missing id' }] })),
+    createEmptyInspectionLibrary(),
+  );
+  assert.deepEqual(
+    parseInspectionLibrary(
+      JSON.stringify({
+        schemaVersion: 1,
+        revision: 1,
+        savedInspections: [
+          {
+            id: 'SAVED-001',
+            version: 1,
+            name: '半截定义',
+            createdAt: '2026-08-16T06:00:00.000Z',
+            updatedAt: '2026-08-16T06:00:00.000Z',
+          },
+        ],
+        runs: [],
+      }),
+    ),
     createEmptyInspectionLibrary(),
   );
 });
@@ -144,17 +211,22 @@ test('concurrent libraries merge stable IDs without losing runs and newer defini
   const left = {
     schemaVersion: 1,
     revision: 2,
-    savedInspections: [{ id: 'SAVED-001', version: 1, name: '旧名称', updatedAt: '2026-08-16T06:00:00.000Z' }],
-    runs: [{ id: 'RUN-A', status: 'locked' }],
+    savedInspections: [definitionFixture({ name: '旧名称' })],
+    runs: [runFixture({ id: 'RUN-A' })],
   };
   const right = {
     schemaVersion: 1,
     revision: 5,
     savedInspections: [
-      { id: 'SAVED-001', version: 2, name: '新名称', updatedAt: '2026-08-16T06:05:00.000Z' },
-      { id: 'SAVED-002', version: 1, name: '第二个', updatedAt: '2026-08-16T06:04:00.000Z' },
+      definitionFixture({ version: 2, name: '新名称', updatedAt: '2026-08-16T06:05:00.000Z' }),
+      definitionFixture({
+        id: 'SAVED-002',
+        name: '第二个',
+        sourceRunId: 'RUN-B',
+        updatedAt: '2026-08-16T06:04:00.000Z',
+      }),
     ],
-    runs: [{ id: 'RUN-B', status: 'locked' }],
+    runs: [runFixture({ id: 'RUN-B', definitionId: 'SAVED-002', completedAt: '2026-08-16T06:05:00.000Z' })],
   };
 
   const merged = mergeInspectionLibraries(left, right);

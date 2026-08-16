@@ -6,7 +6,8 @@ import { createInspectionLibraryStorage, INSPECTION_LIBRARY_STORAGE_KEY } from '
 
 const root = document.querySelector('#app');
 const libraryStorage = createInspectionLibraryStorage(window.localStorage);
-let state = demoReducer(createDemoSession(), {
+const actorId = window.crypto.randomUUID();
+let state = demoReducer(createDemoSession({ actorId }), {
   type: 'LIBRARY_HYDRATED',
   library: libraryStorage.load(),
 });
