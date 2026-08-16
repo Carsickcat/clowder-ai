@@ -353,6 +353,34 @@ test('deselected signal is removed from the generated inspection plan', () => {
   assert.equal(state.taskInstance.inspectionPlan.checkIds.includes(signal.id.slice('signal:'.length)), false);
 });
 
+test('a deselected signal remains outside an exact saved-inspection revisit', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: fulfillmentRequest });
+  const signal = state.contextOptions.find((item) => item.kind === 'signal');
+  assert.ok(signal);
+
+  state = dispatch(state, 'CONTEXT_ITEM_TOGGLED', { contextId: signal.id });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  for (let index = 0; index < state.workspace.execution.length; index += 1) {
+    state = dispatch(state, 'EXECUTION_ADVANCED');
+  }
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '排除业务结果信号的履约巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+
+  const definitionId = state.library.savedInspections[0].id;
+  state = dispatch(state, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
+
+  assert.deepEqual(state.savedRunRefresh, { status: 'exact', differences: [] });
+  assert.equal(state.phase, 'execution');
+  assert.equal(state.contextOptions.find((item) => item.id === signal.id)?.selected, false);
+  assert.equal(state.taskInstance.inspectionPlan.checkIds.includes(signal.id.slice('signal:'.length)), false);
+});
+
 test('saved inspection exact direct-run bypasses intent compilation and creates a new immutable run', () => {
   let { state } = completePersonalInspection();
   state = dispatch(state, 'SAVED_INSPECTION_CREATED', {

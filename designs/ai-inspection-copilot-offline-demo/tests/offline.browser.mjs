@@ -118,10 +118,25 @@ async function main() {
     assert.match(text, /可用信号/);
     await screenshot(session, '11-dual-entry-context-selection.png');
 
+    const deselectedSignalId = await session.evaluate(`(() => {
+      const signal = document.querySelector('[data-context-id^="signal:"]');
+      const contextId = signal.dataset.contextId;
+      signal.click();
+      return contextId;
+    })()`);
+    assert.match(deselectedSignalId, /^signal:/);
+    assert.equal(
+      await session.evaluate(
+        `document.querySelector('[data-context-id="${deselectedSignalId}"]').getAttribute('aria-pressed')`,
+      ),
+      'false',
+    );
+
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
     assert.match(text, /REL-FUL-72/);
-    assert.match(text, /fulfillment\.service\.success_rate/);
+    assert.doesNotMatch(text, /fulfillment\.service\.success_rate/);
+    assert.match(text, /http\.error_rate/);
     const genericPlanText = await session.evaluate(`(() => {
       document.querySelectorAll(".check-card").forEach((check) => {
         check.open = true;
@@ -141,6 +156,7 @@ async function main() {
     const firstRunSnapshot = await session.evaluate(
       'JSON.parse(localStorage.getItem("nova.inspection-library.v1")).runs[0]',
     );
+    assert.equal(firstRunSnapshot.inspectionPlan.checkIds.includes(deselectedSignalId.slice('signal:'.length)), false);
     assert.equal(
       await session.evaluate(`(() => {
         const form = document.querySelector('[data-save-inspection-form]');

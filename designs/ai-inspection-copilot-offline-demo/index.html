@@ -3362,7 +3362,14 @@ function classifySavedInspectionRefresh(definition, workspace) {
   const baselineEntities = new Set(definition.baseline.entities);
   const currentEntities = sortedUnique(workspace.observedChange?.entities ?? workspace.declaredChange?.entities);
   const addedEntities = currentEntities.filter((entity) => !baselineEntities.has(entity));
-  const extraCheckIds = [...currentCheckIds].filter((id) => !definition.baseline.checkIds.includes(id));
+  const selectedSignalCheckIds = new Set(
+    definition.selectedContext
+      .filter((item) => item.kind === 'signal' && item.id.startsWith('signal:'))
+      .map((item) => item.id.slice('signal:'.length)),
+  );
+  const extraCheckIds = [...currentCheckIds].filter(
+    (id) => selectedSignalCheckIds.has(id) && !definition.baseline.checkIds.includes(id),
+  );
   if (addedEntities.length || extraCheckIds.length) {
     return deepFreeze({
       status: 'minor-drift',
