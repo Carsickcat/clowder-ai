@@ -35,8 +35,8 @@ This PR follows the F23 unblock rule honestly: it removes one real exception in 
 
 ## Architecture Ownership（必填）
 
-Architecture cell: `packages/api/src/config` layout under ADR-010 / F23 directory-hygiene guard  
-Map delta: none  
+Architecture cell: `packages/api/src/config` layout under ADR-010 / F23 directory-hygiene guard
+Map delta: none
 Why: This is a directory-layout refactor inside the existing config boundary; no new runtime subsystem, store, queue, router, or adapter is introduced.
 
 请 reviewer 检查：
