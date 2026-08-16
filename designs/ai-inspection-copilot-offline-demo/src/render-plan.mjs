@@ -69,6 +69,14 @@ function renderPlanStats(summary) {
     </div>`;
 }
 
+function renderSelectedContext(items) {
+  if (!items.length) return '';
+  return `<section class="plan-context" data-testid="selected-context-plan">
+    <h3>本次巡检信息</h3>
+    <ul>${items.map((item) => `<li><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong></li>`).join('')}</ul>
+  </section>`;
+}
+
 export function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
   const candidates = vm.workspace.candidateChecks
@@ -85,6 +93,7 @@ export function renderInspectionPlan(vm) {
         <div><h2 data-stage-title>巡检任务</h2></div>
         <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? '可确认' : '候选待处置'}</span>
       </header>
+      ${renderSelectedContext(vm.savedInspection.selectedContext)}
       ${renderPlanStats(vm.planSummary)}
       <section class="plan-section" aria-labelledby="pending-title">
         <h3 id="pending-title">待确认项</h3>

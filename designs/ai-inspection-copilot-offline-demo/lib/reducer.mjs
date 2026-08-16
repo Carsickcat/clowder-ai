@@ -13,6 +13,7 @@ import {
 import { selectCommittedChecks, selectPlanReadiness } from './selectors.mjs';
 
 export function createDemoSession(options = {}) {
+  const library = options.library ?? createEmptyInspectionLibrary();
   return deepFreeze({
     workspace: null,
     phase: 'intake',
@@ -24,7 +25,7 @@ export function createDemoSession(options = {}) {
     playbookDriftReviewed: false,
     playbookProposal: null,
     taskInstance: null,
-    library: options.library ?? createEmptyInspectionLibrary(),
+    library,
     contextOptions: [],
     conversation: [],
     activeRequest: null,
@@ -35,10 +36,20 @@ export function createDemoSession(options = {}) {
     savedDefinitionId: null,
     storageError: null,
     toast: null,
-    nextTaskOrdinal: options.nextTaskOrdinal ?? 48,
-    nextRunOrdinal: options.nextRunOrdinal ?? 48,
-    nextSavedOrdinal: options.nextSavedOrdinal ?? 1,
+    nextTaskOrdinal:
+      options.nextTaskOrdinal ?? nextOrdinal(library.runs.map((run) => run.taskInstanceId), 'INS', 48),
+    nextRunOrdinal: options.nextRunOrdinal ?? nextOrdinal(library.runs.map((run) => run.id), 'RUN', 48),
+    nextSavedOrdinal:
+      options.nextSavedOrdinal ?? nextOrdinal(library.savedInspections.map((definition) => definition.id), 'SAVED', 1),
   });
+}
+
+function nextOrdinal(ids, prefix, fallback) {
+  const ordinals = ids
+    .map((id) => new RegExp(`^${prefix}-(\\d+)$`).exec(String(id))?.[1])
+    .filter(Boolean)
+    .map(Number);
+  return ordinals.length ? Math.max(...ordinals) + 1 : fallback;
 }
 
 function taskId(ordinal) {
@@ -152,7 +163,8 @@ function toggleDraftContext(state, action) {
 }
 
 function confirmInput(state) {
-  return state.phase === 'intake' && state.workspace ? { ...state, phase: 'context' } : state;
+  if (state.phase !== 'intake' || !state.workspace) return state;
+  return { ...state, phase: state.playbookMatch ? 'context' : 'plan' };
 }
 
 function dismissPlaybook(state) {
@@ -465,14 +477,12 @@ function hydrateLibrary(state, action) {
   if (state.phase !== 'intake' || state.workspace || state.library.revision > 0) return state;
   return createDemoSession({
     library: action.library,
-    nextTaskOrdinal: state.nextTaskOrdinal,
-    nextRunOrdinal: state.nextRunOrdinal,
-    nextSavedOrdinal: Math.max(state.nextSavedOrdinal, action.library.savedInspections.length + 1),
   });
 }
 
 function mergeLibrary(state, action) {
-  return { ...state, library: mergeInspectionLibraries(state.library, action.library) };
+  const library = mergeInspectionLibraries(state.library, action.library);
+  return JSON.stringify(library) === JSON.stringify(state.library) ? state : { ...state, library };
 }
 
 function markStorageFailure(state, action) {

@@ -218,11 +218,18 @@ export function mergeInspectionLibraries(leftInput, rightInput) {
   for (const run of [...left.runs, ...right.runs]) {
     if (!runs.has(run.id)) runs.set(run.id, run);
   }
+  const savedInspections = [...definitions.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone);
+  const mergedRuns = [...runs.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone);
+  const rightDefinitions = [...right.savedInspections].sort((a, b) => a.id.localeCompare(b.id));
+  const rightRuns = [...right.runs].sort((a, b) => a.id.localeCompare(b.id));
+  const incomingAlreadyContainsUnion =
+    JSON.stringify(savedInspections) === JSON.stringify(rightDefinitions) &&
+    JSON.stringify(mergedRuns) === JSON.stringify(rightRuns);
   return deepFreeze({
     schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
-    revision: Math.max(left.revision, right.revision) + 1,
-    savedInspections: [...definitions.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone),
-    runs: [...runs.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone),
+    revision: Math.max(left.revision, right.revision) + (incomingAlreadyContainsUnion ? 0 : 1),
+    savedInspections,
+    runs: mergedRuns,
   });
 }
 

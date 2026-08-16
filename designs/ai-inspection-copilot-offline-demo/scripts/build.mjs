@@ -17,6 +17,8 @@ const applicationFiles = [
   'render-intake.mjs',
   'render-plan.mjs',
   'render-playbook.mjs',
+  'render-saved-inspections.mjs',
+  'storage.mjs',
   'render.mjs',
   'app.mjs',
 ];
@@ -58,8 +60,7 @@ export async function buildStandalone(options = {}) {
   const html = template
     .replace(externalStylePattern, '')
     .replace('</head>', `    <style>\n${escapeInlineBoundary(styles, 'style')}\n    </style>\n  </head>`)
-    .replace(
-      '<script type="module" src="./app.mjs"></script>',
+    .replace('<script type="module" src="./app.mjs"></script>', () =>
       `<script>\n${escapeInlineBoundary(application, 'script')}\n    </script>`,
     )
     .replace(/\r\n/g, '\n');

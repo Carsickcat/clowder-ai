@@ -372,6 +372,27 @@ test('saved inspection exact direct-run bypasses intent compilation and creates 
   assert.deepEqual(state.library.runs[0], historicalRun);
 });
 
+test('hydrated saved inspections continue task, run, and definition identifiers without collisions', () => {
+  let { state } = completePersonalInspection();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  const persistedLibrary = state.library;
+  const historicalRunId = persistedLibrary.runs[0].id;
+  const historicalTaskId = persistedLibrary.runs[0].taskInstanceId;
+  const definitionId = persistedLibrary.savedInspections[0].id;
+
+  let hydrated = dispatch(createDemoSession(), 'LIBRARY_HYDRATED', { library: persistedLibrary });
+  hydrated = dispatch(hydrated, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
+  assert.notEqual(hydrated.taskInstance.id, historicalTaskId);
+  for (let index = 0; index < hydrated.workspace.execution.length; index += 1) {
+    hydrated = dispatch(hydrated, 'EXECUTION_ADVANCED');
+  }
+  assert.notEqual(hydrated.currentRunId, historicalRunId);
+  assert.equal(new Set(hydrated.library.runs.map((run) => run.id)).size, 2);
+});
+
 test('saved inspection minor drift requires acknowledgement and major drift cannot enter execution', () => {
   let { state } = completePersonalInspection();
   state = dispatch(state, 'SAVED_INSPECTION_CREATED', {

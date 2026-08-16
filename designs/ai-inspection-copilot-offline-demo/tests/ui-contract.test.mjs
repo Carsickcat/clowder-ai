@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createDemoSession, demoReducer } from '../lib/reducer.mjs';
+import { compileInspectionRequest } from '../lib/compiler.mjs';
+import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import { selectViewModel } from '../lib/selectors.mjs';
 import { renderApp } from '../src/render.mjs';
 
@@ -50,19 +51,15 @@ function dismissMatchedPlaybook(state) {
 
 test('intake is a blank user-driven product entry, not fixed journey navigation', () => {
   const html = renderApp(selectViewModel(createDemoSession()));
-  assert.match(html, /创建巡检/);
+  assert.match(html, /已保存巡检/);
   assert.match(html, /name="inspection-intent"/);
   assert.match(html, /name="context-reference"/);
-  assert.match(html, /填入后可修改/);
+  assert.match(html, /填入示例/);
   assert.match(html, /data-example-id="order-upgrade"/);
   assert.match(html, /data-example-id="payment-config"/);
   assert.doesNotMatch(html, /data-scenario-id=/);
   assert.doesNotMatch(html, /aria-label="验收场景"/);
-  assert.match(html, /输入理解/);
-  assert.match(html, /范围对账/);
-  assert.match(html, /任务草案/);
-  assert.match(html, /执行取证/);
-  assert.match(html, /行动报告/);
+  assert.doesNotMatch(html, /class="phase-rail"/);
 });
 
 test('electronic-flow plan exposes reconciliation and blocks unresolved candidate', () => {
@@ -158,7 +155,7 @@ test('unmatched context renders no playbook product surface', () => {
 
   assert.doesNotMatch(html, /data-testid="playbook-match"/);
   assert.doesNotMatch(html, /场景巡检方案/);
-  assert.match(html, /确认巡检范围/);
+  assert.match(html, /巡检任务/);
 });
 
 test('exact playbook is a green in-context accelerator with one primary action', () => {
@@ -281,7 +278,7 @@ test('the product uses concise task copy instead of slogans or decorative module
   for (const copy of forbiddenCopy) {
     assert.doesNotMatch(html, new RegExp(copy, 'i'));
   }
-  assert.match(html, /确认变更信息/);
+  assert.match(html, /确认巡检信息/);
   assert.match(html, /确认巡检范围/);
   assert.match(html, /执行检查/);
   assert.match(html, /<div class="decision-hero">[\s\S]*?建议暂停在 25% 灰度/);
@@ -299,4 +296,125 @@ test('the copilot rail stays operational and does not repeat judgement or guardr
   assert.doesNotMatch(html, />护栏</);
   assert.doesNotMatch(html, /class="copilot-message"/);
   assert.doesNotMatch(html, /class="copilot-principles"/);
+});
+
+test('home keeps saved inspections in the main area and natural-language input in the right rail', () => {
+  const html = renderApp(selectViewModel(createDemoSession()));
+
+  assert.match(html, /data-testid="saved-inspection-home"/);
+  assert.match(html, /已保存巡检/);
+  assert.match(html, /还没有保存的巡检，从右侧对话开始/);
+  assert.match(html, /<aside[^>]+copilot-panel[\s\S]*?data-intent-form/);
+  assert.match(html, /placeholder="例如：巡检 payment-api 本周配置变更"/);
+  assert.doesNotMatch(html, /我是你的智能巡检助手/);
+  assert.doesNotMatch(html, /data-testid="saved-inspection-card"/);
+});
+
+test('parsed intent renders selectable current context in the main area', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', {
+    request: {
+      prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+      targetService: 'fulfillment-service',
+      contextReference: 'REL-FUL-72',
+    },
+  });
+  const firstId = state.contextOptions[0].id;
+  state = dispatch(state, 'CONTEXT_ITEM_TOGGLED', { contextId: firstId });
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /确认巡检信息/);
+  assert.match(html, /近期变更/);
+  assert.match(html, /关联服务与依赖/);
+  assert.match(html, /可用信号/);
+  assert.match(html, new RegExp(`data-context-id="${firstId}"[^>]+aria-pressed="false"`));
+  assert.match(html, /data-action="INPUT_CONFIRMED"/);
+  assert.match(html, /生成任务草案/);
+});
+
+function completedFulfillmentReport() {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', {
+    request: {
+      prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+      targetService: 'fulfillment-service',
+      contextReference: 'REL-FUL-72',
+    },
+  });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  for (let index = 0; index < state.workspace.execution.length; index += 1) {
+    state = dispatch(state, 'EXECUTION_ADVANCED');
+  }
+  return state;
+}
+
+test('report echoes selected context and offers a quiet editable personal save', () => {
+  const state = completedFulfillmentReport();
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /data-testid="selected-context-results"/);
+  assert.match(html, /本次选择的巡检结果/);
+  assert.match(html, /模型风险总结/);
+  assert.match(html, /data-save-inspection-form/);
+  assert.match(html, /name="saved-inspection-name"/);
+  assert.match(html, /保存后下次可从首页直接执行/);
+  assert.doesNotMatch(html, /庆祝/);
+});
+
+test('a saved inspection becomes a truthful home card with a direct-run action', () => {
+  let state = completedFulfillmentReport();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /data-testid="saved-inspection-card"/);
+  assert.match(html, /履约发布后巡检/);
+  assert.match(html, /本地 mock/);
+  assert.match(html, /data-action="SAVED_INSPECTION_RUN_REQUESTED"/);
+  assert.match(html, /data-definition-id="SAVED-001"/);
+  assert.match(html, /直跑/);
+});
+
+test('saved-inspection drift states expose one guarded next action', () => {
+  let state = completedFulfillmentReport();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+  const definitionId = state.library.savedInspections[0].id;
+  const minorReducer = createDemoReducer({
+    compileSavedDefinition(request) {
+      const workspace = compileInspectionRequest(request);
+      return {
+        ...workspace,
+        observedChange: {
+          ...workspace.observedChange,
+          entities: [...workspace.observedChange.entities, 'new-worker'],
+        },
+      };
+    },
+  });
+  const minor = minorReducer(state, { type: 'SAVED_INSPECTION_RUN_REQUESTED', definitionId });
+  const minorHtml = renderApp(selectViewModel(minor));
+  assert.match(minorHtml, /当前事实有差异/);
+  assert.match(minorHtml, /data-action="SAVED_INSPECTION_RUN_CONFIRMED"/);
+  assert.match(minorHtml, /仍要执行/);
+
+  const majorReducer = createDemoReducer({
+    compileSavedDefinition(request) {
+      const workspace = compileInspectionRequest(request);
+      return { ...workspace, committedChecks: workspace.committedChecks.slice(1) };
+    },
+  });
+  const major = majorReducer(state, { type: 'SAVED_INSPECTION_RUN_REQUESTED', definitionId });
+  const majorHtml = renderApp(selectViewModel(major));
+  assert.match(majorHtml, /当前结构已变化，不能直跑/);
+  assert.match(majorHtml, /data-action="SAVED_INSPECTION_REGENERATED"/);
+  assert.doesNotMatch(majorHtml, /data-action="SAVED_INSPECTION_RUN_CONFIRMED"/);
 });

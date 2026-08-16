@@ -1,6 +1,11 @@
-import { renderIntake } from './render-intake.mjs';
+import { renderConversationComposer, renderIntake } from './render-intake.mjs';
 import { renderInspectionPlan } from './render-plan.mjs';
 import { renderPlaybookMatch, renderPlaybookProposal, renderPlaybookReference } from './render-playbook.mjs';
+import {
+  renderReportJourneyDetails,
+  renderSavedExecutionStatus,
+  renderSavedInspectionRefresh,
+} from './render-saved-inspections.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 const PHASES = [
@@ -101,6 +106,8 @@ function renderContext(vm) {
 }
 
 function renderScope(vm) {
+  const savedRefresh = renderSavedInspectionRefresh(vm.savedInspection);
+  if (savedRefresh) return savedRefresh;
   return `
     <div class="scope-stage">
       ${renderPlaybookMatch(vm.playbook)}
@@ -117,6 +124,7 @@ function renderScope(vm) {
 function renderExecution(vm) {
   return `
     <div class="execution-stage">
+      ${renderSavedExecutionStatus(vm.savedInspection)}
       <header class="stage-heading"><div><h2 data-stage-title>执行检查</h2></div><span class="live-dot">● MOCK</span></header>
       <ol class="execution-list">
         ${vm.execution
@@ -154,6 +162,7 @@ function renderReport(vm) {
         <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
         <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
       </div>
+      ${renderReportJourneyDetails(vm)}
       ${renderPlaybookProposal(vm.playbook)}
       ${
         report.rcAgent
@@ -181,9 +190,9 @@ function renderStage(vm) {
 
 function primaryAction(vm) {
   if (!vm.workspace) return '';
-  if (vm.state.phase === 'context' && vm.playbook.match) return '';
+  if (vm.state.phase === 'intake') return '';
+  if (vm.state.phase === 'context' && (vm.playbook.match || vm.savedInspection.refresh)) return '';
   const actions = {
-    intake: ['INPUT_CONFIRMED', '确认变更信息'],
     context: ['SCOPE_ACCEPTED', '生成任务'],
     plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '开始执行' : '请先处置高风险候选'],
     execution: [
@@ -208,10 +217,11 @@ function renderCopilot(vm) {
         report: '报告已生成',
       }[vm.state.phase];
   return `
-    <aside class="panel copilot-panel" aria-label="Copilot 解释">
-      <header><span class="copilot-mark">✦</span><div><strong>巡检助手</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
+    <aside class="panel copilot-panel" aria-label="巡检对话">
+      <header><span class="copilot-mark">✦</span><div><strong>巡检对话</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
       <div class="copilot-status"><span>状态</span><strong>${escapeHtml(status)}</strong></div>
       ${renderPlaybookReference(vm.playbook)}
+      ${renderConversationComposer(vm)}
       ${primaryAction(vm)}
     </aside>`;
 }
@@ -225,9 +235,9 @@ export function renderApp(vm) {
         <div class="title-lockup"><h1>AI 巡检 Copilot</h1></div>
         <div class="offline-badge"><span>●</span> 离线演示</div>
       </header>
-      <ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>
-      <main id="main" class="workspace">
-        ${renderContext(vm)}
+      ${vm.workspace ? `<ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>` : ''}
+      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'}">
+        ${vm.workspace ? renderContext(vm) : ''}
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>

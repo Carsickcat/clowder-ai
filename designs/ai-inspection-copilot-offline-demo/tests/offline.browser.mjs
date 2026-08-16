@@ -94,14 +94,14 @@ async function main() {
     await loaded;
 
     let text = await bodyText(session);
-    assert.match(text, /创建巡检/);
-    assert.match(text, /填入后可修改/);
+    assert.match(text, /已保存巡检/);
+    assert.match(text, /还没有保存的巡检，从右侧对话开始/);
     assert.deepEqual(
       await session.evaluate(`(() => {
         const title = document.querySelector('[data-stage-title]');
         return { text: title.textContent.trim(), fontSize: getComputedStyle(title).fontSize };
       })()`),
-      { text: '创建巡检', fontSize: '18px' },
+      { text: '已保存巡检', fontSize: '18px' },
     );
     assert.equal(await session.evaluate('document.querySelectorAll("[data-scenario-id]").length'), 0);
     await screenshot(session, '00-user-defined-intake.png');
@@ -112,14 +112,15 @@ async function main() {
       contextReference: 'REL-FUL-72',
     });
     text = await bodyText(session);
-    assert.match(text, /确认变更信息/);
-    assert.match(text, /fulfillment-service · v7.2.0/);
+    assert.match(text, /确认巡检信息/);
+    assert.match(text, /近期变更/);
+    assert.match(text, /关联服务与依赖/);
+    assert.match(text, /可用信号/);
+    await screenshot(session, '11-dual-entry-context-selection.png');
 
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
     assert.match(text, /REL-FUL-72/);
-    await click(session, '[data-action="SCOPE_ACCEPTED"]');
-    text = await bodyText(session);
     assert.match(text, /fulfillment\.service\.success_rate/);
     const genericPlanText = await session.evaluate(`(() => {
       document.querySelectorAll(".check-card").forEach((check) => {
@@ -135,9 +136,46 @@ async function main() {
     assert.match(text, /Proceed/);
     assert.match(text, /Verified/);
     assert.match(text, /声明范围内未发现异常退化/);
+    assert.match(text, /本次选择的巡检结果/);
+    assert.match(text, /模型风险总结/);
+    const firstRunSnapshot = await session.evaluate(
+      'JSON.parse(localStorage.getItem("nova.inspection-library.v1")).runs[0]',
+    );
+    assert.equal(
+      await session.evaluate(`(() => {
+        const form = document.querySelector('[data-save-inspection-form]');
+        form.elements.namedItem('saved-inspection-name').value = '履约发布后巡检';
+        form.requestSubmit();
+        return true;
+      })()`),
+      true,
+    );
+    assert.match(await bodyText(session), /已保存，下次可从首页直接执行/);
     await screenshot(session, '01-user-defined-proceed.png');
 
     await click(session, '[data-action="RESET"]');
+    text = await bodyText(session);
+    assert.match(text, /履约发布后巡检/);
+    assert.match(text, /直跑/);
+    await screenshot(session, '12-saved-inspection-home.png');
+    const persistedLoaded = session.once('Page.loadEventFired');
+    await session.send('Page.reload');
+    await persistedLoaded;
+    assert.match(await bodyText(session), /履约发布后巡检/);
+    await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=inspection-plan]").length'), 0);
+    assert.match(await bodyText(session), /一致，已直接执行/);
+    await screenshot(session, '13-saved-direct-run.png');
+    await advanceExecution(session);
+    const persistedAfterDirectRun = await session.evaluate(
+      'JSON.parse(localStorage.getItem("nova.inspection-library.v1"))',
+    );
+    assert.equal(persistedAfterDirectRun.runs.length, 2);
+    assert.equal(new Set(persistedAfterDirectRun.runs.map((run) => run.id)).size, 2);
+    assert.deepEqual(persistedAfterDirectRun.runs[0], firstRunSnapshot);
+    await click(session, '[data-action="RESET"]');
+
     await click(session, '[data-example-id="order-upgrade"]');
     await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
     await click(session, '[data-action="INPUT_CONFIRMED"]');
@@ -234,11 +272,37 @@ async function main() {
     const mobileLoaded = session.once('Page.loadEventFired');
     await session.send('Page.reload');
     await mobileLoaded;
+    assert.match(await bodyText(session), /履约发布后巡检/);
+    const mobileComposer = await session.evaluate(`(() => {
+        const panel = document.querySelector('.copilot-panel');
+        const composer = document.querySelector('.conversation-form textarea');
+        return {
+          position: getComputedStyle(panel).position,
+          composerHeight: Math.round(composer.getBoundingClientRect().height),
+          noOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
+        };
+      })()`);
+    assert.equal(mobileComposer.position, 'fixed');
+    assert.equal(mobileComposer.noOverflow, true);
+    assert.ok(mobileComposer.composerHeight >= 44, 'mobile composer keeps a touch-safe hit target');
+    await screenshot(session, '14-mobile-saved-home.png');
+    await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    await advanceExecution(session);
+    assert.match(await bodyText(session), /本次选择的巡检结果/);
+    await click(session, '[data-action="RESET"]');
+
     await submitRequest(session, {
       prompt: 'payment-api 拆分出 risk-api，重新验证支付确认链路。',
       targetService: 'payment-api',
       contextReference: 'CHG-84501',
     });
+    assert.equal(
+      await session.evaluate(
+        'getComputedStyle(document.querySelector(".context-option-list")).gridTemplateColumns.split(" ").length',
+      ),
+      1,
+    );
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     assert.equal(
       await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),

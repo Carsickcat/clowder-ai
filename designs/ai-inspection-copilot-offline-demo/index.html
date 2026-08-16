@@ -169,6 +169,9 @@ a:focus-visible {
   gap: 14px;
   align-items: start;
 }
+.workspace.is-home {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.38fr);
+}
 .panel {
   min-width: 0;
   border: 1px solid var(--line);
@@ -1506,6 +1509,350 @@ a:focus-visible {
   font-size: 16px;
 }
 
+.saved-inspection-home {
+  display: grid;
+  gap: 18px;
+}
+.saved-inspection-heading,
+.saved-inspection-card,
+.context-option-group > header,
+.personal-save {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.saved-inspection-heading h2,
+.saved-inspection-card h3,
+.context-option-group h3,
+.personal-save h3,
+.model-risk-summary h3,
+.report-context-results h3 {
+  margin: 0;
+}
+.saved-inspection-heading h2 {
+  font-size: 18px;
+}
+.saved-inspection-heading p,
+.saved-inspection-card p,
+.personal-save p {
+  margin: 5px 0 0;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.saved-inspection-list {
+  display: grid;
+  gap: 10px;
+}
+.saved-inspection-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 16, 31, 0.42);
+}
+.saved-inspection-copy {
+  min-width: 0;
+}
+.saved-inspection-copy h3 {
+  margin-top: 9px;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-run-button,
+.personal-save button,
+.conversation-send {
+  min-height: 42px;
+  border: 1px solid rgba(90, 231, 210, 0.38);
+  border-radius: 10px;
+  background: var(--cyan-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+}
+.saved-run-button {
+  flex: 0 0 auto;
+  padding: 0 15px;
+}
+.saved-run-button b {
+  margin-left: 6px;
+  color: var(--cyan);
+}
+.saved-inspection-empty,
+.storage-warning {
+  margin: 0;
+  padding: 22px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text-soft);
+  text-align: center;
+}
+.storage-warning {
+  border-style: solid;
+  border-color: rgba(246, 186, 91, 0.35);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.context-selection {
+  display: grid;
+  gap: 18px;
+}
+.context-selection .stage-heading p {
+  margin: 6px 0 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.context-option-groups {
+  display: grid;
+  gap: 16px;
+}
+.context-option-group {
+  display: grid;
+  gap: 9px;
+}
+.context-option-group > header span {
+  color: var(--text-faint);
+  font: 10px / 1 var(--mono);
+}
+.context-option-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.context-option {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.42);
+  color: var(--text-soft);
+  cursor: pointer;
+  text-align: left;
+}
+.context-option.is-selected {
+  border-color: rgba(90, 231, 210, 0.35);
+  background: var(--cyan-soft);
+}
+.context-check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--cyan);
+}
+.context-option strong,
+.context-option small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.context-option strong {
+  color: var(--text);
+  font-size: 11px;
+}
+.context-option small {
+  margin-top: 5px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.context-confirm {
+  width: 100%;
+}
+.conversation-shell {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+.conversation-log {
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.35);
+}
+.conversation-message,
+.conversation-empty {
+  width: fit-content;
+  max-width: 94%;
+  margin: 0 0 7px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.conversation-message.user {
+  margin-left: auto;
+  background: var(--blue-soft);
+}
+.conversation-message.assistant {
+  background: var(--cyan-soft);
+}
+.conversation-empty {
+  margin: 0;
+  padding: 0;
+  color: var(--text-faint);
+}
+.conversation-form {
+  display: grid;
+  gap: 8px;
+}
+.conversation-form textarea,
+.conversation-form input,
+.personal-save input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  outline: 0;
+  background: rgba(7, 16, 31, 0.72);
+  color: var(--text);
+}
+.conversation-form textarea {
+  min-height: 80px;
+  resize: vertical;
+  padding: 11px;
+  line-height: 1.5;
+}
+.conversation-details summary,
+.conversation-examples summary {
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 9px;
+}
+.conversation-details input {
+  margin-top: 7px;
+  padding: 9px;
+}
+.conversation-send {
+  width: 100%;
+}
+.conversation-send:disabled,
+.conversation-form textarea:disabled,
+.conversation-form input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.conversation-examples .example-grid {
+  grid-template-columns: 1fr;
+  margin-top: 8px;
+}
+.saved-refresh {
+  margin: 0;
+  padding: clamp(18px, 3vw, 28px);
+}
+.reconciliation.is-blocked {
+  border-color: rgba(255, 109, 127, 0.35);
+  background: var(--red-soft);
+}
+.saved-refresh h2 {
+  margin: 10px 0 7px;
+}
+.saved-refresh .compile-button {
+  width: 100%;
+  margin-top: 16px;
+}
+.saved-refresh-differences {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.saved-refresh-differences li {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.saved-execution-status {
+  margin: 0 0 18px;
+}
+.plan-context,
+.report-context-results,
+.model-risk-summary,
+.personal-save {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 16, 31, 0.35);
+}
+.plan-context ul,
+.report-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-context li,
+.report-context-grid article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.plan-context span,
+.report-context-grid span,
+.report-context-grid small {
+  display: block;
+  color: var(--text-faint);
+  font: 9px / 1.4 var(--mono);
+}
+.plan-context strong,
+.report-context-grid strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-context-grid small {
+  margin-top: 7px;
+  color: var(--green);
+}
+.model-risk-summary ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.personal-save form {
+  min-width: min(320px, 100%);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.personal-save input {
+  min-width: 0;
+  padding: 10px;
+}
+.personal-save button {
+  padding: 0 16px;
+}
+.save-toast {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(114, 230, 166, 0.3);
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
 @media (max-width: 1180px) {
   .workspace {
     grid-template-columns: minmax(230px, 0.7fr) minmax(480px, 1.5fr);
@@ -1515,16 +1862,13 @@ a:focus-visible {
     grid-column: 1 / -1;
   }
   .copilot-panel {
-    display: grid;
-    grid-template-columns: minmax(190px, 0.7fr) minmax(160px, 1fr) auto;
-    align-items: stretch;
+    display: block;
   }
   .copilot-panel > header {
     border-right: 1px solid var(--line);
     border-bottom: 0;
   }
   .copilot-status {
-    align-self: center;
     margin: 10px 14px;
   }
   .primary-action {
@@ -1605,6 +1949,11 @@ a:focus-visible {
   }
   .playbook-signals {
     width: 100%;
+  }
+  .context-option-list,
+  .plan-context ul,
+  .report-context-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1711,6 +2060,50 @@ a:focus-visible {
   }
   .playbook-dismiss {
     text-align: left;
+  }
+  .saved-inspection-card,
+  .personal-save {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .saved-run-button {
+    width: 100%;
+  }
+  .personal-save form {
+    grid-template-columns: 1fr;
+  }
+  .app-shell[data-workspace="new"] {
+    padding-bottom: 104px;
+  }
+  .app-shell[data-workspace="new"] .copilot-panel {
+    position: fixed;
+    z-index: 20;
+    right: 10px;
+    bottom: 8px;
+    left: 10px;
+    overflow: visible;
+  }
+  .app-shell[data-workspace="new"] .copilot-panel > header,
+  .app-shell[data-workspace="new"] .copilot-status,
+  .app-shell[data-workspace="new"] .conversation-log,
+  .app-shell[data-workspace="new"] .conversation-details,
+  .app-shell[data-workspace="new"] .conversation-examples {
+    display: none;
+  }
+  .app-shell[data-workspace="new"] .conversation-shell {
+    padding: 8px;
+  }
+  .app-shell[data-workspace="new"] .conversation-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .app-shell[data-workspace="new"] .conversation-form textarea {
+    min-height: 48px;
+    max-height: 84px;
+    resize: none;
+  }
+  .app-shell[data-workspace="new"] .conversation-send {
+    width: 64px;
+    min-height: 48px;
   }
 }
 
@@ -2841,11 +3234,18 @@ function mergeInspectionLibraries(leftInput, rightInput) {
   for (const run of [...left.runs, ...right.runs]) {
     if (!runs.has(run.id)) runs.set(run.id, run);
   }
+  const savedInspections = [...definitions.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone);
+  const mergedRuns = [...runs.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone);
+  const rightDefinitions = [...right.savedInspections].sort((a, b) => a.id.localeCompare(b.id));
+  const rightRuns = [...right.runs].sort((a, b) => a.id.localeCompare(b.id));
+  const incomingAlreadyContainsUnion =
+    JSON.stringify(savedInspections) === JSON.stringify(rightDefinitions) &&
+    JSON.stringify(mergedRuns) === JSON.stringify(rightRuns);
   return deepFreeze({
     schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
-    revision: Math.max(left.revision, right.revision) + 1,
-    savedInspections: [...definitions.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone),
-    runs: [...runs.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone),
+    revision: Math.max(left.revision, right.revision) + (incomingAlreadyContainsUnion ? 0 : 1),
+    savedInspections,
+    runs: mergedRuns,
   });
 }
 
@@ -3031,6 +3431,7 @@ function selectViewModel(state) {
 }
 
 function createDemoSession(options = {}) {
+  const library = options.library ?? createEmptyInspectionLibrary();
   return deepFreeze({
     workspace: null,
     phase: 'intake',
@@ -3042,7 +3443,7 @@ function createDemoSession(options = {}) {
     playbookDriftReviewed: false,
     playbookProposal: null,
     taskInstance: null,
-    library: options.library ?? createEmptyInspectionLibrary(),
+    library,
     contextOptions: [],
     conversation: [],
     activeRequest: null,
@@ -3053,10 +3454,20 @@ function createDemoSession(options = {}) {
     savedDefinitionId: null,
     storageError: null,
     toast: null,
-    nextTaskOrdinal: options.nextTaskOrdinal ?? 48,
-    nextRunOrdinal: options.nextRunOrdinal ?? 48,
-    nextSavedOrdinal: options.nextSavedOrdinal ?? 1,
+    nextTaskOrdinal:
+      options.nextTaskOrdinal ?? nextOrdinal(library.runs.map((run) => run.taskInstanceId), 'INS', 48),
+    nextRunOrdinal: options.nextRunOrdinal ?? nextOrdinal(library.runs.map((run) => run.id), 'RUN', 48),
+    nextSavedOrdinal:
+      options.nextSavedOrdinal ?? nextOrdinal(library.savedInspections.map((definition) => definition.id), 'SAVED', 1),
   });
+}
+
+function nextOrdinal(ids, prefix, fallback) {
+  const ordinals = ids
+    .map((id) => new RegExp(`^${prefix}-(\\d+)$`).exec(String(id))?.[1])
+    .filter(Boolean)
+    .map(Number);
+  return ordinals.length ? Math.max(...ordinals) + 1 : fallback;
 }
 
 function taskId(ordinal) {
@@ -3170,7 +3581,8 @@ function toggleDraftContext(state, action) {
 }
 
 function confirmInput(state) {
-  return state.phase === 'intake' && state.workspace ? { ...state, phase: 'context' } : state;
+  if (state.phase !== 'intake' || !state.workspace) return state;
+  return { ...state, phase: state.playbookMatch ? 'context' : 'plan' };
 }
 
 function dismissPlaybook(state) {
@@ -3483,14 +3895,12 @@ function hydrateLibrary(state, action) {
   if (state.phase !== 'intake' || state.workspace || state.library.revision > 0) return state;
   return createDemoSession({
     library: action.library,
-    nextTaskOrdinal: state.nextTaskOrdinal,
-    nextRunOrdinal: state.nextRunOrdinal,
-    nextSavedOrdinal: Math.max(state.nextSavedOrdinal, action.library.savedInspections.length + 1),
   });
 }
 
 function mergeLibrary(state, action) {
-  return { ...state, library: mergeInspectionLibraries(state.library, action.library) };
+  const library = mergeInspectionLibraries(state.library, action.library);
+  return JSON.stringify(library) === JSON.stringify(state.library) ? state : { ...state, library };
 }
 
 function markStorageFailure(state, action) {
@@ -3545,6 +3955,12 @@ function escapeHtml(value = '') {
     .replaceAll("'", '&#039;');
 }
 
+const CONTEXT_GROUPS = [
+  ['change', '近期变更'],
+  ['service', '关联服务与依赖'],
+  ['signal', '可用信号'],
+];
+
 function renderExamples() {
   return inspectionExamples
     .map(
@@ -3558,51 +3974,106 @@ function renderExamples() {
     .join('');
 }
 
-function renderComposer() {
-  return `
-    <div class="product-intake">
-      <h2 data-stage-title>创建巡检</h2>
-      <p class="intake-lead">描述对象和验证目标；发布单可选。</p>
-      <form class="intent-form" data-intent-form>
-        <label class="intent-main">
-          <span>你想验证什么？</span>
-          <textarea name="inspection-intent" rows="4" required placeholder="例如：升级 inventory-api v2.3.1，验证库存锁定和下游调用是否正常。"></textarea>
-        </label>
-        <div class="intent-fields">
-          <label>
-            <span>目标服务（可选）</span>
-            <input name="target-service" placeholder="无法唯一解析时补充" />
-          </label>
-          <label>
-            <span>电子流 / 发布单（可选）</span>
-            <input name="context-reference" placeholder="CHG / REL / 发布批次" />
-          </label>
-        </div>
-        <button class="compile-button" type="submit"><span>生成工作区</span><b>→</b></button>
-      </form>
-      <div class="example-area">
-        <div><strong>示例</strong><span>填入后可修改</span></div>
-        <div class="example-grid">${renderExamples()}</div>
-      </div>
-    </div>`;
+function latestRunFor(definition, runs) {
+  return [...runs]
+    .filter((run) => run.definitionId === definition.id || run.id === definition.sourceRunId)
+    .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0] ?? null;
 }
 
-function renderUnderstanding(vm) {
-  const workspace = vm.workspace;
-  return `
-    <div class="stage-empty compiled-intake">
-      <h2 data-stage-title>确认变更信息</h2>
-      <div class="understanding-grid">
-        <div><span>服务 / 版本</span><strong>${escapeHtml(workspace.declaredChange.entities[0])} · ${escapeHtml(workspace.declaredChange.version)}</strong></div>
-        <div><span>可靠性目标</span><strong>${escapeHtml(workspace.hypotheses[0])}</strong></div>
-        <div><span>上下文组合</span><strong>${workspace.entryKind === 'combined-context' ? '用户意图 + 电子流补全' : '用户意图'}</strong></div>
-      </div>
-      <button class="edit-intent" data-action="RESET" type="button">修改输入</button>
-    </div>`;
+function renderSavedCard(definition, runs) {
+  const run = latestRunFor(definition, runs);
+  const action = run?.report?.actionLabel ?? run?.report?.action ?? '尚未执行';
+  const completedAt = run?.completedAt ? new Date(run.completedAt).toLocaleString('zh-CN', { hour12: false }) : '—';
+  return `<article class="saved-inspection-card" data-testid="saved-inspection-card">
+    <div class="saved-inspection-copy">
+      <span class="readiness">本地 mock</span>
+      <h3>${escapeHtml(definition.name)}</h3>
+      <p>上次：${escapeHtml(action)} · ${escapeHtml(completedAt)}</p>
+    </div>
+    <button class="saved-run-button" data-action="SAVED_INSPECTION_RUN_REQUESTED" data-definition-id="${escapeHtml(definition.id)}" type="button">直跑 <b>▶</b></button>
+  </article>`;
+}
+
+function renderSavedInspectionHome(vm) {
+  const { definitions, runs, storageError } = vm.savedInspection;
+  return `<section class="saved-inspection-home" data-testid="saved-inspection-home" aria-labelledby="saved-title">
+    <header class="saved-inspection-heading">
+      <div><h2 id="saved-title" data-stage-title>已保存巡检</h2><p>个人任务保存在当前浏览器</p></div>
+      <span class="readiness">本地 mock</span>
+    </header>
+    ${
+      storageError
+        ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>`
+        : ''
+    }
+    ${
+      definitions.length
+        ? `<div class="saved-inspection-list">${definitions.map((definition) => renderSavedCard(definition, runs)).join('')}</div>`
+        : '<p class="saved-inspection-empty">还没有保存的巡检，从右侧对话开始 →</p>'
+    }
+  </section>`;
+}
+
+function renderContextGroup(options, kind, title) {
+  const items = options.filter((item) => item.kind === kind);
+  if (!items.length) return '';
+  return `<section class="context-option-group" aria-labelledby="context-${kind}">
+    <header><h3 id="context-${kind}">${title}</h3><span>${items.filter((item) => item.selected).length}/${items.length}</span></header>
+    <div class="context-option-list">
+      ${items
+        .map(
+          (item) => `<button class="context-option ${item.selected ? 'is-selected' : ''}" data-action="CONTEXT_ITEM_TOGGLED" data-context-id="${escapeHtml(item.id)}" aria-pressed="${item.selected}" type="button">
+            <span class="context-check">${item.selected ? '✓' : '+'}</span>
+            <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.detail)}</small></span>
+          </button>`,
+        )
+        .join('')}
+    </div>
+  </section>`;
+}
+
+function renderContextSelection(vm) {
+  return `<section class="context-selection" data-testid="context-selection" aria-labelledby="context-selection-title">
+    <header class="stage-heading">
+      <div><h2 id="context-selection-title" data-stage-title>确认巡检信息</h2><p>勾选本次要验证的范围</p></div>
+      <button class="edit-intent" data-action="RESET" type="button">重新描述</button>
+    </header>
+    <div class="context-option-groups">
+      ${CONTEXT_GROUPS.map(([kind, title]) => renderContextGroup(vm.savedInspection.contextOptions, kind, title)).join('')}
+    </div>
+    <button class="compile-button context-confirm" data-action="INPUT_CONFIRMED" type="button"><span>生成任务草案</span><b>→</b></button>
+  </section>`;
+}
+
+function renderConversationComposer(vm) {
+  const prefill = vm.savedInspection.composerPrefill ?? {};
+  const conversation = vm.savedInspection.conversation;
+  const busy = Boolean(vm.workspace);
+  return `<div class="conversation-shell">
+    <div class="conversation-log" aria-live="polite">
+      ${
+        conversation.length
+          ? conversation
+              .map((message) => `<p class="conversation-message ${message.role}">${escapeHtml(message.text)}</p>`)
+              .join('')
+          : '<p class="conversation-empty">描述要巡检的服务或变更</p>'
+      }
+    </div>
+    <form class="conversation-form" data-intent-form>
+      <textarea name="inspection-intent" rows="3" required ${busy ? 'disabled' : ''} placeholder="例如：巡检 payment-api 本周配置变更">${escapeHtml(prefill.prompt ?? '')}</textarea>
+      <details class="conversation-details" ${prefill.targetService || prefill.contextReference ? 'open' : ''}>
+        <summary>补充服务或电子流</summary>
+        <input name="target-service" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.targetService ?? '')}" placeholder="目标服务（可选）" />
+        <input name="context-reference" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.contextReference ?? '')}" placeholder="电子流 / 发布单（可选）" />
+      </details>
+      <button class="conversation-send" type="submit" ${busy ? 'disabled' : ''}>${busy ? '当前巡检进行中' : '发送'}</button>
+    </form>
+    ${!busy ? `<details class="conversation-examples"><summary>填入示例</summary><div class="example-grid">${renderExamples()}</div></details>` : ''}
+  </div>`;
 }
 
 function renderIntake(vm) {
-  return vm.workspace ? renderUnderstanding(vm) : renderComposer();
+  return vm.workspace ? renderContextSelection(vm) : renderSavedInspectionHome(vm);
 }
 
 function renderCandidate(candidate, disposition) {
@@ -3674,6 +4145,14 @@ function renderPlanStats(summary) {
     </div>`;
 }
 
+function renderSelectedContext(items) {
+  if (!items.length) return '';
+  return `<section class="plan-context" data-testid="selected-context-plan">
+    <h3>本次巡检信息</h3>
+    <ul>${items.map((item) => `<li><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong></li>`).join('')}</ul>
+  </section>`;
+}
+
 function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
   const candidates = vm.workspace.candidateChecks
@@ -3690,6 +4169,7 @@ function renderInspectionPlan(vm) {
         <div><h2 data-stage-title>巡检任务</h2></div>
         <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? '可确认' : '候选待处置'}</span>
       </header>
+      ${renderSelectedContext(vm.savedInspection.selectedContext)}
       ${renderPlanStats(vm.planSummary)}
       <section class="plan-section" aria-labelledby="pending-title">
         <h3 id="pending-title">待确认项</h3>
@@ -3845,6 +4325,113 @@ function renderPlaybookProposal(playbookView) {
   </section>`;
 }
 
+function differenceList(differences) {
+  return `<ul class="saved-refresh-differences">${differences
+    .map((difference) => `<li>${escapeHtml(difference.summary ?? difference.id)}</li>`)
+    .join('')}</ul>`;
+}
+
+function renderSavedInspectionRefresh(savedInspection) {
+  const refresh = savedInspection?.refresh;
+  const definition = savedInspection?.activeDefinition;
+  if (!refresh || !definition || refresh.status === 'exact') return '';
+  if (refresh.status === 'minor-drift') {
+    return `<section class="saved-refresh reconciliation is-expanded" data-testid="saved-refresh" data-refresh-status="minor-drift">
+      <span>已刷新当前事实</span>
+      <h2>当前事实有差异</h2>
+      <p>${escapeHtml(definition.name)} 的检查结构仍可执行，请先确认差异。</p>
+      ${differenceList(refresh.differences)}
+      <button class="compile-button" data-action="SAVED_INSPECTION_RUN_CONFIRMED" type="button"><span>仍要执行</span><b>→</b></button>
+    </section>`;
+  }
+  return `<section class="saved-refresh reconciliation is-blocked" data-testid="saved-refresh" data-refresh-status="major-drift">
+    <span>已刷新当前事实</span>
+    <h2>当前结构已变化，不能直跑</h2>
+    <p>${escapeHtml(definition.name)} 仅作参考；重新描述后会生成新任务。</p>
+    ${differenceList(refresh.differences)}
+    <button class="compile-button" data-action="SAVED_INSPECTION_REGENERATED" type="button"><span>回到对话重新生成</span><b>→</b></button>
+  </section>`;
+}
+
+function renderSavedExecutionStatus(savedInspection) {
+  if (savedInspection?.refresh?.status !== 'exact' || !savedInspection.activeDefinition) return '';
+  return `<div class="saved-execution-status reconciliation is-exact" data-testid="saved-refresh" data-refresh-status="exact">
+    <span>当前事实</span><strong>一致，已直接执行</strong>
+    <p>${escapeHtml(savedInspection.activeDefinition.name)} · 新任务 ${escapeHtml(savedInspection.currentRun?.taskInstanceId ?? '执行中')}</p>
+  </div>`;
+}
+
+function renderSelectedContextResults(run) {
+  if (!run?.selectedContextResults?.length) return '';
+  return `<section class="report-context-results" data-testid="selected-context-results">
+    <h3>本次选择的巡检结果</h3>
+    <div class="report-context-grid">${run.selectedContextResults
+      .map(
+        (item) => `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small>✓ ${escapeHtml(item.status)}</small></article>`,
+      )
+      .join('')}</div>
+  </section>`;
+}
+
+function suggestedName(vm) {
+  const entity = vm.workspace?.declaredChange?.entities?.[0] ?? '服务';
+  return `${entity} 巡检`;
+}
+
+function renderPersonalSave(vm) {
+  const saved = vm.savedInspection;
+  if (saved.activeDefinition) return '';
+  if (saved.savedDefinitionId) {
+    return `<p class="save-toast" role="status">${escapeHtml(saved.toast ?? '已保存，下次可从首页直接执行')}</p>`;
+  }
+  return `<section class="personal-save" aria-labelledby="personal-save-title">
+    <div><h3 id="personal-save-title">保存这次巡检</h3><p>保存后下次可从首页直接执行</p></div>
+    <form data-save-inspection-form>
+      <input name="saved-inspection-name" required value="${escapeHtml(suggestedName(vm))}" aria-label="巡检名称" />
+      <button type="submit">保存</button>
+    </form>
+  </section>`;
+}
+
+function renderReportJourneyDetails(vm) {
+  const run = vm.savedInspection.currentRun;
+  return `${renderSelectedContextResults(run)}
+    <section class="model-risk-summary">
+      <h3>模型风险总结</h3>
+      <ul>${vm.report.residualRisks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>
+    </section>
+    ${renderPersonalSave(vm)}`;
+}
+
+const INSPECTION_LIBRARY_STORAGE_KEY = 'nova.inspection-library.v1';
+
+function createInspectionLibraryStorage(storage, key = INSPECTION_LIBRARY_STORAGE_KEY) {
+  return {
+    load() {
+      if (!storage) return createEmptyInspectionLibrary();
+      try {
+        return parseInspectionLibrary(storage.getItem(key));
+      } catch {
+        return createEmptyInspectionLibrary();
+      }
+    },
+
+    save(library) {
+      if (!storage) return { ok: false, reason: 'storage-unavailable' };
+      try {
+        storage.setItem(key, serializeInspectionLibrary(library));
+        return { ok: true };
+      } catch {
+        return { ok: false, reason: 'storage-write-failed' };
+      }
+    },
+
+    merge(current, serialized) {
+      return mergeInspectionLibraries(current, parseInspectionLibrary(serialized));
+    },
+  };
+}
+
 const PHASES = [
   ['intake', '输入理解', '01'],
   ['context', '范围对账', '02'],
@@ -3943,6 +4530,8 @@ function renderContext(vm) {
 }
 
 function renderScope(vm) {
+  const savedRefresh = renderSavedInspectionRefresh(vm.savedInspection);
+  if (savedRefresh) return savedRefresh;
   return `
     <div class="scope-stage">
       ${renderPlaybookMatch(vm.playbook)}
@@ -3959,6 +4548,7 @@ function renderScope(vm) {
 function renderExecution(vm) {
   return `
     <div class="execution-stage">
+      ${renderSavedExecutionStatus(vm.savedInspection)}
       <header class="stage-heading"><div><h2 data-stage-title>执行检查</h2></div><span class="live-dot">● MOCK</span></header>
       <ol class="execution-list">
         ${vm.execution
@@ -3996,6 +4586,7 @@ function renderReport(vm) {
         <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
         <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
       </div>
+      ${renderReportJourneyDetails(vm)}
       ${renderPlaybookProposal(vm.playbook)}
       ${
         report.rcAgent
@@ -4023,9 +4614,9 @@ function renderStage(vm) {
 
 function primaryAction(vm) {
   if (!vm.workspace) return '';
-  if (vm.state.phase === 'context' && vm.playbook.match) return '';
+  if (vm.state.phase === 'intake') return '';
+  if (vm.state.phase === 'context' && (vm.playbook.match || vm.savedInspection.refresh)) return '';
   const actions = {
-    intake: ['INPUT_CONFIRMED', '确认变更信息'],
     context: ['SCOPE_ACCEPTED', '生成任务'],
     plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '开始执行' : '请先处置高风险候选'],
     execution: [
@@ -4050,10 +4641,11 @@ function renderCopilot(vm) {
         report: '报告已生成',
       }[vm.state.phase];
   return `
-    <aside class="panel copilot-panel" aria-label="Copilot 解释">
-      <header><span class="copilot-mark">✦</span><div><strong>巡检助手</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
+    <aside class="panel copilot-panel" aria-label="巡检对话">
+      <header><span class="copilot-mark">✦</span><div><strong>巡检对话</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
       <div class="copilot-status"><span>状态</span><strong>${escapeHtml(status)}</strong></div>
       ${renderPlaybookReference(vm.playbook)}
+      ${renderConversationComposer(vm)}
       ${primaryAction(vm)}
     </aside>`;
 }
@@ -4067,9 +4659,9 @@ function renderApp(vm) {
         <div class="title-lockup"><h1>AI 巡检 Copilot</h1></div>
         <div class="offline-badge"><span>●</span> 离线演示</div>
       </header>
-      <ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>
-      <main id="main" class="workspace">
-        ${renderContext(vm)}
+      ${vm.workspace ? `<ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>` : ''}
+      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'}">
+        ${vm.workspace ? renderContext(vm) : ''}
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
@@ -4078,7 +4670,11 @@ function renderApp(vm) {
 }
 
 const root = document.querySelector('#app');
-let state = createDemoSession();
+const libraryStorage = createInspectionLibraryStorage(window.localStorage);
+let state = demoReducer(createDemoSession(), {
+  type: 'LIBRARY_HYDRATED',
+  library: libraryStorage.load(),
+});
 
 function render() {
   root.innerHTML = renderApp(selectViewModel(state));
@@ -4087,11 +4683,26 @@ function render() {
 function dispatch(action) {
   const next = demoReducer(state, action);
   if (next !== state) {
+    const libraryChanged = next.library !== state.library;
     state = next;
+    if (libraryChanged) {
+      const saved = libraryStorage.save(state.library);
+      if (!saved.ok) {
+        state = demoReducer(state, {
+          type: 'LIBRARY_SAVE_FAILED',
+          message: '无法写入本地保存；本页内仍可继续使用',
+        });
+      }
+    }
     render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
+
+window.addEventListener('storage', (event) => {
+  if (event.key !== INSPECTION_LIBRARY_STORAGE_KEY || typeof event.newValue !== 'string') return;
+  dispatch({ type: 'LIBRARY_MERGED', library: libraryStorage.merge(state.library, event.newValue) });
+});
 
 root.addEventListener('click', (event) => {
   const exampleButton = event.target.closest('[data-example-id]');
@@ -4118,10 +4729,25 @@ root.addEventListener('click', (event) => {
     });
     return;
   }
+  if (action === 'CONTEXT_ITEM_TOGGLED') {
+    dispatch({ type: action, contextId: actionButton.dataset.contextId });
+    return;
+  }
+  if (action === 'SAVED_INSPECTION_RUN_REQUESTED') {
+    dispatch({ type: action, definitionId: actionButton.dataset.definitionId });
+    return;
+  }
   dispatch({ type: action });
 });
 
 root.addEventListener('submit', (event) => {
+  const saveForm = event.target.closest('[data-save-inspection-form]');
+  if (saveForm) {
+    event.preventDefault();
+    const data = new FormData(saveForm);
+    dispatch({ type: 'SAVED_INSPECTION_CREATED', name: data.get('saved-inspection-name') });
+    return;
+  }
   const form = event.target.closest('[data-intent-form]');
   if (!form) return;
   event.preventDefault();
