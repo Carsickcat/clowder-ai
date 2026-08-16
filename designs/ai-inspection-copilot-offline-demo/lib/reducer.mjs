@@ -37,10 +37,26 @@ export function createDemoSession(options = {}) {
     storageError: null,
     toast: null,
     nextTaskOrdinal:
-      options.nextTaskOrdinal ?? nextOrdinal(library.runs.map((run) => run.taskInstanceId), 'INS', 48),
-    nextRunOrdinal: options.nextRunOrdinal ?? nextOrdinal(library.runs.map((run) => run.id), 'RUN', 48),
+      options.nextTaskOrdinal ??
+      nextOrdinal(
+        library.runs.map((run) => run.taskInstanceId),
+        'INS',
+        48,
+      ),
+    nextRunOrdinal:
+      options.nextRunOrdinal ??
+      nextOrdinal(
+        library.runs.map((run) => run.id),
+        'RUN',
+        48,
+      ),
     nextSavedOrdinal:
-      options.nextSavedOrdinal ?? nextOrdinal(library.savedInspections.map((definition) => definition.id), 'SAVED', 1),
+      options.nextSavedOrdinal ??
+      nextOrdinal(
+        library.savedInspections.map((definition) => definition.id),
+        'SAVED',
+        1,
+      ),
   });
 }
 
@@ -395,7 +411,9 @@ function savedPlan(definition) {
 function selectedSavedContext(definition, workspace) {
   const selectedIds = new Set(definition.selectedContext.map((item) => item.id));
   const current = createContextOptions(workspace).map((item) => ({ ...item, selected: selectedIds.has(item.id) }));
-  return current.some((item) => item.selected) ? current : definition.selectedContext.map((item) => ({ ...item, selected: true }));
+  return current.some((item) => item.selected)
+    ? current
+    : definition.selectedContext.map((item) => ({ ...item, selected: true }));
 }
 
 function requestSavedInspectionRun(state, action, compileSavedDefinition) {
@@ -513,8 +531,7 @@ export function createDemoReducer(options = {}) {
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
     SAVED_INSPECTION_CREATED: createPersonalSavedInspection,
-    SAVED_INSPECTION_RUN_REQUESTED: (state, action) =>
-      requestSavedInspectionRun(state, action, compileSavedDefinition),
+    SAVED_INSPECTION_RUN_REQUESTED: (state, action) => requestSavedInspectionRun(state, action, compileSavedDefinition),
     SAVED_INSPECTION_RUN_CONFIRMED: confirmSavedInspectionRun,
     SAVED_INSPECTION_REGENERATED: regenerateSavedInspection,
   };

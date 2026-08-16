@@ -102,8 +102,7 @@ export function selectSavedInspectionView(state) {
   return {
     definitions: savedInspections,
     runs: state.library.runs,
-    activeDefinition:
-      savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    activeDefinition: savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
     refresh: state.savedRunRefresh,
     contextOptions: state.contextOptions,
     selectedContext: state.contextOptions.filter((item) => item.selected),

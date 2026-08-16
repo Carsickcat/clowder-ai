@@ -442,10 +442,7 @@ test('saved inspection minor drift requires acknowledgement and major drift cann
 
 test('unknown saved definition and repeated final execution events are no-ops', () => {
   const empty = createDemoSession();
-  assert.equal(
-    dispatch(empty, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId: 'missing' }),
-    empty,
-  );
+  assert.equal(dispatch(empty, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId: 'missing' }), empty);
   let { state } = completePersonalInspection();
   const completed = state;
   state = dispatch(state, 'EXECUTION_ADVANCED');

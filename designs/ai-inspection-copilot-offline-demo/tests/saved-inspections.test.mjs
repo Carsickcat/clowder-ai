@@ -91,13 +91,13 @@ test('a saved definition snapshots reusable structure without evidence or report
   assert.equal(definition.name, '履约发布后巡检');
   assert.equal(definition.version, 1);
   assert.deepEqual(definition.inspectionPlan.checkIds, lockedTask.inspectionPlan.checkIds);
-  assert.deepEqual(definition.selectedContext.map((item) => item.id), selectedContext.map((item) => item.id));
+  assert.deepEqual(
+    definition.selectedContext.map((item) => item.id),
+    selectedContext.map((item) => item.id),
+  );
   assert.equal(JSON.stringify(definition).includes('evidence'), false);
   assert.equal(JSON.stringify(definition).includes('report'), false);
-  assert.throws(
-    () => createSavedInspectionDefinition({ ...definition, name: '   ' }),
-    /name/i,
-  );
+  assert.throws(() => createSavedInspectionDefinition({ ...definition, name: '   ' }), /name/i);
 });
 
 test('an inspection run is a locked immutable snapshot with selected results and no shared references', () => {
@@ -116,7 +116,10 @@ test('an inspection run is a locked immutable snapshot with selected results and
 
   assert.equal(run.status, 'locked');
   assert.equal(run.taskInstanceId, lockedTask.id);
-  assert.deepEqual(run.selectedContextResults.map((item) => item.contextId), selectedContext.map((item) => item.id));
+  assert.deepEqual(
+    run.selectedContextResults.map((item) => item.contextId),
+    selectedContext.map((item) => item.id),
+  );
   assert.notEqual(run.inspectionPlan, lockedTask.inspectionPlan);
   assert.ok(Object.isFrozen(run));
   assert.ok(Object.isFrozen(run.report));
@@ -141,9 +144,7 @@ test('concurrent libraries merge stable IDs without losing runs and newer defini
   const left = {
     schemaVersion: 1,
     revision: 2,
-    savedInspections: [
-      { id: 'SAVED-001', version: 1, name: '旧名称', updatedAt: '2026-08-16T06:00:00.000Z' },
-    ],
+    savedInspections: [{ id: 'SAVED-001', version: 1, name: '旧名称', updatedAt: '2026-08-16T06:00:00.000Z' }],
     runs: [{ id: 'RUN-A', status: 'locked' }],
   };
   const right = {

@@ -42,7 +42,8 @@ function renderSelectedContextResults(run) {
     <h3>本次选择的巡检结果</h3>
     <div class="report-context-grid">${run.selectedContextResults
       .map(
-        (item) => `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small>✓ ${escapeHtml(item.status)}</small></article>`,
+        (item) =>
+          `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small>✓ ${escapeHtml(item.status)}</small></article>`,
       )
       .join('')}</div>
   </section>`;

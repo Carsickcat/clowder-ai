@@ -2,10 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createEmptyInspectionLibrary } from '../lib/saved-inspections.mjs';
-import {
-  INSPECTION_LIBRARY_STORAGE_KEY,
-  createInspectionLibraryStorage,
-} from '../src/storage.mjs';
+import { createInspectionLibraryStorage, INSPECTION_LIBRARY_STORAGE_KEY } from '../src/storage.mjs';
 
 function memoryStorage(initial = {}) {
   const values = new Map(Object.entries(initial));

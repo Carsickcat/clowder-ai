@@ -2,7 +2,7 @@ import { inspectionExamples } from '../lib/compiler.mjs';
 import { createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import { selectViewModel } from '../lib/selectors.mjs';
 import { renderApp } from './render.mjs';
-import { INSPECTION_LIBRARY_STORAGE_KEY, createInspectionLibraryStorage } from './storage.mjs';
+import { createInspectionLibraryStorage, INSPECTION_LIBRARY_STORAGE_KEY } from './storage.mjs';
 
 const root = document.querySelector('#app');
 const libraryStorage = createInspectionLibraryStorage(window.localStorage);

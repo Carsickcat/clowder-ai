@@ -115,7 +115,9 @@ export function toggleContextSelection(options, contextId) {
   const target = options.find((option) => option.id === contextId);
   if (!target) return options;
   if (target.selected && options.filter((option) => option.selected).length === 1) return options;
-  return deepFreeze(options.map((option) => (option.id === contextId ? { ...option, selected: !option.selected } : option)));
+  return deepFreeze(
+    options.map((option) => (option.id === contextId ? { ...option, selected: !option.selected } : option)),
+  );
 }
 
 function planSnapshot(inspectionPlan) {
@@ -247,9 +249,7 @@ export function classifySavedInspectionRefresh(definition, workspace) {
         ...(missingCheckIds.length
           ? [{ id: 'check-structure', severity: 'blocking', summary: `缺少检查项：${missingCheckIds.join('、')}` }]
           : []),
-        ...(fingerprintChanged
-          ? [{ id: 'change-fingerprint', severity: 'blocking', summary: '变更指纹已变化' }]
-          : []),
+        ...(fingerprintChanged ? [{ id: 'change-fingerprint', severity: 'blocking', summary: '变更指纹已变化' }] : []),
       ],
     });
   }
@@ -261,7 +261,11 @@ export function classifySavedInspectionRefresh(definition, workspace) {
     return deepFreeze({
       status: 'minor-drift',
       differences: [
-        ...addedEntities.map((entity) => ({ id: `entity:${entity}`, severity: 'review', summary: `新增关联服务 ${entity}` })),
+        ...addedEntities.map((entity) => ({
+          id: `entity:${entity}`,
+          severity: 'review',
+          summary: `新增关联服务 ${entity}`,
+        })),
         ...extraCheckIds.map((id) => ({ id: `check:${id}`, severity: 'review', summary: `新增检查项 ${id}` })),
       ],
     });

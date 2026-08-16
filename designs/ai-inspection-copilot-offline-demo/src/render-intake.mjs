@@ -21,9 +21,11 @@ function renderExamples() {
 }
 
 function latestRunFor(definition, runs) {
-  return [...runs]
-    .filter((run) => run.definitionId === definition.id || run.id === definition.sourceRunId)
-    .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0] ?? null;
+  return (
+    [...runs]
+      .filter((run) => run.definitionId === definition.id || run.id === definition.sourceRunId)
+      .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0] ?? null
+  );
 }
 
 function renderSavedCard(definition, runs) {
@@ -47,11 +49,7 @@ function renderSavedInspectionHome(vm) {
       <div><h2 id="saved-title" data-stage-title>已保存巡检</h2><p>个人任务保存在当前浏览器</p></div>
       <span class="readiness">本地 mock</span>
     </header>
-    ${
-      storageError
-        ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>`
-        : ''
-    }
+    ${storageError ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>` : ''}
     ${
       definitions.length
         ? `<div class="saved-inspection-list">${definitions.map((definition) => renderSavedCard(definition, runs)).join('')}</div>`
@@ -68,7 +66,9 @@ function renderContextGroup(options, kind, title) {
     <div class="context-option-list">
       ${items
         .map(
-          (item) => `<button class="context-option ${item.selected ? 'is-selected' : ''}" data-action="CONTEXT_ITEM_TOGGLED" data-context-id="${escapeHtml(item.id)}" aria-pressed="${item.selected}" type="button">
+          (
+            item,
+          ) => `<button class="context-option ${item.selected ? 'is-selected' : ''}" data-action="CONTEXT_ITEM_TOGGLED" data-context-id="${escapeHtml(item.id)}" aria-pressed="${item.selected}" type="button">
             <span class="context-check">${item.selected ? '✓' : '+'}</span>
             <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.detail)}</small></span>
           </button>`,

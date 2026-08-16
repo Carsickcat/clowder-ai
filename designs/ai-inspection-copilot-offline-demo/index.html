@@ -3136,7 +3136,9 @@ function toggleContextSelection(options, contextId) {
   const target = options.find((option) => option.id === contextId);
   if (!target) return options;
   if (target.selected && options.filter((option) => option.selected).length === 1) return options;
-  return deepFreeze(options.map((option) => (option.id === contextId ? { ...option, selected: !option.selected } : option)));
+  return deepFreeze(
+    options.map((option) => (option.id === contextId ? { ...option, selected: !option.selected } : option)),
+  );
 }
 
 function planSnapshot(inspectionPlan) {
@@ -3268,9 +3270,7 @@ function classifySavedInspectionRefresh(definition, workspace) {
         ...(missingCheckIds.length
           ? [{ id: 'check-structure', severity: 'blocking', summary: `缺少检查项：${missingCheckIds.join('、')}` }]
           : []),
-        ...(fingerprintChanged
-          ? [{ id: 'change-fingerprint', severity: 'blocking', summary: '变更指纹已变化' }]
-          : []),
+        ...(fingerprintChanged ? [{ id: 'change-fingerprint', severity: 'blocking', summary: '变更指纹已变化' }] : []),
       ],
     });
   }
@@ -3282,7 +3282,11 @@ function classifySavedInspectionRefresh(definition, workspace) {
     return deepFreeze({
       status: 'minor-drift',
       differences: [
-        ...addedEntities.map((entity) => ({ id: `entity:${entity}`, severity: 'review', summary: `新增关联服务 ${entity}` })),
+        ...addedEntities.map((entity) => ({
+          id: `entity:${entity}`,
+          severity: 'review',
+          summary: `新增关联服务 ${entity}`,
+        })),
         ...extraCheckIds.map((id) => ({ id: `check:${id}`, severity: 'review', summary: `新增检查项 ${id}` })),
       ],
     });
@@ -3392,8 +3396,7 @@ function selectSavedInspectionView(state) {
   return {
     definitions: savedInspections,
     runs: state.library.runs,
-    activeDefinition:
-      savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    activeDefinition: savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
     refresh: state.savedRunRefresh,
     contextOptions: state.contextOptions,
     selectedContext: state.contextOptions.filter((item) => item.selected),
@@ -3460,10 +3463,26 @@ function createDemoSession(options = {}) {
     storageError: null,
     toast: null,
     nextTaskOrdinal:
-      options.nextTaskOrdinal ?? nextOrdinal(library.runs.map((run) => run.taskInstanceId), 'INS', 48),
-    nextRunOrdinal: options.nextRunOrdinal ?? nextOrdinal(library.runs.map((run) => run.id), 'RUN', 48),
+      options.nextTaskOrdinal ??
+      nextOrdinal(
+        library.runs.map((run) => run.taskInstanceId),
+        'INS',
+        48,
+      ),
+    nextRunOrdinal:
+      options.nextRunOrdinal ??
+      nextOrdinal(
+        library.runs.map((run) => run.id),
+        'RUN',
+        48,
+      ),
     nextSavedOrdinal:
-      options.nextSavedOrdinal ?? nextOrdinal(library.savedInspections.map((definition) => definition.id), 'SAVED', 1),
+      options.nextSavedOrdinal ??
+      nextOrdinal(
+        library.savedInspections.map((definition) => definition.id),
+        'SAVED',
+        1,
+      ),
   });
 }
 
@@ -3818,7 +3837,9 @@ function savedPlan(definition) {
 function selectedSavedContext(definition, workspace) {
   const selectedIds = new Set(definition.selectedContext.map((item) => item.id));
   const current = createContextOptions(workspace).map((item) => ({ ...item, selected: selectedIds.has(item.id) }));
-  return current.some((item) => item.selected) ? current : definition.selectedContext.map((item) => ({ ...item, selected: true }));
+  return current.some((item) => item.selected)
+    ? current
+    : definition.selectedContext.map((item) => ({ ...item, selected: true }));
 }
 
 function requestSavedInspectionRun(state, action, compileSavedDefinition) {
@@ -3936,8 +3957,7 @@ function createDemoReducer(options = {}) {
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
     SAVED_INSPECTION_CREATED: createPersonalSavedInspection,
-    SAVED_INSPECTION_RUN_REQUESTED: (state, action) =>
-      requestSavedInspectionRun(state, action, compileSavedDefinition),
+    SAVED_INSPECTION_RUN_REQUESTED: (state, action) => requestSavedInspectionRun(state, action, compileSavedDefinition),
     SAVED_INSPECTION_RUN_CONFIRMED: confirmSavedInspectionRun,
     SAVED_INSPECTION_REGENERATED: regenerateSavedInspection,
   };
@@ -3980,9 +4000,11 @@ function renderExamples() {
 }
 
 function latestRunFor(definition, runs) {
-  return [...runs]
-    .filter((run) => run.definitionId === definition.id || run.id === definition.sourceRunId)
-    .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0] ?? null;
+  return (
+    [...runs]
+      .filter((run) => run.definitionId === definition.id || run.id === definition.sourceRunId)
+      .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0] ?? null
+  );
 }
 
 function renderSavedCard(definition, runs) {
@@ -4006,11 +4028,7 @@ function renderSavedInspectionHome(vm) {
       <div><h2 id="saved-title" data-stage-title>已保存巡检</h2><p>个人任务保存在当前浏览器</p></div>
       <span class="readiness">本地 mock</span>
     </header>
-    ${
-      storageError
-        ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>`
-        : ''
-    }
+    ${storageError ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>` : ''}
     ${
       definitions.length
         ? `<div class="saved-inspection-list">${definitions.map((definition) => renderSavedCard(definition, runs)).join('')}</div>`
@@ -4027,7 +4045,9 @@ function renderContextGroup(options, kind, title) {
     <div class="context-option-list">
       ${items
         .map(
-          (item) => `<button class="context-option ${item.selected ? 'is-selected' : ''}" data-action="CONTEXT_ITEM_TOGGLED" data-context-id="${escapeHtml(item.id)}" aria-pressed="${item.selected}" type="button">
+          (
+            item,
+          ) => `<button class="context-option ${item.selected ? 'is-selected' : ''}" data-action="CONTEXT_ITEM_TOGGLED" data-context-id="${escapeHtml(item.id)}" aria-pressed="${item.selected}" type="button">
             <span class="context-check">${item.selected ? '✓' : '+'}</span>
             <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.detail)}</small></span>
           </button>`,
@@ -4372,7 +4392,8 @@ function renderSelectedContextResults(run) {
     <h3>本次选择的巡检结果</h3>
     <div class="report-context-grid">${run.selectedContextResults
       .map(
-        (item) => `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small>✓ ${escapeHtml(item.status)}</small></article>`,
+        (item) =>
+          `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small>✓ ${escapeHtml(item.status)}</small></article>`,
       )
       .join('')}</div>
   </section>`;
