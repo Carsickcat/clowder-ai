@@ -10,6 +10,7 @@ const applicationFiles = [
   '../lib/scenarios.mjs',
   '../lib/compiler.mjs',
   '../lib/playbooks.mjs',
+  '../lib/saved-inspections.mjs',
   '../lib/selectors.mjs',
   '../lib/reducer.mjs',
   'view-utils.mjs',

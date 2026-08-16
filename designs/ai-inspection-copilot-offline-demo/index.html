@@ -2623,6 +2623,268 @@ function matchInspectionPlaybook(workspace, catalog = inspectionPlaybooks) {
   return null;
 }
 
+const INSPECTION_LIBRARY_SCHEMA_VERSION = 1;
+
+function clone(value) {
+  if (Array.isArray(value)) return value.map(clone);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clone(item)]));
+  }
+  return value;
+}
+
+function stripRuntimePayload(value) {
+  if (Array.isArray(value)) return value.map(stripRuntimePayload);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !['evidence', 'report'].includes(key))
+      .map(([key, item]) => [key, stripRuntimePayload(item)]),
+  );
+}
+
+function sortedUnique(values = []) {
+  return [...new Set(values.filter(Boolean))].sort();
+}
+
+function validDefinition(definition) {
+  return (
+    definition &&
+    typeof definition === 'object' &&
+    typeof definition.id === 'string' &&
+    definition.id.length > 0 &&
+    Number.isInteger(definition.version) &&
+    definition.version > 0 &&
+    typeof definition.name === 'string' &&
+    definition.name.trim().length > 0 &&
+    typeof definition.updatedAt === 'string'
+  );
+}
+
+function validRun(run) {
+  return run && typeof run === 'object' && typeof run.id === 'string' && run.id.length > 0 && run.status === 'locked';
+}
+
+function normalizeLibrary(value) {
+  if (
+    !value ||
+    value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
+    !Number.isInteger(value.revision) ||
+    value.revision < 0 ||
+    !Array.isArray(value.savedInspections) ||
+    !Array.isArray(value.runs) ||
+    !value.savedInspections.every(validDefinition) ||
+    !value.runs.every(validRun)
+  ) {
+    return null;
+  }
+  return deepFreeze({
+    schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+    revision: value.revision,
+    savedInspections: clone(value.savedInspections),
+    runs: clone(value.runs),
+  });
+}
+
+function createEmptyInspectionLibrary() {
+  return deepFreeze({
+    schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+    revision: 0,
+    savedInspections: [],
+    runs: [],
+  });
+}
+
+function parseInspectionLibrary(serialized) {
+  if (typeof serialized !== 'string' || !serialized.trim()) return createEmptyInspectionLibrary();
+  try {
+    return normalizeLibrary(JSON.parse(serialized)) ?? createEmptyInspectionLibrary();
+  } catch {
+    return createEmptyInspectionLibrary();
+  }
+}
+
+function serializeInspectionLibrary(library) {
+  const normalized = normalizeLibrary(library);
+  if (!normalized) throw new TypeError('Invalid inspection library envelope');
+  return JSON.stringify(normalized);
+}
+
+function contextOption(id, kind, label, detail) {
+  return { id, kind, label, detail, selected: true };
+}
+
+function createContextOptions(workspace) {
+  if (!workspace) return deepFreeze([]);
+  const changes = (workspace.contextSources ?? []).map((source) =>
+    contextOption(`change:${source.id}`, 'change', source.label, source.detail),
+  );
+  const services = sortedUnique([
+    ...(workspace.declaredChange?.entities ?? []),
+    ...(workspace.observedChange?.entities ?? []),
+  ]).map((entity) => contextOption(`service:${entity}`, 'service', entity, '本次巡检关联服务'));
+  const signals = (workspace.committedChecks ?? []).map((check) =>
+    contextOption(
+      `signal:${check.id}`,
+      'signal',
+      check.title ?? check.purpose ?? check.metric ?? check.id,
+      check.metric ?? check.purpose ?? check.id,
+    ),
+  );
+  return deepFreeze([...changes, ...services, ...signals]);
+}
+
+function toggleContextSelection(options, contextId) {
+  const target = options.find((option) => option.id === contextId);
+  if (!target) return options;
+  if (target.selected && options.filter((option) => option.selected).length === 1) return options;
+  return deepFreeze(options.map((option) => (option.id === contextId ? { ...option, selected: !option.selected } : option)));
+}
+
+function planSnapshot(inspectionPlan) {
+  if (!inspectionPlan || !Array.isArray(inspectionPlan.checkIds) || !Array.isArray(inspectionPlan.checks)) {
+    throw new TypeError('A locked inspection plan is required');
+  }
+  return stripRuntimePayload({
+    source: inspectionPlan.source,
+    sourcePlaybookRef: inspectionPlan.sourcePlaybookRef ? clone(inspectionPlan.sourcePlaybookRef) : null,
+    checkIds: [...inspectionPlan.checkIds],
+    checks: inspectionPlan.checks,
+  });
+}
+
+function createSavedInspectionDefinition({
+  id,
+  name,
+  request,
+  workspace,
+  selectedContext,
+  taskInstance,
+  sourceRunId,
+  now,
+  version = 1,
+}) {
+  if (typeof name !== 'string' || !name.trim()) throw new TypeError('Saved inspection name is required');
+  if (!id || !sourceRunId || !now) throw new TypeError('Saved inspection identity and timestamp are required');
+  if (taskInstance?.status !== 'locked') throw new TypeError('Only a locked inspection task can be saved');
+  const chosen = (selectedContext ?? []).filter((item) => item.selected !== false).map(clone);
+  if (!chosen.length) throw new TypeError('At least one selected context item is required');
+  return deepFreeze({
+    id,
+    version,
+    name: name.trim(),
+    createdAt: now,
+    updatedAt: now,
+    sourceRunId,
+    request: clone(request),
+    selectedContext: chosen,
+    inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
+    baseline: {
+      fingerprint: workspace.declaredChange.fingerprint,
+      entities: sortedUnique(workspace.observedChange?.entities ?? workspace.declaredChange.entities),
+      checkIds: [...taskInstance.inspectionPlan.checkIds],
+    },
+  });
+}
+
+function selectedContextResults(selectedContext) {
+  return selectedContext
+    .filter((item) => item.selected !== false)
+    .map((item) => ({
+      contextId: item.id,
+      kind: item.kind,
+      label: item.label,
+      status: 'Verified',
+      detail: item.detail,
+    }));
+}
+
+function createInspectionRun({
+  id,
+  taskInstance,
+  definitionId = null,
+  selectedContext,
+  report,
+  startedAt,
+  completedAt,
+}) {
+  if (!id || !startedAt || !completedAt) throw new TypeError('Inspection run identity and timestamps are required');
+  if (taskInstance?.status !== 'locked') throw new TypeError('Inspection run requires a locked task');
+  return deepFreeze({
+    id,
+    taskInstanceId: taskInstance.id,
+    definitionId,
+    startedAt,
+    completedAt,
+    status: 'locked',
+    selectedContextResults: selectedContextResults(selectedContext ?? []),
+    inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
+    report: clone(report),
+  });
+}
+
+function chooseDefinition(left, right) {
+  if (!left) return right;
+  if (!right) return left;
+  if (right.version !== left.version) return right.version > left.version ? right : left;
+  return String(right.updatedAt).localeCompare(String(left.updatedAt)) > 0 ? right : left;
+}
+
+function mergeInspectionLibraries(leftInput, rightInput) {
+  const left = normalizeLibrary(leftInput) ?? createEmptyInspectionLibrary();
+  const right = normalizeLibrary(rightInput) ?? createEmptyInspectionLibrary();
+  const definitions = new Map();
+  for (const definition of [...left.savedInspections, ...right.savedInspections]) {
+    definitions.set(definition.id, chooseDefinition(definitions.get(definition.id), definition));
+  }
+  const runs = new Map();
+  for (const run of [...left.runs, ...right.runs]) {
+    if (!runs.has(run.id)) runs.set(run.id, run);
+  }
+  return deepFreeze({
+    schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+    revision: Math.max(left.revision, right.revision) + 1,
+    savedInspections: [...definitions.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone),
+    runs: [...runs.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone),
+  });
+}
+
+function classifySavedInspectionRefresh(definition, workspace) {
+  if (!validDefinition(definition) || !workspace) {
+    return deepFreeze({ status: 'major-drift', differences: [{ id: 'definition-unavailable', severity: 'blocking' }] });
+  }
+  const currentCheckIds = new Set((workspace.committedChecks ?? []).map((check) => check.id));
+  const missingCheckIds = definition.baseline.checkIds.filter((id) => !currentCheckIds.has(id));
+  const fingerprintChanged = workspace.declaredChange?.fingerprint !== definition.baseline.fingerprint;
+  if (missingCheckIds.length || fingerprintChanged) {
+    return deepFreeze({
+      status: 'major-drift',
+      differences: [
+        ...(missingCheckIds.length
+          ? [{ id: 'check-structure', severity: 'blocking', summary: `缺少检查项：${missingCheckIds.join('、')}` }]
+          : []),
+        ...(fingerprintChanged
+          ? [{ id: 'change-fingerprint', severity: 'blocking', summary: '变更指纹已变化' }]
+          : []),
+      ],
+    });
+  }
+  const baselineEntities = new Set(definition.baseline.entities);
+  const currentEntities = sortedUnique(workspace.observedChange?.entities ?? workspace.declaredChange?.entities);
+  const addedEntities = currentEntities.filter((entity) => !baselineEntities.has(entity));
+  const extraCheckIds = [...currentCheckIds].filter((id) => !definition.baseline.checkIds.includes(id));
+  if (addedEntities.length || extraCheckIds.length) {
+    return deepFreeze({
+      status: 'minor-drift',
+      differences: [
+        ...addedEntities.map((entity) => ({ id: `entity:${entity}`, severity: 'review', summary: `新增关联服务 ${entity}` })),
+        ...extraCheckIds.map((id) => ({ id: `check:${id}`, severity: 'review', summary: `新增检查项 ${id}` })),
+      ],
+    });
+  }
+  return deepFreeze({ status: 'exact', differences: [] });
+}
+
 function requireWorkspace(state) {
   if (!state.workspace) throw new Error('Inspection workspace is not compiled');
   return state.workspace;
@@ -2718,6 +2980,27 @@ function selectPlaybookView(state) {
   };
 }
 
+function selectSavedInspectionView(state) {
+  const savedInspections = [...state.library.savedInspections].sort((left, right) =>
+    String(right.updatedAt).localeCompare(String(left.updatedAt)),
+  );
+  return {
+    definitions: savedInspections,
+    runs: state.library.runs,
+    activeDefinition:
+      savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    refresh: state.savedRunRefresh,
+    contextOptions: state.contextOptions,
+    selectedContext: state.contextOptions.filter((item) => item.selected),
+    currentRun: state.library.runs.find((run) => run.id === state.currentRunId) ?? null,
+    savedDefinitionId: state.savedDefinitionId,
+    composerPrefill: state.composerPrefill,
+    conversation: state.conversation,
+    storageError: state.storageError,
+    toast: state.toast,
+  };
+}
+
 function selectViewModel(state) {
   if (!state.workspace) {
     return {
@@ -2730,6 +3013,7 @@ function selectViewModel(state) {
       execution: [],
       report: null,
       playbook: selectPlaybookView(state),
+      savedInspection: selectSavedInspectionView(state),
     };
   }
   return {
@@ -2742,6 +3026,7 @@ function selectViewModel(state) {
     execution: selectExecutionView(state),
     report: selectReportView(state),
     playbook: selectPlaybookView(state),
+    savedInspection: selectSavedInspectionView(state),
   };
 }
 
@@ -2757,7 +3042,20 @@ function createDemoSession(options = {}) {
     playbookDriftReviewed: false,
     playbookProposal: null,
     taskInstance: null,
+    library: options.library ?? createEmptyInspectionLibrary(),
+    contextOptions: [],
+    conversation: [],
+    activeRequest: null,
+    activeSavedInspectionId: null,
+    savedRunRefresh: null,
+    composerPrefill: options.composerPrefill ?? null,
+    currentRunId: null,
+    savedDefinitionId: null,
+    storageError: null,
+    toast: null,
     nextTaskOrdinal: options.nextTaskOrdinal ?? 48,
+    nextRunOrdinal: options.nextRunOrdinal ?? 48,
+    nextSavedOrdinal: options.nextSavedOrdinal ?? 1,
   });
 }
 
@@ -2765,11 +3063,25 @@ function taskId(ordinal) {
   return `INS-${String(ordinal).padStart(4, '0')}`;
 }
 
-function createTaskInstance(ordinal) {
+function runId(ordinal) {
+  return `RUN-${String(ordinal).padStart(4, '0')}`;
+}
+
+function savedInspectionId(ordinal) {
+  return `SAVED-${String(ordinal).padStart(3, '0')}`;
+}
+
+function demoTimestamp(ordinal, offset = 0) {
+  return new Date(Date.UTC(2026, 7, 16, 6, ordinal + offset)).toISOString();
+}
+
+function createTaskInstance(ordinal, sourceSavedInspectionId = null) {
   const id = taskId(ordinal);
   return {
     id,
     status: 'draft',
+    startedAt: demoTimestamp(ordinal),
+    sourceSavedInspectionId,
     sourcePlaybookRef: null,
     referencePlaybookRef: null,
     inspectionPlan: null,
@@ -2794,10 +3106,11 @@ function snapshotChecks(checks) {
   return checks.map((check) => ({ ...check, sourceRefs: [...check.sourceRefs] }));
 }
 
-function createInspectionPlan(checks, sourcePlaybookRef = null) {
+function createInspectionPlan(checks, sourcePlaybookRef = null, sourceSavedInspectionId = null) {
   return {
-    source: sourcePlaybookRef ? 'approved-playbook' : 'generated',
+    source: sourceSavedInspectionId ? 'saved-inspection' : sourcePlaybookRef ? 'approved-playbook' : 'generated',
     sourcePlaybookRef: sourcePlaybookRef ? { ...sourcePlaybookRef } : null,
+    sourceSavedInspectionId,
     checkIds: checks.map((check) => check.id),
     checks: snapshotChecks(checks),
   };
@@ -2827,16 +3140,33 @@ function disposeCandidate(state, action) {
   };
 }
 
-function submitIntent(state, action, playbookCatalog) {
+function submitIntent(state, action, playbookCatalog, compileIntent) {
   if (state.phase !== 'intake') return state;
-  const workspace = compileInspectionRequest(action.request);
+  const workspace = compileIntent(action.request);
   const ordinal = state.nextTaskOrdinal;
   return {
-    ...createDemoSession({ nextTaskOrdinal: ordinal + 1 }),
+    ...createDemoSession({
+      library: state.library,
+      nextTaskOrdinal: ordinal + 1,
+      nextRunOrdinal: state.nextRunOrdinal,
+      nextSavedOrdinal: state.nextSavedOrdinal,
+    }),
     workspace,
+    contextOptions: createContextOptions(workspace),
+    conversation: [
+      { role: 'user', text: action.request.prompt },
+      { role: 'assistant', text: `已识别：${workspace.declaredChange.entities[0]} 巡检` },
+    ],
+    activeRequest: { ...action.request },
     playbookMatch: matchInspectionPlaybook(workspace, playbookCatalog),
     taskInstance: createTaskInstance(ordinal),
   };
+}
+
+function toggleDraftContext(state, action) {
+  if (state.phase !== 'intake' || !state.workspace) return state;
+  const contextOptions = toggleContextSelection(state.contextOptions, action.contextId);
+  return contextOptions === state.contextOptions ? state : { ...state, contextOptions };
 }
 
 function confirmInput(state) {
@@ -2951,7 +3281,11 @@ function confirmPlan(state) {
       state.taskInstance,
       {
         status: 'executing',
-        inspectionPlan: createInspectionPlan(checks, state.taskInstance.sourcePlaybookRef),
+        inspectionPlan: createInspectionPlan(
+          checks,
+          state.taskInstance.sourcePlaybookRef,
+          state.taskInstance.sourceSavedInspectionId,
+        ),
       },
       { type: 'plan-confirmed', checkIds: checks.map((check) => check.id) },
     ),
@@ -2962,14 +3296,31 @@ function advanceExecution(state) {
   if (state.phase !== 'execution' || !state.workspace) return state;
   const lastIndex = state.workspace.execution.length - 1;
   const nextStep = state.executionStep + 1;
-  return nextStep >= lastIndex
-    ? {
-        ...state,
-        phase: 'report',
-        executionStep: lastIndex,
-        taskInstance: updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' }),
-      }
-    : { ...state, executionStep: nextStep };
+  if (nextStep < lastIndex) return { ...state, executionStep: nextStep };
+  const taskInstance = updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' });
+  const id = runId(state.nextRunOrdinal);
+  const run = createInspectionRun({
+    id,
+    taskInstance,
+    definitionId: state.activeSavedInspectionId,
+    selectedContext: state.contextOptions,
+    report: state.workspace.report,
+    startedAt: taskInstance.startedAt,
+    completedAt: demoTimestamp(state.nextRunOrdinal, 1),
+  });
+  return {
+    ...state,
+    phase: 'report',
+    executionStep: lastIndex,
+    taskInstance,
+    currentRunId: id,
+    nextRunOrdinal: state.nextRunOrdinal + 1,
+    library: {
+      ...state.library,
+      revision: state.library.revision + 1,
+      runs: [...state.library.runs, run],
+    },
+  };
 }
 
 function toggleRootCause(state) {
@@ -2994,11 +3345,169 @@ function submitPlaybookProposal(state) {
   };
 }
 
+function createPersonalSavedInspection(state, action) {
+  if (
+    state.phase !== 'report' ||
+    state.taskInstance?.status !== 'locked' ||
+    !state.currentRunId ||
+    state.savedDefinitionId
+  ) {
+    return state;
+  }
+  const currentRun = state.library.runs.find((run) => run.id === state.currentRunId);
+  if (!currentRun) return state;
+  const id = savedInspectionId(state.nextSavedOrdinal);
+  let definition;
+  try {
+    definition = createSavedInspectionDefinition({
+      id,
+      name: action.name,
+      request: state.activeRequest,
+      workspace: state.workspace,
+      selectedContext: state.contextOptions,
+      taskInstance: state.taskInstance,
+      sourceRunId: currentRun.id,
+      now: action.now ?? demoTimestamp(state.nextSavedOrdinal),
+    });
+  } catch {
+    return state;
+  }
+  return {
+    ...state,
+    savedDefinitionId: id,
+    nextSavedOrdinal: state.nextSavedOrdinal + 1,
+    toast: '已保存，下次可从首页直接执行',
+    library: {
+      ...state.library,
+      revision: state.library.revision + 1,
+      savedInspections: [...state.library.savedInspections, definition],
+    },
+  };
+}
+
+function savedPlan(definition) {
+  return {
+    ...definition.inspectionPlan,
+    source: 'saved-inspection',
+    sourceSavedInspectionId: definition.id,
+    sourcePlaybookRef: definition.inspectionPlan.sourcePlaybookRef
+      ? { ...definition.inspectionPlan.sourcePlaybookRef }
+      : null,
+    checkIds: [...definition.inspectionPlan.checkIds],
+    checks: snapshotChecks(definition.inspectionPlan.checks),
+  };
+}
+
+function selectedSavedContext(definition, workspace) {
+  const selectedIds = new Set(definition.selectedContext.map((item) => item.id));
+  const current = createContextOptions(workspace).map((item) => ({ ...item, selected: selectedIds.has(item.id) }));
+  return current.some((item) => item.selected) ? current : definition.selectedContext.map((item) => ({ ...item, selected: true }));
+}
+
+function requestSavedInspectionRun(state, action, compileSavedDefinition) {
+  if (state.phase !== 'intake' || state.workspace) return state;
+  const definition = state.library.savedInspections.find((item) => item.id === action.definitionId);
+  if (!definition) return state;
+  const workspace = compileSavedDefinition(definition.request);
+  const refresh = classifySavedInspectionRefresh(definition, workspace);
+  const ordinal = state.nextTaskOrdinal;
+  let taskInstance = createTaskInstance(ordinal, definition.id);
+  let phase = 'context';
+  if (refresh.status === 'exact') {
+    phase = 'execution';
+    taskInstance = updateTaskInstance(
+      taskInstance,
+      { status: 'executing', inspectionPlan: savedPlan(definition) },
+      { type: 'saved-inspection-applied', definitionId: definition.id, refreshStatus: 'exact' },
+    );
+  }
+  return {
+    ...createDemoSession({
+      library: state.library,
+      nextTaskOrdinal: ordinal + 1,
+      nextRunOrdinal: state.nextRunOrdinal,
+      nextSavedOrdinal: state.nextSavedOrdinal,
+    }),
+    phase,
+    workspace,
+    contextOptions: selectedSavedContext(definition, workspace),
+    activeRequest: { ...definition.request },
+    activeSavedInspectionId: definition.id,
+    savedRunRefresh: refresh,
+    taskInstance,
+  };
+}
+
+function confirmSavedInspectionRun(state) {
+  if (state.phase !== 'context' || state.savedRunRefresh?.status !== 'minor-drift') return state;
+  const definition = state.library.savedInspections.find((item) => item.id === state.activeSavedInspectionId);
+  if (!definition) return state;
+  return {
+    ...state,
+    phase: 'execution',
+    taskInstance: updateTaskInstance(
+      state.taskInstance,
+      { status: 'executing', inspectionPlan: savedPlan(definition) },
+      {
+        type: 'saved-inspection-drift-confirmed',
+        definitionId: definition.id,
+        differenceIds: state.savedRunRefresh.differences.map((difference) => difference.id),
+      },
+    ),
+  };
+}
+
+function regenerateSavedInspection(state) {
+  if (state.phase !== 'context' || state.savedRunRefresh?.status !== 'major-drift') return state;
+  const definition = state.library.savedInspections.find((item) => item.id === state.activeSavedInspectionId);
+  if (!definition) return state;
+  return createDemoSession({
+    library: state.library,
+    nextTaskOrdinal: state.nextTaskOrdinal,
+    nextRunOrdinal: state.nextRunOrdinal,
+    nextSavedOrdinal: state.nextSavedOrdinal,
+    composerPrefill: { ...definition.request },
+  });
+}
+
+function resetSession(state) {
+  return createDemoSession({
+    library: state.library,
+    nextTaskOrdinal: state.nextTaskOrdinal,
+    nextRunOrdinal: state.nextRunOrdinal,
+    nextSavedOrdinal: state.nextSavedOrdinal,
+  });
+}
+
+function hydrateLibrary(state, action) {
+  if (state.phase !== 'intake' || state.workspace || state.library.revision > 0) return state;
+  return createDemoSession({
+    library: action.library,
+    nextTaskOrdinal: state.nextTaskOrdinal,
+    nextRunOrdinal: state.nextRunOrdinal,
+    nextSavedOrdinal: Math.max(state.nextSavedOrdinal, action.library.savedInspections.length + 1),
+  });
+}
+
+function mergeLibrary(state, action) {
+  return { ...state, library: mergeInspectionLibraries(state.library, action.library) };
+}
+
+function markStorageFailure(state, action) {
+  return { ...state, storageError: action.message || '本地保存失败', toast: null };
+}
+
 function createDemoReducer(options = {}) {
   const playbookCatalog = options.playbookCatalog ?? inspectionPlaybooks;
+  const compileIntent = options.compileIntent ?? compileInspectionRequest;
+  const compileSavedDefinition = options.compileSavedDefinition ?? compileInspectionRequest;
   const sessionHandlers = {
-    INTENT_SUBMITTED: (state, action) => submitIntent(state, action, playbookCatalog),
-    RESET: (state) => createDemoSession({ nextTaskOrdinal: state.nextTaskOrdinal }),
+    INTENT_SUBMITTED: (state, action) => submitIntent(state, action, playbookCatalog, compileIntent),
+    RESET: resetSession,
+    LIBRARY_HYDRATED: hydrateLibrary,
+    LIBRARY_MERGED: mergeLibrary,
+    LIBRARY_SAVE_FAILED: markStorageFailure,
+    CONTEXT_ITEM_TOGGLED: toggleDraftContext,
     INPUT_CONFIRMED: confirmInput,
     PLAYBOOK_DISMISSED: dismissPlaybook,
     PLAYBOOK_EXECUTION_STARTED: startPlaybookExecution,
@@ -3011,6 +3520,11 @@ function createDemoReducer(options = {}) {
     EXECUTION_ADVANCED: advanceExecution,
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
+    SAVED_INSPECTION_CREATED: createPersonalSavedInspection,
+    SAVED_INSPECTION_RUN_REQUESTED: (state, action) =>
+      requestSavedInspectionRun(state, action, compileSavedDefinition),
+    SAVED_INSPECTION_RUN_CONFIRMED: confirmSavedInspectionRun,
+    SAVED_INSPECTION_REGENERATED: regenerateSavedInspection,
   };
   return (state, action) =>
     deepFreeze((sessionHandlers[action.type] ?? ((currentState) => currentState))(state, action));

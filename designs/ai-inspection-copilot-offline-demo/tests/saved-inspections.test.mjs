@@ -56,6 +56,7 @@ test('context options expose current changes, related services, and signals with
   assert.ok(options.some((option) => option.kind === 'service'));
   assert.ok(options.some((option) => option.kind === 'signal'));
   assert.ok(options.every((option) => option.selected));
+  assert.ok(options.every((option) => typeof option.label === 'string' && option.label.trim()));
   assert.equal(new Set(options.map((option) => option.id)).size, options.length);
 
   const removed = toggleContextSelection(options, options[0].id);

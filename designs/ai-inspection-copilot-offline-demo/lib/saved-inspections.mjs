@@ -101,7 +101,12 @@ export function createContextOptions(workspace) {
     ...(workspace.observedChange?.entities ?? []),
   ]).map((entity) => contextOption(`service:${entity}`, 'service', entity, '本次巡检关联服务'));
   const signals = (workspace.committedChecks ?? []).map((check) =>
-    contextOption(`signal:${check.id}`, 'signal', check.title, check.metric),
+    contextOption(
+      `signal:${check.id}`,
+      'signal',
+      check.title ?? check.purpose ?? check.metric ?? check.id,
+      check.metric ?? check.purpose ?? check.id,
+    ),
   );
   return deepFreeze([...changes, ...services, ...signals]);
 }

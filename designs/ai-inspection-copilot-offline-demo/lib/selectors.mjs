@@ -95,6 +95,27 @@ export function selectPlaybookView(state) {
   };
 }
 
+export function selectSavedInspectionView(state) {
+  const savedInspections = [...state.library.savedInspections].sort((left, right) =>
+    String(right.updatedAt).localeCompare(String(left.updatedAt)),
+  );
+  return {
+    definitions: savedInspections,
+    runs: state.library.runs,
+    activeDefinition:
+      savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    refresh: state.savedRunRefresh,
+    contextOptions: state.contextOptions,
+    selectedContext: state.contextOptions.filter((item) => item.selected),
+    currentRun: state.library.runs.find((run) => run.id === state.currentRunId) ?? null,
+    savedDefinitionId: state.savedDefinitionId,
+    composerPrefill: state.composerPrefill,
+    conversation: state.conversation,
+    storageError: state.storageError,
+    toast: state.toast,
+  };
+}
+
 export function selectViewModel(state) {
   if (!state.workspace) {
     return {
@@ -107,6 +128,7 @@ export function selectViewModel(state) {
       execution: [],
       report: null,
       playbook: selectPlaybookView(state),
+      savedInspection: selectSavedInspectionView(state),
     };
   }
   return {
@@ -119,5 +141,6 @@ export function selectViewModel(state) {
     execution: selectExecutionView(state),
     report: selectReportView(state),
     playbook: selectPlaybookView(state),
+    savedInspection: selectSavedInspectionView(state),
   };
 }

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { compileInspectionRequest } from '../lib/compiler.mjs';
 import { inspectionPlaybooks } from '../lib/playbooks.mjs';
 import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import {
@@ -113,9 +114,11 @@ test('starting a new request clears workspace, dispositions, execution, and RC s
   state = dispatch(state, 'RC_TOGGLED');
   assert.equal(state.rcExpanded, true);
 
+  const library = state.library;
   const nextTaskOrdinal = state.nextTaskOrdinal;
+  const nextRunOrdinal = state.nextRunOrdinal;
   state = dispatch(state, 'RESET');
-  assert.deepEqual(state, createDemoSession({ nextTaskOrdinal }));
+  assert.deepEqual(state, createDemoSession({ library, nextTaskOrdinal, nextRunOrdinal }));
   assert.equal(state.workspace, null);
   assert.deepEqual(state.candidateDisposition, {});
   assert.equal(state.executionStep, -1);
@@ -280,4 +283,151 @@ test('locked task remains immutable while a report submits one idempotent playbo
   const proposed = state;
   state = dispatch(state, 'PLAYBOOK_PROPOSAL_SUBMITTED');
   assert.equal(state, proposed);
+});
+
+function completePersonalInspection(reducer = demoReducer) {
+  let state = createDemoSession();
+  state = reducer(state, { type: 'INTENT_SUBMITTED', request: fulfillmentRequest });
+  const deselectedId = state.contextOptions[0].id;
+  state = reducer(state, { type: 'CONTEXT_ITEM_TOGGLED', contextId: deselectedId });
+  state = reducer(state, { type: 'INPUT_CONFIRMED' });
+  state = reducer(state, { type: 'SCOPE_ACCEPTED' });
+  state = reducer(state, { type: 'PLAN_CONFIRMED' });
+  for (let index = 0; index < state.workspace.execution.length; index += 1) {
+    state = reducer(state, { type: 'EXECUTION_ADVANCED' });
+  }
+  return { state, deselectedId };
+}
+
+test('first-use selected context flows into one immutable run and an immediately active personal save', () => {
+  let { state, deselectedId } = completePersonalInspection();
+
+  assert.equal(state.phase, 'report');
+  assert.equal(state.library.runs.length, 1);
+  assert.equal(state.currentRunId, state.library.runs[0].id);
+  assert.equal(
+    state.library.runs[0].selectedContextResults.some((item) => item.contextId === deselectedId),
+    false,
+  );
+  const lockedRun = structuredClone(state.library.runs[0]);
+
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  assert.equal(state.library.savedInspections.length, 1);
+  assert.equal(state.library.savedInspections[0].name, '履约发布后巡检');
+  assert.equal(state.library.savedInspections[0].sourceRunId, lockedRun.id);
+  assert.equal(JSON.stringify(state.library.savedInspections[0]).includes('report'), false);
+  assert.deepEqual(state.library.runs[0], lockedRun);
+
+  const savedState = state;
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: 'duplicate',
+    now: '2026-08-16T06:11:00.000Z',
+  });
+  assert.equal(state, savedState, 'the report can create only one personal definition');
+
+  state = dispatch(state, 'RESET');
+  assert.equal(state.workspace, null);
+  assert.equal(state.library.savedInspections.length, 1);
+  assert.equal(state.library.runs.length, 1);
+});
+
+test('saved inspection exact direct-run bypasses intent compilation and creates a new immutable run', () => {
+  let { state } = completePersonalInspection();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+  const definitionId = state.library.savedInspections[0].id;
+  const historicalRun = structuredClone(state.library.runs[0]);
+  let intentCalls = 0;
+  let savedCalls = 0;
+  const reducer = createDemoReducer({
+    compileIntent(request) {
+      intentCalls += 1;
+      return compileInspectionRequest(request);
+    },
+    compileSavedDefinition(request) {
+      savedCalls += 1;
+      return compileInspectionRequest(request);
+    },
+  });
+
+  state = reducer(state, { type: 'SAVED_INSPECTION_RUN_REQUESTED', definitionId });
+  assert.equal(intentCalls, 0);
+  assert.equal(savedCalls, 1);
+  assert.equal(state.savedRunRefresh.status, 'exact');
+  assert.equal(state.phase, 'execution');
+  assert.equal(state.taskInstance.sourceSavedInspectionId, definitionId);
+  assert.notEqual(state.taskInstance.id, historicalRun.taskInstanceId);
+
+  for (let index = 0; index < state.workspace.execution.length; index += 1) {
+    state = reducer(state, { type: 'EXECUTION_ADVANCED' });
+  }
+  assert.equal(state.library.runs.length, 2);
+  assert.notEqual(state.library.runs[0].id, state.library.runs[1].id);
+  assert.deepEqual(state.library.runs[0], historicalRun);
+});
+
+test('saved inspection minor drift requires acknowledgement and major drift cannot enter execution', () => {
+  let { state } = completePersonalInspection();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+  const definitionId = state.library.savedInspections[0].id;
+  const minorReducer = createDemoReducer({
+    compileSavedDefinition(request) {
+      const workspace = compileInspectionRequest(request);
+      return {
+        ...workspace,
+        observedChange: {
+          ...workspace.observedChange,
+          entities: [...workspace.observedChange.entities, 'new-worker'],
+        },
+      };
+    },
+  });
+
+  let minor = minorReducer(state, { type: 'SAVED_INSPECTION_RUN_REQUESTED', definitionId });
+  assert.equal(minor.savedRunRefresh.status, 'minor-drift');
+  assert.equal(minor.phase, 'context');
+  assert.equal(minor.taskInstance.status, 'draft');
+  minor = minorReducer(minor, { type: 'SAVED_INSPECTION_RUN_CONFIRMED' });
+  assert.equal(minor.phase, 'execution');
+  assert.ok(minor.taskInstance.auditTrail.some((event) => event.type === 'saved-inspection-drift-confirmed'));
+
+  const majorReducer = createDemoReducer({
+    compileSavedDefinition(request) {
+      const workspace = compileInspectionRequest(request);
+      return { ...workspace, committedChecks: workspace.committedChecks.slice(1) };
+    },
+  });
+  let major = majorReducer(state, { type: 'SAVED_INSPECTION_RUN_REQUESTED', definitionId });
+  assert.equal(major.savedRunRefresh.status, 'major-drift');
+  assert.equal(major.phase, 'context');
+  const forbidden = majorReducer(major, { type: 'SAVED_INSPECTION_RUN_CONFIRMED' });
+  assert.equal(forbidden, major);
+  major = majorReducer(major, { type: 'SAVED_INSPECTION_REGENERATED' });
+  assert.equal(major.phase, 'intake');
+  assert.equal(major.workspace, null);
+  assert.match(major.composerPrefill.prompt, /fulfillment-service/);
+  assert.equal(major.library.savedInspections.length, 1);
+});
+
+test('unknown saved definition and repeated final execution events are no-ops', () => {
+  const empty = createDemoSession();
+  assert.equal(
+    dispatch(empty, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId: 'missing' }),
+    empty,
+  );
+  let { state } = completePersonalInspection();
+  const completed = state;
+  state = dispatch(state, 'EXECUTION_ADVANCED');
+  assert.equal(state, completed);
+  assert.equal(state.library.runs.length, 1);
 });
