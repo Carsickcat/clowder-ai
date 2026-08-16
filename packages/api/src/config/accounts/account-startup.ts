@@ -7,13 +7,14 @@
  *
  * Called once after the API server binds its port.
  */
-import { type AccountConflict, detectAccountConflicts } from './account-conflict-guard.js';
-import { readCatalogAccounts } from './catalog-accounts.js';
+
 import {
   hasLegacyProviderProfiles,
   type MigrationResult,
   migrateProviderProfilesToAccounts,
 } from '../migrate-provider-profiles.js';
+import { type AccountConflict, detectAccountConflicts } from './account-conflict-guard.js';
+import { readCatalogAccounts } from './catalog-accounts.js';
 
 export interface AccountStartupResult {
   migration: MigrationResult;

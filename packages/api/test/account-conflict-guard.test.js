@@ -45,7 +45,9 @@ describe('account conflict detection guard (HC-5)', () => {
   }
 
   it('no conflict when same accountRef has identical config across projects', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 

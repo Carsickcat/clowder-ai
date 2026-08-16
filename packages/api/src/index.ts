@@ -11,8 +11,8 @@ import cors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify from 'fastify';
 import { resolveAnthropicRuntimeProfile, resolveForClient } from './config/accounts/account-resolver.js';
-import { generateCliConfigs, readCapabilitiesConfig } from './config/capabilities/capability-orchestrator.js';
 import { resolveBoundAccountRefForCat } from './config/accounts/cat-account-binding.js';
+import { generateCliConfigs, readCapabilitiesConfig } from './config/capabilities/capability-orchestrator.js';
 import { getCatContextBudget } from './config/cat-budgets.js';
 import {
   bootstrapDefaultCatCatalog,

@@ -10,6 +10,7 @@ Primary behavior delta: `d17a5fca4f6396e9a331bdeca40b64f73738a316` (`fix(f23): s
 
 - Split `packages/api/src/config` into `config/accounts`, `config/runtime`, and `config/governance`.
 - Updated source and test import paths for the moved modules.
+- Applied the missing Biome import-order / formatting fixes across the touched F23 files so CI `Lint` reflects the directory split itself rather than hygiene debt in the moved files.
 - Removed the expired `packages/api/src/config` directory-size exception.
 - Kept only `packages/api/src/routes` as a time-bound F23 exception.
 
@@ -69,7 +70,7 @@ Review focus:
 ## Review Sandbox（必填）
 
 - Path: `/tmp/cat-cafe-review/f23-dir-size-guard/{reviewer-handle}`
-- Start Command: `pnpm check:dir-size`
+- Start Command: `pnpm check`
 - Ports: none（backend-only directory-hygiene refactor; no dev server）
 - Repo root: `E:/ClowderAI/cat-cafe-f23-dir-size-guard`
 - Additional parity check: `pnpm --dir packages/api run build` and compare stderr against `origin/main`
@@ -87,6 +88,7 @@ Review focus:
 在仓库根目录运行：
 
 ```powershell
+pnpm check
 pnpm check:dir-size
 git diff --check
 node -e "JSON.parse(require('fs').readFileSync('.dir-exceptions.json','utf8')); console.log('json_ok')"
@@ -95,10 +97,12 @@ pnpm --dir packages/api run build
 
 作者本轮结果：
 
+- `pnpm check`: PASS
 - `pnpm check:dir-size`: PASS（warnings only；only `routes` remains excepted）
 - `git diff --check`: PASS
 - `.dir-exceptions.json`: parses cleanly
 - `packages/api/src/config`: reduced from 33 direct `.ts` files to 24
 - `pnpm --dir packages/api run build`: still RED, but previous parity check matched `origin/main` exactly (`main_exit=2`, `fix_exit=2`, `diff=none`)
+- Windows note: local PowerShell verification needs Git Bash on `PATH` (for `check:start-profile-isolation`); with `C:\Program Files\Git\bin` injected, the full `pnpm check` run is green.
 
 [宪宪/gpt-5.4🐾]

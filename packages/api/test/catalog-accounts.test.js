@@ -116,9 +116,7 @@ describe('cat-catalog-store accounts section (HC-2)', () => {
 
   it('deleteCatalogAccount removes account from catalog', async () => {
     const { writeCatCatalog, readCatCatalog } = await import('../dist/config/cat-catalog-store.js');
-    const { writeCatalogAccount, deleteCatalogAccount } = await import(
-      '../dist/config/accounts/catalog-accounts.js'
-    );
+    const { writeCatalogAccount, deleteCatalogAccount } = await import('../dist/config/accounts/catalog-accounts.js');
     writeCatCatalog(
       projectRoot,
       makeCatalog({
