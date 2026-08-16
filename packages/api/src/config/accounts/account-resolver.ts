@@ -6,7 +6,7 @@
  */
 import type { AccountConfig, AccountProtocol, CatProvider } from '@cat-cafe/shared';
 import { readCatalogAccounts } from './catalog-accounts.js';
-import { readCredential } from './credentials.js';
+import { readCredential } from '../credentials.js';
 
 // ── Types surviving from provider-profiles.types.ts (F136 Phase 4d) ──
 

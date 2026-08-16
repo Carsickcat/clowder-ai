@@ -14,8 +14,8 @@ import {
   resolveForClient,
   validateModelFormatForProvider,
   validateRuntimeProviderBinding,
-} from '../config/account-resolver.js';
-import { isSeedCat, resolveBoundAccountRefForCat } from '../config/cat-account-binding.js';
+} from '../config/accounts/account-resolver.js';
+import { isSeedCat, resolveBoundAccountRefForCat } from '../config/accounts/cat-account-binding.js';
 import { bootstrapCatCatalog, resolveCatCatalogPath } from '../config/cat-catalog-store.js';
 import { getRoster, loadCatConfig, toAllCatConfigs } from '../config/cat-config-loader.js';
 import { configEventBus, createChangeSetId } from '../config/config-event-bus.js';

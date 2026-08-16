@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import type { AccountConfig } from '@cat-cafe/shared';
-import { isSameProject } from '../utils/monorepo-root.js';
+import { isSameProject } from '../../utils/monorepo-root.js';
 
 const CAT_CAFE_DIR = '.cat-cafe';
 

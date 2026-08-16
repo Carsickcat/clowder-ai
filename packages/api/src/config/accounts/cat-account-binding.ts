@@ -2,8 +2,8 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { CatConfig } from '@cat-cafe/shared';
 import { builtinAccountIdForClient, resolveBuiltinClientForProvider } from './account-resolver.js';
-import { loadCatConfig, toAllCatConfigs } from './cat-config-loader.js';
-import { resolveProjectTemplatePath } from './project-template-path.js';
+import { loadCatConfig, toAllCatConfigs } from '../cat-config-loader.js';
+import { resolveProjectTemplatePath } from '../project-template-path.js';
 
 type LegacyAwareCatConfig = CatConfig & { providerProfileId?: string };
 

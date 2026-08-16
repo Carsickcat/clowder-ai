@@ -13,7 +13,7 @@ import {
   hasLegacyProviderProfiles,
   type MigrationResult,
   migrateProviderProfilesToAccounts,
-} from './migrate-provider-profiles.js';
+} from '../migrate-provider-profiles.js';
 
 export interface AccountStartupResult {
   migration: MigrationResult;

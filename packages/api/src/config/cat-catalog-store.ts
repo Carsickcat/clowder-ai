@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileS
 import { homedir } from 'node:os';
 import { dirname, relative, resolve, sep } from 'node:path';
 import type { CatCafeConfig, Roster } from '@cat-cafe/shared';
-import { type BuiltinAccountClient, builtinAccountIdForClient } from './account-resolver.js';
-import { readCatalogAccounts } from './catalog-accounts.js';
+import { type BuiltinAccountClient, builtinAccountIdForClient } from './accounts/account-resolver.js';
+import { readCatalogAccounts } from './accounts/catalog-accounts.js';
 import { resolveProjectTemplatePath } from './project-template-path.js';
 
 type BootstrapBindingMode = 'oauth' | 'api_key' | 'skip';

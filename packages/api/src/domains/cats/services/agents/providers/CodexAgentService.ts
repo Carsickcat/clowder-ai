@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { type CatId, createCatId } from '@cat-cafe/shared';
 import { getCatEffort } from '../../../../../config/cat-config-loader.js';
 import { getCatModel } from '../../../../../config/cat-models.js';
-import { getCodexApprovalPolicy, getCodexSandboxMode } from '../../../../../config/codex-cli.js';
+import { getCodexApprovalPolicy, getCodexSandboxMode } from '../../../../../config/runtime/codex-cli.js';
 import { createModuleLogger } from '../../../../../infrastructure/logger.js';
 import { formatCliExitError } from '../../../../../utils/cli-format.js';
 import { formatCliNotFoundError, resolveCliCommand } from '../../../../../utils/cli-resolve.js';

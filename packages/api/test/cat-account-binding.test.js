@@ -15,7 +15,7 @@ describe('cat account binding', () => {
   it('treats bootstrapped seed cats as inheriting the active bootstrap binding', async () => {
     const { bootstrapCatCatalog, resolveCatCatalogPath } = await import('../dist/config/cat-catalog-store.js');
     const { loadCatConfig, toAllCatConfigs } = await import('../dist/config/cat-config-loader.js');
-    const { resolveBoundAccountRefForCat } = await import('../dist/config/cat-account-binding.js');
+    const { resolveBoundAccountRefForCat } = await import('../dist/config/accounts/cat-account-binding.js');
     const projectRoot = await mkdtemp(join(tmpdir(), 'cat-account-binding-inherited-'));
     const previousGlobalRoot = process.env.CAT_CAFE_GLOBAL_CONFIG_ROOT;
     process.env.CAT_CAFE_GLOBAL_CONFIG_ROOT = projectRoot;
@@ -36,7 +36,7 @@ describe('cat account binding', () => {
   it('returns explicit seed providerProfileId markers after bootstrap', async () => {
     const { bootstrapCatCatalog, resolveCatCatalogPath } = await import('../dist/config/cat-catalog-store.js');
     const { loadCatConfig, toAllCatConfigs } = await import('../dist/config/cat-config-loader.js');
-    const { resolveBoundAccountRefForCat } = await import('../dist/config/cat-account-binding.js');
+    const { resolveBoundAccountRefForCat } = await import('../dist/config/accounts/cat-account-binding.js');
     const projectRoot = await mkdtemp(join(tmpdir(), 'cat-account-binding-explicit-'));
     const previousGlobalRoot = process.env.CAT_CAFE_GLOBAL_CONFIG_ROOT;
     process.env.CAT_CAFE_GLOBAL_CONFIG_ROOT = projectRoot;
@@ -63,7 +63,7 @@ describe('cat account binding', () => {
       '../dist/config/cat-catalog-store.js'
     );
     const { toAllCatConfigs } = await import('../dist/config/cat-config-loader.js');
-    const { resolveBoundAccountRefForCat } = await import('../dist/config/cat-account-binding.js');
+    const { resolveBoundAccountRefForCat } = await import('../dist/config/accounts/cat-account-binding.js');
     const projectRoot = await mkdtemp(join(tmpdir(), 'cat-account-binding-legacy-seed-'));
     const previousTemplatePath = process.env.CAT_TEMPLATE_PATH;
     const previousGlobalRoot = process.env.CAT_CAFE_GLOBAL_CONFIG_ROOT;
@@ -113,7 +113,7 @@ describe('cat account binding', () => {
       '../dist/config/cat-catalog-store.js'
     );
     const { toAllCatConfigs } = await import('../dist/config/cat-config-loader.js');
-    const { resolveBoundAccountRefForCat } = await import('../dist/config/cat-account-binding.js');
+    const { resolveBoundAccountRefForCat } = await import('../dist/config/accounts/cat-account-binding.js');
     const { activateProviderProfile, createProviderProfile } = await import('./helpers/create-test-account.js');
     const projectRoot = await mkdtemp(join(tmpdir(), 'cat-account-binding-sibling-inherited-'));
     const previousTemplatePath = process.env.CAT_TEMPLATE_PATH;
