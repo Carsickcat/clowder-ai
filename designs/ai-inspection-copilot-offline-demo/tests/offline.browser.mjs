@@ -41,12 +41,12 @@ async function submitRequest(session, request) {
   assert.equal(submitted, true, 'Expected user request form to submit');
 }
 
-async function screenshot(session, fileName) {
+async function screenshot(session, fileName, { captureBeyondViewport = true } = {}) {
   if (!recordEvidence) return;
   await mkdir(evidenceDirectory, { recursive: true });
   const image = await session.send('Page.captureScreenshot', {
     format: 'png',
-    captureBeyondViewport: true,
+    captureBeyondViewport,
   });
   await writeFile(path.join(evidenceDirectory, fileName), Buffer.from(image.data, 'base64'));
 }
@@ -276,16 +276,33 @@ async function main() {
     const mobileComposer = await session.evaluate(`(() => {
         const panel = document.querySelector('.copilot-panel');
         const composer = document.querySelector('.conversation-form textarea');
+        const stage = document.querySelector('.stage-panel');
+        const savedCard = document.querySelector('[data-testid="saved-inspection-card"]');
         return {
           position: getComputedStyle(panel).position,
+          panelTop: Math.round(panel.getBoundingClientRect().top),
+          panelHeight: Math.round(panel.getBoundingClientRect().height),
+          viewportHeight: window.innerHeight,
           composerHeight: Math.round(composer.getBoundingClientRect().height),
+          stageWidth: Math.round(stage.getBoundingClientRect().width),
+          savedCardWidth: Math.round(savedCard.getBoundingClientRect().width),
           noOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
         };
       })()`);
     assert.equal(mobileComposer.position, 'fixed');
     assert.equal(mobileComposer.noOverflow, true);
+    assert.ok(mobileComposer.stageWidth >= 360, 'mobile saved-inspection stage uses the available width');
+    assert.ok(mobileComposer.savedCardWidth >= 320, 'mobile saved-inspection card remains readable');
+    assert.ok(
+      mobileComposer.panelHeight < 100,
+      `mobile composer stays a compact bottom bar (received ${mobileComposer.panelHeight}px)`,
+    );
+    assert.ok(
+      mobileComposer.panelTop > mobileComposer.viewportHeight - 120,
+      'mobile composer leaves the saved-inspection first screen visible',
+    );
     assert.ok(mobileComposer.composerHeight >= 44, 'mobile composer keeps a touch-safe hit target');
-    await screenshot(session, '14-mobile-saved-home.png');
+    await screenshot(session, '14-mobile-saved-home.png', { captureBeyondViewport: false });
     await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
     assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
     await advanceExecution(session);

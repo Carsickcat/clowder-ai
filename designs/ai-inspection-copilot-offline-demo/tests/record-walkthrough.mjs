@@ -7,7 +7,7 @@ import { launchOfflineChrome } from './cdp-client.mjs';
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 const artifactPath = path.join(rootDirectory, 'index.html');
-const outputPath = path.join(rootDirectory, 'evidence', '06-user-directed-risk-walkthrough-15s.webm');
+const outputPath = path.join(rootDirectory, 'evidence', '15-dual-entry-inspection-journey-15s.webm');
 
 async function click(session, selector) {
   const clicked = await session.evaluate(`(() => {
@@ -26,6 +26,19 @@ async function captureFrame(session) {
     captureBeyondViewport: false,
   });
   return result.data;
+}
+
+async function submitRequest(session, request) {
+  const submitted = await session.evaluate(`(() => {
+    const form = document.querySelector("[data-intent-form]");
+    if (!form) return false;
+    form.elements.namedItem("inspection-intent").value = ${JSON.stringify(request.prompt)};
+    form.elements.namedItem("target-service").value = ${JSON.stringify(request.targetService)};
+    form.elements.namedItem("context-reference").value = ${JSON.stringify(request.contextReference)};
+    form.requestSubmit();
+    return true;
+  })()`);
+  assert.equal(submitted, true, 'Expected user request form to submit');
 }
 
 async function composeWebm(session, frames) {
@@ -59,7 +72,7 @@ async function composeWebm(session, frames) {
       const current = images[index];
       context.globalAlpha = 1;
       context.drawImage(current, 0, 0, canvas.width, canvas.height);
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+      await new Promise((resolve) => setTimeout(resolve, 2300));
     }
     recorder.stop();
     await Promise.race([
@@ -105,26 +118,36 @@ async function main() {
     });
     await loaded;
 
-    const frames = [];
-    await click(session, '[data-example-id="payment-config"]');
-    await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
+    const frames = [await captureFrame(session)];
+    await submitRequest(session, {
+      prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+      targetService: 'fulfillment-service',
+      contextReference: 'REL-FUL-72',
+    });
     frames.push(await captureFrame(session));
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     frames.push(await captureFrame(session));
-    await click(session, '[data-action="PLAYBOOK_DIFF_CONFIRMED"]');
-    frames.push(await captureFrame(session));
-    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
-    frames.push(await captureFrame(session));
     await click(session, '[data-action="PLAN_CONFIRMED"]');
+    frames.push(await captureFrame(session));
     for (let index = 0; index < 4; index += 1) {
       await click(session, '[data-action="EXECUTION_ADVANCED"]');
     }
     frames.push(await captureFrame(session));
-    await click(session, '[data-action="RC_TOGGLED"]');
+    const saved = await session.evaluate(`(() => {
+      const form = document.querySelector('[data-save-inspection-form]');
+      if (!form) return false;
+      form.elements.namedItem('saved-inspection-name').value = '履约发布后巡检';
+      form.requestSubmit();
+      return true;
+    })()`);
+    assert.equal(saved, true, 'Expected completed inspection to be saved');
+    await click(session, '[data-action="RESET"]');
+    frames.push(await captureFrame(session));
+    await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
     frames.push(await captureFrame(session));
 
     const recording = await composeWebm(session, frames);
-    assert.ok(recording.elapsedMs >= 14_500, 'recording must be at least 14.5 seconds');
+    assert.ok(recording.elapsedMs >= 15_500, 'recording must be at least 15.5 seconds');
     assert.ok(recording.size > 10_000, `recording must contain meaningful frames (received ${recording.size} bytes)`);
     await mkdir(path.dirname(outputPath), { recursive: true });
     await writeFile(outputPath, Buffer.from(recording.base64, 'base64'));

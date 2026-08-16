@@ -3,6 +3,8 @@ feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
 topics: [aiops, inspection, user-journey, saved-inspection, local-persistence]
 doc_kind: implementation_plan
 created: 2026-08-16
+updated: 2026-08-16
+status: implemented
 ---
 
 # AI Inspection Dual-Entry Journey Implementation Plan
@@ -205,7 +207,23 @@ InspectionLibraryEnvelope = {
 4. Resolve findings with red-green evidence.
 5. Enter merge gate only after all required checks and exact-head reviews are current.
 
-## Open Questions
+## Resolved Questions
 
-- **技术 OQ:** The demo clock/ID generator must remain deterministic for tests while browser persistence survives reload. Resolve with injected monotonic counters and fixed fixture timestamps; no operator decision required.
-- **价值 OQ:** None. The operator explicitly selected personal immediate save/direct-run; team Playbook approval remains a separate governance layer.
+- **Technical:** Deterministic IDs survive hydration by advancing counters from persisted definitions, tasks and runs; fixed fixture timestamps keep the standalone artifact reproducible.
+- **Value:** Personal saved inspections are immediately available for direct run. Team Playbook approval remains a separate governance layer.
+
+## Delivery Evidence
+
+- Domain and persistence: versioned local library, immutable definitions/runs, corrupt-storage recovery, concurrent merge and exact/minor/major refresh classification.
+- First-use journey: right-side request → selectable current context → task draft → execution → report → editable save.
+- Revisit journey: saved-inspection home → current-fact refresh → direct execution without intent compilation or task-draft confirmation.
+- Automated verification: 67/67 Node tests; offline Chrome journeys pass with zero HTTP(S) requests and zero browser errors.
+- Responsive verification: 390px saved-inspection home uses the full content width; the compact composer is fixed to the bottom without obscuring the primary action.
+- Visual evidence: `evidence/11-dual-entry-context-selection.png`, `12-saved-inspection-home.png`, `13-saved-direct-run.png`, `14-mobile-saved-home.png`.
+- Walkthrough: `evidence/15-dual-entry-inspection-journey-15s.webm` (16+ seconds).
+
+## Close Gate
+
+- Blocking TODO / follow-up / P1 / P2: none in the scoped implementation plan.
+- Production data connectors, backend persistence, multi-user sharing and real approval remain explicit non-goals of this offline acceptance product.
+- Independent design and code review remain required before merge.

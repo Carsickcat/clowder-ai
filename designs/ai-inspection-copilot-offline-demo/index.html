@@ -1902,6 +1902,9 @@ a:focus-visible {
   .workspace {
     grid-template-columns: 1fr;
   }
+  .workspace.is-home {
+    grid-template-columns: 1fr;
+  }
   .context-panel,
   .copilot-panel {
     position: static;
@@ -2078,6 +2081,7 @@ a:focus-visible {
   .app-shell[data-workspace="new"] .copilot-panel {
     position: fixed;
     z-index: 20;
+    top: auto;
     right: 10px;
     bottom: 8px;
     left: 10px;
@@ -2097,6 +2101,7 @@ a:focus-visible {
     grid-template-columns: minmax(0, 1fr) auto;
   }
   .app-shell[data-workspace="new"] .conversation-form textarea {
+    height: 48px;
     min-height: 48px;
     max-height: 84px;
     resize: none;
