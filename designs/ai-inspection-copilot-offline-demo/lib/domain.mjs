@@ -2,6 +2,9 @@ export const EVIDENCE_VERDICTS = Object.freeze(['Verified', 'Violated', 'Inconcl
 
 export const ACTION_STATUSES = Object.freeze(['Proceed', 'Proceed-with-conditions', 'Pause', 'Rollback']);
 
+const ACTION_STATUS_SET = new Set(ACTION_STATUSES);
+const EVIDENCE_VERDICT_SET = new Set(EVIDENCE_VERDICTS);
+
 const REQUIRED_CHECK_FIELDS = Object.freeze([
   'id',
   'priority',
@@ -43,6 +46,50 @@ export function assertCheckContract(check, sourceIds) {
     }
   }
   return true;
+}
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function stringArray(value) {
+  return Array.isArray(value) && value.every(nonEmptyString);
+}
+
+function validEvidenceCounts(counts) {
+  return (
+    counts &&
+    typeof counts === 'object' &&
+    ['verified', 'violated', 'unresolved'].every((key) => Number.isInteger(counts[key]) && counts[key] >= 0)
+  );
+}
+
+function validRootCauseAgent(agent) {
+  return (
+    agent == null ||
+    (typeof agent === 'object' &&
+      nonEmptyString(agent.title) &&
+      nonEmptyString(agent.rootCause) &&
+      stringArray(agent.chain) &&
+      nonEmptyString(agent.recommendation))
+  );
+}
+
+export function validReportContract(report) {
+  return (
+    report &&
+    typeof report === 'object' &&
+    EVIDENCE_VERDICT_SET.has(report.evidenceVerdict) &&
+    ACTION_STATUS_SET.has(report.action) &&
+    nonEmptyString(report.actionLabel) &&
+    nonEmptyString(report.title) &&
+    nonEmptyString(report.summary) &&
+    nonEmptyString(report.scopeStatement) &&
+    validEvidenceCounts(report.evidenceCounts) &&
+    stringArray(report.keyEvidence) &&
+    stringArray(report.residualRisks) &&
+    validRootCauseAgent(report.rcAgent)
+  );
 }
 
 export function reconcileChange(declaredChange, observedChange) {

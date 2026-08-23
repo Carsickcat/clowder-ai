@@ -1,4 +1,4 @@
-import { deepFreeze } from './domain.mjs';
+import { deepFreeze, validReportContract } from './domain.mjs';
 
 export const INSPECTION_LIBRARY_SCHEMA_VERSION = 1;
 
@@ -117,8 +117,7 @@ function validRun(run) {
     validPlan(run.inspectionPlan) &&
     (run.executionResults === undefined ||
       (Array.isArray(run.executionResults) && run.executionResults.every(validExecutionResult))) &&
-    run.report &&
-    typeof run.report === 'object'
+    validReportContract(run.report)
   );
 }
 

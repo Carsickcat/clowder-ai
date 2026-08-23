@@ -232,7 +232,8 @@ async function main() {
     const corruptLoaded = session.once('Page.loadEventFired');
     await session.evaluate(`(() => {
       const library = JSON.parse(localStorage.getItem('nova.inspection-library.v1'));
-      library.runs.push({ id: 'half-run' });
+      library.runs = [library.runs[0]];
+      library.runs[0].report = {};
       localStorage.setItem('nova.inspection-library.v1', JSON.stringify(library));
     })()`);
     await session.send('Page.reload');
@@ -241,6 +242,11 @@ async function main() {
     assert.ok(
       await session.evaluate('Boolean(document.querySelector("[data-action=SAVED_INSPECTION_RUN_REQUESTED]"))'),
     );
+    await click(session, '[data-action="SAVED_INSPECTION_HISTORY_OPENED"]');
+    assert.match(await bodyText(session), /还没有执行记录/);
+    assert.match(await bodyText(session), /仍可直跑/);
+    await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
     const restoredLoaded = session.once('Page.loadEventFired');
     await session.evaluate(`localStorage.setItem('nova.inspection-library.v1', ${JSON.stringify(cleanLibrary)})`);
     await session.send('Page.reload');

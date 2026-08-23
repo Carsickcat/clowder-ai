@@ -4,13 +4,15 @@ import test from 'node:test';
 import { compileInspectionRequest } from '../lib/compiler.mjs';
 import { inspectionPlaybooks } from '../lib/playbooks.mjs';
 import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reducer.mjs';
-import { mergeInspectionLibraries } from '../lib/saved-inspections.mjs';
+import { mergeInspectionLibraries, parseInspectionLibraryWithDiagnostics } from '../lib/saved-inspections.mjs';
 import {
   selectCommittedChecks,
   selectPlanReadiness,
   selectReportView,
   selectResolvedScope,
+  selectViewModel,
 } from '../lib/selectors.mjs';
+import { renderApp } from '../src/render.mjs';
 
 function dispatch(state, type, payload = {}) {
   return demoReducer(state, { type, ...payload });
@@ -565,6 +567,33 @@ test('saved inspection history navigation is transient and never mutates the aud
   state = dispatch(state, 'SAVED_INSPECTION_HISTORY_CLOSED');
   assert.equal(state.activeHistoryDefinitionId, null);
   assert.deepEqual(state.library, librarySnapshot);
+});
+
+test('malformed persisted report is quarantined before saved-history rendering', () => {
+  let { state } = completePersonalInspection();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  const corruptLibrary = structuredClone(state.library);
+  corruptLibrary.runs[0].report = {};
+
+  const hydrated = parseInspectionLibraryWithDiagnostics(JSON.stringify(corruptLibrary));
+  assert.deepEqual(hydrated.diagnostics, { status: 'degraded', rejectedRunCount: 1 });
+  assert.equal(hydrated.library.runs.length, 0);
+
+  let recovered = dispatch(createDemoSession(), 'LIBRARY_HYDRATED', hydrated);
+  const definitionId = recovered.library.savedInspections[0].id;
+  const home = renderApp(selectViewModel(recovered));
+  assert.match(home, /历史暂不可用/);
+  assert.match(home, /SAVED_INSPECTION_RUN_REQUESTED/);
+
+  recovered = dispatch(recovered, 'SAVED_INSPECTION_HISTORY_OPENED', { definitionId });
+  assert.doesNotThrow(() => renderApp(selectViewModel(recovered)));
+  assert.match(renderApp(selectViewModel(recovered)), /还没有执行记录/);
+
+  recovered = dispatch(recovered, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
+  assert.equal(recovered.phase, 'execution');
 });
 
 test('library hydration keeps history diagnostics separate from persisted user data', () => {
