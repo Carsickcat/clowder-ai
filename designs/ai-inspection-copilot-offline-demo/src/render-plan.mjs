@@ -3,23 +3,25 @@ import { escapeHtml } from './view-utils.mjs';
 function renderCandidate(candidate, disposition) {
   const accepted = disposition?.status === 'accepted';
   const rejected = disposition?.status === 'rejected';
-  const status = accepted ? '已纳入正式计划' : rejected ? '已拒绝并记录理由' : '待处置';
+  const optional = candidate.criticality !== 'high' && !accepted && !rejected;
+  const status = accepted ? '✓ 已加查' : rejected ? '— 不查' : optional ? '可选' : '待你选择';
   return `
-    <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''}">
-      <header><span>${candidate.criticality === 'high' ? '高风险候选' : '候选检查'}</span><strong>${status}</strong></header>
+    <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''} ${optional ? 'is-optional' : ''}">
+      <header><span>AI 建议</span><strong class="candidate-result">${status}</strong></header>
       <h4>${escapeHtml(candidate.purpose)}</h4>
-      <p class="single-line-note" title="${escapeHtml(candidate.rationale)}">${escapeHtml(candidate.rationale)}</p>
-      <code>${escapeHtml(candidate.metric)}</code>
-      ${
-        !accepted && !rejected
-          ? `<div class="candidate-actions">
-              <button data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="accepted" type="button">纳入计划</button>
-              <button class="button-ghost" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="rejected" data-reason="专家确认该风险不属于本次变更边界" type="button">拒绝并留痕</button>
-            </div>`
-          : rejected
-            ? `<small>拒绝理由：${escapeHtml(disposition.reason)}</small>`
-            : ''
-      }
+      <p><span>为什么建议查</span>${escapeHtml(candidate.rationale)}</p>
+      <details class="candidate-details">
+        <summary>查看细节</summary>
+        <dl>
+          <div><dt>检查指标</dt><dd><code>${escapeHtml(candidate.metric)}</code></dd></div>
+          <div><dt>目标实体</dt><dd>${escapeHtml(candidate.entity)}</dd></div>
+        </dl>
+      </details>
+      <div class="candidate-actions">
+        <button class="${accepted ? 'is-selected' : ''}" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="accepted" aria-pressed="${accepted}" type="button">加查</button>
+        <button class="button-ghost ${rejected ? 'is-selected' : ''}" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="rejected" data-reason="专家确认该风险不属于本次变更边界" aria-pressed="${rejected}" type="button">不查</button>
+      </div>
+      ${rejected ? `<small class="candidate-reason">已记录原因：${escapeHtml(disposition.reason)}</small>` : ''}
     </article>`;
 }
 
@@ -34,21 +36,18 @@ function renderSourceRefs(check, contextSources) {
 }
 
 function renderCheck(check, isCandidate, contextSources) {
+  const summary = `${check.purpose} · ${check.entity}`;
   return `
     <details class="check-card ${isCandidate ? 'is-candidate-check' : ''}">
       <summary>
-        <span class="check-index">${check.priority === 'required' ? '必' : '荐'}</span>
-        <span class="check-summary">
-          <span>${escapeHtml(check.severity)}</span>
-          <strong>${escapeHtml(check.purpose)}</strong>
-          <code>${escapeHtml(check.metric)}</code>
-        </span>
-        <span class="check-toggle">来源与判定依据⌄</span>
+        <span class="check-summary-line" title="${escapeHtml(summary)}"><strong>${escapeHtml(check.purpose)}</strong><span> · ${escapeHtml(check.entity)}</span></span>
+        <span class="check-toggle">查看细节⌄</span>
       </summary>
       <div class="check-body">
-        <p>${escapeHtml(check.rationale)}</p>
+        <div class="check-rationale"><span>检查依据</span><p>${escapeHtml(check.rationale)}</p></div>
         <dl>
           <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
+          <div><dt>检查指标</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
           <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
           <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
           <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
@@ -59,22 +58,45 @@ function renderCheck(check, isCandidate, contextSources) {
     </details>`;
 }
 
-function renderPlanStats(summary) {
-  return `
-    <div class="plan-stats" aria-label="任务草案分级统计">
-      <div data-testid="plan-stat-required"><span>必查</span><strong>${summary.required}</strong></div>
-      <div data-testid="plan-stat-recommended"><span>建议</span><strong>${summary.recommended}</strong></div>
-      <div data-testid="plan-stat-pending"><span>待确认</span><strong>${summary.pending}</strong></div>
-      <div><span>已忽略</span><strong>${summary.rejected}</strong></div>
-    </div>`;
+function renderPlanSummary(committedCount, planSummary) {
+  let pendingCopy = '无需额外确认';
+  if (planSummary.requiredPending) {
+    pendingCopy = `另有 ${planSummary.requiredPending} 项 AI 建议需要你确认${
+      planSummary.optionalPending ? `，${planSummary.optionalPending} 项可选` : ''
+    }`;
+  } else if (planSummary.optionalPending) {
+    pendingCopy = `另有 ${planSummary.optionalPending} 项 AI 可选建议`;
+  }
+  return `<p class="plan-summary" data-testid="plan-summary">本次将执行 ${committedCount} 项检查，${pendingCopy}</p>`;
 }
 
-function renderSelectedContext(items) {
-  if (!items.length) return '';
-  return `<section class="plan-context" data-testid="selected-context-plan">
-    <h3>本次巡检信息</h3>
-    <ul>${items.map((item) => `<li><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong></li>`).join('')}</ul>
-  </section>`;
+function renderPlanAction(readiness) {
+  const ready = readiness.status === 'ready';
+  const label = ready
+    ? '确认并开始巡检'
+    : readiness.unresolvedCandidateIds.length
+      ? '请先处理上方的建议项'
+      : readiness.reconciliationBlocked
+        ? '请先完成范围对账'
+        : '暂时无法开始巡检';
+  return `<button class="primary-action plan-primary-action" data-action="PLAN_CONFIRMED" ${ready ? '' : 'disabled'} type="button"><span>${label}</span><b>→</b></button>`;
+}
+
+function renderReadinessLabel(readiness) {
+  if (readiness.status === 'ready') return '可以开始';
+  if (readiness.unresolvedCandidateIds.length) return '有建议待确认';
+  if (readiness.reconciliationBlocked) return '范围待确认';
+  return '暂不可开始';
+}
+
+function sortChecks(checks) {
+  const rank = { required: 0, recommended: 1 };
+  return checks
+    .map((check, index) => ({ check, index }))
+    .sort(
+      (left, right) => (rank[left.check.priority] ?? 2) - (rank[right.check.priority] ?? 2) || left.index - right.index,
+    )
+    .map(({ check }) => check);
 }
 
 export function renderInspectionPlan(vm) {
@@ -87,25 +109,34 @@ export function renderInspectionPlan(vm) {
       .filter(([, item]) => item.status === 'accepted')
       .map(([id]) => id),
   );
+  const candidateSectionTitle = vm.planSummary.requiredPending
+    ? '需要你确认'
+    : vm.planSummary.optionalPending
+      ? '可选建议'
+      : '已处理的 AI 建议';
+  const candidateSectionClass = vm.planSummary.requiredPending ? '' : ' is-optional';
+  const candidateSection = candidates
+    ? `<section class="plan-section plan-confirmation${candidateSectionClass}" aria-labelledby="pending-title">
+        <h3 id="pending-title">${candidateSectionTitle}</h3>
+        <div class="candidate-stack">${candidates}</div>
+      </section>`
+    : '';
   return `
     <div class="plan-stage" data-testid="inspection-plan">
       <header class="stage-heading">
         <div><h2 data-stage-title>巡检任务</h2></div>
-        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? '可确认' : '候选待处置'}</span>
+        <span class="readiness ${vm.readiness.status}">${renderReadinessLabel(vm.readiness)}</span>
       </header>
-      ${renderSelectedContext(vm.savedInspection.selectedContext)}
-      ${renderPlanStats(vm.planSummary)}
-      <section class="plan-section" aria-labelledby="pending-title">
-        <h3 id="pending-title">待确认项</h3>
-        <div class="candidate-stack">${candidates}</div>
-      </section>
+      ${renderPlanSummary(vm.committedChecks.length, vm.planSummary)}
+      ${candidateSection}
       <section class="plan-section" aria-labelledby="formal-title">
-        <h3 id="formal-title">正式检查</h3>
+        <h3 id="formal-title">将执行的检查</h3>
         <div class="check-stack">
-          ${vm.committedChecks
+          ${sortChecks(vm.committedChecks)
             .map((check) => renderCheck(check, acceptedIds.has(check.id), vm.workspace.contextSources))
             .join('')}
         </div>
       </section>
+      ${renderPlanAction(vm.readiness)}
     </div>`;
 }

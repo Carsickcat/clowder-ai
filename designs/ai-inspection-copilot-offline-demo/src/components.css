@@ -698,60 +698,63 @@
 .stage-heading {
   margin-bottom: 8px;
 }
-.plan-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin: 16px 0;
-}
-.plan-stats div {
-  padding: 11px 12px;
+.plan-summary {
+  margin: 16px 0 0;
+  padding: 13px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(7, 16, 31, 0.48);
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
 }
-.plan-stats span {
-  display: block;
-  color: var(--text-faint);
-  font-size: 8px;
-}
-.plan-stats strong {
-  display: block;
-  margin-top: 5px;
-  color: var(--cyan);
-  font: 700 18px / 1 var(--mono);
+.plan-summary strong {
+  color: var(--text);
+  font: 700 13px / 1 var(--mono);
 }
 .plan-section {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 .plan-section > h3 {
   margin: 0;
   color: var(--text-soft);
-  font-size: 11px;
+  font-size: 12px;
+}
+.plan-confirmation > h3 {
+  color: var(--amber);
+}
+.plan-confirmation.is-optional > h3 {
+  color: var(--text-soft);
 }
 .candidate-stack,
 .check-stack {
   display: grid;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 10px;
 }
 .candidate-card {
-  padding: 16px;
+  padding: 15px;
   border: 1px solid rgba(246, 186, 91, 0.3);
   border-radius: var(--radius);
   background: var(--amber-soft);
+}
+.candidate-card.is-optional {
+  border-color: var(--line);
+  background: rgba(111, 135, 163, 0.08);
+}
+.candidate-card.is-optional header span {
+  color: var(--text-soft);
 }
 .candidate-card.is-accepted {
   border-color: rgba(114, 230, 166, 0.34);
   background: var(--green-soft);
 }
 .candidate-card.is-rejected {
-  opacity: 0.72;
+  opacity: 0.84;
   border-color: var(--line);
   background: rgba(111, 135, 163, 0.08);
 }
-.candidate-card header,
-.check-card header {
+.candidate-card header {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -766,17 +769,51 @@
 }
 .candidate-card h4 {
   margin: 12px 0 6px;
+  font-size: 13px;
 }
 .candidate-card p {
+  margin: 0;
   color: var(--text-soft);
   font-size: 11px;
   line-height: 1.55;
 }
-.candidate-card code {
+.candidate-card p span {
   display: block;
-  color: #ffd99c;
-  font-size: 10px;
+  margin-bottom: 2px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.candidate-details {
+  margin-top: 9px;
+}
+.candidate-details summary {
+  width: fit-content;
+  color: var(--cyan);
+  cursor: pointer;
+  font-size: 9px;
+}
+.candidate-details dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 9px 0 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(7, 16, 31, 0.35);
+}
+.candidate-details dt {
+  color: var(--text-faint);
+  font-size: 8px;
+}
+.candidate-details dd {
+  margin: 3px 0 0;
+  color: var(--text-soft);
+  font-size: 9px;
   overflow-wrap: anywhere;
+}
+.candidate-details code {
+  color: var(--amber);
 }
 .candidate-actions {
   display: flex;
@@ -799,6 +836,22 @@
   background: transparent;
   color: var(--text-soft);
 }
+.candidate-actions button.is-selected {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green);
+}
+.candidate-actions .button-ghost.is-selected {
+  border-color: var(--text-faint);
+  background: rgba(111, 135, 163, 0.18);
+  color: var(--text);
+}
+.candidate-reason {
+  display: block;
+  margin-top: 9px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
 .check-card {
   display: block;
   padding: 0;
@@ -812,7 +865,7 @@
 }
 .check-card summary {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 14px;
@@ -826,34 +879,17 @@
   border-bottom: 1px solid var(--line);
   background: rgba(109, 145, 255, 0.06);
 }
-.check-index {
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 9px;
-  background: var(--blue-soft);
-  color: var(--blue);
-  font-size: 11px;
-  font-weight: 800;
-}
-.check-summary {
+.check-summary-line {
   min-width: 0;
-}
-.check-summary > span {
-  color: var(--red);
-  font: 600 8px / 1 var(--mono);
-}
-.check-summary strong {
-  display: block;
-  margin: 4px 0;
+  overflow: hidden;
+  color: var(--text-soft);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.check-summary code {
-  display: block;
-  color: #b9caff;
-  font-size: 9px;
-  overflow-wrap: anywhere;
+.check-summary-line strong {
+  color: var(--text);
+  font-weight: 700;
 }
 .check-toggle {
   color: var(--cyan);
@@ -865,7 +901,7 @@
 }
 .check-body {
   min-width: 0;
-  padding: 14px 14px 16px 60px;
+  padding: 14px 14px 16px;
 }
 .check-card h4 {
   margin: 0;
@@ -876,10 +912,14 @@
   font: 600 8px / 1 var(--mono);
 }
 .check-card p {
-  margin: 7px 0 10px;
+  margin: 3px 0 10px;
   color: var(--text-soft);
   font-size: 11px;
   line-height: 1.45;
+}
+.check-rationale > span {
+  color: var(--text-faint);
+  font-size: 8px;
 }
 .check-card dl {
   display: grid;
@@ -1296,6 +1336,10 @@
 .primary-action b {
   color: var(--cyan);
   font-size: 16px;
+}
+.plan-stage .plan-primary-action {
+  width: 100%;
+  margin: 24px 0 0;
 }
 
 .saved-inspection-home {

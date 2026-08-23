@@ -114,11 +114,14 @@ export function selectPlanSummary(state) {
   const baseChecks =
     state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
   const selectedBaseChecks = selectChecksForContext(state, baseChecks);
+  const pendingCandidates = workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]);
   return {
     required: selectedBaseChecks.filter((check) => check.priority === 'required').length,
     recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
       .length,
-    pending: workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]).length,
+    pending: pendingCandidates.length,
+    requiredPending: pendingCandidates.filter((candidate) => candidate.criticality === 'high').length,
+    optionalPending: pendingCandidates.filter((candidate) => candidate.criticality !== 'high').length,
     rejected: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'rejected').length,
   };
 }
