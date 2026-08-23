@@ -1,6 +1,8 @@
-import { renderIntake } from './render-intake.mjs';
+import { renderConversationComposer, renderIntake } from './render-intake.mjs';
 import { renderInspectionPlan } from './render-plan.mjs';
-import { renderPlaybookMatch, renderPlaybookProposal, renderPlaybookReference } from './render-playbook.mjs';
+import { renderPlaybookMatch, renderPlaybookReference } from './render-playbook.mjs';
+import { renderCurrentReport } from './render-report.mjs';
+import { renderSavedExecutionStatus, renderSavedInspectionRefresh } from './render-saved-inspections.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 const PHASES = [
@@ -101,6 +103,8 @@ function renderContext(vm) {
 }
 
 function renderScope(vm) {
+  const savedRefresh = renderSavedInspectionRefresh(vm.savedInspection);
+  if (savedRefresh) return savedRefresh;
   return `
     <div class="scope-stage">
       ${renderPlaybookMatch(vm.playbook)}
@@ -117,6 +121,7 @@ function renderScope(vm) {
 function renderExecution(vm) {
   return `
     <div class="execution-stage">
+      ${renderSavedExecutionStatus(vm.savedInspection)}
       <header class="stage-heading"><div><h2 data-stage-title>执行检查</h2></div><span class="live-dot">● MOCK</span></header>
       <ol class="execution-list">
         ${vm.execution
@@ -132,58 +137,22 @@ function renderExecution(vm) {
     </div>`;
 }
 
-function renderReport(vm) {
-  const report = vm.report;
-  return `
-    <div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report">
-      <div class="decision-hero">
-        <h2>${escapeHtml(report.actionLabel)}</h2>
-        <p>${escapeHtml(report.title)}</p>
-      </div>
-      <div class="semantic-pair">
-        <div><span>证据结论</span><code>${report.evidenceVerdict}</code></div>
-        <div><span>行动决策</span><code>${report.action}</code></div>
-      </div>
-      <div class="evidence-badges">
-        <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
-        <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
-        <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
-      </div>
-      <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
-      <div class="report-columns">
-        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-      </div>
-      ${renderPlaybookProposal(vm.playbook)}
-      ${
-        report.rcAgent
-          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
-            ${
-              vm.state.rcExpanded
-                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
-                : ''
-            }`
-          : ''
-      }
-    </div>`;
-}
-
 function renderStage(vm) {
   const renderers = {
     intake: renderIntake,
     context: renderScope,
     plan: renderInspectionPlan,
     execution: renderExecution,
-    report: renderReport,
+    report: renderCurrentReport,
   };
   return renderers[vm.state.phase](vm);
 }
 
 function primaryAction(vm) {
   if (!vm.workspace) return '';
-  if (vm.state.phase === 'context' && vm.playbook.match) return '';
+  if (vm.state.phase === 'intake') return '';
+  if (vm.state.phase === 'context' && (vm.playbook.match || vm.savedInspection.refresh)) return '';
   const actions = {
-    intake: ['INPUT_CONFIRMED', '确认变更信息'],
     context: ['SCOPE_ACCEPTED', '生成任务'],
     plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '开始执行' : '请先处置高风险候选'],
     execution: [
@@ -208,10 +177,11 @@ function renderCopilot(vm) {
         report: '报告已生成',
       }[vm.state.phase];
   return `
-    <aside class="panel copilot-panel" aria-label="Copilot 解释">
-      <header><span class="copilot-mark">✦</span><div><strong>巡检助手</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
+    <aside class="panel copilot-panel" aria-label="巡检对话">
+      <header><span class="copilot-mark">✦</span><div><strong>巡检对话</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
       <div class="copilot-status"><span>状态</span><strong>${escapeHtml(status)}</strong></div>
       ${renderPlaybookReference(vm.playbook)}
+      ${renderConversationComposer(vm)}
       ${primaryAction(vm)}
     </aside>`;
 }
@@ -225,9 +195,9 @@ export function renderApp(vm) {
         <div class="title-lockup"><h1>AI 巡检 Copilot</h1></div>
         <div class="offline-badge"><span>●</span> 离线演示</div>
       </header>
-      <ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>
-      <main id="main" class="workspace">
-        ${renderContext(vm)}
+      ${vm.workspace ? `<ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>` : ''}
+      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'}">
+        ${vm.workspace ? renderContext(vm) : ''}
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>

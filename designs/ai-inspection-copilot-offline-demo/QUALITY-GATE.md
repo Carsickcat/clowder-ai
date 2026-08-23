@@ -158,3 +158,40 @@ Formal review P2 closure: catalog `checkIds` now resolve, in catalog order, to c
 Final artifact: `107938` bytes, SHA-256 `77C0332F1330778A4EF7EBA54CC5E0AFD34CB353B4AB4B45B05BA22DCC5CC0FA`; two consecutive builds produced the same bytes.
 
 Design draft scan: the only repository `.pen` is `designs/f070-project-setup-card.pen`, unrelated to this feature. Playbook design truth is the Kimi-led `DESIGN-PLAYBOOK.md` plus browser screenshots. Root artifact hygiene checks returned no matches. Capability tips are explicitly exempt because this is a standalone offline acceptance artifact, not a Cat Café runtime capability or guide.
+
+## 2026-08-16 Dual-entry journey addendum
+
+Design truth: `DESIGN-JOURNEY.md`, led by Kimi. Implementation truth: `feature-specs/2026-08-16-ai-inspection-dual-entry-journey.md`.
+
+| AC | Author-side result | Evidence |
+|---|---|---|
+| AC-J1 First-use journey | Pass | conversation request → selectable context → plan → execution → report → editable save |
+| AC-J2 Selection echo | Pass | selected context IDs project one-to-one into plan, run and report |
+| AC-J3 Cross-refresh persistence | Pass | versioned localStorage adapter and reload browser journey |
+| AC-J4 Direct-run bypass | Pass | saved definition executes without intent compiler or draft confirmation; new run/task IDs |
+| AC-J5 Drift guard | Pass | exact runs directly, minor requires acknowledgement, major cannot execute |
+| AC-J6 Copy discipline | Pass | UI contract rejects slogans, decorative module labels and assistant self-introduction |
+| AC-J7 390px | Pass | full-width saved card, compact bottom composer, no horizontal overflow |
+| AC-J8 Honest empty state | Pass | no fabricated saved inspection; directs the user to the right-side conversation |
+
+Fresh author evidence:
+
+```text
+pnpm check
+  Node tests: 67/67 pass
+  offline Chrome: first-use, save/reload, saved direct-run, exact/minor/major Playbook paths pass
+  HTTP(S) requests: 0
+  browser errors: 0
+
+node tests/record-walkthrough.mjs
+  16+ seconds, VP9 WebM
+
+git diff --check
+  whitespace errors: 0
+```
+
+Dogfood finding closed before review: the desktop sticky `top` constraint leaked into the 390px fixed composer, while the desktop home grid had higher specificity than the mobile one-column rule. Browser geometry assertions now require a compact bottom bar, a full-width saved-inspection stage/card and no overflow; the responsive rules explicitly reset `top` and the home grid.
+
+Core evidence: `evidence/11-dual-entry-context-selection.png`, `12-saved-inspection-home.png`, `13-saved-direct-run.png`, `14-mobile-saved-home.png`, and `15-dual-entry-inspection-journey-15s.webm`.
+
+Boundary: this proves the offline product journey and local mock persistence. It does not claim production data connectivity, server persistence, real team approval or multi-user sharing.

@@ -83,6 +83,9 @@
   gap: 14px;
   align-items: start;
 }
+.workspace.is-home {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.38fr);
+}
 .panel {
   min-width: 0;
   border: 1px solid var(--line);

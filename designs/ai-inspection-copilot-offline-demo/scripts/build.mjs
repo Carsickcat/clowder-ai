@@ -10,12 +10,17 @@ const applicationFiles = [
   '../lib/scenarios.mjs',
   '../lib/compiler.mjs',
   '../lib/playbooks.mjs',
+  '../lib/saved-inspections.mjs',
   '../lib/selectors.mjs',
   '../lib/reducer.mjs',
   'view-utils.mjs',
+  'report-share.mjs',
   'render-intake.mjs',
   'render-plan.mjs',
   'render-playbook.mjs',
+  'render-saved-inspections.mjs',
+  'render-report.mjs',
+  'storage.mjs',
   'render.mjs',
   'app.mjs',
 ];
@@ -59,7 +64,7 @@ export async function buildStandalone(options = {}) {
     .replace('</head>', `    <style>\n${escapeInlineBoundary(styles, 'style')}\n    </style>\n  </head>`)
     .replace(
       '<script type="module" src="./app.mjs"></script>',
-      `<script>\n${escapeInlineBoundary(application, 'script')}\n    </script>`,
+      () => `<script>\n${escapeInlineBoundary(application, 'script')}\n    </script>`,
     )
     .replace(/\r\n/g, '\n');
 

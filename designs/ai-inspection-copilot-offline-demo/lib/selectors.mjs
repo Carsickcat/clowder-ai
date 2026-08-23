@@ -1,4 +1,52 @@
-import { assertCheckContract } from './domain.mjs';
+import { assertCheckContract, deepFreeze } from './domain.mjs';
+
+const RESULT_RANK = Object.freeze({
+  Violated: 0,
+  Inconclusive: 1,
+  NotEvaluated: 1,
+  Verified: 2,
+});
+
+export function selectRunsForDefinition(definition, runs = []) {
+  if (!definition) return [];
+  const unique = new Map();
+  for (const run of runs) {
+    if (run?.definitionId === definition.id || run?.id === definition.sourceRunId) unique.set(run.id, run);
+  }
+  return [...unique.values()].sort(
+    (left, right) =>
+      String(right.completedAt).localeCompare(String(left.completedAt)) ||
+      String(right.id).localeCompare(String(left.id)),
+  );
+}
+
+function compareExecutionResult(id, before, after) {
+  if (!before) return { id, label: after.label, kind: 'added', before: null, after };
+  if (!after) return { id, label: before.label, kind: 'removed', before, after: null };
+  if (before.status === after.status && before.fact === after.fact && before.label === after.label) return null;
+  const beforeRank = RESULT_RANK[before.status];
+  const afterRank = RESULT_RANK[after.status];
+  const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
+  return { id, label: after.label, kind, before, after };
+}
+
+export function compareInspectionRuns(currentRun, previousRun) {
+  if (!Array.isArray(currentRun?.executionResults) || !Array.isArray(previousRun?.executionResults)) return null;
+  const current = new Map(currentRun.executionResults.map((result) => [result.id, result]));
+  const previous = new Map(previousRun.executionResults.map((result) => [result.id, result]));
+  const ids = [...new Set([...current.keys(), ...previous.keys()])].sort();
+  const items = [];
+  for (const id of ids) {
+    const item = compareExecutionResult(id, previous.get(id), current.get(id));
+    if (item) items.push(item);
+  }
+  return deepFreeze({
+    previousRunId: previousRun.id,
+    previousCompletedAt: previousRun.completedAt,
+    summary: items.length ? 'changed' : 'stable',
+    items,
+  });
+}
 
 function requireWorkspace(state) {
   if (!state.workspace) throw new Error('Inspection workspace is not compiled');
@@ -41,13 +89,23 @@ export function selectCommittedChecks(state) {
   }
   const baseChecks =
     state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+  const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
-  const checks = [...baseChecks, ...acceptedCandidates];
+  const checks = [...selectedBaseChecks, ...acceptedCandidates];
   const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
+}
+
+export function selectChecksForContext(state, checks) {
+  const signalOptions = state.contextOptions.filter((item) => item.kind === 'signal');
+  if (!signalOptions.length) return checks;
+  const selectedSignalIds = new Set(
+    signalOptions.filter((item) => item.selected).map((item) => item.id.slice('signal:'.length)),
+  );
+  return checks.filter((check) => selectedSignalIds.has(check.id));
 }
 
 export function selectPlanSummary(state) {
@@ -55,8 +113,9 @@ export function selectPlanSummary(state) {
   const dispositions = state.candidateDisposition;
   const baseChecks =
     state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+  const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   return {
-    required: baseChecks.filter((check) => check.priority === 'required').length,
+    required: selectedBaseChecks.filter((check) => check.priority === 'required').length,
     recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
       .length,
     pending: workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]).length,
@@ -95,6 +154,47 @@ export function selectPlaybookView(state) {
   };
 }
 
+export function selectSavedInspectionView(state) {
+  const savedInspections = [...state.library.savedInspections].sort((left, right) =>
+    String(right.updatedAt).localeCompare(String(left.updatedAt)),
+  );
+  const currentRun = state.library.runs.find((run) => run.id === state.currentRunId) ?? null;
+  const historyDefinition =
+    savedInspections.find((definition) => definition.id === state.activeHistoryDefinitionId) ?? null;
+  const historyRuns = selectRunsForDefinition(historyDefinition, state.library.runs);
+  const reportDefinitionId = state.activeSavedInspectionId ?? state.savedDefinitionId;
+  const reportDefinition = savedInspections.find((definition) => definition.id === reportDefinitionId) ?? null;
+  const reportRuns = selectRunsForDefinition(reportDefinition, state.library.runs);
+  const currentRunIndex = currentRun ? reportRuns.findIndex((run) => run.id === currentRun.id) : -1;
+  const comparison =
+    currentRunIndex >= 0 && reportRuns[currentRunIndex + 1]
+      ? compareInspectionRuns(currentRun, reportRuns[currentRunIndex + 1])
+      : null;
+  return {
+    definitions: savedInspections,
+    runs: state.library.runs,
+    cards: savedInspections.map((definition) => {
+      const definitionRuns = selectRunsForDefinition(definition, state.library.runs);
+      return { definition, runs: definitionRuns, latestRun: definitionRuns[0] ?? null };
+    }),
+    activeDefinition: savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    historyDefinition,
+    historyRuns,
+    historyDiagnostics: state.historyDiagnostics,
+    reportDefinition,
+    comparison,
+    refresh: state.savedRunRefresh,
+    contextOptions: state.contextOptions,
+    selectedContext: state.contextOptions.filter((item) => item.selected),
+    currentRun,
+    savedDefinitionId: state.savedDefinitionId,
+    composerPrefill: state.composerPrefill,
+    conversation: state.conversation,
+    storageError: state.storageError,
+    toast: state.toast,
+  };
+}
+
 export function selectViewModel(state) {
   if (!state.workspace) {
     return {
@@ -107,6 +207,7 @@ export function selectViewModel(state) {
       execution: [],
       report: null,
       playbook: selectPlaybookView(state),
+      savedInspection: selectSavedInspectionView(state),
     };
   }
   return {
@@ -119,5 +220,6 @@ export function selectViewModel(state) {
     execution: selectExecutionView(state),
     report: selectReportView(state),
     playbook: selectPlaybookView(state),
+    savedInspection: selectSavedInspectionView(state),
   };
 }

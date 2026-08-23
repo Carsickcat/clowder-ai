@@ -41,12 +41,12 @@ async function submitRequest(session, request) {
   assert.equal(submitted, true, 'Expected user request form to submit');
 }
 
-async function screenshot(session, fileName) {
+async function screenshot(session, fileName, { captureBeyondViewport = true } = {}) {
   if (!recordEvidence) return;
   await mkdir(evidenceDirectory, { recursive: true });
   const image = await session.send('Page.captureScreenshot', {
     format: 'png',
-    captureBeyondViewport: true,
+    captureBeyondViewport,
   });
   await writeFile(path.join(evidenceDirectory, fileName), Buffer.from(image.data, 'base64'));
 }
@@ -94,14 +94,14 @@ async function main() {
     await loaded;
 
     let text = await bodyText(session);
-    assert.match(text, /创建巡检/);
-    assert.match(text, /填入后可修改/);
+    assert.match(text, /已保存巡检/);
+    assert.match(text, /还没有保存的巡检，从右侧对话开始/);
     assert.deepEqual(
       await session.evaluate(`(() => {
         const title = document.querySelector('[data-stage-title]');
         return { text: title.textContent.trim(), fontSize: getComputedStyle(title).fontSize };
       })()`),
-      { text: '创建巡检', fontSize: '18px' },
+      { text: '已保存巡检', fontSize: '18px' },
     );
     assert.equal(await session.evaluate('document.querySelectorAll("[data-scenario-id]").length'), 0);
     await screenshot(session, '00-user-defined-intake.png');
@@ -112,15 +112,31 @@ async function main() {
       contextReference: 'REL-FUL-72',
     });
     text = await bodyText(session);
-    assert.match(text, /确认变更信息/);
-    assert.match(text, /fulfillment-service · v7.2.0/);
+    assert.match(text, /确认巡检信息/);
+    assert.match(text, /近期变更/);
+    assert.match(text, /关联服务与依赖/);
+    assert.match(text, /可用信号/);
+    await screenshot(session, '11-dual-entry-context-selection.png');
+
+    const deselectedSignalId = await session.evaluate(`(() => {
+      const signal = document.querySelector('[data-context-id^="signal:"]');
+      const contextId = signal.dataset.contextId;
+      signal.click();
+      return contextId;
+    })()`);
+    assert.match(deselectedSignalId, /^signal:/);
+    assert.equal(
+      await session.evaluate(
+        `document.querySelector('[data-context-id="${deselectedSignalId}"]').getAttribute('aria-pressed')`,
+      ),
+      'false',
+    );
 
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
     assert.match(text, /REL-FUL-72/);
-    await click(session, '[data-action="SCOPE_ACCEPTED"]');
-    text = await bodyText(session);
-    assert.match(text, /fulfillment\.service\.success_rate/);
+    assert.doesNotMatch(text, /fulfillment\.service\.success_rate/);
+    assert.match(text, /http\.error_rate/);
     const genericPlanText = await session.evaluate(`(() => {
       document.querySelectorAll(".check-card").forEach((check) => {
         check.open = true;
@@ -135,9 +151,127 @@ async function main() {
     assert.match(text, /Proceed/);
     assert.match(text, /Verified/);
     assert.match(text, /声明范围内未发现异常退化/);
+    assert.match(text, /本次选择的巡检结果/);
+    assert.match(text, /模型风险总结/);
+    const firstRunSnapshot = await session.evaluate(
+      'JSON.parse(localStorage.getItem("nova.inspection-library.v1")).runs[0]',
+    );
+    assert.equal(firstRunSnapshot.inspectionPlan.checkIds.includes(deselectedSignalId.slice('signal:'.length)), false);
+    assert.equal(
+      await session.evaluate(`(() => {
+        const form = document.querySelector('[data-save-inspection-form]');
+        form.elements.namedItem('saved-inspection-name').value = '履约发布后巡检';
+        form.requestSubmit();
+        return true;
+      })()`),
+      true,
+    );
+    assert.match(await bodyText(session), /已保存，下次可从首页直接执行/);
     await screenshot(session, '01-user-defined-proceed.png');
 
     await click(session, '[data-action="RESET"]');
+    text = await bodyText(session);
+    assert.match(text, /履约发布后巡检/);
+    assert.match(text, /直跑/);
+    await screenshot(session, '12-saved-inspection-home.png');
+    const persistedLoaded = session.once('Page.loadEventFired');
+    await session.send('Page.reload');
+    await persistedLoaded;
+    assert.match(await bodyText(session), /履约发布后巡检/);
+    await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=inspection-plan]").length'), 0);
+    assert.match(await bodyText(session), /一致，已直接执行/);
+    await screenshot(session, '13-saved-direct-run.png');
+    await advanceExecution(session);
+    const persistedAfterDirectRun = await session.evaluate(
+      'JSON.parse(localStorage.getItem("nova.inspection-library.v1"))',
+    );
+    assert.equal(persistedAfterDirectRun.runs.length, 2);
+    assert.equal(new Set(persistedAfterDirectRun.runs.map((run) => run.id)).size, 2);
+    assert.deepEqual(persistedAfterDirectRun.runs[0], firstRunSnapshot);
+    text = await bodyText(session);
+    assert.match(text, /与上次相比/);
+    assert.match(text, /与上次结论一致/);
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-share-action]").length'), 2);
+    await session.evaluate(`(() => {
+      document.execCommand = (command) => {
+        if (command !== 'copy') return false;
+        const textareas = document.querySelectorAll('textarea');
+        window.__copiedReportText = textareas[textareas.length - 1]?.value ?? '';
+        return true;
+      };
+    })()`);
+    await click(session, '[data-share-action="copy"]');
+    await waitForPaint(session);
+    assert.match(await bodyText(session), /摘要已复制/);
+    assert.equal(
+      await session.evaluate('window.__copiedReportText.split("\\n").length'),
+      5,
+      'copy action sends the five-line summary to the clipboard boundary',
+    );
+    await click(session, '[data-share-action="export"]');
+    await waitForPaint(session);
+    assert.match(await bodyText(session), /离线报告已导出/);
+    await screenshot(session, '16-run-comparison-and-share.png');
+    await click(session, '[data-action="RESET"]');
+
+    await click(session, '[data-action="SAVED_INSPECTION_HISTORY_OPENED"]');
+    text = await bodyText(session);
+    assert.match(text, /运行历史/);
+    assert.match(text, /共执行 2 次/);
+    assert.equal(await session.evaluate('document.querySelectorAll(".saved-history-entry").length'), 2);
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-share-action]").length'), 0);
+    await click(session, '.saved-history-entry summary');
+    assert.match(await bodyText(session), /历史快照/);
+    assert.match(await bodyText(session), /不可修改/);
+    await screenshot(session, '17-saved-inspection-history.png');
+    await click(session, '[data-action="SAVED_INSPECTION_HISTORY_CLOSED"]');
+
+    const cleanLibrary = await session.evaluate('localStorage.getItem("nova.inspection-library.v1")');
+    const corruptLoaded = session.once('Page.loadEventFired');
+    await session.evaluate(`(() => {
+      const library = JSON.parse(localStorage.getItem('nova.inspection-library.v1'));
+      library.runs = [library.runs[0]];
+      library.runs[0].report = {};
+      localStorage.setItem('nova.inspection-library.v1', JSON.stringify(library));
+    })()`);
+    await session.send('Page.reload');
+    await corruptLoaded;
+    assert.match(await bodyText(session), /历史暂不可用/);
+    assert.ok(
+      await session.evaluate('Boolean(document.querySelector("[data-action=SAVED_INSPECTION_RUN_REQUESTED]"))'),
+    );
+    await click(session, '[data-action="SAVED_INSPECTION_HISTORY_OPENED"]');
+    assert.match(await bodyText(session), /还没有执行记录/);
+    assert.match(await bodyText(session), /仍可直跑/);
+    await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    const restoredLoaded = session.once('Page.loadEventFired');
+    await session.evaluate(`localStorage.setItem('nova.inspection-library.v1', ${JSON.stringify(cleanLibrary)})`);
+    await session.send('Page.reload');
+    await restoredLoaded;
+
+    const malformedStorageEventPayload = await session.evaluate(`(() => {
+      const library = JSON.parse(localStorage.getItem('nova.inspection-library.v1'));
+      library.runs = [library.runs[0]];
+      library.runs[0].report = {};
+      return JSON.stringify(library);
+    })()`);
+    await session.evaluate(`window.dispatchEvent(new StorageEvent('storage', {
+      key: 'nova.inspection-library.v1',
+      newValue: ${JSON.stringify(malformedStorageEventPayload)}
+    }))`);
+    assert.match(await bodyText(session), /历史暂不可用/);
+    assert.ok(
+      await session.evaluate('Boolean(document.querySelector("[data-action=SAVED_INSPECTION_RUN_REQUESTED]"))'),
+      'cross-tab corruption must not block a direct run',
+    );
+    const cleanAfterStorageEventLoaded = session.once('Page.loadEventFired');
+    await session.evaluate(`localStorage.setItem('nova.inspection-library.v1', ${JSON.stringify(cleanLibrary)})`);
+    await session.send('Page.reload');
+    await cleanAfterStorageEventLoaded;
+
     await click(session, '[data-example-id="order-upgrade"]');
     await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
     await click(session, '[data-action="INPUT_CONFIRMED"]');
@@ -234,11 +368,64 @@ async function main() {
     const mobileLoaded = session.once('Page.loadEventFired');
     await session.send('Page.reload');
     await mobileLoaded;
+    assert.match(await bodyText(session), /履约发布后巡检/);
+    const mobileComposer = await session.evaluate(`(() => {
+        const panel = document.querySelector('.copilot-panel');
+        const composer = document.querySelector('.conversation-form textarea');
+        const stage = document.querySelector('.stage-panel');
+        const savedCard = document.querySelector('[data-testid="saved-inspection-card"]');
+        return {
+          position: getComputedStyle(panel).position,
+          panelTop: Math.round(panel.getBoundingClientRect().top),
+          panelHeight: Math.round(panel.getBoundingClientRect().height),
+          viewportHeight: window.innerHeight,
+          composerHeight: Math.round(composer.getBoundingClientRect().height),
+          stageWidth: Math.round(stage.getBoundingClientRect().width),
+          savedCardWidth: Math.round(savedCard.getBoundingClientRect().width),
+          noOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
+        };
+      })()`);
+    assert.equal(mobileComposer.position, 'fixed');
+    assert.equal(mobileComposer.noOverflow, true);
+    assert.ok(mobileComposer.stageWidth >= 360, 'mobile saved-inspection stage uses the available width');
+    assert.ok(mobileComposer.savedCardWidth >= 320, 'mobile saved-inspection card remains readable');
+    assert.ok(
+      mobileComposer.panelHeight < 100,
+      `mobile composer stays a compact bottom bar (received ${mobileComposer.panelHeight}px)`,
+    );
+    assert.ok(
+      mobileComposer.panelTop > mobileComposer.viewportHeight - 120,
+      'mobile composer leaves the saved-inspection first screen visible',
+    );
+    assert.ok(mobileComposer.composerHeight >= 44, 'mobile composer keeps a touch-safe hit target');
+    await screenshot(session, '14-mobile-saved-home.png', { captureBeyondViewport: false });
+    await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    await advanceExecution(session);
+    assert.match(await bodyText(session), /本次选择的巡检结果/);
+    assert.match(await bodyText(session), /与上次相比/);
+    await click(session, '[data-action="RESET"]');
+    await click(session, '[data-action="SAVED_INSPECTION_HISTORY_OPENED"]');
+    assert.equal(
+      await session.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'),
+      true,
+      'mobile history must not overflow horizontally',
+    );
+    assert.equal(await session.evaluate('document.querySelectorAll(".saved-history-entry").length >= 3'), true);
+    await screenshot(session, '18-mobile-run-history.png', { captureBeyondViewport: false });
+    await click(session, '[data-action="SAVED_INSPECTION_HISTORY_CLOSED"]');
+
     await submitRequest(session, {
       prompt: 'payment-api 拆分出 risk-api，重新验证支付确认链路。',
       targetService: 'payment-api',
       contextReference: 'CHG-84501',
     });
+    assert.equal(
+      await session.evaluate(
+        'getComputedStyle(document.querySelector(".context-option-list")).gridTemplateColumns.split(" ").length',
+      ),
+      1,
+    );
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     assert.equal(
       await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),
@@ -295,7 +482,7 @@ async function main() {
     assert.deepEqual(networkRequests, []);
     assert.deepEqual(browserErrors, []);
     process.stdout.write(
-      'Offline browser acceptance passed: unmatched, exact, minor-drift, and major-drift journeys; 0 network requests, 0 browser errors.\n',
+      'Offline browser acceptance passed: history, comparison, sharing, corrupt-history recovery, unmatched, exact, minor-drift, and major-drift journeys; 0 network requests, 0 browser errors.\n',
     );
   } finally {
     await browser.close();

@@ -169,6 +169,9 @@ a:focus-visible {
   gap: 14px;
   align-items: start;
 }
+.workspace.is-home {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.38fr);
+}
 .panel {
   min-width: 0;
   border: 1px solid var(--line);
@@ -1506,6 +1509,566 @@ a:focus-visible {
   font-size: 16px;
 }
 
+.saved-inspection-home {
+  display: grid;
+  gap: 18px;
+}
+.saved-inspection-heading,
+.saved-inspection-card,
+.context-option-group > header,
+.personal-save {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.saved-inspection-heading h2,
+.saved-inspection-card h3,
+.context-option-group h3,
+.personal-save h3,
+.model-risk-summary h3,
+.report-context-results h3 {
+  margin: 0;
+}
+.saved-inspection-heading h2 {
+  font-size: 18px;
+}
+.saved-inspection-heading p,
+.saved-inspection-card p,
+.personal-save p {
+  margin: 5px 0 0;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.saved-inspection-list {
+  display: grid;
+  gap: 10px;
+}
+.saved-inspection-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 16, 31, 0.42);
+}
+.saved-inspection-copy {
+  min-width: 0;
+}
+.saved-inspection-copy h3 {
+  margin-top: 9px;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-run-button,
+.personal-save button,
+.conversation-send {
+  min-height: 42px;
+  border: 1px solid rgba(90, 231, 210, 0.38);
+  border-radius: 10px;
+  background: var(--cyan-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+}
+.saved-run-button {
+  flex: 0 0 auto;
+  padding: 0 15px;
+}
+.saved-run-button b {
+  margin-left: 6px;
+  color: var(--cyan);
+}
+.saved-inspection-empty,
+.storage-warning {
+  margin: 0;
+  padding: 22px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  color: var(--text-soft);
+  text-align: center;
+}
+.storage-warning {
+  border-style: solid;
+  border-color: rgba(246, 186, 91, 0.35);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.context-selection {
+  display: grid;
+  gap: 18px;
+}
+.context-selection .stage-heading p {
+  margin: 6px 0 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.context-option-groups {
+  display: grid;
+  gap: 16px;
+}
+.context-option-group {
+  display: grid;
+  gap: 9px;
+}
+.context-option-group > header span {
+  color: var(--text-faint);
+  font: 10px / 1 var(--mono);
+}
+.context-option-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.context-option {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.42);
+  color: var(--text-soft);
+  cursor: pointer;
+  text-align: left;
+}
+.context-option.is-selected {
+  border-color: rgba(90, 231, 210, 0.35);
+  background: var(--cyan-soft);
+}
+.context-check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--cyan);
+}
+.context-option strong,
+.context-option small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.context-option strong {
+  color: var(--text);
+  font-size: 11px;
+}
+.context-option small {
+  margin-top: 5px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.context-confirm {
+  width: 100%;
+}
+.conversation-shell {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+.conversation-log {
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.35);
+}
+.conversation-message,
+.conversation-empty {
+  width: fit-content;
+  max-width: 94%;
+  margin: 0 0 7px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.conversation-message.user {
+  margin-left: auto;
+  background: var(--blue-soft);
+}
+.conversation-message.assistant {
+  background: var(--cyan-soft);
+}
+.conversation-empty {
+  margin: 0;
+  padding: 0;
+  color: var(--text-faint);
+}
+.conversation-form {
+  display: grid;
+  gap: 8px;
+}
+.conversation-form textarea,
+.conversation-form input,
+.personal-save input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  outline: 0;
+  background: rgba(7, 16, 31, 0.72);
+  color: var(--text);
+}
+.conversation-form textarea {
+  min-height: 80px;
+  resize: vertical;
+  padding: 11px;
+  line-height: 1.5;
+}
+.conversation-details summary,
+.conversation-examples summary {
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 9px;
+}
+.conversation-details input {
+  margin-top: 7px;
+  padding: 9px;
+}
+.conversation-send {
+  width: 100%;
+}
+.conversation-send:disabled,
+.conversation-form textarea:disabled,
+.conversation-form input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.conversation-examples .example-grid {
+  grid-template-columns: 1fr;
+  margin-top: 8px;
+}
+.saved-refresh {
+  margin: 0;
+  padding: clamp(18px, 3vw, 28px);
+}
+.reconciliation.is-blocked {
+  border-color: rgba(255, 109, 127, 0.35);
+  background: var(--red-soft);
+}
+.saved-refresh h2 {
+  margin: 10px 0 7px;
+}
+.saved-refresh .compile-button {
+  width: 100%;
+  margin-top: 16px;
+}
+.saved-refresh-differences {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.saved-refresh-differences li {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.saved-execution-status {
+  margin: 0 0 18px;
+}
+.plan-context,
+.report-context-results,
+.model-risk-summary,
+.personal-save {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 16, 31, 0.35);
+}
+.plan-context ul,
+.report-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-context li,
+.report-context-grid article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.plan-context span,
+.report-context-grid span,
+.report-context-grid small {
+  display: block;
+  color: var(--text-faint);
+  font: 9px / 1.4 var(--mono);
+}
+.plan-context strong,
+.report-context-grid strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-context-grid small {
+  margin-top: 7px;
+  color: var(--green);
+}
+.model-risk-summary ul {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.personal-save form {
+  min-width: min(320px, 100%);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.personal-save input {
+  min-width: 0;
+  padding: 10px;
+}
+.personal-save button {
+  padding: 0 16px;
+}
+.save-toast {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(114, 230, 166, 0.3);
+  border-radius: var(--radius-sm);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.saved-inspection-copy {
+  flex: 1 1 auto;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.saved-inspection-card:has(.saved-inspection-copy:hover) {
+  border-color: rgba(90, 231, 210, 0.3);
+  background: rgba(12, 28, 49, 0.68);
+}
+.run-history-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  margin-top: 12px;
+}
+.run-history-mini small,
+.run-history-empty,
+.run-history-unavailable {
+  margin: 0 0 0 4px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.run-history-unavailable {
+  margin: 12px 0 0;
+  color: var(--amber);
+}
+.run-history-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--text-faint);
+  box-shadow: 0 0 0 3px rgba(111, 135, 163, 0.08);
+}
+.run-history-dot.is-proceed {
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+.run-history-dot.is-pause {
+  background: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
+}
+.saved-inspection-history {
+  display: grid;
+  gap: 18px;
+}
+.saved-history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.saved-history-heading h2 {
+  margin: 14px 0 6px;
+  font-size: 22px;
+}
+.saved-history-heading p {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.history-back {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.saved-history-title {
+  margin: 2px 0 -4px;
+  font-size: 13px;
+}
+.saved-history-list,
+.saved-history-earlier {
+  display: grid;
+  gap: 9px;
+}
+.saved-history-earlier > summary {
+  padding: 12px;
+  color: var(--text-soft);
+  cursor: pointer;
+  text-align: center;
+}
+.saved-history-entry {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.35);
+}
+.saved-history-entry > summary {
+  display: grid;
+  grid-template-columns: 10px 128px minmax(120px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.saved-history-entry > summary::-webkit-details-marker {
+  display: none;
+}
+.saved-history-entry > summary time,
+.saved-history-entry > summary small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-history-entry > summary strong {
+  font-size: 11px;
+}
+.historical-report {
+  margin: 0 12px 12px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+.historical-banner {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(109, 145, 255, 0.3);
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: #bed1ff;
+  font-size: 10px;
+}
+.historical-report .decision-hero h2 {
+  font-size: 22px;
+}
+.decision-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.report-share {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 8px;
+}
+.report-share button {
+  padding: 9px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: rgba(7, 16, 31, 0.4);
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+.report-share button:hover {
+  border-color: rgba(90, 231, 210, 0.45);
+  color: var(--cyan);
+}
+.share-toast {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--green);
+  font-size: 9px;
+  text-align: right;
+}
+.run-comparison {
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid rgba(109, 145, 255, 0.28);
+  border-radius: var(--radius);
+  background: var(--blue-soft);
+}
+.run-comparison h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.run-comparison > p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.run-comparison ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.run-comparison li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.run-comparison li > span {
+  color: var(--cyan);
+  font-weight: 800;
+}
+.run-comparison li.is-worsened > span,
+.run-comparison li.is-removed > span {
+  color: var(--red);
+}
+.run-comparison li strong {
+  font-size: 10px;
+}
+.run-comparison li p {
+  margin: 3px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 @media (max-width: 1180px) {
   .workspace {
     grid-template-columns: minmax(230px, 0.7fr) minmax(480px, 1.5fr);
@@ -1515,16 +2078,13 @@ a:focus-visible {
     grid-column: 1 / -1;
   }
   .copilot-panel {
-    display: grid;
-    grid-template-columns: minmax(190px, 0.7fr) minmax(160px, 1fr) auto;
-    align-items: stretch;
+    display: block;
   }
   .copilot-panel > header {
     border-right: 1px solid var(--line);
     border-bottom: 0;
   }
   .copilot-status {
-    align-self: center;
     margin: 10px 14px;
   }
   .primary-action {
@@ -1556,6 +2116,9 @@ a:focus-visible {
     padding-bottom: 13px;
   }
   .workspace {
+    grid-template-columns: 1fr;
+  }
+  .workspace.is-home {
     grid-template-columns: 1fr;
   }
   .context-panel,
@@ -1605,6 +2168,11 @@ a:focus-visible {
   }
   .playbook-signals {
     width: 100%;
+  }
+  .context-option-list,
+  .plan-context ul,
+  .report-context-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1712,6 +2280,82 @@ a:focus-visible {
   .playbook-dismiss {
     text-align: left;
   }
+  .saved-inspection-card,
+  .personal-save {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .saved-run-button {
+    width: 100%;
+  }
+  .saved-history-heading,
+  .decision-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .saved-history-entry > summary {
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 8px 10px;
+  }
+  .saved-history-entry > summary time,
+  .saved-history-entry > summary strong,
+  .saved-history-entry > summary small {
+    grid-column: 2;
+  }
+  .saved-history-entry > summary small {
+    white-space: normal;
+  }
+  .historical-report {
+    margin-inline: 6px;
+    padding: 10px;
+  }
+  .report-share {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-share button {
+    width: 100%;
+  }
+  .share-toast {
+    text-align: left;
+  }
+  .personal-save form {
+    grid-template-columns: 1fr;
+  }
+  .app-shell[data-workspace="new"] {
+    padding-bottom: 104px;
+  }
+  .app-shell[data-workspace="new"] .copilot-panel {
+    position: fixed;
+    z-index: 20;
+    top: auto;
+    right: 10px;
+    bottom: 8px;
+    left: 10px;
+    overflow: visible;
+  }
+  .app-shell[data-workspace="new"] .copilot-panel > header,
+  .app-shell[data-workspace="new"] .copilot-status,
+  .app-shell[data-workspace="new"] .conversation-log,
+  .app-shell[data-workspace="new"] .conversation-details,
+  .app-shell[data-workspace="new"] .conversation-examples {
+    display: none;
+  }
+  .app-shell[data-workspace="new"] .conversation-shell {
+    padding: 8px;
+  }
+  .app-shell[data-workspace="new"] .conversation-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .app-shell[data-workspace="new"] .conversation-form textarea {
+    height: 48px;
+    min-height: 48px;
+    max-height: 84px;
+    resize: none;
+  }
+  .app-shell[data-workspace="new"] .conversation-send {
+    width: 64px;
+    min-height: 48px;
+  }
 }
 
     </style>
@@ -1724,6 +2368,9 @@ a:focus-visible {
 const EVIDENCE_VERDICTS = Object.freeze(['Verified', 'Violated', 'Inconclusive', 'NotEvaluated']);
 
 const ACTION_STATUSES = Object.freeze(['Proceed', 'Proceed-with-conditions', 'Pause', 'Rollback']);
+
+const ACTION_STATUS_SET = new Set(ACTION_STATUSES);
+const EVIDENCE_VERDICT_SET = new Set(EVIDENCE_VERDICTS);
 
 const REQUIRED_CHECK_FIELDS = Object.freeze([
   'id',
@@ -1766,6 +2413,50 @@ function assertCheckContract(check, sourceIds) {
     }
   }
   return true;
+}
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function stringArray(value) {
+  return Array.isArray(value) && value.every(nonEmptyString);
+}
+
+function validEvidenceCounts(counts) {
+  return (
+    counts &&
+    typeof counts === 'object' &&
+    ['verified', 'violated', 'unresolved'].every((key) => Number.isInteger(counts[key]) && counts[key] >= 0)
+  );
+}
+
+function validRootCauseAgent(agent) {
+  return (
+    agent == null ||
+    (typeof agent === 'object' &&
+      nonEmptyString(agent.title) &&
+      nonEmptyString(agent.rootCause) &&
+      stringArray(agent.chain) &&
+      nonEmptyString(agent.recommendation))
+  );
+}
+
+function validReportContract(report) {
+  return (
+    report &&
+    typeof report === 'object' &&
+    EVIDENCE_VERDICT_SET.has(report.evidenceVerdict) &&
+    ACTION_STATUS_SET.has(report.action) &&
+    nonEmptyString(report.actionLabel) &&
+    nonEmptyString(report.title) &&
+    nonEmptyString(report.summary) &&
+    nonEmptyString(report.scopeStatement) &&
+    validEvidenceCounts(report.evidenceCounts) &&
+    stringArray(report.keyEvidence) &&
+    stringArray(report.residualRisks) &&
+    validRootCauseAgent(report.rcAgent)
+  );
 }
 
 function reconcileChange(declaredChange, observedChange) {
@@ -2623,6 +3314,482 @@ function matchInspectionPlaybook(workspace, catalog = inspectionPlaybooks) {
   return null;
 }
 
+const INSPECTION_LIBRARY_SCHEMA_VERSION = 1;
+
+function clone(value) {
+  if (Array.isArray(value)) return value.map(clone);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clone(item)]));
+  }
+  return value;
+}
+
+function stripRuntimePayload(value) {
+  if (Array.isArray(value)) return value.map(stripRuntimePayload);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !['evidence', 'report'].includes(key))
+      .map(([key, item]) => [key, stripRuntimePayload(item)]),
+  );
+}
+
+function sortedUnique(values = []) {
+  return [...new Set(values.filter(Boolean))].sort();
+}
+
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function stringArray(value, { allowEmpty = true } = {}) {
+  return Array.isArray(value) && (allowEmpty || value.length > 0) && value.every(nonEmptyString);
+}
+
+function validRequest(request) {
+  return (
+    request &&
+    typeof request === 'object' &&
+    nonEmptyString(request.prompt) &&
+    (request.targetService === undefined || typeof request.targetService === 'string') &&
+    (request.contextReference === undefined || typeof request.contextReference === 'string')
+  );
+}
+
+function validContextItem(item) {
+  return (
+    item &&
+    typeof item === 'object' &&
+    nonEmptyString(item.id) &&
+    nonEmptyString(item.kind) &&
+    nonEmptyString(item.label) &&
+    typeof item.detail === 'string'
+  );
+}
+
+function validPlan(plan) {
+  if (
+    !plan ||
+    typeof plan !== 'object' ||
+    !stringArray(plan.checkIds, { allowEmpty: false }) ||
+    !Array.isArray(plan.checks) ||
+    plan.checks.length !== plan.checkIds.length
+  ) {
+    return false;
+  }
+  const checkIds = new Set(plan.checkIds);
+  return plan.checks.every(
+    (check) =>
+      check &&
+      typeof check === 'object' &&
+      nonEmptyString(check.id) &&
+      checkIds.has(check.id) &&
+      stringArray(check.sourceRefs),
+  );
+}
+
+function validBaseline(baseline) {
+  return (
+    baseline &&
+    typeof baseline === 'object' &&
+    nonEmptyString(baseline.fingerprint) &&
+    stringArray(baseline.entities, { allowEmpty: false }) &&
+    stringArray(baseline.checkIds, { allowEmpty: false })
+  );
+}
+
+function validDefinition(definition) {
+  return (
+    definition &&
+    typeof definition === 'object' &&
+    nonEmptyString(definition.id) &&
+    Number.isInteger(definition.version) &&
+    definition.version > 0 &&
+    nonEmptyString(definition.name) &&
+    nonEmptyString(definition.createdAt) &&
+    nonEmptyString(definition.updatedAt) &&
+    nonEmptyString(definition.sourceRunId) &&
+    validRequest(definition.request) &&
+    Array.isArray(definition.selectedContext) &&
+    definition.selectedContext.length > 0 &&
+    definition.selectedContext.every(validContextItem) &&
+    validPlan(definition.inspectionPlan) &&
+    validBaseline(definition.baseline)
+  );
+}
+
+function validRun(run) {
+  return (
+    run &&
+    typeof run === 'object' &&
+    nonEmptyString(run.id) &&
+    nonEmptyString(run.taskInstanceId) &&
+    run.status === 'locked' &&
+    nonEmptyString(run.startedAt) &&
+    nonEmptyString(run.completedAt) &&
+    Array.isArray(run.selectedContextResults) &&
+    validPlan(run.inspectionPlan) &&
+    (run.executionResults === undefined ||
+      (Array.isArray(run.executionResults) && run.executionResults.every(validExecutionResult))) &&
+    validReportContract(run.report)
+  );
+}
+
+const EXECUTION_RESULT_STATUSES = new Set(['Verified', 'Violated', 'Inconclusive', 'NotEvaluated']);
+
+function validExecutionResult(result) {
+  return (
+    result &&
+    typeof result === 'object' &&
+    nonEmptyString(result.id) &&
+    nonEmptyString(result.label) &&
+    EXECUTION_RESULT_STATUSES.has(result.status) &&
+    typeof result.fact === 'string'
+  );
+}
+
+function normalizeLibrary(value) {
+  if (
+    !value ||
+    value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
+    !Number.isInteger(value.revision) ||
+    value.revision < 0 ||
+    !Array.isArray(value.savedInspections) ||
+    !Array.isArray(value.runs) ||
+    !value.savedInspections.every(validDefinition) ||
+    !value.runs.every(validRun)
+  ) {
+    return null;
+  }
+  return deepFreeze({
+    schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+    revision: value.revision,
+    savedInspections: clone(value.savedInspections),
+    runs: clone(value.runs),
+  });
+}
+
+function createEmptyInspectionLibrary() {
+  return deepFreeze({
+    schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+    revision: 0,
+    savedInspections: [],
+    runs: [],
+  });
+}
+
+function parseInspectionLibrary(serialized) {
+  return parseInspectionLibraryWithDiagnostics(serialized).library;
+}
+
+function parseInspectionLibraryWithDiagnostics(serialized) {
+  const unavailable = () =>
+    deepFreeze({
+      library: createEmptyInspectionLibrary(),
+      diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
+    });
+  if (typeof serialized !== 'string' || !serialized.trim()) {
+    return deepFreeze({
+      library: createEmptyInspectionLibrary(),
+      diagnostics: { status: 'available', rejectedRunCount: 0 },
+    });
+  }
+  try {
+    const value = JSON.parse(serialized);
+    if (
+      !value ||
+      value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
+      !Number.isInteger(value.revision) ||
+      value.revision < 0 ||
+      !Array.isArray(value.savedInspections) ||
+      !value.savedInspections.every(validDefinition) ||
+      !Array.isArray(value.runs)
+    ) {
+      return unavailable();
+    }
+    const validRuns = value.runs.filter(validRun);
+    const rejectedRunCount = value.runs.length - validRuns.length;
+    return deepFreeze({
+      library: {
+        schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+        revision: value.revision,
+        savedInspections: clone(value.savedInspections),
+        runs: clone(validRuns),
+      },
+      diagnostics: {
+        status: rejectedRunCount ? 'degraded' : 'available',
+        rejectedRunCount,
+      },
+    });
+  } catch {
+    return unavailable();
+  }
+}
+
+function serializeInspectionLibrary(library) {
+  const normalized = normalizeLibrary(library);
+  if (!normalized) throw new TypeError('Invalid inspection library envelope');
+  return JSON.stringify(normalized);
+}
+
+function contextOption(id, kind, label, detail) {
+  return { id, kind, label, detail, selected: true };
+}
+
+function createContextOptions(workspace) {
+  if (!workspace) return deepFreeze([]);
+  const changes = (workspace.contextSources ?? []).map((source) =>
+    contextOption(`change:${source.id}`, 'change', source.label, source.detail),
+  );
+  const services = sortedUnique([
+    ...(workspace.declaredChange?.entities ?? []),
+    ...(workspace.observedChange?.entities ?? []),
+  ]).map((entity) => contextOption(`service:${entity}`, 'service', entity, '本次巡检关联服务'));
+  const signals = (workspace.committedChecks ?? []).map((check) =>
+    contextOption(
+      `signal:${check.id}`,
+      'signal',
+      check.title ?? check.purpose ?? check.metric ?? check.id,
+      check.metric ?? check.purpose ?? check.id,
+    ),
+  );
+  return deepFreeze([...changes, ...services, ...signals]);
+}
+
+function toggleContextSelection(options, contextId) {
+  const target = options.find((option) => option.id === contextId);
+  if (!target) return options;
+  if (target.selected && options.filter((option) => option.selected).length === 1) return options;
+  if (
+    target.selected &&
+    target.kind === 'signal' &&
+    options.filter((option) => option.kind === 'signal' && option.selected).length === 1
+  ) {
+    return options;
+  }
+  return deepFreeze(
+    options.map((option) => (option.id === contextId ? { ...option, selected: !option.selected } : option)),
+  );
+}
+
+function planSnapshot(inspectionPlan) {
+  if (!inspectionPlan || !Array.isArray(inspectionPlan.checkIds) || !Array.isArray(inspectionPlan.checks)) {
+    throw new TypeError('A locked inspection plan is required');
+  }
+  return stripRuntimePayload({
+    source: inspectionPlan.source,
+    sourcePlaybookRef: inspectionPlan.sourcePlaybookRef ? clone(inspectionPlan.sourcePlaybookRef) : null,
+    checkIds: [...inspectionPlan.checkIds],
+    checks: inspectionPlan.checks,
+  });
+}
+
+function createSavedInspectionDefinition({
+  id,
+  name,
+  request,
+  workspace,
+  selectedContext,
+  taskInstance,
+  sourceRunId,
+  now,
+  version = 1,
+}) {
+  if (typeof name !== 'string' || !name.trim()) throw new TypeError('Saved inspection name is required');
+  if (!id || !sourceRunId || !now) throw new TypeError('Saved inspection identity and timestamp are required');
+  if (taskInstance?.status !== 'locked') throw new TypeError('Only a locked inspection task can be saved');
+  const chosen = (selectedContext ?? []).filter((item) => item.selected !== false).map(clone);
+  if (!chosen.length) throw new TypeError('At least one selected context item is required');
+  return deepFreeze({
+    id,
+    version,
+    name: name.trim(),
+    createdAt: now,
+    updatedAt: now,
+    sourceRunId,
+    request: clone(request),
+    selectedContext: chosen,
+    inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
+    baseline: {
+      fingerprint: workspace.declaredChange.fingerprint,
+      entities: sortedUnique(workspace.observedChange?.entities ?? workspace.declaredChange.entities),
+      checkIds: [...taskInstance.inspectionPlan.checkIds],
+    },
+  });
+}
+
+function selectedContextResults(selectedContext) {
+  return selectedContext
+    .filter((item) => item.selected !== false)
+    .map((item) => ({
+      contextId: item.id,
+      kind: item.kind,
+      label: item.label,
+      status: 'Verified',
+      detail: item.detail,
+    }));
+}
+
+function createInspectionRun({
+  id,
+  taskInstance,
+  definitionId = null,
+  selectedContext,
+  executionResults,
+  report,
+  startedAt,
+  completedAt,
+}) {
+  if (!id || !startedAt || !completedAt) throw new TypeError('Inspection run identity and timestamps are required');
+  if (taskInstance?.status !== 'locked') throw new TypeError('Inspection run requires a locked task');
+  if (!Array.isArray(executionResults) || !executionResults.every(validExecutionResult)) {
+    throw new TypeError('Inspection run requires structured execution results');
+  }
+  return deepFreeze({
+    id,
+    taskInstanceId: taskInstance.id,
+    definitionId,
+    startedAt,
+    completedAt,
+    status: 'locked',
+    selectedContextResults: selectedContextResults(selectedContext ?? []),
+    inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
+    executionResults: executionResults.map(({ id: resultId, label, status, fact }) => ({
+      id: resultId,
+      label,
+      status,
+      fact,
+    })),
+    report: clone(report),
+  });
+}
+
+function chooseDefinition(left, right) {
+  if (!left) return right;
+  if (!right) return left;
+  if (right.version !== left.version) return right.version > left.version ? right : left;
+  return String(right.updatedAt).localeCompare(String(left.updatedAt)) > 0 ? right : left;
+}
+
+function mergeInspectionLibraries(leftInput, rightInput) {
+  const left = normalizeLibrary(leftInput) ?? createEmptyInspectionLibrary();
+  const right = normalizeLibrary(rightInput) ?? createEmptyInspectionLibrary();
+  const definitions = new Map();
+  for (const definition of [...left.savedInspections, ...right.savedInspections]) {
+    definitions.set(definition.id, chooseDefinition(definitions.get(definition.id), definition));
+  }
+  const runs = new Map();
+  for (const run of [...left.runs, ...right.runs]) {
+    if (!runs.has(run.id)) runs.set(run.id, run);
+  }
+  const savedInspections = [...definitions.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone);
+  const mergedRuns = [...runs.values()].sort((a, b) => a.id.localeCompare(b.id)).map(clone);
+  const rightDefinitions = [...right.savedInspections].sort((a, b) => a.id.localeCompare(b.id));
+  const rightRuns = [...right.runs].sort((a, b) => a.id.localeCompare(b.id));
+  const incomingAlreadyContainsUnion =
+    JSON.stringify(savedInspections) === JSON.stringify(rightDefinitions) &&
+    JSON.stringify(mergedRuns) === JSON.stringify(rightRuns);
+  return deepFreeze({
+    schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+    revision: Math.max(left.revision, right.revision) + (incomingAlreadyContainsUnion ? 0 : 1),
+    savedInspections,
+    runs: mergedRuns,
+  });
+}
+
+function classifySavedInspectionRefresh(definition, workspace) {
+  if (!validDefinition(definition) || !workspace) {
+    return deepFreeze({ status: 'major-drift', differences: [{ id: 'definition-unavailable', severity: 'blocking' }] });
+  }
+  const currentCheckIds = new Set((workspace.committedChecks ?? []).map((check) => check.id));
+  const missingCheckIds = definition.baseline.checkIds.filter((id) => !currentCheckIds.has(id));
+  const fingerprintChanged = workspace.declaredChange?.fingerprint !== definition.baseline.fingerprint;
+  if (missingCheckIds.length || fingerprintChanged) {
+    return deepFreeze({
+      status: 'major-drift',
+      differences: [
+        ...(missingCheckIds.length
+          ? [{ id: 'check-structure', severity: 'blocking', summary: `缺少检查项：${missingCheckIds.join('、')}` }]
+          : []),
+        ...(fingerprintChanged ? [{ id: 'change-fingerprint', severity: 'blocking', summary: '变更指纹已变化' }] : []),
+      ],
+    });
+  }
+  const baselineEntities = new Set(definition.baseline.entities);
+  const currentEntities = sortedUnique(workspace.observedChange?.entities ?? workspace.declaredChange?.entities);
+  const addedEntities = currentEntities.filter((entity) => !baselineEntities.has(entity));
+  const selectedSignalCheckIds = new Set(
+    definition.selectedContext
+      .filter((item) => item.kind === 'signal' && item.id.startsWith('signal:'))
+      .map((item) => item.id.slice('signal:'.length)),
+  );
+  const extraCheckIds = [...currentCheckIds].filter(
+    (id) => selectedSignalCheckIds.has(id) && !definition.baseline.checkIds.includes(id),
+  );
+  if (addedEntities.length || extraCheckIds.length) {
+    return deepFreeze({
+      status: 'minor-drift',
+      differences: [
+        ...addedEntities.map((entity) => ({
+          id: `entity:${entity}`,
+          severity: 'review',
+          summary: `新增关联服务 ${entity}`,
+        })),
+        ...extraCheckIds.map((id) => ({ id: `check:${id}`, severity: 'review', summary: `新增检查项 ${id}` })),
+      ],
+    });
+  }
+  return deepFreeze({ status: 'exact', differences: [] });
+}
+
+const RESULT_RANK = Object.freeze({
+  Violated: 0,
+  Inconclusive: 1,
+  NotEvaluated: 1,
+  Verified: 2,
+});
+
+function selectRunsForDefinition(definition, runs = []) {
+  if (!definition) return [];
+  const unique = new Map();
+  for (const run of runs) {
+    if (run?.definitionId === definition.id || run?.id === definition.sourceRunId) unique.set(run.id, run);
+  }
+  return [...unique.values()].sort(
+    (left, right) =>
+      String(right.completedAt).localeCompare(String(left.completedAt)) ||
+      String(right.id).localeCompare(String(left.id)),
+  );
+}
+
+function compareExecutionResult(id, before, after) {
+  if (!before) return { id, label: after.label, kind: 'added', before: null, after };
+  if (!after) return { id, label: before.label, kind: 'removed', before, after: null };
+  if (before.status === after.status && before.fact === after.fact && before.label === after.label) return null;
+  const beforeRank = RESULT_RANK[before.status];
+  const afterRank = RESULT_RANK[after.status];
+  const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
+  return { id, label: after.label, kind, before, after };
+}
+
+function compareInspectionRuns(currentRun, previousRun) {
+  if (!Array.isArray(currentRun?.executionResults) || !Array.isArray(previousRun?.executionResults)) return null;
+  const current = new Map(currentRun.executionResults.map((result) => [result.id, result]));
+  const previous = new Map(previousRun.executionResults.map((result) => [result.id, result]));
+  const ids = [...new Set([...current.keys(), ...previous.keys()])].sort();
+  const items = [];
+  for (const id of ids) {
+    const item = compareExecutionResult(id, previous.get(id), current.get(id));
+    if (item) items.push(item);
+  }
+  return deepFreeze({
+    previousRunId: previousRun.id,
+    previousCompletedAt: previousRun.completedAt,
+    summary: items.length ? 'changed' : 'stable',
+    items,
+  });
+}
+
 function requireWorkspace(state) {
   if (!state.workspace) throw new Error('Inspection workspace is not compiled');
   return state.workspace;
@@ -2664,13 +3831,23 @@ function selectCommittedChecks(state) {
   }
   const baseChecks =
     state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+  const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
-  const checks = [...baseChecks, ...acceptedCandidates];
+  const checks = [...selectedBaseChecks, ...acceptedCandidates];
   const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
+}
+
+function selectChecksForContext(state, checks) {
+  const signalOptions = state.contextOptions.filter((item) => item.kind === 'signal');
+  if (!signalOptions.length) return checks;
+  const selectedSignalIds = new Set(
+    signalOptions.filter((item) => item.selected).map((item) => item.id.slice('signal:'.length)),
+  );
+  return checks.filter((check) => selectedSignalIds.has(check.id));
 }
 
 function selectPlanSummary(state) {
@@ -2678,8 +3855,9 @@ function selectPlanSummary(state) {
   const dispositions = state.candidateDisposition;
   const baseChecks =
     state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+  const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   return {
-    required: baseChecks.filter((check) => check.priority === 'required').length,
+    required: selectedBaseChecks.filter((check) => check.priority === 'required').length,
     recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
       .length,
     pending: workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]).length,
@@ -2718,6 +3896,47 @@ function selectPlaybookView(state) {
   };
 }
 
+function selectSavedInspectionView(state) {
+  const savedInspections = [...state.library.savedInspections].sort((left, right) =>
+    String(right.updatedAt).localeCompare(String(left.updatedAt)),
+  );
+  const currentRun = state.library.runs.find((run) => run.id === state.currentRunId) ?? null;
+  const historyDefinition =
+    savedInspections.find((definition) => definition.id === state.activeHistoryDefinitionId) ?? null;
+  const historyRuns = selectRunsForDefinition(historyDefinition, state.library.runs);
+  const reportDefinitionId = state.activeSavedInspectionId ?? state.savedDefinitionId;
+  const reportDefinition = savedInspections.find((definition) => definition.id === reportDefinitionId) ?? null;
+  const reportRuns = selectRunsForDefinition(reportDefinition, state.library.runs);
+  const currentRunIndex = currentRun ? reportRuns.findIndex((run) => run.id === currentRun.id) : -1;
+  const comparison =
+    currentRunIndex >= 0 && reportRuns[currentRunIndex + 1]
+      ? compareInspectionRuns(currentRun, reportRuns[currentRunIndex + 1])
+      : null;
+  return {
+    definitions: savedInspections,
+    runs: state.library.runs,
+    cards: savedInspections.map((definition) => {
+      const definitionRuns = selectRunsForDefinition(definition, state.library.runs);
+      return { definition, runs: definitionRuns, latestRun: definitionRuns[0] ?? null };
+    }),
+    activeDefinition: savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    historyDefinition,
+    historyRuns,
+    historyDiagnostics: state.historyDiagnostics,
+    reportDefinition,
+    comparison,
+    refresh: state.savedRunRefresh,
+    contextOptions: state.contextOptions,
+    selectedContext: state.contextOptions.filter((item) => item.selected),
+    currentRun,
+    savedDefinitionId: state.savedDefinitionId,
+    composerPrefill: state.composerPrefill,
+    conversation: state.conversation,
+    storageError: state.storageError,
+    toast: state.toast,
+  };
+}
+
 function selectViewModel(state) {
   if (!state.workspace) {
     return {
@@ -2730,6 +3949,7 @@ function selectViewModel(state) {
       execution: [],
       report: null,
       playbook: selectPlaybookView(state),
+      savedInspection: selectSavedInspectionView(state),
     };
   }
   return {
@@ -2742,10 +3962,14 @@ function selectViewModel(state) {
     execution: selectExecutionView(state),
     report: selectReportView(state),
     playbook: selectPlaybookView(state),
+    savedInspection: selectSavedInspectionView(state),
   };
 }
 
 function createDemoSession(options = {}) {
+  const library = options.library
+    ? mergeInspectionLibraries(createEmptyInspectionLibrary(), options.library)
+    : createEmptyInspectionLibrary();
   return deepFreeze({
     workspace: null,
     phase: 'intake',
@@ -2757,19 +3981,88 @@ function createDemoSession(options = {}) {
     playbookDriftReviewed: false,
     playbookProposal: null,
     taskInstance: null,
-    nextTaskOrdinal: options.nextTaskOrdinal ?? 48,
+    library,
+    contextOptions: [],
+    conversation: [],
+    activeRequest: null,
+    activeSavedInspectionId: null,
+    activeHistoryDefinitionId: null,
+    savedRunRefresh: null,
+    composerPrefill: options.composerPrefill ?? null,
+    currentRunId: null,
+    savedDefinitionId: null,
+    storageError: null,
+    toast: null,
+    shareToast: null,
+    historyDiagnostics: {
+      status: options.historyDiagnostics?.status ?? 'available',
+      rejectedRunCount: options.historyDiagnostics?.rejectedRunCount ?? 0,
+    },
+    actorId: normalizeActorId(options.actorId),
+    nextTaskOrdinal:
+      options.nextTaskOrdinal ??
+      nextOrdinal(
+        library.runs.map((run) => run.taskInstanceId),
+        'INS',
+        48,
+      ),
+    nextRunOrdinal:
+      options.nextRunOrdinal ??
+      nextOrdinal(
+        library.runs.map((run) => run.id),
+        'RUN',
+        48,
+      ),
+    nextSavedOrdinal:
+      options.nextSavedOrdinal ??
+      nextOrdinal(
+        library.savedInspections.map((definition) => definition.id),
+        'SAVED',
+        1,
+      ),
   });
 }
 
-function taskId(ordinal) {
-  return `INS-${String(ordinal).padStart(4, '0')}`;
+function nextOrdinal(ids, prefix, fallback) {
+  const ordinals = ids
+    .map((id) => new RegExp(`^${prefix}-(\\d+)(?:$|-)`).exec(String(id))?.[1])
+    .filter(Boolean)
+    .map(Number);
+  return ordinals.length ? Math.max(...ordinals) + 1 : fallback;
 }
 
-function createTaskInstance(ordinal) {
-  const id = taskId(ordinal);
+function normalizeActorId(actorId) {
+  return typeof actorId === 'string' ? actorId.replace(/[^a-zA-Z0-9]/g, '') : '';
+}
+
+function scopedId(prefix, ordinal, width, actorId) {
+  const base = `${prefix}-${String(ordinal).padStart(width, '0')}`;
+  return actorId ? `${base}-${actorId}` : base;
+}
+
+function taskId(ordinal, actorId) {
+  return scopedId('INS', ordinal, 4, actorId);
+}
+
+function runId(ordinal, actorId) {
+  return scopedId('RUN', ordinal, 4, actorId);
+}
+
+function savedInspectionId(ordinal, actorId) {
+  return scopedId('SAVED', ordinal, 3, actorId);
+}
+
+function demoTimestamp(ordinal, offset = 0) {
+  return new Date(Date.UTC(2026, 7, 16, 6, ordinal + offset)).toISOString();
+}
+
+function createTaskInstance(ordinal, sourceSavedInspectionId = null, actorId = '') {
+  const id = taskId(ordinal, actorId);
   return {
     id,
     status: 'draft',
+    startedAt: demoTimestamp(ordinal),
+    sourceSavedInspectionId,
     sourcePlaybookRef: null,
     referencePlaybookRef: null,
     inspectionPlan: null,
@@ -2794,10 +4087,11 @@ function snapshotChecks(checks) {
   return checks.map((check) => ({ ...check, sourceRefs: [...check.sourceRefs] }));
 }
 
-function createInspectionPlan(checks, sourcePlaybookRef = null) {
+function createInspectionPlan(checks, sourcePlaybookRef = null, sourceSavedInspectionId = null) {
   return {
-    source: sourcePlaybookRef ? 'approved-playbook' : 'generated',
+    source: sourceSavedInspectionId ? 'saved-inspection' : sourcePlaybookRef ? 'approved-playbook' : 'generated',
     sourcePlaybookRef: sourcePlaybookRef ? { ...sourcePlaybookRef } : null,
+    sourceSavedInspectionId,
     checkIds: checks.map((check) => check.id),
     checks: snapshotChecks(checks),
   };
@@ -2827,20 +4121,40 @@ function disposeCandidate(state, action) {
   };
 }
 
-function submitIntent(state, action, playbookCatalog) {
+function submitIntent(state, action, playbookCatalog, compileIntent) {
   if (state.phase !== 'intake') return state;
-  const workspace = compileInspectionRequest(action.request);
+  const workspace = compileIntent(action.request);
   const ordinal = state.nextTaskOrdinal;
   return {
-    ...createDemoSession({ nextTaskOrdinal: ordinal + 1 }),
+    ...createDemoSession({
+      library: state.library,
+      actorId: state.actorId,
+      nextTaskOrdinal: ordinal + 1,
+      nextRunOrdinal: state.nextRunOrdinal,
+      nextSavedOrdinal: state.nextSavedOrdinal,
+      historyDiagnostics: state.historyDiagnostics,
+    }),
     workspace,
+    contextOptions: createContextOptions(workspace),
+    conversation: [
+      { role: 'user', text: action.request.prompt },
+      { role: 'assistant', text: `已识别：${workspace.declaredChange.entities[0]} 巡检` },
+    ],
+    activeRequest: { ...action.request },
     playbookMatch: matchInspectionPlaybook(workspace, playbookCatalog),
-    taskInstance: createTaskInstance(ordinal),
+    taskInstance: createTaskInstance(ordinal, null, state.actorId),
   };
 }
 
+function toggleDraftContext(state, action) {
+  if (state.phase !== 'intake' || !state.workspace) return state;
+  const contextOptions = toggleContextSelection(state.contextOptions, action.contextId);
+  return contextOptions === state.contextOptions ? state : { ...state, contextOptions };
+}
+
 function confirmInput(state) {
-  return state.phase === 'intake' && state.workspace ? { ...state, phase: 'context' } : state;
+  if (state.phase !== 'intake' || !state.workspace) return state;
+  return { ...state, phase: state.playbookMatch ? 'context' : 'plan' };
 }
 
 function dismissPlaybook(state) {
@@ -2865,6 +4179,7 @@ function startPlaybookExecution(state) {
   ) {
     return state;
   }
+  const checks = selectChecksForContext(state, state.playbookMatch.checks);
   return {
     ...state,
     phase: 'execution',
@@ -2874,7 +4189,7 @@ function startPlaybookExecution(state) {
       {
         status: 'executing',
         sourcePlaybookRef: playbookRef(state.playbookMatch),
-        inspectionPlan: createInspectionPlan(state.playbookMatch.checks, playbookRef(state.playbookMatch)),
+        inspectionPlan: createInspectionPlan(checks, playbookRef(state.playbookMatch)),
       },
       { type: 'playbook-applied', playbookRef: playbookRef(state.playbookMatch) },
     ),
@@ -2951,7 +4266,11 @@ function confirmPlan(state) {
       state.taskInstance,
       {
         status: 'executing',
-        inspectionPlan: createInspectionPlan(checks, state.taskInstance.sourcePlaybookRef),
+        inspectionPlan: createInspectionPlan(
+          checks,
+          state.taskInstance.sourcePlaybookRef,
+          state.taskInstance.sourceSavedInspectionId,
+        ),
       },
       { type: 'plan-confirmed', checkIds: checks.map((check) => check.id) },
     ),
@@ -2962,14 +4281,32 @@ function advanceExecution(state) {
   if (state.phase !== 'execution' || !state.workspace) return state;
   const lastIndex = state.workspace.execution.length - 1;
   const nextStep = state.executionStep + 1;
-  return nextStep >= lastIndex
-    ? {
-        ...state,
-        phase: 'report',
-        executionStep: lastIndex,
-        taskInstance: updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' }),
-      }
-    : { ...state, executionStep: nextStep };
+  if (nextStep < lastIndex) return { ...state, executionStep: nextStep };
+  const taskInstance = updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' });
+  const id = runId(state.nextRunOrdinal, state.actorId);
+  const run = createInspectionRun({
+    id,
+    taskInstance,
+    definitionId: state.activeSavedInspectionId,
+    selectedContext: state.contextOptions,
+    executionResults: state.workspace.execution,
+    report: state.workspace.report,
+    startedAt: taskInstance.startedAt,
+    completedAt: demoTimestamp(state.nextRunOrdinal, 1),
+  });
+  return {
+    ...state,
+    phase: 'report',
+    executionStep: lastIndex,
+    taskInstance,
+    currentRunId: id,
+    nextRunOrdinal: state.nextRunOrdinal + 1,
+    library: {
+      ...state.library,
+      revision: state.library.revision + 1,
+      runs: [...state.library.runs, run],
+    },
+  };
 }
 
 function toggleRootCause(state) {
@@ -2994,11 +4331,200 @@ function submitPlaybookProposal(state) {
   };
 }
 
+function createPersonalSavedInspection(state, action) {
+  if (
+    state.phase !== 'report' ||
+    state.taskInstance?.status !== 'locked' ||
+    !state.currentRunId ||
+    state.savedDefinitionId
+  ) {
+    return state;
+  }
+  const currentRun = state.library.runs.find((run) => run.id === state.currentRunId);
+  if (!currentRun) return state;
+  const id = savedInspectionId(state.nextSavedOrdinal, state.actorId);
+  let definition;
+  try {
+    definition = createSavedInspectionDefinition({
+      id,
+      name: action.name,
+      request: state.activeRequest,
+      workspace: state.workspace,
+      selectedContext: state.contextOptions,
+      taskInstance: state.taskInstance,
+      sourceRunId: currentRun.id,
+      now: action.now ?? demoTimestamp(state.nextSavedOrdinal),
+    });
+  } catch {
+    return state;
+  }
+  return {
+    ...state,
+    savedDefinitionId: id,
+    nextSavedOrdinal: state.nextSavedOrdinal + 1,
+    toast: '已保存，下次可从首页直接执行',
+    library: {
+      ...state.library,
+      revision: state.library.revision + 1,
+      savedInspections: [...state.library.savedInspections, definition],
+    },
+  };
+}
+
+function savedPlan(definition) {
+  return {
+    ...definition.inspectionPlan,
+    source: 'saved-inspection',
+    sourceSavedInspectionId: definition.id,
+    sourcePlaybookRef: definition.inspectionPlan.sourcePlaybookRef
+      ? { ...definition.inspectionPlan.sourcePlaybookRef }
+      : null,
+    checkIds: [...definition.inspectionPlan.checkIds],
+    checks: snapshotChecks(definition.inspectionPlan.checks),
+  };
+}
+
+function selectedSavedContext(definition, workspace) {
+  const selectedIds = new Set(definition.selectedContext.map((item) => item.id));
+  const current = createContextOptions(workspace).map((item) => ({ ...item, selected: selectedIds.has(item.id) }));
+  return current.some((item) => item.selected)
+    ? current
+    : definition.selectedContext.map((item) => ({ ...item, selected: true }));
+}
+
+function requestSavedInspectionRun(state, action, compileSavedDefinition) {
+  if (state.phase !== 'intake' || state.workspace) return state;
+  const definition = state.library.savedInspections.find((item) => item.id === action.definitionId);
+  if (!definition) return state;
+  let workspace;
+  try {
+    workspace = compileSavedDefinition(definition.request);
+  } catch {
+    return state;
+  }
+  const refresh = classifySavedInspectionRefresh(definition, workspace);
+  const ordinal = state.nextTaskOrdinal;
+  let taskInstance = createTaskInstance(ordinal, definition.id, state.actorId);
+  let phase = 'context';
+  if (refresh.status === 'exact') {
+    phase = 'execution';
+    taskInstance = updateTaskInstance(
+      taskInstance,
+      { status: 'executing', inspectionPlan: savedPlan(definition) },
+      { type: 'saved-inspection-applied', definitionId: definition.id, refreshStatus: 'exact' },
+    );
+  }
+  return {
+    ...createDemoSession({
+      library: state.library,
+      actorId: state.actorId,
+      nextTaskOrdinal: ordinal + 1,
+      nextRunOrdinal: state.nextRunOrdinal,
+      nextSavedOrdinal: state.nextSavedOrdinal,
+      historyDiagnostics: state.historyDiagnostics,
+    }),
+    phase,
+    workspace,
+    contextOptions: selectedSavedContext(definition, workspace),
+    activeRequest: { ...definition.request },
+    activeSavedInspectionId: definition.id,
+    savedRunRefresh: refresh,
+    taskInstance,
+  };
+}
+
+function confirmSavedInspectionRun(state) {
+  if (state.phase !== 'context' || state.savedRunRefresh?.status !== 'minor-drift') return state;
+  const definition = state.library.savedInspections.find((item) => item.id === state.activeSavedInspectionId);
+  if (!definition) return state;
+  return {
+    ...state,
+    phase: 'execution',
+    taskInstance: updateTaskInstance(
+      state.taskInstance,
+      { status: 'executing', inspectionPlan: savedPlan(definition) },
+      {
+        type: 'saved-inspection-drift-confirmed',
+        definitionId: definition.id,
+        differenceIds: state.savedRunRefresh.differences.map((difference) => difference.id),
+      },
+    ),
+  };
+}
+
+function regenerateSavedInspection(state) {
+  if (state.phase !== 'context' || state.savedRunRefresh?.status !== 'major-drift') return state;
+  const definition = state.library.savedInspections.find((item) => item.id === state.activeSavedInspectionId);
+  if (!definition) return state;
+  return createDemoSession({
+    library: state.library,
+    actorId: state.actorId,
+    nextTaskOrdinal: state.nextTaskOrdinal,
+    nextRunOrdinal: state.nextRunOrdinal,
+    nextSavedOrdinal: state.nextSavedOrdinal,
+    composerPrefill: { ...definition.request },
+    historyDiagnostics: state.historyDiagnostics,
+  });
+}
+
+function resetSession(state) {
+  return createDemoSession({
+    library: state.library,
+    actorId: state.actorId,
+    nextTaskOrdinal: state.nextTaskOrdinal,
+    nextRunOrdinal: state.nextRunOrdinal,
+    nextSavedOrdinal: state.nextSavedOrdinal,
+    historyDiagnostics: state.historyDiagnostics,
+  });
+}
+
+function hydrateLibrary(state, action) {
+  if (state.phase !== 'intake' || state.workspace || state.library.revision > 0) return state;
+  return createDemoSession({
+    library: action.library,
+    actorId: state.actorId,
+    historyDiagnostics: action.diagnostics,
+  });
+}
+
+function mergeLibrary(state, action) {
+  const library = mergeInspectionLibraries(state.library, action.library);
+  const historyDiagnostics = action.diagnostics ?? state.historyDiagnostics;
+  return JSON.stringify(library) === JSON.stringify(state.library) && historyDiagnostics === state.historyDiagnostics
+    ? state
+    : { ...state, library, historyDiagnostics };
+}
+
+function openSavedInspectionHistory(state, action) {
+  if (state.phase !== 'intake' || state.workspace) return state;
+  const exists = state.library.savedInspections.some((definition) => definition.id === action.definitionId);
+  return exists ? { ...state, activeHistoryDefinitionId: action.definitionId } : state;
+}
+
+function closeSavedInspectionHistory(state) {
+  return state.activeHistoryDefinitionId ? { ...state, activeHistoryDefinitionId: null } : state;
+}
+
+function markStorageFailure(state, action) {
+  return { ...state, storageError: action.message || '本地保存失败', toast: null };
+}
+
+function setShareFeedback(state, action) {
+  return state.phase === 'report' ? { ...state, shareToast: action.message ?? null } : state;
+}
+
 function createDemoReducer(options = {}) {
   const playbookCatalog = options.playbookCatalog ?? inspectionPlaybooks;
+  const compileIntent = options.compileIntent ?? compileInspectionRequest;
+  const compileSavedDefinition = options.compileSavedDefinition ?? compileInspectionRequest;
   const sessionHandlers = {
-    INTENT_SUBMITTED: (state, action) => submitIntent(state, action, playbookCatalog),
-    RESET: (state) => createDemoSession({ nextTaskOrdinal: state.nextTaskOrdinal }),
+    INTENT_SUBMITTED: (state, action) => submitIntent(state, action, playbookCatalog, compileIntent),
+    RESET: resetSession,
+    LIBRARY_HYDRATED: hydrateLibrary,
+    LIBRARY_MERGED: mergeLibrary,
+    LIBRARY_SAVE_FAILED: markStorageFailure,
+    SHARE_FEEDBACK_SET: setShareFeedback,
+    CONTEXT_ITEM_TOGGLED: toggleDraftContext,
     INPUT_CONFIRMED: confirmInput,
     PLAYBOOK_DISMISSED: dismissPlaybook,
     PLAYBOOK_EXECUTION_STARTED: startPlaybookExecution,
@@ -3011,6 +4537,12 @@ function createDemoReducer(options = {}) {
     EXECUTION_ADVANCED: advanceExecution,
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
+    SAVED_INSPECTION_CREATED: createPersonalSavedInspection,
+    SAVED_INSPECTION_HISTORY_OPENED: openSavedInspectionHistory,
+    SAVED_INSPECTION_HISTORY_CLOSED: closeSavedInspectionHistory,
+    SAVED_INSPECTION_RUN_REQUESTED: (state, action) => requestSavedInspectionRun(state, action, compileSavedDefinition),
+    SAVED_INSPECTION_RUN_CONFIRMED: confirmSavedInspectionRun,
+    SAVED_INSPECTION_REGENERATED: regenerateSavedInspection,
   };
   return (state, action) =>
     deepFreeze((sessionHandlers[action.type] ?? ((currentState) => currentState))(state, action));
@@ -3031,6 +4563,78 @@ function escapeHtml(value = '') {
     .replaceAll("'", '&#039;');
 }
 
+function requireShareableRun(run) {
+  if (!run?.report || !run.completedAt) throw new TypeError('A completed inspection run is required');
+  return run.report;
+}
+
+function isoMinute(value) {
+  return new Date(value).toISOString().slice(0, 16).replace('T', ' ');
+}
+
+function buildReportShareText(run, taskName) {
+  const report = requireShareableRun(run);
+  const evidence = report.keyEvidence.slice(0, 2).join('；');
+  return [
+    `结论：${report.actionLabel}`,
+    `时间：${isoMinute(run.completedAt)}`,
+    `任务：${String(taskName).trim()}`,
+    `关键证据：${evidence}`,
+    `结论边界：${report.scopeStatement}`,
+  ].join('\n');
+}
+
+function buildReportFilename(run, taskName) {
+  requireShareableRun(run);
+  const safeName = [...String(taskName).trim()]
+    .map((character) => (character.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(character) ? '-' : character))
+    .join('')
+    .replace(/-+/g, '-')
+    .replace(/^[.\s-]+|[.\s-]+$/g, '')
+    .slice(0, 80);
+  const [date, time] = new Date(run.completedAt).toISOString().slice(0, 16).split('T');
+  const stamp = `${date.replaceAll('-', '')}-${time.replace(':', '')}`;
+  return `${safeName || '巡检报告'}-${stamp}.html`;
+}
+
+function buildStandaloneReportHtml(run, taskName) {
+  const report = requireShareableRun(run);
+  const name = escapeHtml(String(taskName).trim());
+  const evidence = report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const risks = report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const doctype = '<!' + 'doctype html>';
+  return `${doctype}
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${name} · 巡检报告</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#07101f;color:#edf6ff}
+    body{max-width:920px;margin:0 auto;padding:32px 20px;background:#07101f}
+    header,section{border:1px solid #29415f;border-radius:16px;background:#0e1d33;padding:22px;margin-bottom:14px}
+    header{border-color:#397462;background:linear-gradient(145deg,#153b37,#0e1d33)}
+    h1{font-size:30px;margin:8px 0}h2{font-size:16px;margin:0 0 12px}p,li{line-height:1.7;color:#b9cadc}
+    .meta{color:#72e6a6;font-size:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .pair section{margin:0}.foot{font-size:12px;color:#738aa3;text-align:center;border:0;background:transparent}
+    @media(max-width:560px){body{padding:16px 12px}.pair{grid-template-columns:1fr}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <header><div class="meta">离线巡检报告 · ${escapeHtml(isoMinute(run.completedAt))}</div><h1>${escapeHtml(report.actionLabel)}</h1><p>${escapeHtml(report.title)}</p></header>
+  <section><h2>${name}</h2><p>${escapeHtml(report.summary)}</p></section>
+  <div class="pair"><section><h2>关键证据</h2><ul>${evidence}</ul></section><section><h2>结论边界</h2><p>${escapeHtml(report.scopeStatement)}</p><h2>残余风险</h2><ul>${risks}</ul></section></div>
+  <section class="foot">本报告由 NOVA 巡检 Copilot 离线演示生成 · 数据为 mock</section>
+</body>
+</html>`;
+}
+
+const CONTEXT_GROUPS = [
+  ['change', '近期变更'],
+  ['service', '关联服务与依赖'],
+  ['signal', '可用信号'],
+];
+
 function renderExamples() {
   return inspectionExamples
     .map(
@@ -3044,51 +4648,144 @@ function renderExamples() {
     .join('');
 }
 
-function renderComposer() {
-  return `
-    <div class="product-intake">
-      <h2 data-stage-title>创建巡检</h2>
-      <p class="intake-lead">描述对象和验证目标；发布单可选。</p>
-      <form class="intent-form" data-intent-form>
-        <label class="intent-main">
-          <span>你想验证什么？</span>
-          <textarea name="inspection-intent" rows="4" required placeholder="例如：升级 inventory-api v2.3.1，验证库存锁定和下游调用是否正常。"></textarea>
-        </label>
-        <div class="intent-fields">
-          <label>
-            <span>目标服务（可选）</span>
-            <input name="target-service" placeholder="无法唯一解析时补充" />
-          </label>
-          <label>
-            <span>电子流 / 发布单（可选）</span>
-            <input name="context-reference" placeholder="CHG / REL / 发布批次" />
-          </label>
-        </div>
-        <button class="compile-button" type="submit"><span>生成工作区</span><b>→</b></button>
-      </form>
-      <div class="example-area">
-        <div><strong>示例</strong><span>填入后可修改</span></div>
-        <div class="example-grid">${renderExamples()}</div>
-      </div>
-    </div>`;
+function formatRunTime(value) {
+  return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—';
 }
 
-function renderUnderstanding(vm) {
-  const workspace = vm.workspace;
-  return `
-    <div class="stage-empty compiled-intake">
-      <h2 data-stage-title>确认变更信息</h2>
-      <div class="understanding-grid">
-        <div><span>服务 / 版本</span><strong>${escapeHtml(workspace.declaredChange.entities[0])} · ${escapeHtml(workspace.declaredChange.version)}</strong></div>
-        <div><span>可靠性目标</span><strong>${escapeHtml(workspace.hypotheses[0])}</strong></div>
-        <div><span>上下文组合</span><strong>${workspace.entryKind === 'combined-context' ? '用户意图 + 电子流补全' : '用户意图'}</strong></div>
-      </div>
-      <button class="edit-intent" data-action="RESET" type="button">修改输入</button>
-    </div>`;
+function runTone(run) {
+  return ['Pause', 'Rollback'].includes(run?.report?.action) ? 'pause' : run ? 'proceed' : 'empty';
+}
+
+function renderMiniRunHistory(runs, diagnostics) {
+  if (diagnostics?.status === 'degraded') return '<p class="run-history-unavailable">历史暂不可用</p>';
+  if (!runs.length) return '<p class="run-history-empty">还没有执行记录</p>';
+  const recent = runs.slice(0, 10).reverse();
+  return `<div class="run-history-mini" aria-label="最近 ${recent.length} 次执行">${recent
+    .map((run) => {
+      const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
+      return `<span class="run-history-dot is-${runTone(run)}" title="${escapeHtml(formatRunTime(run.completedAt))} · ${escapeHtml(action)}"></span>`;
+    })
+    .join('')}<small>最近 ${recent.length} 次</small></div>`;
+}
+
+function renderSavedCard(card, diagnostics) {
+  const { definition, runs, latestRun: run } = card;
+  const action = run?.report?.actionLabel ?? run?.report?.action ?? '尚未执行';
+  const completedAt = formatRunTime(run?.completedAt);
+  return `<article class="saved-inspection-card" data-testid="saved-inspection-card">
+    <button class="saved-inspection-copy" data-action="SAVED_INSPECTION_HISTORY_OPENED" data-definition-id="${escapeHtml(definition.id)}" type="button">
+      <span class="readiness">本地 mock</span>
+      <h3>${escapeHtml(definition.name)}</h3>
+      <p>上次：${escapeHtml(action)} · ${escapeHtml(completedAt)}</p>
+      ${renderMiniRunHistory(runs, diagnostics)}
+    </button>
+    <button class="saved-run-button" data-action="SAVED_INSPECTION_RUN_REQUESTED" data-definition-id="${escapeHtml(definition.id)}" type="button">直跑 <b>▶</b></button>
+  </article>`;
+}
+
+function renderSavedInspectionHome(vm) {
+  const { cards, historyDiagnostics, storageError } = vm.savedInspection;
+  return `<section class="saved-inspection-home" data-testid="saved-inspection-home" aria-labelledby="saved-title">
+    <header class="saved-inspection-heading">
+      <div><h2 id="saved-title" data-stage-title>已保存巡检</h2><p>个人任务保存在当前浏览器</p></div>
+      <span class="readiness">本地 mock</span>
+    </header>
+    ${storageError ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>` : ''}
+    ${
+      cards.length
+        ? `<div class="saved-inspection-list">${cards.map((card) => renderSavedCard(card, historyDiagnostics)).join('')}</div>`
+        : '<p class="saved-inspection-empty">还没有保存的巡检，从右侧对话开始 →</p>'
+    }
+  </section>`;
+}
+
+function renderHistoryEntry(run) {
+  const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
+  return `<details class="saved-history-entry" data-run-id="${escapeHtml(run.id)}">
+    <summary><span class="run-history-dot is-${runTone(run)}"></span><time>${escapeHtml(formatRunTime(run.completedAt))}</time><strong>${escapeHtml(action)}</strong><small>${escapeHtml(run.report?.summary ?? '')}</small></summary>
+    ${renderHistoricalReportSnapshot(run)}
+  </details>`;
+}
+
+function renderSavedInspectionHistory(vm) {
+  const { historyDefinition: definition, historyRuns: runs, historyDiagnostics } = vm.savedInspection;
+  const recent = runs.slice(0, 20);
+  const earlier = runs.slice(20);
+  return `<section class="saved-inspection-history" data-testid="saved-inspection-history" aria-labelledby="history-title">
+    <header class="saved-history-heading">
+      <div><button class="history-back" data-action="SAVED_INSPECTION_HISTORY_CLOSED" type="button">← 返回</button><h2 id="history-title" data-stage-title>${escapeHtml(definition.name)}</h2><p>创建于 ${escapeHtml(formatRunTime(definition.createdAt))} · 共执行 ${runs.length} 次</p></div>
+      <button class="saved-run-button" data-action="SAVED_INSPECTION_RUN_REQUESTED" data-definition-id="${escapeHtml(definition.id)}" type="button">直跑 <b>▶</b></button>
+    </header>
+    <h3 class="saved-history-title">运行历史</h3>
+    ${historyDiagnostics?.status === 'degraded' ? '<p class="storage-warning" role="status">历史暂不可用：已隔离损坏记录，仍可直跑</p>' : ''}
+    ${recent.length ? `<div class="saved-history-list">${recent.map(renderHistoryEntry).join('')}</div>` : '<p class="saved-inspection-empty">还没有执行记录</p>'}
+    ${earlier.length ? `<details class="saved-history-earlier"><summary>显示更早（${earlier.length}）</summary>${earlier.map(renderHistoryEntry).join('')}</details>` : ''}
+  </section>`;
+}
+
+function renderContextGroup(options, kind, title) {
+  const items = options.filter((item) => item.kind === kind);
+  if (!items.length) return '';
+  return `<section class="context-option-group" aria-labelledby="context-${kind}">
+    <header><h3 id="context-${kind}">${title}</h3><span>${items.filter((item) => item.selected).length}/${items.length}</span></header>
+    <div class="context-option-list">
+      ${items
+        .map(
+          (
+            item,
+          ) => `<button class="context-option ${item.selected ? 'is-selected' : ''}" data-action="CONTEXT_ITEM_TOGGLED" data-context-id="${escapeHtml(item.id)}" aria-pressed="${item.selected}" type="button">
+            <span class="context-check">${item.selected ? '✓' : '+'}</span>
+            <span><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.detail)}</small></span>
+          </button>`,
+        )
+        .join('')}
+    </div>
+  </section>`;
+}
+
+function renderContextSelection(vm) {
+  return `<section class="context-selection" data-testid="context-selection" aria-labelledby="context-selection-title">
+    <header class="stage-heading">
+      <div><h2 id="context-selection-title" data-stage-title>确认巡检信息</h2><p>勾选本次要验证的范围</p></div>
+      <button class="edit-intent" data-action="RESET" type="button">重新描述</button>
+    </header>
+    <div class="context-option-groups">
+      ${CONTEXT_GROUPS.map(([kind, title]) => renderContextGroup(vm.savedInspection.contextOptions, kind, title)).join('')}
+    </div>
+    <button class="compile-button context-confirm" data-action="INPUT_CONFIRMED" type="button"><span>生成任务草案</span><b>→</b></button>
+  </section>`;
+}
+
+function renderConversationComposer(vm) {
+  const prefill = vm.savedInspection.composerPrefill ?? {};
+  const conversation = vm.savedInspection.conversation;
+  const busy = Boolean(vm.workspace);
+  return `<div class="conversation-shell">
+    <div class="conversation-log" aria-live="polite">
+      ${
+        conversation.length
+          ? conversation
+              .map((message) => `<p class="conversation-message ${message.role}">${escapeHtml(message.text)}</p>`)
+              .join('')
+          : '<p class="conversation-empty">描述要巡检的服务或变更</p>'
+      }
+    </div>
+    <form class="conversation-form" data-intent-form>
+      <textarea name="inspection-intent" rows="3" required ${busy ? 'disabled' : ''} placeholder="例如：巡检 payment-api 本周配置变更">${escapeHtml(prefill.prompt ?? '')}</textarea>
+      <details class="conversation-details" ${prefill.targetService || prefill.contextReference ? 'open' : ''}>
+        <summary>补充服务或电子流</summary>
+        <input name="target-service" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.targetService ?? '')}" placeholder="目标服务（可选）" />
+        <input name="context-reference" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.contextReference ?? '')}" placeholder="电子流 / 发布单（可选）" />
+      </details>
+      <button class="conversation-send" type="submit" ${busy ? 'disabled' : ''}>${busy ? '当前巡检进行中' : '发送'}</button>
+    </form>
+    ${!busy ? `<details class="conversation-examples"><summary>填入示例</summary><div class="example-grid">${renderExamples()}</div></details>` : ''}
+  </div>`;
 }
 
 function renderIntake(vm) {
-  return vm.workspace ? renderUnderstanding(vm) : renderComposer();
+  if (vm.savedInspection.historyDefinition) return renderSavedInspectionHistory(vm);
+  return vm.workspace ? renderContextSelection(vm) : renderSavedInspectionHome(vm);
 }
 
 function renderCandidate(candidate, disposition) {
@@ -3160,6 +4857,14 @@ function renderPlanStats(summary) {
     </div>`;
 }
 
+function renderSelectedContext(items) {
+  if (!items.length) return '';
+  return `<section class="plan-context" data-testid="selected-context-plan">
+    <h3>本次巡检信息</h3>
+    <ul>${items.map((item) => `<li><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong></li>`).join('')}</ul>
+  </section>`;
+}
+
 function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
   const candidates = vm.workspace.candidateChecks
@@ -3176,6 +4881,7 @@ function renderInspectionPlan(vm) {
         <div><h2 data-stage-title>巡检任务</h2></div>
         <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? '可确认' : '候选待处置'}</span>
       </header>
+      ${renderSelectedContext(vm.savedInspection.selectedContext)}
       ${renderPlanStats(vm.planSummary)}
       <section class="plan-section" aria-labelledby="pending-title">
         <h3 id="pending-title">待确认项</h3>
@@ -3331,6 +5037,230 @@ function renderPlaybookProposal(playbookView) {
   </section>`;
 }
 
+function differenceList(differences) {
+  return `<ul class="saved-refresh-differences">${differences
+    .map((difference) => `<li>${escapeHtml(difference.summary ?? difference.id)}</li>`)
+    .join('')}</ul>`;
+}
+
+function renderSavedInspectionRefresh(savedInspection) {
+  const refresh = savedInspection?.refresh;
+  const definition = savedInspection?.activeDefinition;
+  if (!refresh || !definition || refresh.status === 'exact') return '';
+  if (refresh.status === 'minor-drift') {
+    return `<section class="saved-refresh reconciliation is-expanded" data-testid="saved-refresh" data-refresh-status="minor-drift">
+      <span>已刷新当前事实</span>
+      <h2>当前事实有差异</h2>
+      <p>${escapeHtml(definition.name)} 的检查结构仍可执行，请先确认差异。</p>
+      ${differenceList(refresh.differences)}
+      <button class="compile-button" data-action="SAVED_INSPECTION_RUN_CONFIRMED" type="button"><span>仍要执行</span><b>→</b></button>
+    </section>`;
+  }
+  return `<section class="saved-refresh reconciliation is-blocked" data-testid="saved-refresh" data-refresh-status="major-drift">
+    <span>已刷新当前事实</span>
+    <h2>当前结构已变化，不能直跑</h2>
+    <p>${escapeHtml(definition.name)} 仅作参考；重新描述后会生成新任务。</p>
+    ${differenceList(refresh.differences)}
+    <button class="compile-button" data-action="SAVED_INSPECTION_REGENERATED" type="button"><span>回到对话重新生成</span><b>→</b></button>
+  </section>`;
+}
+
+function renderSavedExecutionStatus(savedInspection) {
+  if (savedInspection?.refresh?.status !== 'exact' || !savedInspection.activeDefinition) return '';
+  return `<div class="saved-execution-status reconciliation is-exact" data-testid="saved-refresh" data-refresh-status="exact">
+    <span>当前事实</span><strong>一致，已直接执行</strong>
+    <p>${escapeHtml(savedInspection.activeDefinition.name)} · 新任务 ${escapeHtml(savedInspection.currentRun?.taskInstanceId ?? '执行中')}</p>
+  </div>`;
+}
+
+function renderSelectedContextResults(run) {
+  if (!run?.selectedContextResults?.length) return '';
+  return `<section class="report-context-results" data-testid="selected-context-results">
+    <h3>本次选择的巡检结果</h3>
+    <div class="report-context-grid">${run.selectedContextResults
+      .map(
+        (item) =>
+          `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small>✓ ${escapeHtml(item.status)}</small></article>`,
+      )
+      .join('')}</div>
+  </section>`;
+}
+
+function suggestedName(vm) {
+  const entity = vm.workspace?.declaredChange?.entities?.[0] ?? '服务';
+  return `${entity} 巡检`;
+}
+
+function renderPersonalSave(vm) {
+  const saved = vm.savedInspection;
+  if (saved.activeDefinition) return '';
+  if (saved.savedDefinitionId) {
+    return `<p class="save-toast" role="status">${escapeHtml(saved.toast ?? '已保存，下次可从首页直接执行')}</p>`;
+  }
+  return `<section class="personal-save" aria-labelledby="personal-save-title">
+    <div><h3 id="personal-save-title">保存这次巡检</h3><p>保存后下次可从首页直接执行</p></div>
+    <form data-save-inspection-form>
+      <input name="saved-inspection-name" required value="${escapeHtml(suggestedName(vm))}" aria-label="巡检名称" />
+      <button type="submit">保存</button>
+    </form>
+  </section>`;
+}
+
+function renderReportJourneyDetails(vm) {
+  const run = vm.savedInspection.currentRun;
+  return `${renderSelectedContextResults(run)}
+    <section class="model-risk-summary">
+      <h3>模型风险总结</h3>
+      <ul>${vm.report.residualRisks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>
+    </section>
+    ${renderPersonalSave(vm)}`;
+}
+
+function formatReportTime(value) {
+  if (!value) return '时间未知';
+  return new Date(value).toLocaleString('zh-CN', { hour12: false });
+}
+
+function renderDecisionHero(report, extra = '') {
+  return `<div class="decision-hero">
+    <div><h2>${escapeHtml(report.actionLabel)}</h2><p>${escapeHtml(report.title)}</p></div>
+    ${extra}
+  </div>`;
+}
+
+function renderReportEvidence(report) {
+  return `<div class="semantic-pair">
+      <div><span>证据结论</span><code>${escapeHtml(report.evidenceVerdict)}</code></div>
+      <div><span>行动决策</span><code>${escapeHtml(report.action)}</code></div>
+    </div>
+    <div class="evidence-badges">
+      <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
+      <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
+      <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
+    </div>
+    <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
+    <div class="report-columns">
+      <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
+      <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
+    </div>`;
+}
+
+function comparisonText(item) {
+  if (item.kind === 'added') return `新增覆盖：${item.after.label}`;
+  if (item.kind === 'removed') return `移除覆盖：${item.before.label}`;
+  return `${item.label}：${item.before.fact} → ${item.after.fact}`;
+}
+
+function renderRunComparison(comparison) {
+  if (!comparison) return '';
+  const heading = `与上次相比（${formatReportTime(comparison.previousCompletedAt)} → 本次）`;
+  if (comparison.summary === 'stable') {
+    return `<section class="run-comparison is-stable" data-testid="run-comparison"><h3>${escapeHtml(heading)}</h3><p>→ 与上次结论一致</p></section>`;
+  }
+  const labels = {
+    improved: ['✓', '改善'],
+    worsened: ['✕', '恶化'],
+    stable: ['→', '持平'],
+    added: ['+', '新增'],
+    removed: ['−', '移除'],
+  };
+  return `<section class="run-comparison" data-testid="run-comparison">
+    <h3>${escapeHtml(heading)}</h3>
+    <ul>${comparison.items
+      .map((item) => {
+        const [symbol, label] = labels[item.kind];
+        return `<li class="is-${item.kind}"><span>${symbol}</span><div><strong>${label}</strong><p>${escapeHtml(comparisonText(item))}</p></div></li>`;
+      })
+      .join('')}</ul>
+  </section>`;
+}
+
+function renderShareControls(message) {
+  return `<div class="report-share" aria-label="分享当前报告">
+    <button data-share-action="copy" type="button">复制摘要</button>
+    <button data-share-action="export" type="button">导出报告</button>
+    ${message ? `<p class="share-toast" role="status">${escapeHtml(message)}</p>` : ''}
+  </div>`;
+}
+
+function renderHistoricalReportSnapshot(run) {
+  const report = run.report;
+  return `<div class="historical-report report-stage ${report.action.toLowerCase()}" data-testid="historical-report">
+    <p class="historical-banner">历史快照 · ${escapeHtml(formatReportTime(run.completedAt))} · 不可修改</p>
+    ${renderDecisionHero(report)}
+    ${renderReportEvidence(report)}
+    ${renderSelectedContextResults(run)}
+  </div>`;
+}
+
+function renderCurrentReport(vm) {
+  const report = vm.report;
+  return `<div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report" data-current-run-id="${escapeHtml(vm.savedInspection.currentRun?.id ?? '')}">
+    ${renderDecisionHero(report, renderShareControls(vm.state.shareToast))}
+    ${renderRunComparison(vm.savedInspection.comparison)}
+    ${renderReportEvidence(report)}
+    ${renderReportJourneyDetails(vm)}
+    ${renderPlaybookProposal(vm.playbook)}
+    ${
+      report.rcAgent
+        ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
+          ${
+            vm.state.rcExpanded
+              ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
+              : ''
+          }`
+        : ''
+    }
+  </div>`;
+}
+
+const INSPECTION_LIBRARY_STORAGE_KEY = 'nova.inspection-library.v1';
+
+function createInspectionLibraryStorage(storage, key = INSPECTION_LIBRARY_STORAGE_KEY) {
+  function loadWithDiagnostics() {
+    if (!storage) {
+      return {
+        library: createEmptyInspectionLibrary(),
+        diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
+      };
+    }
+    try {
+      return parseInspectionLibraryWithDiagnostics(storage.getItem(key));
+    } catch {
+      return {
+        library: createEmptyInspectionLibrary(),
+        diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
+      };
+    }
+  }
+
+  return {
+    load() {
+      return loadWithDiagnostics().library;
+    },
+
+    loadWithDiagnostics,
+
+    save(library) {
+      if (!storage) return { ok: false, reason: 'storage-unavailable' };
+      try {
+        storage.setItem(key, serializeInspectionLibrary(library));
+        return { ok: true };
+      } catch {
+        return { ok: false, reason: 'storage-write-failed' };
+      }
+    },
+
+    merge(current, serialized) {
+      const incoming = parseInspectionLibraryWithDiagnostics(serialized);
+      return {
+        library: mergeInspectionLibraries(current, incoming.library),
+        diagnostics: incoming.diagnostics,
+      };
+    },
+  };
+}
+
 const PHASES = [
   ['intake', '输入理解', '01'],
   ['context', '范围对账', '02'],
@@ -3429,6 +5359,8 @@ function renderContext(vm) {
 }
 
 function renderScope(vm) {
+  const savedRefresh = renderSavedInspectionRefresh(vm.savedInspection);
+  if (savedRefresh) return savedRefresh;
   return `
     <div class="scope-stage">
       ${renderPlaybookMatch(vm.playbook)}
@@ -3445,6 +5377,7 @@ function renderScope(vm) {
 function renderExecution(vm) {
   return `
     <div class="execution-stage">
+      ${renderSavedExecutionStatus(vm.savedInspection)}
       <header class="stage-heading"><div><h2 data-stage-title>执行检查</h2></div><span class="live-dot">● MOCK</span></header>
       <ol class="execution-list">
         ${vm.execution
@@ -3460,58 +5393,22 @@ function renderExecution(vm) {
     </div>`;
 }
 
-function renderReport(vm) {
-  const report = vm.report;
-  return `
-    <div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report">
-      <div class="decision-hero">
-        <h2>${escapeHtml(report.actionLabel)}</h2>
-        <p>${escapeHtml(report.title)}</p>
-      </div>
-      <div class="semantic-pair">
-        <div><span>证据结论</span><code>${report.evidenceVerdict}</code></div>
-        <div><span>行动决策</span><code>${report.action}</code></div>
-      </div>
-      <div class="evidence-badges">
-        <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
-        <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
-        <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
-      </div>
-      <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
-      <div class="report-columns">
-        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-      </div>
-      ${renderPlaybookProposal(vm.playbook)}
-      ${
-        report.rcAgent
-          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
-            ${
-              vm.state.rcExpanded
-                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
-                : ''
-            }`
-          : ''
-      }
-    </div>`;
-}
-
 function renderStage(vm) {
   const renderers = {
     intake: renderIntake,
     context: renderScope,
     plan: renderInspectionPlan,
     execution: renderExecution,
-    report: renderReport,
+    report: renderCurrentReport,
   };
   return renderers[vm.state.phase](vm);
 }
 
 function primaryAction(vm) {
   if (!vm.workspace) return '';
-  if (vm.state.phase === 'context' && vm.playbook.match) return '';
+  if (vm.state.phase === 'intake') return '';
+  if (vm.state.phase === 'context' && (vm.playbook.match || vm.savedInspection.refresh)) return '';
   const actions = {
-    intake: ['INPUT_CONFIRMED', '确认变更信息'],
     context: ['SCOPE_ACCEPTED', '生成任务'],
     plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '开始执行' : '请先处置高风险候选'],
     execution: [
@@ -3536,10 +5433,11 @@ function renderCopilot(vm) {
         report: '报告已生成',
       }[vm.state.phase];
   return `
-    <aside class="panel copilot-panel" aria-label="Copilot 解释">
-      <header><span class="copilot-mark">✦</span><div><strong>巡检助手</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
+    <aside class="panel copilot-panel" aria-label="巡检对话">
+      <header><span class="copilot-mark">✦</span><div><strong>巡检对话</strong></div><span class="online" aria-label="离线演示已就绪" title="离线演示已就绪">●</span></header>
       <div class="copilot-status"><span>状态</span><strong>${escapeHtml(status)}</strong></div>
       ${renderPlaybookReference(vm.playbook)}
+      ${renderConversationComposer(vm)}
       ${primaryAction(vm)}
     </aside>`;
 }
@@ -3553,9 +5451,9 @@ function renderApp(vm) {
         <div class="title-lockup"><h1>AI 巡检 Copilot</h1></div>
         <div class="offline-badge"><span>●</span> 离线演示</div>
       </header>
-      <ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>
-      <main id="main" class="workspace">
-        ${renderContext(vm)}
+      ${vm.workspace ? `<ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>` : ''}
+      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'}">
+        ${vm.workspace ? renderContext(vm) : ''}
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
@@ -3564,7 +5462,14 @@ function renderApp(vm) {
 }
 
 const root = document.querySelector('#app');
-let state = createDemoSession();
+const libraryStorage = createInspectionLibraryStorage(window.localStorage);
+const actorId = window.crypto.randomUUID();
+const hydratedLibrary = libraryStorage.loadWithDiagnostics();
+let state = demoReducer(createDemoSession({ actorId }), {
+  type: 'LIBRARY_HYDRATED',
+  library: hydratedLibrary.library,
+  diagnostics: hydratedLibrary.diagnostics,
+});
 
 function render() {
   root.innerHTML = renderApp(selectViewModel(state));
@@ -3573,11 +5478,78 @@ function render() {
 function dispatch(action) {
   const next = demoReducer(state, action);
   if (next !== state) {
+    const libraryChanged = next.library !== state.library;
     state = next;
+    if (libraryChanged) {
+      const saved = libraryStorage.save(state.library);
+      if (!saved.ok) {
+        state = demoReducer(state, {
+          type: 'LIBRARY_SAVE_FAILED',
+          message: '无法写入本地保存；本页内仍可继续使用',
+        });
+      }
+    }
     render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }
+
+async function copyOfflineText(text) {
+  if (window.location.protocol !== 'file:' && window.navigator.clipboard?.writeText) {
+    try {
+      await window.navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Non-file origins can still deny clipboard permission; retain the local DOM fallback.
+    }
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.append(textarea);
+  textarea.select();
+  const copied = document.execCommand?.('copy');
+  textarea.remove();
+  if (!copied) throw new Error('copy-unavailable');
+}
+
+function downloadOfflineReport(html, filename) {
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function shareCurrentReport(action) {
+  const vm = selectViewModel(state);
+  const run = vm.savedInspection.currentRun;
+  if (!run) return;
+  const taskName =
+    vm.savedInspection.reportDefinition?.name ?? `${vm.workspace?.declaredChange?.entities?.[0] ?? '服务'} 巡检`;
+  try {
+    if (action === 'copy') {
+      await copyOfflineText(buildReportShareText(run, taskName));
+      dispatch({ type: 'SHARE_FEEDBACK_SET', message: '摘要已复制' });
+      return;
+    }
+    downloadOfflineReport(buildStandaloneReportHtml(run, taskName), buildReportFilename(run, taskName));
+    dispatch({ type: 'SHARE_FEEDBACK_SET', message: '离线报告已导出' });
+  } catch {
+    dispatch({ type: 'SHARE_FEEDBACK_SET', message: '分享失败，请重试' });
+  }
+}
+
+window.addEventListener('storage', (event) => {
+  if (event.key !== INSPECTION_LIBRARY_STORAGE_KEY || typeof event.newValue !== 'string') return;
+  const merged = libraryStorage.merge(state.library, event.newValue);
+  dispatch({ type: 'LIBRARY_MERGED', library: merged.library, diagnostics: merged.diagnostics });
+});
 
 root.addEventListener('click', (event) => {
   const exampleButton = event.target.closest('[data-example-id]');
@@ -3589,6 +5561,12 @@ root.addEventListener('click', (event) => {
     form.elements.namedItem('target-service').value = example.targetService;
     form.elements.namedItem('context-reference').value = example.contextReference;
     form.elements.namedItem('inspection-intent').focus();
+    return;
+  }
+
+  const shareButton = event.target.closest('[data-share-action]');
+  if (shareButton) {
+    void shareCurrentReport(shareButton.dataset.shareAction);
     return;
   }
 
@@ -3604,10 +5582,25 @@ root.addEventListener('click', (event) => {
     });
     return;
   }
+  if (action === 'CONTEXT_ITEM_TOGGLED') {
+    dispatch({ type: action, contextId: actionButton.dataset.contextId });
+    return;
+  }
+  if (['SAVED_INSPECTION_RUN_REQUESTED', 'SAVED_INSPECTION_HISTORY_OPENED'].includes(action)) {
+    dispatch({ type: action, definitionId: actionButton.dataset.definitionId });
+    return;
+  }
   dispatch({ type: action });
 });
 
 root.addEventListener('submit', (event) => {
+  const saveForm = event.target.closest('[data-save-inspection-form]');
+  if (saveForm) {
+    event.preventDefault();
+    const data = new FormData(saveForm);
+    dispatch({ type: 'SAVED_INSPECTION_CREATED', name: data.get('saved-inspection-name') });
+    return;
+  }
   const form = event.target.closest('[data-intent-form]');
   if (!form) return;
   event.preventDefault();

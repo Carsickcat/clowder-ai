@@ -1,0 +1,47 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { compileInspectionRequest } from '../lib/compiler.mjs';
+import { buildReportFilename, buildReportShareText, buildStandaloneReportHtml } from '../src/report-share.mjs';
+
+const workspace = compileInspectionRequest({
+  prompt: '巡检 fulfillment-service',
+  targetService: 'fulfillment-service',
+});
+
+const run = {
+  id: 'RUN-0048',
+  completedAt: '2026-08-22T14:00:00.000Z',
+  report: workspace.report,
+};
+
+test('copied report summary is exactly five readable lines', () => {
+  const text = buildReportShareText(run, '履约发布后巡检');
+  const lines = text.split('\n');
+
+  assert.equal(lines.length, 5);
+  assert.match(lines[0], /^结论：建议继续/);
+  assert.match(lines[1], /^时间：2026-08-22/);
+  assert.equal(lines[2], '任务：履约发布后巡检');
+  assert.match(lines[3], /^关键证据：.+；.+/);
+  assert.match(lines[4], /^结论边界：/);
+});
+
+test('exported report is one escaped self-contained offline HTML document', () => {
+  const hostileName = '履约</title><script>alert(1)</script>巡检';
+  const html = buildStandaloneReportHtml(run, hostileName);
+
+  assert.match(html, /^<!doctype html>/i);
+  assert.equal((html.match(/<!doctype html>/gi) ?? []).length, 1);
+  assert.match(html, /履约&lt;\/title&gt;&lt;script&gt;alert\(1\)&lt;\/script&gt;巡检/);
+  assert.match(html, /建议继续 fulfillment-service 发布/);
+  assert.match(html, /<style>[\s\S]+<\/style>/);
+  assert.doesNotMatch(html, /https?:\/\//i);
+  assert.doesNotMatch(html, /<script/i);
+  assert.doesNotMatch(html, /<link/i);
+});
+
+test('report filename removes reserved characters and carries the run timestamp', () => {
+  const filename = buildReportFilename(run, '履约/发布:巡检*?');
+  assert.equal(filename, '履约-发布-巡检-20260822-1400.html');
+});

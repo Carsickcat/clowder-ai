@@ -23,10 +23,16 @@ test('standalone build produces one deterministic offline artifact', async (t) =
   const [generated, checked] = await Promise.all([readFile(outputPath, 'utf8'), readFile(artifactPath, 'utf8')]);
 
   assert.equal(generated, checked);
+  assert.equal(
+    (generated.match(/<!doctype html>/gi) ?? []).length,
+    1,
+    'bundled source must not trigger replacement tokens',
+  );
   assert.match(generated, /<title>AI 巡检 Copilot · 离线产品 Demo<\/title>/);
   assert.match(generated, /<style>[\s\S]+<\/style>/);
   assert.match(generated, /<script>[\s\S]+<\/script>/);
-  assert.match(generated, /创建巡检/);
+  assert.match(generated, /已保存巡检/);
+  assert.match(generated, /nova\.inspection-library\.v1/);
   assert.match(generated, /data-example-id/);
   assert.match(generated, /order-upgrade/);
   assert.match(generated, /payment-config/);
