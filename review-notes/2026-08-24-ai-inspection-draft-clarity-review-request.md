@@ -132,4 +132,3 @@ $env:PATH='C:\Program Files\Git\bin;'+$env:PATH; pnpm gate
 - `git status --short` 根目录媒体匹配：none
 - `git diff --name-only origin/main...HEAD` 根目录媒体匹配：none
 - 所有截图和录屏均位于正式 `designs/.../evidence/` 目录。
-
