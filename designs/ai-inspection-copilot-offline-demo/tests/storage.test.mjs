@@ -158,10 +158,43 @@ test('storage event payload merges with the current library instead of replacing
   });
 
   const merged = adapter.merge(current, incoming);
-  assert.deepEqual(merged.savedInspections.map((item) => item.id).sort(), ['SAVED-A', 'SAVED-B']);
-  assert.deepEqual(merged.runs.map((item) => item.id).sort(), ['RUN-A', 'RUN-B']);
-  assert.equal(merged.revision, 5);
+  assert.deepEqual(merged.diagnostics, { status: 'available', rejectedRunCount: 0 });
+  assert.deepEqual(merged.library.savedInspections.map((item) => item.id).sort(), ['SAVED-A', 'SAVED-B']);
+  assert.deepEqual(merged.library.runs.map((item) => item.id).sort(), ['RUN-A', 'RUN-B']);
+  assert.equal(merged.library.revision, 5);
 
-  const idempotent = adapter.merge(merged, JSON.stringify(merged));
-  assert.deepEqual(idempotent, merged);
+  const idempotent = adapter.merge(merged.library, JSON.stringify(merged.library));
+  assert.deepEqual(idempotent.library, merged.library);
+  assert.deepEqual(idempotent.diagnostics, { status: 'available', rejectedRunCount: 0 });
+});
+
+test('storage event merge quarantines a malformed report and preserves its diagnostics', () => {
+  const adapter = createInspectionLibraryStorage(memoryStorage());
+  const left = recordFixtures({ definitionId: 'SAVED-A', runId: 'RUN-A', name: 'A' });
+  const right = recordFixtures({
+    definitionId: 'SAVED-B',
+    runId: 'RUN-B',
+    name: 'B',
+    updatedAt: '2026-08-16T06:05:00.000Z',
+  });
+  const current = {
+    schemaVersion: 1,
+    revision: 2,
+    savedInspections: [left.definition],
+    runs: [left.run],
+  };
+  const incoming = JSON.stringify({
+    schemaVersion: 1,
+    revision: 4,
+    savedInspections: [right.definition],
+    runs: [{ ...right.run, report: {} }],
+  });
+
+  const merged = adapter.merge(current, incoming);
+  assert.deepEqual(merged.diagnostics, { status: 'degraded', rejectedRunCount: 1 });
+  assert.deepEqual(merged.library.savedInspections.map((item) => item.id).sort(), ['SAVED-A', 'SAVED-B']);
+  assert.deepEqual(
+    merged.library.runs.map((item) => item.id),
+    ['RUN-A'],
+  );
 });

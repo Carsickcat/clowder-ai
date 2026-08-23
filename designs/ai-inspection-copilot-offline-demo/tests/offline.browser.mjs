@@ -252,6 +252,26 @@ async function main() {
     await session.send('Page.reload');
     await restoredLoaded;
 
+    const malformedStorageEventPayload = await session.evaluate(`(() => {
+      const library = JSON.parse(localStorage.getItem('nova.inspection-library.v1'));
+      library.runs = [library.runs[0]];
+      library.runs[0].report = {};
+      return JSON.stringify(library);
+    })()`);
+    await session.evaluate(`window.dispatchEvent(new StorageEvent('storage', {
+      key: 'nova.inspection-library.v1',
+      newValue: ${JSON.stringify(malformedStorageEventPayload)}
+    }))`);
+    assert.match(await bodyText(session), /历史暂不可用/);
+    assert.ok(
+      await session.evaluate('Boolean(document.querySelector("[data-action=SAVED_INSPECTION_RUN_REQUESTED]"))'),
+      'cross-tab corruption must not block a direct run',
+    );
+    const cleanAfterStorageEventLoaded = session.once('Page.loadEventFired');
+    await session.evaluate(`localStorage.setItem('nova.inspection-library.v1', ${JSON.stringify(cleanLibrary)})`);
+    await session.send('Page.reload');
+    await cleanAfterStorageEventLoaded;
+
     await click(session, '[data-example-id="order-upgrade"]');
     await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
     await click(session, '[data-action="INPUT_CONFIRMED"]');

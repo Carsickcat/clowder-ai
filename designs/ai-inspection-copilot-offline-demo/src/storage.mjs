@@ -1,7 +1,6 @@
 import {
   createEmptyInspectionLibrary,
   mergeInspectionLibraries,
-  parseInspectionLibrary,
   parseInspectionLibraryWithDiagnostics,
   serializeInspectionLibrary,
 } from '../lib/saved-inspections.mjs';
@@ -44,7 +43,11 @@ export function createInspectionLibraryStorage(storage, key = INSPECTION_LIBRARY
     },
 
     merge(current, serialized) {
-      return mergeInspectionLibraries(current, parseInspectionLibrary(serialized));
+      const incoming = parseInspectionLibraryWithDiagnostics(serialized);
+      return {
+        library: mergeInspectionLibraries(current, incoming.library),
+        diagnostics: incoming.diagnostics,
+      };
     },
   };
 }

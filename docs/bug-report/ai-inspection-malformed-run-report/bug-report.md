@@ -42,17 +42,21 @@ Terra found the defect during independent review of `b46a1253d9741134c66febfbacb
 - Kept `executionResults` optional at hydration so legitimate legacy Run snapshots remain readable.
 - Replaced the browser's shallow `{ id: 'half-run' }` fixture with the real failure shape: an otherwise valid sole Run whose `report` is `{}`.
 - Exercised degraded home, history navigation, and direct execution through the same recovered Definition.
+- Changed the cross-tab storage merge boundary to return both the sanitized library and its diagnostics, then forwarded both through `LIBRARY_MERGED`.
+- Added a real `StorageEvent` browser journey so a malformed Run arriving after startup also shows degraded history without blocking direct execution.
 
 ## Verification
 
 - Red: `node --test tests/journeys.test.mjs` produced 22 passes and 1 expected failure: malformed `report: {}` hydrated as `available` with zero rejected runs.
 - Green: the same journey suite produced 23/23 passes after the persistence-boundary repair.
 - Refactor regression: domain, saved-inspection, and journey suites produced 38/38 passes after moving the contract out of the oversized persistence module.
-- Product gate: `pnpm check` produced 82/82 Node tests plus offline Chrome acceptance with 0 HTTP(S) requests and 0 browser errors.
+- Fresh-context Red: both storage-event merge tests failed because the adapter returned no `diagnostics` (`undefined` instead of `available` / `degraded`).
+- Fresh-context Green: storage + journey suites produced 29/29 passes after preserving merge diagnostics.
+- Product gate: `pnpm check` produced 83/83 Node tests plus offline Chrome acceptance—including the real storage-event path—with 0 HTTP(S) requests and 0 browser errors.
 - Repository gate: `pnpm check` passed after adding the installed Git Bash directory to this process's `PATH`; repository lint and build exited 0 with pre-existing warnings only.
 
 ## Failure-mode sweep
 
-This review round contains one isolated failure mode: a shallow trust-boundary check admitted a value that its downstream consumer could not render. The adjacent persisted Run fields already use structural validators, and no second report ingestion path exists. The repair therefore centralizes one report contract and adds no renderer fallback.
+This review round contains one failure mode across two ingestion paths: startup hydration and cross-tab storage-event merge. The first admitted a report its downstream consumer could not render; after the canonical validator fixed that boundary, the second quarantined the report but discarded the parser diagnostics before rendering. Both paths now use `parseInspectionLibraryWithDiagnostics()`, retain the sanitized Definition/Run ledger, and forward the same diagnostic contract. The adjacent persisted Run fields already use structural validators, and the application search found no third persisted-report entry. No renderer fallback was added.
 
 [丢丢/gpt-5.6-sol🐾]

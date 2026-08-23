@@ -91,7 +91,8 @@ async function shareCurrentReport(action) {
 
 window.addEventListener('storage', (event) => {
   if (event.key !== INSPECTION_LIBRARY_STORAGE_KEY || typeof event.newValue !== 'string') return;
-  dispatch({ type: 'LIBRARY_MERGED', library: libraryStorage.merge(state.library, event.newValue) });
+  const merged = libraryStorage.merge(state.library, event.newValue);
+  dispatch({ type: 'LIBRARY_MERGED', library: merged.library, diagnostics: merged.diagnostics });
 });
 
 root.addEventListener('click', (event) => {
