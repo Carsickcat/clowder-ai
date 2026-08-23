@@ -1,4 +1,54 @@
-import { assertCheckContract } from './domain.mjs';
+import { assertCheckContract, deepFreeze } from './domain.mjs';
+
+const RESULT_RANK = Object.freeze({
+  Violated: 0,
+  Inconclusive: 1,
+  NotEvaluated: 1,
+  Verified: 2,
+});
+
+export function selectRunsForDefinition(definition, runs = []) {
+  if (!definition) return [];
+  const unique = new Map();
+  for (const run of runs) {
+    if (run?.definitionId === definition.id || run?.id === definition.sourceRunId) unique.set(run.id, run);
+  }
+  return [...unique.values()].sort(
+    (left, right) =>
+      String(right.completedAt).localeCompare(String(left.completedAt)) || String(right.id).localeCompare(String(left.id)),
+  );
+}
+
+export function compareInspectionRuns(currentRun, previousRun) {
+  if (!Array.isArray(currentRun?.executionResults) || !Array.isArray(previousRun?.executionResults)) return null;
+  const current = new Map(currentRun.executionResults.map((result) => [result.id, result]));
+  const previous = new Map(previousRun.executionResults.map((result) => [result.id, result]));
+  const ids = [...new Set([...current.keys(), ...previous.keys()])].sort();
+  const items = [];
+  for (const id of ids) {
+    const before = previous.get(id);
+    const after = current.get(id);
+    if (!before) {
+      items.push({ id, label: after.label, kind: 'added', before: null, after });
+      continue;
+    }
+    if (!after) {
+      items.push({ id, label: before.label, kind: 'removed', before, after: null });
+      continue;
+    }
+    if (before.status === after.status && before.fact === after.fact && before.label === after.label) continue;
+    const beforeRank = RESULT_RANK[before.status];
+    const afterRank = RESULT_RANK[after.status];
+    const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
+    items.push({ id, label: after.label, kind, before, after });
+  }
+  return deepFreeze({
+    previousRunId: previousRun.id,
+    previousCompletedAt: previousRun.completedAt,
+    summary: items.length ? 'changed' : 'stable',
+    items,
+  });
+}
 
 function requireWorkspace(state) {
   if (!state.workspace) throw new Error('Inspection workspace is not compiled');

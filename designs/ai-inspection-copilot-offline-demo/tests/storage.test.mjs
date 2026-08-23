@@ -62,6 +62,7 @@ function recordFixtures({
       definitionId,
       taskInstance,
       selectedContext,
+      executionResults: workspace.execution,
       report: workspace.report,
       startedAt: updatedAt,
       completedAt: updatedAt,
@@ -85,6 +86,24 @@ test('storage adapter hydrates a valid versioned library and treats corrupt data
     createInspectionLibraryStorage(memoryStorage({ [INSPECTION_LIBRARY_STORAGE_KEY]: '{broken' })).load(),
     createEmptyInspectionLibrary(),
   );
+});
+
+test('storage adapter preserves valid definitions when one history record is corrupt', () => {
+  const fixtures = recordFixtures();
+  const serialized = JSON.stringify({
+    schemaVersion: 1,
+    revision: 4,
+    savedInspections: [fixtures.definition],
+    runs: [fixtures.run, { id: 'half-run' }],
+  });
+  const adapter = createInspectionLibraryStorage(memoryStorage({ [INSPECTION_LIBRARY_STORAGE_KEY]: serialized }));
+
+  const hydrated = adapter.loadWithDiagnostics();
+  assert.equal(hydrated.diagnostics.status, 'degraded');
+  assert.equal(hydrated.diagnostics.rejectedRunCount, 1);
+  assert.deepEqual(hydrated.library.savedInspections, [fixtures.definition]);
+  assert.deepEqual(hydrated.library.runs, [fixtures.run]);
+  assert.deepEqual(adapter.load(), hydrated.library);
 });
 
 test('storage adapter persists the normalized envelope under one stable key', () => {

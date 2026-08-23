@@ -10,9 +10,11 @@ import {
   createSavedInspectionDefinition,
   mergeInspectionLibraries,
   parseInspectionLibrary,
+  parseInspectionLibraryWithDiagnostics,
   serializeInspectionLibrary,
   toggleContextSelection,
 } from '../lib/saved-inspections.mjs';
+import { compareInspectionRuns, selectRunsForDefinition } from '../lib/selectors.mjs';
 
 const request = {
   prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
@@ -58,13 +60,19 @@ function definitionFixture({
   };
 }
 
-function runFixture({ id = 'RUN-0048', definitionId = 'SAVED-001', completedAt = '2026-08-16T06:01:00.000Z' } = {}) {
+function runFixture({
+  id = 'RUN-0048',
+  definitionId = 'SAVED-001',
+  completedAt = '2026-08-16T06:01:00.000Z',
+  executionResults,
+} = {}) {
   const workspace = compileInspectionRequest(request);
   return createInspectionRun({
     id,
     definitionId,
     taskInstance: task(workspace),
     selectedContext: createContextOptions(workspace),
+    executionResults: executionResults ?? workspace.execution,
     report: workspace.report,
     startedAt: '2026-08-16T06:00:00.000Z',
     completedAt,
@@ -157,6 +165,7 @@ test('an inspection run is a locked immutable snapshot with selected results and
     definitionId: 'SAVED-001',
     taskInstance: lockedTask,
     selectedContext,
+    executionResults: workspace.execution,
     report: workspace.report,
     startedAt: '2026-08-16T06:00:00.000Z',
     completedAt: '2026-08-16T06:01:00.000Z',
@@ -169,8 +178,74 @@ test('an inspection run is a locked immutable snapshot with selected results and
     selectedContext.map((item) => item.id),
   );
   assert.notEqual(run.inspectionPlan, lockedTask.inspectionPlan);
+  assert.deepEqual(run.executionResults, workspace.execution);
+  assert.notEqual(run.executionResults, workspace.execution);
   assert.ok(Object.isFrozen(run));
+  assert.ok(Object.isFrozen(run.executionResults));
+  assert.ok(Object.isFrozen(run.executionResults[0]));
   assert.ok(Object.isFrozen(run.report));
+});
+
+test('run history is derived from the immutable run ledger and sorted newest first', () => {
+  const definition = definitionFixture();
+  const sourceRun = runFixture({
+    id: definition.sourceRunId,
+    definitionId: null,
+    completedAt: '2026-08-16T06:01:00.000Z',
+  });
+  const secondRun = runFixture({ id: 'RUN-0049', completedAt: '2026-08-17T06:01:00.000Z' });
+  const newestRun = runFixture({ id: 'RUN-0050', completedAt: '2026-08-18T06:01:00.000Z' });
+  const unrelatedRun = runFixture({ id: 'RUN-OTHER', definitionId: 'SAVED-OTHER' });
+
+  assert.deepEqual(
+    selectRunsForDefinition(definition, [sourceRun, secondRun, unrelatedRun, newestRun]).map((run) => run.id),
+    ['RUN-0050', 'RUN-0049', 'RUN-0048'],
+  );
+});
+
+test('structured run comparison classifies improvement, worsening, coverage change, and stable collapse', () => {
+  const previous = runFixture({
+    id: 'RUN-PREVIOUS',
+    completedAt: '2026-08-16T06:01:00.000Z',
+    executionResults: [
+      { id: 'database', label: '数据库连接', status: 'Violated', fact: '连接池占用 96%' },
+      { id: 'trace', label: '调用链', status: 'Verified', fact: '错误率 0.1%' },
+      { id: 'removed', label: '旧覆盖项', status: 'Verified', fact: '已验证' },
+      { id: 'stable', label: '稳定项', status: 'Verified', fact: '无变化' },
+    ],
+  });
+  const current = runFixture({
+    id: 'RUN-CURRENT',
+    completedAt: '2026-08-17T06:01:00.000Z',
+    executionResults: [
+      { id: 'database', label: '数据库连接', status: 'Verified', fact: '连接池占用 41%' },
+      { id: 'trace', label: '调用链', status: 'Violated', fact: '错误率 8.4%' },
+      { id: 'added', label: '新增覆盖项', status: 'Inconclusive', fact: '样本不足' },
+      { id: 'stable', label: '稳定项', status: 'Verified', fact: '无变化' },
+    ],
+  });
+
+  const comparison = compareInspectionRuns(current, previous);
+  const kinds = Object.fromEntries(comparison.items.map((item) => [item.id, item.kind]));
+  assert.equal(comparison.summary, 'changed');
+  assert.deepEqual(kinds, {
+    added: 'added',
+    database: 'improved',
+    removed: 'removed',
+    trace: 'worsened',
+  });
+
+  const stable = compareInspectionRuns(current, runFixture({ id: 'RUN-SAME', executionResults: current.executionResults }));
+  assert.deepEqual(stable, {
+    previousRunId: 'RUN-SAME',
+    previousCompletedAt: '2026-08-16T06:01:00.000Z',
+    summary: 'stable',
+    items: [],
+  });
+
+  const legacy = structuredClone(previous);
+  delete legacy.executionResults;
+  assert.equal(compareInspectionRuns(current, legacy), null);
 });
 
 test('library serialization round-trips valid snapshots and rejects partial records', () => {
@@ -186,25 +261,13 @@ test('library serialization round-trips valid snapshots and rejects partial reco
     parseInspectionLibrary(JSON.stringify({ ...library, savedInspections: [{ name: 'missing id' }] })),
     createEmptyInspectionLibrary(),
   );
-  assert.deepEqual(
-    parseInspectionLibrary(
-      JSON.stringify({
-        schemaVersion: 1,
-        revision: 1,
-        savedInspections: [
-          {
-            id: 'SAVED-001',
-            version: 1,
-            name: '半截定义',
-            createdAt: '2026-08-16T06:00:00.000Z',
-            updatedAt: '2026-08-16T06:00:00.000Z',
-          },
-        ],
-        runs: [],
-      }),
-    ),
-    createEmptyInspectionLibrary(),
-  );
+  const partialRunPayload = JSON.stringify({ ...library, runs: [library.runs[0], { id: 'half-run' }] });
+  const recovered = parseInspectionLibraryWithDiagnostics(partialRunPayload);
+  assert.equal(recovered.diagnostics.status, 'degraded');
+  assert.equal(recovered.diagnostics.rejectedRunCount, 1);
+  assert.deepEqual(recovered.library.savedInspections, library.savedInspections);
+  assert.deepEqual(recovered.library.runs, library.runs);
+  assert.deepEqual(parseInspectionLibrary(partialRunPayload), recovered.library);
 });
 
 test('concurrent libraries merge stable IDs without losing runs and newer definitions win', () => {

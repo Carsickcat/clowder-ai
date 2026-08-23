@@ -115,8 +115,23 @@ function validRun(run) {
     nonEmptyString(run.completedAt) &&
     Array.isArray(run.selectedContextResults) &&
     validPlan(run.inspectionPlan) &&
+    (run.executionResults === undefined ||
+      (Array.isArray(run.executionResults) && run.executionResults.every(validExecutionResult))) &&
     run.report &&
     typeof run.report === 'object'
+  );
+}
+
+const EXECUTION_RESULT_STATUSES = new Set(['Verified', 'Violated', 'Inconclusive', 'NotEvaluated']);
+
+function validExecutionResult(result) {
+  return (
+    result &&
+    typeof result === 'object' &&
+    nonEmptyString(result.id) &&
+    nonEmptyString(result.label) &&
+    EXECUTION_RESULT_STATUSES.has(result.status) &&
+    typeof result.fact === 'string'
   );
 }
 
@@ -151,11 +166,50 @@ export function createEmptyInspectionLibrary() {
 }
 
 export function parseInspectionLibrary(serialized) {
-  if (typeof serialized !== 'string' || !serialized.trim()) return createEmptyInspectionLibrary();
+  return parseInspectionLibraryWithDiagnostics(serialized).library;
+}
+
+export function parseInspectionLibraryWithDiagnostics(serialized) {
+  const unavailable = () =>
+    deepFreeze({
+      library: createEmptyInspectionLibrary(),
+      diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
+    });
+  if (typeof serialized !== 'string' || !serialized.trim()) {
+    return deepFreeze({
+      library: createEmptyInspectionLibrary(),
+      diagnostics: { status: 'available', rejectedRunCount: 0 },
+    });
+  }
   try {
-    return normalizeLibrary(JSON.parse(serialized)) ?? createEmptyInspectionLibrary();
+    const value = JSON.parse(serialized);
+    if (
+      !value ||
+      value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
+      !Number.isInteger(value.revision) ||
+      value.revision < 0 ||
+      !Array.isArray(value.savedInspections) ||
+      !value.savedInspections.every(validDefinition) ||
+      !Array.isArray(value.runs)
+    ) {
+      return unavailable();
+    }
+    const validRuns = value.runs.filter(validRun);
+    const rejectedRunCount = value.runs.length - validRuns.length;
+    return deepFreeze({
+      library: {
+        schemaVersion: INSPECTION_LIBRARY_SCHEMA_VERSION,
+        revision: value.revision,
+        savedInspections: clone(value.savedInspections),
+        runs: clone(validRuns),
+      },
+      diagnostics: {
+        status: rejectedRunCount ? 'degraded' : 'available',
+        rejectedRunCount,
+      },
+    });
   } catch {
-    return createEmptyInspectionLibrary();
+    return unavailable();
   }
 }
 
@@ -268,12 +322,16 @@ export function createInspectionRun({
   taskInstance,
   definitionId = null,
   selectedContext,
+  executionResults,
   report,
   startedAt,
   completedAt,
 }) {
   if (!id || !startedAt || !completedAt) throw new TypeError('Inspection run identity and timestamps are required');
   if (taskInstance?.status !== 'locked') throw new TypeError('Inspection run requires a locked task');
+  if (!Array.isArray(executionResults) || !executionResults.every(validExecutionResult)) {
+    throw new TypeError('Inspection run requires structured execution results');
+  }
   return deepFreeze({
     id,
     taskInstanceId: taskInstance.id,
@@ -283,6 +341,12 @@ export function createInspectionRun({
     status: 'locked',
     selectedContextResults: selectedContextResults(selectedContext ?? []),
     inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
+    executionResults: executionResults.map(({ id: resultId, label, status, fact }) => ({
+      id: resultId,
+      label,
+      status,
+      fact,
+    })),
     report: clone(report),
   });
 }
