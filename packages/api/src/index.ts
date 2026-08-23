@@ -10,9 +10,9 @@ import { createRedisClient, SessionStore } from '@cat-cafe/shared/utils';
 import cors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify from 'fastify';
-import { resolveAnthropicRuntimeProfile, resolveForClient } from './config/account-resolver.js';
+import { resolveAnthropicRuntimeProfile, resolveForClient } from './config/accounts/account-resolver.js';
+import { resolveBoundAccountRefForCat } from './config/accounts/cat-account-binding.js';
 import { generateCliConfigs, readCapabilitiesConfig } from './config/capabilities/capability-orchestrator.js';
-import { resolveBoundAccountRefForCat } from './config/cat-account-binding.js';
 import { getCatContextBudget } from './config/cat-budgets.js';
 import {
   bootstrapDefaultCatCatalog,
@@ -807,7 +807,7 @@ async function main(): Promise<void> {
   });
 
   // F136 Phase 4c: Account binding subscriber — rebinds provider profiles when accounts change
-  const { createAccountBindingSubscriber } = await import('./config/account-binding-subscriber.js');
+  const { createAccountBindingSubscriber } = await import('./config/accounts/account-binding-subscriber.js');
   const accountBindingSubscriber = createAccountBindingSubscriber({
     async onRebind(changedAccountRefs) {
       app.log.info(`[api] F136: Accounts changed [${changedAccountRefs.join(', ')}], syncing agent registry...`);
@@ -1554,7 +1554,7 @@ async function main(): Promise<void> {
   // LL-043: legacy source present + accounts missing is a HARD error — don't run with empty accounts.
   // Migration filesystem errors are best-effort.
   try {
-    const { accountStartupHook } = await import('./config/account-startup.js');
+    const { accountStartupHook } = await import('./config/accounts/account-startup.js');
     const startupResult = accountStartupHook(findMonorepoRoot(process.cwd()));
     if (startupResult.migration.migrated) {
       app.log.info(

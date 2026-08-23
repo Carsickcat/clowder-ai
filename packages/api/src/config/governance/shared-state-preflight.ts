@@ -15,7 +15,7 @@
  * check is kept — dirty shared-state files in a worktree are real, not inherited.
  */
 import { execFileSync } from 'node:child_process';
-import { createModuleLogger } from '../infrastructure/logger.js';
+import { createModuleLogger } from '../../infrastructure/logger.js';
 
 const log = createModuleLogger('shared-state-preflight');
 

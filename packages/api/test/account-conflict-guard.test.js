@@ -45,7 +45,9 @@ describe('account conflict detection guard (HC-5)', () => {
   }
 
   it('no conflict when same accountRef has identical config across projects', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 
@@ -64,7 +66,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('detects conflict when same accountRef has different protocol', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-1`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-1`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 
@@ -88,7 +92,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('detects conflict when same accountRef has different authType', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-2`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-2`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 
@@ -111,7 +117,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('normalizes baseUrl trailing slash before comparison (HC-5 gpt52)', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-3`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-3`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 
@@ -133,7 +141,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('detects conflict when baseUrl is genuinely different', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-4`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-4`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 
@@ -156,7 +166,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('returns empty when no known roots file exists', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-5`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-5`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     try {
       await writeCatalogWithAccounts(projectA, {
@@ -170,7 +182,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('validateAccountWrite reuses same conflict logic (write-path guard)', async () => {
-    const { validateAccountWrite } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-6`);
+    const { validateAccountWrite } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-6`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 
@@ -192,7 +206,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('validateAccountWrite allows write when no conflict', async () => {
-    const { validateAccountWrite } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-7`);
+    const { validateAccountWrite } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-7`
+    );
     const projectA = await mkdtemp(join(tmpdir(), 'proj-a-'));
     const projectB = await mkdtemp(join(tmpdir(), 'proj-b-'));
 
@@ -231,7 +247,9 @@ describe('account conflict detection guard (HC-5)', () => {
   }
 
   it('detectAccountConflicts ignores worktrees of the same git project', async () => {
-    const { detectAccountConflicts } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-wt1`);
+    const { detectAccountConflicts } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-wt1`
+    );
     const { mainRepo, worktree, cleanup } = await setupWorktreePair();
 
     try {
@@ -251,7 +269,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('validateAccountWrite allows update when conflict is from a worktree of the same project', async () => {
-    const { validateAccountWrite } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-wt2`);
+    const { validateAccountWrite } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-wt2`
+    );
     const { mainRepo, worktree, cleanup } = await setupWorktreePair();
 
     try {
@@ -275,7 +295,9 @@ describe('account conflict detection guard (HC-5)', () => {
   });
 
   it('still detects conflict between genuinely different projects (not worktrees)', async () => {
-    const { validateAccountWrite } = await import(`../dist/config/account-conflict-guard.js?t=${Date.now()}-wt3`);
+    const { validateAccountWrite } = await import(
+      `../dist/config/accounts/account-conflict-guard.js?t=${Date.now()}-wt3`
+    );
     const { mainRepo, worktree, cleanup } = await setupWorktreePair();
     const unrelatedProject = await mkdtemp(join(tmpdir(), 'unrelated-'));
     // Give unrelated project its own .git dir

@@ -19,10 +19,10 @@ import {
   resolveBuiltinClientForProvider,
   resolveForClient,
   validateRuntimeProviderBinding,
-} from '../../../../../config/account-resolver.js';
-import { resolveBoundAccountRefForCat } from '../../../../../config/cat-account-binding.js';
+} from '../../../../../config/accounts/account-resolver.js';
+import { resolveBoundAccountRefForCat } from '../../../../../config/accounts/cat-account-binding.js';
 import { isSessionChainEnabled } from '../../../../../config/cat-config-loader.js';
-import { getContextWindowFallback } from '../../../../../config/context-window-sizes.js';
+import { getContextWindowFallback } from '../../../../../config/runtime/context-window-sizes.js';
 import { getSessionStrategy, shouldTakeAction } from '../../../../../config/session-strategy.js';
 import { createModuleLogger } from '../../../../../infrastructure/logger.js';
 import { resolveActiveProjectRoot } from '../../../../../utils/active-project-root.js';
@@ -555,7 +555,9 @@ export async function* invokeSingleCat(deps: InvocationDeps, params: InvocationP
       // in L1/L3 (`pre-commit` + CI / merge gate); blocking regular chat invocations on
       // local git state made multi-cat routing unusable whenever shared-state lagged.
       try {
-        const { checkSharedStatePreflight } = await import('../../../../../config/shared-state-preflight.js');
+        const { checkSharedStatePreflight } = await import(
+          '../../../../../config/governance/shared-state-preflight.js'
+        );
         const preflightRoot = workingProjectRoot ?? hostProjectRoot;
         const ssCheck = checkSharedStatePreflight(preflightRoot);
         if (!ssCheck.ok) {

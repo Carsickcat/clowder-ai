@@ -12,9 +12,9 @@ import { configStore } from './ConfigStore.js';
 import { getAllCatBudgets } from './cat-budgets.js';
 import { getCoCreatorConfig } from './cat-config-loader.js';
 import { getCatModel } from './cat-models.js';
-import { getCodexApprovalPolicy, getCodexSandboxMode } from './codex-cli.js';
 import type { CodexAuthMode, ConfigSnapshot } from './config-snapshot.js';
 import { parseBoolean, parseEnum } from './parse-utils.js';
+import { getCodexApprovalPolicy, getCodexSandboxMode } from './runtime/codex-cli.js';
 
 export type { CodexAuthMode, ConfigSnapshot } from './config-snapshot.js';
 

@@ -11,7 +11,7 @@ describe('getContextWindowFallback', () => {
   let CONTEXT_WINDOW_SIZES;
 
   test('setup', async () => {
-    const mod = await import('../dist/config/context-window-sizes.js');
+    const mod = await import('../dist/config/runtime/context-window-sizes.js');
     getContextWindowFallback = mod.getContextWindowFallback;
     CONTEXT_WINDOW_SIZES = mod.CONTEXT_WINDOW_SIZES;
   });

@@ -5,7 +5,7 @@
  * cat-catalog.json is the single runtime write source.
  */
 import type { AccountConfig, CatCafeConfigV2 } from '@cat-cafe/shared';
-import { readCatCatalog, writeCatCatalog } from './cat-catalog-store.js';
+import { readCatCatalog, writeCatCatalog } from '../cat-catalog-store.js';
 
 export function readCatalogAccounts(projectRoot: string): Record<string, AccountConfig> {
   const catalog = readCatCatalog(projectRoot);

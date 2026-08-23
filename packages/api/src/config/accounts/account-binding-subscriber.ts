@@ -7,7 +7,7 @@
  * - Serializes concurrent rebinds via promise chain
  */
 
-import { type ConfigChangeEvent, configEventBus } from './config-event-bus.js';
+import { type ConfigChangeEvent, configEventBus } from '../config-event-bus.js';
 
 export interface AccountBindingSubscriberOpts {
   onRebind: (changedAccountRefs: string[]) => Promise<void>;
