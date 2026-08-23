@@ -56,7 +56,7 @@ describe('accountStartupHook (HC-3 migration + HC-5 conflict scan at startup)', 
   }
 
   it('runs migration and returns migrated accounts + conflicts', async () => {
-    const { accountStartupHook } = await import(`../dist/config/account-startup.js?t=${Date.now()}`);
+    const { accountStartupHook } = await import(`../dist/config/accounts/account-startup.js?t=${Date.now()}`);
 
     // Setup: old provider-profiles + catalog (so migration can write)
     await writeV3Meta([
@@ -74,7 +74,7 @@ describe('accountStartupHook (HC-3 migration + HC-5 conflict scan at startup)', 
   });
 
   it('skips migration when project already has all old accounts', async () => {
-    const { accountStartupHook } = await import(`../dist/config/account-startup.js?t=${Date.now()}-1`);
+    const { accountStartupHook } = await import(`../dist/config/accounts/account-startup.js?t=${Date.now()}-1`);
 
     // Old profiles exist in global config
     await writeV3Meta([
@@ -89,7 +89,7 @@ describe('accountStartupHook (HC-3 migration + HC-5 conflict scan at startup)', 
   });
 
   it('detects cross-project conflicts at startup', async () => {
-    const { accountStartupHook } = await import(`../dist/config/account-startup.js?t=${Date.now()}-2`);
+    const { accountStartupHook } = await import(`../dist/config/accounts/account-startup.js?t=${Date.now()}-2`);
 
     // Create a second project with a conflicting account
     const otherProject = await mkdtemp(join(tmpdir(), 'acct-startup-other-'));
@@ -132,7 +132,7 @@ describe('accountStartupHook (HC-3 migration + HC-5 conflict scan at startup)', 
   });
 
   it('LL-043: does NOT throw when legacy file exists but has zero providers', async () => {
-    const { accountStartupHook } = await import(`../dist/config/account-startup.js?t=${Date.now()}-4`);
+    const { accountStartupHook } = await import(`../dist/config/accounts/account-startup.js?t=${Date.now()}-4`);
 
     // Legacy file exists but with empty providers — nothing to migrate
     await writeV3Meta([]);
@@ -145,7 +145,7 @@ describe('accountStartupHook (HC-3 migration + HC-5 conflict scan at startup)', 
   });
 
   it('LL-043: throws when legacy file is corrupt (unparseable) and catalog has no accounts', async () => {
-    const { accountStartupHook } = await import(`../dist/config/account-startup.js?t=${Date.now()}-5`);
+    const { accountStartupHook } = await import(`../dist/config/accounts/account-startup.js?t=${Date.now()}-5`);
 
     // Corrupt legacy file — can't parse, but file IS present
     await writeFile(join(globalRoot, '.cat-cafe', 'provider-profiles.json'), '{', 'utf-8');
@@ -163,7 +163,7 @@ describe('accountStartupHook (HC-3 migration + HC-5 conflict scan at startup)', 
   });
 
   it('LL-043: throws when legacy source exists but catalog is corrupted JSON', async () => {
-    const { accountStartupHook } = await import(`../dist/config/account-startup.js?t=${Date.now()}-6`);
+    const { accountStartupHook } = await import(`../dist/config/accounts/account-startup.js?t=${Date.now()}-6`);
 
     // Legacy file with providers
     await writeV3Meta([
@@ -186,7 +186,7 @@ describe('accountStartupHook (HC-3 migration + HC-5 conflict scan at startup)', 
   });
 
   it('LL-043: throws when legacy source exists but catalog has no accounts after migration', async () => {
-    const { accountStartupHook } = await import(`../dist/config/account-startup.js?t=${Date.now()}-3`);
+    const { accountStartupHook } = await import(`../dist/config/accounts/account-startup.js?t=${Date.now()}-3`);
 
     // Legacy provider-profiles.json exists with a profile
     await writeV3Meta([

@@ -51,7 +51,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   }
 
   it('resolveByAccountRef returns RuntimeProviderProfile from accounts + credentials', async () => {
-    const { resolveByAccountRef } = await import(`../dist/config/account-resolver.js?t=${Date.now()}`);
+    const { resolveByAccountRef } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}`);
     await writeCatalog({
       'my-glm': {
         authType: 'api_key',
@@ -75,7 +75,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveByAccountRef returns builtin-style profile for oauth accounts', async () => {
-    const { resolveByAccountRef } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-1`);
+    const { resolveByAccountRef } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-1`);
     await writeCatalog({
       claude: {
         authType: 'oauth',
@@ -95,7 +95,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveByAccountRef returns null for unknown ref', async () => {
-    const { resolveByAccountRef } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-2`);
+    const { resolveByAccountRef } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-2`);
     await writeCatalog({});
 
     const profile = resolveByAccountRef(projectRoot, 'nonexistent');
@@ -103,7 +103,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveByAccountRef injects apiKey from credentials', async () => {
-    const { resolveByAccountRef } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-3`);
+    const { resolveByAccountRef } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-3`);
     await writeCatalog({
       custom: { authType: 'api_key', protocol: 'anthropic' },
     });
@@ -115,7 +115,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveByAccountRef maps client from protocol for builtin accounts', async () => {
-    const { resolveByAccountRef } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-4`);
+    const { resolveByAccountRef } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-4`);
     await writeCatalog({
       codex: { authType: 'oauth', protocol: 'openai', models: ['gpt-5.3-codex'] },
     });
@@ -127,7 +127,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveForClient resolves by protocol via accounts', async () => {
-    const { resolveForClient } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-5`);
+    const { resolveForClient } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-5`);
     await writeCatalog({
       claude: { authType: 'oauth', protocol: 'anthropic', models: ['claude-opus-4-6'] },
       codex: { authType: 'oauth', protocol: 'openai', models: ['gpt-5.3-codex'] },
@@ -140,7 +140,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveForClient prefers preferredAccountRef when provided', async () => {
-    const { resolveForClient } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-6`);
+    const { resolveForClient } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-6`);
     await writeCatalog({
       claude: { authType: 'oauth', protocol: 'anthropic' },
       'my-ant': { authType: 'api_key', protocol: 'anthropic', baseUrl: 'https://custom.ant.com' },
@@ -155,7 +155,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveForClient returns null when multiple accounts match same protocol (ambiguous)', async () => {
-    const { resolveForClient } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-8`);
+    const { resolveForClient } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-8`);
     await writeCatalog({
       'claude-main': { authType: 'api_key', protocol: 'anthropic', displayName: 'Claude Main' },
       'claude-backup': { authType: 'api_key', protocol: 'anthropic', displayName: 'Claude Backup' },
@@ -168,7 +168,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveForClient returns the account when only one matches protocol', async () => {
-    const { resolveForClient } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-9`);
+    const { resolveForClient } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-9`);
     await writeCatalog({
       'my-ant': { authType: 'api_key', protocol: 'anthropic' },
       codex: { authType: 'api_key', protocol: 'openai' },
@@ -181,7 +181,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('resolveForClient returns baseUrl from custom account (game domain P2-1 pattern)', async () => {
-    const { resolveForClient } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-10`);
+    const { resolveForClient } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-10`);
     await writeCatalog({
       'custom-ant': {
         authType: 'api_key',
@@ -198,7 +198,7 @@ describe('account-resolver (4b unified runtime resolution)', () => {
   });
 
   it('env fallback: resolveByAccountRef reads env API key when credentials absent', async () => {
-    const { resolveByAccountRef } = await import(`../dist/config/account-resolver.js?t=${Date.now()}-7`);
+    const { resolveByAccountRef } = await import(`../dist/config/accounts/account-resolver.js?t=${Date.now()}-7`);
     await writeCatalog({
       custom: { authType: 'api_key', protocol: 'anthropic' },
     });

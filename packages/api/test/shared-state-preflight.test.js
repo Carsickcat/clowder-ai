@@ -49,7 +49,7 @@ const tempDirs = [];
 
 describe('checkSharedStatePreflight (integration)', () => {
   before(async () => {
-    const mod = await import('../dist/config/shared-state-preflight.js');
+    const mod = await import('../dist/config/governance/shared-state-preflight.js');
     checkSharedStatePreflight = mod.checkSharedStatePreflight;
   });
 

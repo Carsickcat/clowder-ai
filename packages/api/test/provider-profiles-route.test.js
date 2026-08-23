@@ -721,7 +721,7 @@ describe('provider profiles routes', () => {
 
   it('GET /api/provider-profiles returns correct client for non-standard builtins (dare/opencode)', async () => {
     const { writeFileSync, mkdirSync } = await import('node:fs');
-    const { writeCatalogAccount } = await import('../dist/config/catalog-accounts.js');
+    const { writeCatalogAccount } = await import('../dist/config/accounts/catalog-accounts.js');
     const Fastify = (await import('fastify')).default;
     const { providerProfilesRoutes } = await import('../dist/routes/provider-profiles.js');
     const app = Fastify();

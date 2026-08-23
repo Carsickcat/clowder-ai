@@ -7,7 +7,7 @@ describe('AccountBindingSubscriber — F136 Phase 4c', () => {
 
   before(async () => {
     ({ configEventBus } = await import('../dist/config/config-event-bus.js'));
-    ({ createAccountBindingSubscriber } = await import('../dist/config/account-binding-subscriber.js'));
+    ({ createAccountBindingSubscriber } = await import('../dist/config/accounts/account-binding-subscriber.js'));
   });
 
   it('calls onRebind when accounts event fires', async () => {

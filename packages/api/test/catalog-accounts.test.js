@@ -77,7 +77,7 @@ describe('cat-catalog-store accounts section (HC-2)', () => {
 
   it('readCatalogAccounts returns accounts from catalog', async () => {
     const { writeCatCatalog } = await import('../dist/config/cat-catalog-store.js');
-    const { readCatalogAccounts } = await import('../dist/config/catalog-accounts.js');
+    const { readCatalogAccounts } = await import('../dist/config/accounts/catalog-accounts.js');
     const accounts = {
       claude: { authType: 'oauth', protocol: 'anthropic' },
     };
@@ -89,7 +89,7 @@ describe('cat-catalog-store accounts section (HC-2)', () => {
 
   it('readCatalogAccounts returns empty object when no accounts', async () => {
     const { writeCatCatalog } = await import('../dist/config/cat-catalog-store.js');
-    const { readCatalogAccounts } = await import('../dist/config/catalog-accounts.js');
+    const { readCatalogAccounts } = await import('../dist/config/accounts/catalog-accounts.js');
     writeCatCatalog(projectRoot, makeCatalog());
 
     const result = readCatalogAccounts(projectRoot);
@@ -98,7 +98,7 @@ describe('cat-catalog-store accounts section (HC-2)', () => {
 
   it('writeCatalogAccount adds account to catalog', async () => {
     const { writeCatCatalog, readCatCatalog } = await import('../dist/config/cat-catalog-store.js');
-    const { writeCatalogAccount } = await import('../dist/config/catalog-accounts.js');
+    const { writeCatalogAccount } = await import('../dist/config/accounts/catalog-accounts.js');
     writeCatCatalog(projectRoot, makeCatalog());
 
     writeCatalogAccount(projectRoot, 'my-glm', {
@@ -116,7 +116,7 @@ describe('cat-catalog-store accounts section (HC-2)', () => {
 
   it('deleteCatalogAccount removes account from catalog', async () => {
     const { writeCatCatalog, readCatCatalog } = await import('../dist/config/cat-catalog-store.js');
-    const { writeCatalogAccount, deleteCatalogAccount } = await import('../dist/config/catalog-accounts.js');
+    const { writeCatalogAccount, deleteCatalogAccount } = await import('../dist/config/accounts/catalog-accounts.js');
     writeCatCatalog(
       projectRoot,
       makeCatalog({

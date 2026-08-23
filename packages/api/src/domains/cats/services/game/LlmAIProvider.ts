@@ -13,7 +13,7 @@
 
 import type { AccountProtocol } from '@cat-cafe/shared';
 import { catRegistry } from '@cat-cafe/shared';
-import { resolveForClient } from '../../../../config/account-resolver.js';
+import { resolveForClient } from '../../../../config/accounts/account-resolver.js';
 import { getCatModel } from '../../../../config/cat-models.js';
 import type { AIActionResponse, AIProvider } from '../game/werewolf/WerewolfAIPlayer.js';
 
