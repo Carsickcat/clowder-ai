@@ -3,9 +3,10 @@ import { escapeHtml } from './view-utils.mjs';
 function renderCandidate(candidate, disposition) {
   const accepted = disposition?.status === 'accepted';
   const rejected = disposition?.status === 'rejected';
-  const status = accepted ? '✓ 已加查' : rejected ? '— 不查' : '待你选择';
+  const optional = candidate.criticality !== 'high' && !accepted && !rejected;
+  const status = accepted ? '✓ 已加查' : rejected ? '— 不查' : optional ? '可选' : '待你选择';
   return `
-    <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''}">
+    <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''} ${optional ? 'is-optional' : ''}">
       <header><span>AI 建议</span><strong class="candidate-result">${status}</strong></header>
       <h4>${escapeHtml(candidate.purpose)}</h4>
       <p><span>为什么建议查</span>${escapeHtml(candidate.rationale)}</p>
@@ -57,16 +58,35 @@ function renderCheck(check, isCandidate, contextSources) {
     </details>`;
 }
 
-function renderPlanSummary(committedCount, pendingCount) {
-  return `<p class="plan-summary" data-testid="plan-summary">本次将执行 ${committedCount} 项检查，${
-    pendingCount ? `另有 ${pendingCount} 项 AI 建议需要你确认` : '无需额外确认'
-  }</p>`;
+function renderPlanSummary(committedCount, planSummary) {
+  let pendingCopy = '无需额外确认';
+  if (planSummary.requiredPending) {
+    pendingCopy = `另有 ${planSummary.requiredPending} 项 AI 建议需要你确认${
+      planSummary.optionalPending ? `，${planSummary.optionalPending} 项可选` : ''
+    }`;
+  } else if (planSummary.optionalPending) {
+    pendingCopy = `另有 ${planSummary.optionalPending} 项 AI 可选建议`;
+  }
+  return `<p class="plan-summary" data-testid="plan-summary">本次将执行 ${committedCount} 项检查，${pendingCopy}</p>`;
 }
 
 function renderPlanAction(readiness) {
   const ready = readiness.status === 'ready';
-  const label = ready ? '确认并开始巡检' : '请先处理上方的建议项';
+  const label = ready
+    ? '确认并开始巡检'
+    : readiness.unresolvedCandidateIds.length
+      ? '请先处理上方的建议项'
+      : readiness.reconciliationBlocked
+        ? '请先完成范围对账'
+        : '暂时无法开始巡检';
   return `<button class="primary-action plan-primary-action" data-action="PLAN_CONFIRMED" ${ready ? '' : 'disabled'} type="button"><span>${label}</span><b>→</b></button>`;
+}
+
+function renderReadinessLabel(readiness) {
+  if (readiness.status === 'ready') return '可以开始';
+  if (readiness.unresolvedCandidateIds.length) return '有建议待确认';
+  if (readiness.reconciliationBlocked) return '范围待确认';
+  return '暂不可开始';
 }
 
 function sortChecks(checks) {
@@ -89,9 +109,15 @@ export function renderInspectionPlan(vm) {
       .filter(([, item]) => item.status === 'accepted')
       .map(([id]) => id),
   );
+  const candidateSectionTitle = vm.planSummary.requiredPending
+    ? '需要你确认'
+    : vm.planSummary.optionalPending
+      ? '可选建议'
+      : '已处理的 AI 建议';
+  const candidateSectionClass = vm.planSummary.requiredPending ? '' : ' is-optional';
   const candidateSection = candidates
-    ? `<section class="plan-section plan-confirmation" aria-labelledby="pending-title">
-        <h3 id="pending-title">需要你确认</h3>
+    ? `<section class="plan-section plan-confirmation${candidateSectionClass}" aria-labelledby="pending-title">
+        <h3 id="pending-title">${candidateSectionTitle}</h3>
         <div class="candidate-stack">${candidates}</div>
       </section>`
     : '';
@@ -99,9 +125,9 @@ export function renderInspectionPlan(vm) {
     <div class="plan-stage" data-testid="inspection-plan">
       <header class="stage-heading">
         <div><h2 data-stage-title>巡检任务</h2></div>
-        <span class="readiness ${vm.readiness.status}">${vm.readiness.status === 'ready' ? '可以开始' : '有建议待确认'}</span>
+        <span class="readiness ${vm.readiness.status}">${renderReadinessLabel(vm.readiness)}</span>
       </header>
-      ${renderPlanSummary(vm.committedChecks.length, vm.planSummary.pending)}
+      ${renderPlanSummary(vm.committedChecks.length, vm.planSummary)}
       ${candidateSection}
       <section class="plan-section" aria-labelledby="formal-title">
         <h3 id="formal-title">将执行的检查</h3>

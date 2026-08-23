@@ -134,8 +134,9 @@ async function main() {
 
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
-    assert.match(text, /本次将执行 3 项检查，另有 1 项 AI 建议需要你确认/);
-    assert.match(text, /需要你确认[\s\S]*将执行的检查[\s\S]*确认并开始巡检/);
+    assert.match(text, /本次将执行 3 项检查，另有 1 项 AI 可选建议/);
+    assert.match(text, /可选建议[\s\S]*将执行的检查[\s\S]*确认并开始巡检/);
+    assert.doesNotMatch(text, /需要你确认|有建议待确认|请先处理上方的建议项/);
     assert.doesNotMatch(text, /fulfillment\.service\.success_rate/);
     assert.doesNotMatch(text, /http\.error_rate/);
     const genericPlanText = await session.evaluate(`(() => {
@@ -147,6 +148,7 @@ async function main() {
     assert.doesNotMatch(genericPlanText, /order|payment|订单|支付/i);
     assert.match(genericPlanText, /fulfillment-service/);
     assert.match(genericPlanText, /http\.error_rate/);
+    await screenshot(session, '11-draft-optional-suggestion.png');
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
     text = await bodyText(session);
@@ -338,6 +340,16 @@ async function main() {
       /本次将执行 4 项检查，无需额外确认/,
     );
     assert.match(await bodyText(session), /✓ 已加查/);
+    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="rejected"]');
+    assert.match(await bodyText(session), /— 不查/);
+    assert.match(
+      await session.evaluate('document.querySelector(\'[data-testid="plan-summary"]\').textContent'),
+      /本次将执行 3 项检查，无需额外确认/,
+    );
+    assert.equal(await session.evaluate('document.querySelectorAll(".check-card.is-candidate-check").length'), 0);
+    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
+    assert.match(await bodyText(session), /✓ 已加查/);
+    assert.equal(await session.evaluate('document.querySelectorAll(".check-card.is-candidate-check").length'), 1);
     await click(session, '.check-card summary');
     const sourceDetail = await session.evaluate("document.querySelector('.check-card[open] .check-sources').innerText");
     assert.match(sourceDetail, /电子流/);

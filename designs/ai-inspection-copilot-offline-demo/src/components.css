@@ -723,6 +723,9 @@
 .plan-confirmation > h3 {
   color: var(--amber);
 }
+.plan-confirmation.is-optional > h3 {
+  color: var(--text-soft);
+}
 .candidate-stack,
 .check-stack {
   display: grid;
@@ -734,6 +737,13 @@
   border: 1px solid rgba(246, 186, 91, 0.3);
   border-radius: var(--radius);
   background: var(--amber-soft);
+}
+.candidate-card.is-optional {
+  border-color: var(--line);
+  background: rgba(111, 135, 163, 0.08);
+}
+.candidate-card.is-optional header span {
+  color: var(--text-soft);
 }
 .candidate-card.is-accepted {
   border-color: rgba(114, 230, 166, 0.34);

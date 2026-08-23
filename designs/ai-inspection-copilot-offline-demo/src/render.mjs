@@ -165,13 +165,20 @@ function primaryAction(vm) {
   return `<button class="primary-action" data-action="${action}" type="button"><span>${escapeHtml(label)}</span><b>→</b></button>`;
 }
 
+function planStatus(readiness) {
+  if (readiness.status === 'ready') return '可以开始';
+  if (readiness.unresolvedCandidateIds.length) return '有建议待确认';
+  if (readiness.reconciliationBlocked) return '范围待确认';
+  return '暂不可开始';
+}
+
 function renderCopilot(vm) {
   const status = !vm.workspace
     ? '等待输入'
     : {
         intake: '待确认',
         context: vm.playbook.match ? '方案待选择' : '范围待确认',
-        plan: vm.readiness.status === 'ready' ? '可以开始' : '有建议待确认',
+        plan: planStatus(vm.readiness),
         execution: '执行中',
         report: '报告已生成',
       }[vm.state.phase];

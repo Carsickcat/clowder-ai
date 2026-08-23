@@ -120,6 +120,62 @@ test('accepted candidate becomes a formal check and unlocks confirmation', () =>
   assert.match(html, /data-action="PLAN_CONFIRMED"[^>]*>[\s\S]*?确认并开始巡检/);
 });
 
+test('medium candidate is presented as optional without pretending to block the plan', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', {
+    request: {
+      prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+      targetService: 'fulfillment-service',
+      contextReference: 'REL-FUL-72',
+    },
+  });
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dismissMatchedPlaybook(state);
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /本次将执行 4 项检查，另有 1 项 AI 可选建议/);
+  assert.match(html, /id="pending-title">可选建议/);
+  assert.match(html, /class="readiness ready">可以开始/);
+  assert.doesNotMatch(html, /需要你确认|有建议待确认|请先处理上方的建议项/);
+  assert.doesNotMatch(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
+});
+
+test('candidate decision stays visible and can switch between rejected and accepted', () => {
+  let state = paymentState();
+  state = dispatch(state, 'INPUT_CONFIRMED');
+  state = dismissMatchedPlaybook(state);
+  state = dispatch(state, 'SCOPE_ACCEPTED');
+  state = dispatch(state, 'CANDIDATE_DISPOSED', {
+    candidateId: 'candidate-db-wait',
+    disposition: 'accepted',
+  });
+  state = dispatch(state, 'CANDIDATE_DISPOSED', {
+    candidateId: 'candidate-db-wait',
+    disposition: 'rejected',
+    reason: '本次变更未触及连接池配置',
+  });
+  let html = renderApp(selectViewModel(state));
+
+  assert.match(html, /— 不查/);
+  assert.match(html, /已记录原因：本次变更未触及连接池配置/);
+  assert.match(html, /data-disposition="accepted"[^>]*aria-pressed="false"[^>]*>加查<\/button>/);
+  assert.match(html, /data-disposition="rejected"[^>]*aria-pressed="true"[^>]*>不查<\/button>/);
+  assert.match(html, /本次将执行 3 项检查，无需额外确认/);
+  assert.doesNotMatch(html, /class="check-card is-candidate-check"/);
+
+  state = dispatch(state, 'CANDIDATE_DISPOSED', {
+    candidateId: 'candidate-db-wait',
+    disposition: 'accepted',
+  });
+  html = renderApp(selectViewModel(state));
+
+  assert.match(html, /✓ 已加查/);
+  assert.doesNotMatch(html, /已记录原因：/);
+  assert.match(html, /本次将执行 4 项检查，无需额外确认/);
+  assert.match(html, /class="check-card is-candidate-check"/);
+});
+
 test('draft without AI suggestions skips the confirmation section', () => {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', {
