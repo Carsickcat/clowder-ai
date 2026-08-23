@@ -217,6 +217,36 @@
   .saved-run-button {
     width: 100%;
   }
+  .saved-history-heading,
+  .decision-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .saved-history-entry > summary {
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 8px 10px;
+  }
+  .saved-history-entry > summary time,
+  .saved-history-entry > summary strong,
+  .saved-history-entry > summary small {
+    grid-column: 2;
+  }
+  .saved-history-entry > summary small {
+    white-space: normal;
+  }
+  .historical-report {
+    margin-inline: 6px;
+    padding: 10px;
+  }
+  .report-share {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-share button {
+    width: 100%;
+  }
+  .share-toast {
+    text-align: left;
+  }
   .personal-save form {
     grid-template-columns: 1fr;
   }

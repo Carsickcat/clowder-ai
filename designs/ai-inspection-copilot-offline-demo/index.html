@@ -1853,6 +1853,222 @@ a:focus-visible {
   color: var(--green);
 }
 
+.saved-inspection-copy {
+  flex: 1 1 auto;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.saved-inspection-card:has(.saved-inspection-copy:hover) {
+  border-color: rgba(90, 231, 210, 0.3);
+  background: rgba(12, 28, 49, 0.68);
+}
+.run-history-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  margin-top: 12px;
+}
+.run-history-mini small,
+.run-history-empty,
+.run-history-unavailable {
+  margin: 0 0 0 4px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.run-history-unavailable {
+  margin: 12px 0 0;
+  color: var(--amber);
+}
+.run-history-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--text-faint);
+  box-shadow: 0 0 0 3px rgba(111, 135, 163, 0.08);
+}
+.run-history-dot.is-proceed {
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+.run-history-dot.is-pause {
+  background: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
+}
+.saved-inspection-history {
+  display: grid;
+  gap: 18px;
+}
+.saved-history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.saved-history-heading h2 {
+  margin: 14px 0 6px;
+  font-size: 22px;
+}
+.saved-history-heading p {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.history-back {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.saved-history-title {
+  margin: 2px 0 -4px;
+  font-size: 13px;
+}
+.saved-history-list,
+.saved-history-earlier {
+  display: grid;
+  gap: 9px;
+}
+.saved-history-earlier > summary {
+  padding: 12px;
+  color: var(--text-soft);
+  cursor: pointer;
+  text-align: center;
+}
+.saved-history-entry {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.35);
+}
+.saved-history-entry > summary {
+  display: grid;
+  grid-template-columns: 10px 128px minmax(120px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.saved-history-entry > summary::-webkit-details-marker {
+  display: none;
+}
+.saved-history-entry > summary time,
+.saved-history-entry > summary small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-history-entry > summary strong {
+  font-size: 11px;
+}
+.historical-report {
+  margin: 0 12px 12px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+.historical-banner {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(109, 145, 255, 0.3);
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: #bed1ff;
+  font-size: 10px;
+}
+.historical-report .decision-hero h2 {
+  font-size: 22px;
+}
+.decision-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.report-share {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 8px;
+}
+.report-share button {
+  padding: 9px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: rgba(7, 16, 31, 0.4);
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+.report-share button:hover {
+  border-color: rgba(90, 231, 210, 0.45);
+  color: var(--cyan);
+}
+.share-toast {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--green);
+  font-size: 9px;
+  text-align: right;
+}
+.run-comparison {
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid rgba(109, 145, 255, 0.28);
+  border-radius: var(--radius);
+  background: var(--blue-soft);
+}
+.run-comparison h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.run-comparison > p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.run-comparison ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.run-comparison li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.run-comparison li > span {
+  color: var(--cyan);
+  font-weight: 800;
+}
+.run-comparison li.is-worsened > span,
+.run-comparison li.is-removed > span {
+  color: var(--red);
+}
+.run-comparison li strong {
+  font-size: 10px;
+}
+.run-comparison li p {
+  margin: 3px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
 @media (max-width: 1180px) {
   .workspace {
     grid-template-columns: minmax(230px, 0.7fr) minmax(480px, 1.5fr);
@@ -2071,6 +2287,36 @@ a:focus-visible {
   }
   .saved-run-button {
     width: 100%;
+  }
+  .saved-history-heading,
+  .decision-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .saved-history-entry > summary {
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 8px 10px;
+  }
+  .saved-history-entry > summary time,
+  .saved-history-entry > summary strong,
+  .saved-history-entry > summary small {
+    grid-column: 2;
+  }
+  .saved-history-entry > summary small {
+    white-space: normal;
+  }
+  .historical-report {
+    margin-inline: 6px;
+    padding: 10px;
+  }
+  .report-share {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-share button {
+    width: 100%;
+  }
+  .share-toast {
+    text-align: left;
   }
   .personal-save form {
     grid-template-columns: 1fr;
@@ -3465,8 +3711,19 @@ function selectRunsForDefinition(definition, runs = []) {
   }
   return [...unique.values()].sort(
     (left, right) =>
-      String(right.completedAt).localeCompare(String(left.completedAt)) || String(right.id).localeCompare(String(left.id)),
+      String(right.completedAt).localeCompare(String(left.completedAt)) ||
+      String(right.id).localeCompare(String(left.id)),
   );
+}
+
+function compareExecutionResult(id, before, after) {
+  if (!before) return { id, label: after.label, kind: 'added', before: null, after };
+  if (!after) return { id, label: before.label, kind: 'removed', before, after: null };
+  if (before.status === after.status && before.fact === after.fact && before.label === after.label) return null;
+  const beforeRank = RESULT_RANK[before.status];
+  const afterRank = RESULT_RANK[after.status];
+  const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
+  return { id, label: after.label, kind, before, after };
 }
 
 function compareInspectionRuns(currentRun, previousRun) {
@@ -3476,21 +3733,8 @@ function compareInspectionRuns(currentRun, previousRun) {
   const ids = [...new Set([...current.keys(), ...previous.keys()])].sort();
   const items = [];
   for (const id of ids) {
-    const before = previous.get(id);
-    const after = current.get(id);
-    if (!before) {
-      items.push({ id, label: after.label, kind: 'added', before: null, after });
-      continue;
-    }
-    if (!after) {
-      items.push({ id, label: before.label, kind: 'removed', before, after: null });
-      continue;
-    }
-    if (before.status === after.status && before.fact === after.fact && before.label === after.label) continue;
-    const beforeRank = RESULT_RANK[before.status];
-    const afterRank = RESULT_RANK[after.status];
-    const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
-    items.push({ id, label: after.label, kind, before, after });
+    const item = compareExecutionResult(id, previous.get(id), current.get(id));
+    if (item) items.push(item);
   }
   return deepFreeze({
     previousRunId: previousRun.id,
@@ -3610,14 +3854,35 @@ function selectSavedInspectionView(state) {
   const savedInspections = [...state.library.savedInspections].sort((left, right) =>
     String(right.updatedAt).localeCompare(String(left.updatedAt)),
   );
+  const currentRun = state.library.runs.find((run) => run.id === state.currentRunId) ?? null;
+  const historyDefinition =
+    savedInspections.find((definition) => definition.id === state.activeHistoryDefinitionId) ?? null;
+  const historyRuns = selectRunsForDefinition(historyDefinition, state.library.runs);
+  const reportDefinitionId = state.activeSavedInspectionId ?? state.savedDefinitionId;
+  const reportDefinition = savedInspections.find((definition) => definition.id === reportDefinitionId) ?? null;
+  const reportRuns = selectRunsForDefinition(reportDefinition, state.library.runs);
+  const currentRunIndex = currentRun ? reportRuns.findIndex((run) => run.id === currentRun.id) : -1;
+  const comparison =
+    currentRunIndex >= 0 && reportRuns[currentRunIndex + 1]
+      ? compareInspectionRuns(currentRun, reportRuns[currentRunIndex + 1])
+      : null;
   return {
     definitions: savedInspections,
     runs: state.library.runs,
+    cards: savedInspections.map((definition) => {
+      const definitionRuns = selectRunsForDefinition(definition, state.library.runs);
+      return { definition, runs: definitionRuns, latestRun: definitionRuns[0] ?? null };
+    }),
     activeDefinition: savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    historyDefinition,
+    historyRuns,
+    historyDiagnostics: state.historyDiagnostics,
+    reportDefinition,
+    comparison,
     refresh: state.savedRunRefresh,
     contextOptions: state.contextOptions,
     selectedContext: state.contextOptions.filter((item) => item.selected),
-    currentRun: state.library.runs.find((run) => run.id === state.currentRunId) ?? null,
+    currentRun,
     savedDefinitionId: state.savedDefinitionId,
     composerPrefill: state.composerPrefill,
     conversation: state.conversation,
@@ -3675,12 +3940,18 @@ function createDemoSession(options = {}) {
     conversation: [],
     activeRequest: null,
     activeSavedInspectionId: null,
+    activeHistoryDefinitionId: null,
     savedRunRefresh: null,
     composerPrefill: options.composerPrefill ?? null,
     currentRunId: null,
     savedDefinitionId: null,
     storageError: null,
     toast: null,
+    shareToast: null,
+    historyDiagnostics: {
+      status: options.historyDiagnostics?.status ?? 'available',
+      rejectedRunCount: options.historyDiagnostics?.rejectedRunCount ?? 0,
+    },
     actorId: normalizeActorId(options.actorId),
     nextTaskOrdinal:
       options.nextTaskOrdinal ??
@@ -3815,6 +4086,7 @@ function submitIntent(state, action, playbookCatalog, compileIntent) {
       nextTaskOrdinal: ordinal + 1,
       nextRunOrdinal: state.nextRunOrdinal,
       nextSavedOrdinal: state.nextSavedOrdinal,
+      historyDiagnostics: state.historyDiagnostics,
     }),
     workspace,
     contextOptions: createContextOptions(workspace),
@@ -4103,6 +4375,7 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
       nextTaskOrdinal: ordinal + 1,
       nextRunOrdinal: state.nextRunOrdinal,
       nextSavedOrdinal: state.nextSavedOrdinal,
+      historyDiagnostics: state.historyDiagnostics,
     }),
     phase,
     workspace,
@@ -4144,6 +4417,7 @@ function regenerateSavedInspection(state) {
     nextRunOrdinal: state.nextRunOrdinal,
     nextSavedOrdinal: state.nextSavedOrdinal,
     composerPrefill: { ...definition.request },
+    historyDiagnostics: state.historyDiagnostics,
   });
 }
 
@@ -4154,6 +4428,7 @@ function resetSession(state) {
     nextTaskOrdinal: state.nextTaskOrdinal,
     nextRunOrdinal: state.nextRunOrdinal,
     nextSavedOrdinal: state.nextSavedOrdinal,
+    historyDiagnostics: state.historyDiagnostics,
   });
 }
 
@@ -4162,16 +4437,34 @@ function hydrateLibrary(state, action) {
   return createDemoSession({
     library: action.library,
     actorId: state.actorId,
+    historyDiagnostics: action.diagnostics,
   });
 }
 
 function mergeLibrary(state, action) {
   const library = mergeInspectionLibraries(state.library, action.library);
-  return JSON.stringify(library) === JSON.stringify(state.library) ? state : { ...state, library };
+  const historyDiagnostics = action.diagnostics ?? state.historyDiagnostics;
+  return JSON.stringify(library) === JSON.stringify(state.library) && historyDiagnostics === state.historyDiagnostics
+    ? state
+    : { ...state, library, historyDiagnostics };
+}
+
+function openSavedInspectionHistory(state, action) {
+  if (state.phase !== 'intake' || state.workspace) return state;
+  const exists = state.library.savedInspections.some((definition) => definition.id === action.definitionId);
+  return exists ? { ...state, activeHistoryDefinitionId: action.definitionId } : state;
+}
+
+function closeSavedInspectionHistory(state) {
+  return state.activeHistoryDefinitionId ? { ...state, activeHistoryDefinitionId: null } : state;
 }
 
 function markStorageFailure(state, action) {
   return { ...state, storageError: action.message || '本地保存失败', toast: null };
+}
+
+function setShareFeedback(state, action) {
+  return state.phase === 'report' ? { ...state, shareToast: action.message ?? null } : state;
 }
 
 function createDemoReducer(options = {}) {
@@ -4184,6 +4477,7 @@ function createDemoReducer(options = {}) {
     LIBRARY_HYDRATED: hydrateLibrary,
     LIBRARY_MERGED: mergeLibrary,
     LIBRARY_SAVE_FAILED: markStorageFailure,
+    SHARE_FEEDBACK_SET: setShareFeedback,
     CONTEXT_ITEM_TOGGLED: toggleDraftContext,
     INPUT_CONFIRMED: confirmInput,
     PLAYBOOK_DISMISSED: dismissPlaybook,
@@ -4198,6 +4492,8 @@ function createDemoReducer(options = {}) {
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
     SAVED_INSPECTION_CREATED: createPersonalSavedInspection,
+    SAVED_INSPECTION_HISTORY_OPENED: openSavedInspectionHistory,
+    SAVED_INSPECTION_HISTORY_CLOSED: closeSavedInspectionHistory,
     SAVED_INSPECTION_RUN_REQUESTED: (state, action) => requestSavedInspectionRun(state, action, compileSavedDefinition),
     SAVED_INSPECTION_RUN_CONFIRMED: confirmSavedInspectionRun,
     SAVED_INSPECTION_REGENERATED: regenerateSavedInspection,
@@ -4221,6 +4517,72 @@ function escapeHtml(value = '') {
     .replaceAll("'", '&#039;');
 }
 
+function requireShareableRun(run) {
+  if (!run?.report || !run.completedAt) throw new TypeError('A completed inspection run is required');
+  return run.report;
+}
+
+function isoMinute(value) {
+  return new Date(value).toISOString().slice(0, 16).replace('T', ' ');
+}
+
+function buildReportShareText(run, taskName) {
+  const report = requireShareableRun(run);
+  const evidence = report.keyEvidence.slice(0, 2).join('；');
+  return [
+    `结论：${report.actionLabel}`,
+    `时间：${isoMinute(run.completedAt)}`,
+    `任务：${String(taskName).trim()}`,
+    `关键证据：${evidence}`,
+    `结论边界：${report.scopeStatement}`,
+  ].join('\n');
+}
+
+function buildReportFilename(run, taskName) {
+  requireShareableRun(run);
+  const safeName = [...String(taskName).trim()]
+    .map((character) => (character.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(character) ? '-' : character))
+    .join('')
+    .replace(/-+/g, '-')
+    .replace(/^[.\s-]+|[.\s-]+$/g, '')
+    .slice(0, 80);
+  const [date, time] = new Date(run.completedAt).toISOString().slice(0, 16).split('T');
+  const stamp = `${date.replaceAll('-', '')}-${time.replace(':', '')}`;
+  return `${safeName || '巡检报告'}-${stamp}.html`;
+}
+
+function buildStandaloneReportHtml(run, taskName) {
+  const report = requireShareableRun(run);
+  const name = escapeHtml(String(taskName).trim());
+  const evidence = report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const risks = report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const doctype = '<!' + 'doctype html>';
+  return `${doctype}
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${name} · 巡检报告</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#07101f;color:#edf6ff}
+    body{max-width:920px;margin:0 auto;padding:32px 20px;background:#07101f}
+    header,section{border:1px solid #29415f;border-radius:16px;background:#0e1d33;padding:22px;margin-bottom:14px}
+    header{border-color:#397462;background:linear-gradient(145deg,#153b37,#0e1d33)}
+    h1{font-size:30px;margin:8px 0}h2{font-size:16px;margin:0 0 12px}p,li{line-height:1.7;color:#b9cadc}
+    .meta{color:#72e6a6;font-size:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .pair section{margin:0}.foot{font-size:12px;color:#738aa3;text-align:center;border:0;background:transparent}
+    @media(max-width:560px){body{padding:16px 12px}.pair{grid-template-columns:1fr}h1{font-size:24px}}
+  </style>
+</head>
+<body>
+  <header><div class="meta">离线巡检报告 · ${escapeHtml(isoMinute(run.completedAt))}</div><h1>${escapeHtml(report.actionLabel)}</h1><p>${escapeHtml(report.title)}</p></header>
+  <section><h2>${name}</h2><p>${escapeHtml(report.summary)}</p></section>
+  <div class="pair"><section><h2>关键证据</h2><ul>${evidence}</ul></section><section><h2>结论边界</h2><p>${escapeHtml(report.scopeStatement)}</p><h2>残余风险</h2><ul>${risks}</ul></section></div>
+  <section class="foot">本报告由 NOVA 巡检 Copilot 离线演示生成 · 数据为 mock</section>
+</body>
+</html>`;
+}
+
 const CONTEXT_GROUPS = [
   ['change', '近期变更'],
   ['service', '关联服务与依赖'],
@@ -4240,30 +4602,43 @@ function renderExamples() {
     .join('');
 }
 
-function latestRunFor(definition, runs) {
-  return (
-    [...runs]
-      .filter((run) => run.definitionId === definition.id || run.id === definition.sourceRunId)
-      .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0] ?? null
-  );
+function formatRunTime(value) {
+  return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—';
 }
 
-function renderSavedCard(definition, runs) {
-  const run = latestRunFor(definition, runs);
+function runTone(run) {
+  return ['Pause', 'Rollback'].includes(run?.report?.action) ? 'pause' : run ? 'proceed' : 'empty';
+}
+
+function renderMiniRunHistory(runs, diagnostics) {
+  if (diagnostics?.status === 'degraded') return '<p class="run-history-unavailable">历史暂不可用</p>';
+  if (!runs.length) return '<p class="run-history-empty">还没有执行记录</p>';
+  const recent = runs.slice(0, 10).reverse();
+  return `<div class="run-history-mini" aria-label="最近 ${recent.length} 次执行">${recent
+    .map((run) => {
+      const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
+      return `<span class="run-history-dot is-${runTone(run)}" title="${escapeHtml(formatRunTime(run.completedAt))} · ${escapeHtml(action)}"></span>`;
+    })
+    .join('')}<small>最近 ${recent.length} 次</small></div>`;
+}
+
+function renderSavedCard(card, diagnostics) {
+  const { definition, runs, latestRun: run } = card;
   const action = run?.report?.actionLabel ?? run?.report?.action ?? '尚未执行';
-  const completedAt = run?.completedAt ? new Date(run.completedAt).toLocaleString('zh-CN', { hour12: false }) : '—';
+  const completedAt = formatRunTime(run?.completedAt);
   return `<article class="saved-inspection-card" data-testid="saved-inspection-card">
-    <div class="saved-inspection-copy">
+    <button class="saved-inspection-copy" data-action="SAVED_INSPECTION_HISTORY_OPENED" data-definition-id="${escapeHtml(definition.id)}" type="button">
       <span class="readiness">本地 mock</span>
       <h3>${escapeHtml(definition.name)}</h3>
       <p>上次：${escapeHtml(action)} · ${escapeHtml(completedAt)}</p>
-    </div>
+      ${renderMiniRunHistory(runs, diagnostics)}
+    </button>
     <button class="saved-run-button" data-action="SAVED_INSPECTION_RUN_REQUESTED" data-definition-id="${escapeHtml(definition.id)}" type="button">直跑 <b>▶</b></button>
   </article>`;
 }
 
 function renderSavedInspectionHome(vm) {
-  const { definitions, runs, storageError } = vm.savedInspection;
+  const { cards, historyDiagnostics, storageError } = vm.savedInspection;
   return `<section class="saved-inspection-home" data-testid="saved-inspection-home" aria-labelledby="saved-title">
     <header class="saved-inspection-heading">
       <div><h2 id="saved-title" data-stage-title>已保存巡检</h2><p>个人任务保存在当前浏览器</p></div>
@@ -4271,10 +4646,34 @@ function renderSavedInspectionHome(vm) {
     </header>
     ${storageError ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>` : ''}
     ${
-      definitions.length
-        ? `<div class="saved-inspection-list">${definitions.map((definition) => renderSavedCard(definition, runs)).join('')}</div>`
+      cards.length
+        ? `<div class="saved-inspection-list">${cards.map((card) => renderSavedCard(card, historyDiagnostics)).join('')}</div>`
         : '<p class="saved-inspection-empty">还没有保存的巡检，从右侧对话开始 →</p>'
     }
+  </section>`;
+}
+
+function renderHistoryEntry(run) {
+  const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
+  return `<details class="saved-history-entry" data-run-id="${escapeHtml(run.id)}">
+    <summary><span class="run-history-dot is-${runTone(run)}"></span><time>${escapeHtml(formatRunTime(run.completedAt))}</time><strong>${escapeHtml(action)}</strong><small>${escapeHtml(run.report?.summary ?? '')}</small></summary>
+    ${renderHistoricalReportSnapshot(run)}
+  </details>`;
+}
+
+function renderSavedInspectionHistory(vm) {
+  const { historyDefinition: definition, historyRuns: runs, historyDiagnostics } = vm.savedInspection;
+  const recent = runs.slice(0, 20);
+  const earlier = runs.slice(20);
+  return `<section class="saved-inspection-history" data-testid="saved-inspection-history" aria-labelledby="history-title">
+    <header class="saved-history-heading">
+      <div><button class="history-back" data-action="SAVED_INSPECTION_HISTORY_CLOSED" type="button">← 返回</button><h2 id="history-title" data-stage-title>${escapeHtml(definition.name)}</h2><p>创建于 ${escapeHtml(formatRunTime(definition.createdAt))} · 共执行 ${runs.length} 次</p></div>
+      <button class="saved-run-button" data-action="SAVED_INSPECTION_RUN_REQUESTED" data-definition-id="${escapeHtml(definition.id)}" type="button">直跑 <b>▶</b></button>
+    </header>
+    <h3 class="saved-history-title">运行历史</h3>
+    ${historyDiagnostics?.status === 'degraded' ? '<p class="storage-warning" role="status">历史暂不可用：已隔离损坏记录，仍可直跑</p>' : ''}
+    ${recent.length ? `<div class="saved-history-list">${recent.map(renderHistoryEntry).join('')}</div>` : '<p class="saved-inspection-empty">还没有执行记录</p>'}
+    ${earlier.length ? `<details class="saved-history-earlier"><summary>显示更早（${earlier.length}）</summary>${earlier.map(renderHistoryEntry).join('')}</details>` : ''}
   </section>`;
 }
 
@@ -4339,6 +4738,7 @@ function renderConversationComposer(vm) {
 }
 
 function renderIntake(vm) {
+  if (vm.savedInspection.historyDefinition) return renderSavedInspectionHistory(vm);
   return vm.workspace ? renderContextSelection(vm) : renderSavedInspectionHome(vm);
 }
 
@@ -4670,30 +5070,130 @@ function renderReportJourneyDetails(vm) {
     ${renderPersonalSave(vm)}`;
 }
 
+function formatReportTime(value) {
+  if (!value) return '时间未知';
+  return new Date(value).toLocaleString('zh-CN', { hour12: false });
+}
+
+function renderDecisionHero(report, extra = '') {
+  return `<div class="decision-hero">
+    <div><h2>${escapeHtml(report.actionLabel)}</h2><p>${escapeHtml(report.title)}</p></div>
+    ${extra}
+  </div>`;
+}
+
+function renderReportEvidence(report) {
+  return `<div class="semantic-pair">
+      <div><span>证据结论</span><code>${escapeHtml(report.evidenceVerdict)}</code></div>
+      <div><span>行动决策</span><code>${escapeHtml(report.action)}</code></div>
+    </div>
+    <div class="evidence-badges">
+      <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
+      <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
+      <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
+    </div>
+    <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
+    <div class="report-columns">
+      <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
+      <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
+    </div>`;
+}
+
+function comparisonText(item) {
+  if (item.kind === 'added') return `新增覆盖：${item.after.label}`;
+  if (item.kind === 'removed') return `移除覆盖：${item.before.label}`;
+  return `${item.label}：${item.before.fact} → ${item.after.fact}`;
+}
+
+function renderRunComparison(comparison) {
+  if (!comparison) return '';
+  const heading = `与上次相比（${formatReportTime(comparison.previousCompletedAt)} → 本次）`;
+  if (comparison.summary === 'stable') {
+    return `<section class="run-comparison is-stable" data-testid="run-comparison"><h3>${escapeHtml(heading)}</h3><p>→ 与上次结论一致</p></section>`;
+  }
+  const labels = {
+    improved: ['✓', '改善'],
+    worsened: ['✕', '恶化'],
+    stable: ['→', '持平'],
+    added: ['+', '新增'],
+    removed: ['−', '移除'],
+  };
+  return `<section class="run-comparison" data-testid="run-comparison">
+    <h3>${escapeHtml(heading)}</h3>
+    <ul>${comparison.items
+      .map((item) => {
+        const [symbol, label] = labels[item.kind];
+        return `<li class="is-${item.kind}"><span>${symbol}</span><div><strong>${label}</strong><p>${escapeHtml(comparisonText(item))}</p></div></li>`;
+      })
+      .join('')}</ul>
+  </section>`;
+}
+
+function renderShareControls(message) {
+  return `<div class="report-share" aria-label="分享当前报告">
+    <button data-share-action="copy" type="button">复制摘要</button>
+    <button data-share-action="export" type="button">导出报告</button>
+    ${message ? `<p class="share-toast" role="status">${escapeHtml(message)}</p>` : ''}
+  </div>`;
+}
+
+function renderHistoricalReportSnapshot(run) {
+  const report = run.report;
+  return `<div class="historical-report report-stage ${report.action.toLowerCase()}" data-testid="historical-report">
+    <p class="historical-banner">历史快照 · ${escapeHtml(formatReportTime(run.completedAt))} · 不可修改</p>
+    ${renderDecisionHero(report)}
+    ${renderReportEvidence(report)}
+    ${renderSelectedContextResults(run)}
+  </div>`;
+}
+
+function renderCurrentReport(vm) {
+  const report = vm.report;
+  return `<div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report" data-current-run-id="${escapeHtml(vm.savedInspection.currentRun?.id ?? '')}">
+    ${renderDecisionHero(report, renderShareControls(vm.state.shareToast))}
+    ${renderRunComparison(vm.savedInspection.comparison)}
+    ${renderReportEvidence(report)}
+    ${renderReportJourneyDetails(vm)}
+    ${renderPlaybookProposal(vm.playbook)}
+    ${
+      report.rcAgent
+        ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
+          ${
+            vm.state.rcExpanded
+              ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
+              : ''
+          }`
+        : ''
+    }
+  </div>`;
+}
+
 const INSPECTION_LIBRARY_STORAGE_KEY = 'nova.inspection-library.v1';
 
 function createInspectionLibraryStorage(storage, key = INSPECTION_LIBRARY_STORAGE_KEY) {
+  function loadWithDiagnostics() {
+    if (!storage) {
+      return {
+        library: createEmptyInspectionLibrary(),
+        diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
+      };
+    }
+    try {
+      return parseInspectionLibraryWithDiagnostics(storage.getItem(key));
+    } catch {
+      return {
+        library: createEmptyInspectionLibrary(),
+        diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
+      };
+    }
+  }
+
   return {
     load() {
-      return this.loadWithDiagnostics().library;
+      return loadWithDiagnostics().library;
     },
 
-    loadWithDiagnostics() {
-      if (!storage) {
-        return {
-          library: createEmptyInspectionLibrary(),
-          diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
-        };
-      }
-      try {
-        return parseInspectionLibraryWithDiagnostics(storage.getItem(key));
-      } catch {
-        return {
-          library: createEmptyInspectionLibrary(),
-          diagnostics: { status: 'unavailable', rejectedRunCount: 0 },
-        };
-      }
-    },
+    loadWithDiagnostics,
 
     save(library) {
       if (!storage) return { ok: false, reason: 'storage-unavailable' };
@@ -4843,50 +5343,13 @@ function renderExecution(vm) {
     </div>`;
 }
 
-function renderReport(vm) {
-  const report = vm.report;
-  return `
-    <div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report">
-      <div class="decision-hero">
-        <h2>${escapeHtml(report.actionLabel)}</h2>
-        <p>${escapeHtml(report.title)}</p>
-      </div>
-      <div class="semantic-pair">
-        <div><span>证据结论</span><code>${report.evidenceVerdict}</code></div>
-        <div><span>行动决策</span><code>${report.action}</code></div>
-      </div>
-      <div class="evidence-badges">
-        <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
-        <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
-        <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
-      </div>
-      <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
-      <div class="report-columns">
-        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-      </div>
-      ${renderReportJourneyDetails(vm)}
-      ${renderPlaybookProposal(vm.playbook)}
-      ${
-        report.rcAgent
-          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
-            ${
-              vm.state.rcExpanded
-                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
-                : ''
-            }`
-          : ''
-      }
-    </div>`;
-}
-
 function renderStage(vm) {
   const renderers = {
     intake: renderIntake,
     context: renderScope,
     plan: renderInspectionPlan,
     execution: renderExecution,
-    report: renderReport,
+    report: renderCurrentReport,
   };
   return renderers[vm.state.phase](vm);
 }
@@ -4951,9 +5414,11 @@ function renderApp(vm) {
 const root = document.querySelector('#app');
 const libraryStorage = createInspectionLibraryStorage(window.localStorage);
 const actorId = window.crypto.randomUUID();
+const hydratedLibrary = libraryStorage.loadWithDiagnostics();
 let state = demoReducer(createDemoSession({ actorId }), {
   type: 'LIBRARY_HYDRATED',
-  library: libraryStorage.load(),
+  library: hydratedLibrary.library,
+  diagnostics: hydratedLibrary.diagnostics,
 });
 
 function render() {
@@ -4979,6 +5444,57 @@ function dispatch(action) {
   }
 }
 
+async function copyOfflineText(text) {
+  if (window.location.protocol !== 'file:' && window.navigator.clipboard?.writeText) {
+    try {
+      await window.navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Non-file origins can still deny clipboard permission; retain the local DOM fallback.
+    }
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.append(textarea);
+  textarea.select();
+  const copied = document.execCommand?.('copy');
+  textarea.remove();
+  if (!copied) throw new Error('copy-unavailable');
+}
+
+function downloadOfflineReport(html, filename) {
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function shareCurrentReport(action) {
+  const vm = selectViewModel(state);
+  const run = vm.savedInspection.currentRun;
+  if (!run) return;
+  const taskName =
+    vm.savedInspection.reportDefinition?.name ?? `${vm.workspace?.declaredChange?.entities?.[0] ?? '服务'} 巡检`;
+  try {
+    if (action === 'copy') {
+      await copyOfflineText(buildReportShareText(run, taskName));
+      dispatch({ type: 'SHARE_FEEDBACK_SET', message: '摘要已复制' });
+      return;
+    }
+    downloadOfflineReport(buildStandaloneReportHtml(run, taskName), buildReportFilename(run, taskName));
+    dispatch({ type: 'SHARE_FEEDBACK_SET', message: '离线报告已导出' });
+  } catch {
+    dispatch({ type: 'SHARE_FEEDBACK_SET', message: '分享失败，请重试' });
+  }
+}
+
 window.addEventListener('storage', (event) => {
   if (event.key !== INSPECTION_LIBRARY_STORAGE_KEY || typeof event.newValue !== 'string') return;
   dispatch({ type: 'LIBRARY_MERGED', library: libraryStorage.merge(state.library, event.newValue) });
@@ -4994,6 +5510,12 @@ root.addEventListener('click', (event) => {
     form.elements.namedItem('target-service').value = example.targetService;
     form.elements.namedItem('context-reference').value = example.contextReference;
     form.elements.namedItem('inspection-intent').focus();
+    return;
+  }
+
+  const shareButton = event.target.closest('[data-share-action]');
+  if (shareButton) {
+    void shareCurrentReport(shareButton.dataset.shareAction);
     return;
   }
 
@@ -5013,7 +5535,7 @@ root.addEventListener('click', (event) => {
     dispatch({ type: action, contextId: actionButton.dataset.contextId });
     return;
   }
-  if (action === 'SAVED_INSPECTION_RUN_REQUESTED') {
+  if (['SAVED_INSPECTION_RUN_REQUESTED', 'SAVED_INSPECTION_HISTORY_OPENED'].includes(action)) {
     dispatch({ type: action, definitionId: actionButton.dataset.definitionId });
     return;
   }

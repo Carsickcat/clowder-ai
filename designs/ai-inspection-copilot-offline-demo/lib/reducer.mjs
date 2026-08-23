@@ -32,12 +32,18 @@ export function createDemoSession(options = {}) {
     conversation: [],
     activeRequest: null,
     activeSavedInspectionId: null,
+    activeHistoryDefinitionId: null,
     savedRunRefresh: null,
     composerPrefill: options.composerPrefill ?? null,
     currentRunId: null,
     savedDefinitionId: null,
     storageError: null,
     toast: null,
+    shareToast: null,
+    historyDiagnostics: {
+      status: options.historyDiagnostics?.status ?? 'available',
+      rejectedRunCount: options.historyDiagnostics?.rejectedRunCount ?? 0,
+    },
     actorId: normalizeActorId(options.actorId),
     nextTaskOrdinal:
       options.nextTaskOrdinal ??
@@ -172,6 +178,7 @@ function submitIntent(state, action, playbookCatalog, compileIntent) {
       nextTaskOrdinal: ordinal + 1,
       nextRunOrdinal: state.nextRunOrdinal,
       nextSavedOrdinal: state.nextSavedOrdinal,
+      historyDiagnostics: state.historyDiagnostics,
     }),
     workspace,
     contextOptions: createContextOptions(workspace),
@@ -460,6 +467,7 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
       nextTaskOrdinal: ordinal + 1,
       nextRunOrdinal: state.nextRunOrdinal,
       nextSavedOrdinal: state.nextSavedOrdinal,
+      historyDiagnostics: state.historyDiagnostics,
     }),
     phase,
     workspace,
@@ -501,6 +509,7 @@ function regenerateSavedInspection(state) {
     nextRunOrdinal: state.nextRunOrdinal,
     nextSavedOrdinal: state.nextSavedOrdinal,
     composerPrefill: { ...definition.request },
+    historyDiagnostics: state.historyDiagnostics,
   });
 }
 
@@ -511,6 +520,7 @@ function resetSession(state) {
     nextTaskOrdinal: state.nextTaskOrdinal,
     nextRunOrdinal: state.nextRunOrdinal,
     nextSavedOrdinal: state.nextSavedOrdinal,
+    historyDiagnostics: state.historyDiagnostics,
   });
 }
 
@@ -519,16 +529,34 @@ function hydrateLibrary(state, action) {
   return createDemoSession({
     library: action.library,
     actorId: state.actorId,
+    historyDiagnostics: action.diagnostics,
   });
 }
 
 function mergeLibrary(state, action) {
   const library = mergeInspectionLibraries(state.library, action.library);
-  return JSON.stringify(library) === JSON.stringify(state.library) ? state : { ...state, library };
+  const historyDiagnostics = action.diagnostics ?? state.historyDiagnostics;
+  return JSON.stringify(library) === JSON.stringify(state.library) && historyDiagnostics === state.historyDiagnostics
+    ? state
+    : { ...state, library, historyDiagnostics };
+}
+
+function openSavedInspectionHistory(state, action) {
+  if (state.phase !== 'intake' || state.workspace) return state;
+  const exists = state.library.savedInspections.some((definition) => definition.id === action.definitionId);
+  return exists ? { ...state, activeHistoryDefinitionId: action.definitionId } : state;
+}
+
+function closeSavedInspectionHistory(state) {
+  return state.activeHistoryDefinitionId ? { ...state, activeHistoryDefinitionId: null } : state;
 }
 
 function markStorageFailure(state, action) {
   return { ...state, storageError: action.message || '本地保存失败', toast: null };
+}
+
+function setShareFeedback(state, action) {
+  return state.phase === 'report' ? { ...state, shareToast: action.message ?? null } : state;
 }
 
 export function createDemoReducer(options = {}) {
@@ -541,6 +569,7 @@ export function createDemoReducer(options = {}) {
     LIBRARY_HYDRATED: hydrateLibrary,
     LIBRARY_MERGED: mergeLibrary,
     LIBRARY_SAVE_FAILED: markStorageFailure,
+    SHARE_FEEDBACK_SET: setShareFeedback,
     CONTEXT_ITEM_TOGGLED: toggleDraftContext,
     INPUT_CONFIRMED: confirmInput,
     PLAYBOOK_DISMISSED: dismissPlaybook,
@@ -555,6 +584,8 @@ export function createDemoReducer(options = {}) {
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
     SAVED_INSPECTION_CREATED: createPersonalSavedInspection,
+    SAVED_INSPECTION_HISTORY_OPENED: openSavedInspectionHistory,
+    SAVED_INSPECTION_HISTORY_CLOSED: closeSavedInspectionHistory,
     SAVED_INSPECTION_RUN_REQUESTED: (state, action) => requestSavedInspectionRun(state, action, compileSavedDefinition),
     SAVED_INSPECTION_RUN_CONFIRMED: confirmSavedInspectionRun,
     SAVED_INSPECTION_REGENERATED: regenerateSavedInspection,

@@ -15,8 +15,19 @@ export function selectRunsForDefinition(definition, runs = []) {
   }
   return [...unique.values()].sort(
     (left, right) =>
-      String(right.completedAt).localeCompare(String(left.completedAt)) || String(right.id).localeCompare(String(left.id)),
+      String(right.completedAt).localeCompare(String(left.completedAt)) ||
+      String(right.id).localeCompare(String(left.id)),
   );
+}
+
+function compareExecutionResult(id, before, after) {
+  if (!before) return { id, label: after.label, kind: 'added', before: null, after };
+  if (!after) return { id, label: before.label, kind: 'removed', before, after: null };
+  if (before.status === after.status && before.fact === after.fact && before.label === after.label) return null;
+  const beforeRank = RESULT_RANK[before.status];
+  const afterRank = RESULT_RANK[after.status];
+  const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
+  return { id, label: after.label, kind, before, after };
 }
 
 export function compareInspectionRuns(currentRun, previousRun) {
@@ -26,21 +37,8 @@ export function compareInspectionRuns(currentRun, previousRun) {
   const ids = [...new Set([...current.keys(), ...previous.keys()])].sort();
   const items = [];
   for (const id of ids) {
-    const before = previous.get(id);
-    const after = current.get(id);
-    if (!before) {
-      items.push({ id, label: after.label, kind: 'added', before: null, after });
-      continue;
-    }
-    if (!after) {
-      items.push({ id, label: before.label, kind: 'removed', before, after: null });
-      continue;
-    }
-    if (before.status === after.status && before.fact === after.fact && before.label === after.label) continue;
-    const beforeRank = RESULT_RANK[before.status];
-    const afterRank = RESULT_RANK[after.status];
-    const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
-    items.push({ id, label: after.label, kind, before, after });
+    const item = compareExecutionResult(id, previous.get(id), current.get(id));
+    if (item) items.push(item);
   }
   return deepFreeze({
     previousRunId: previousRun.id,
@@ -160,14 +158,35 @@ export function selectSavedInspectionView(state) {
   const savedInspections = [...state.library.savedInspections].sort((left, right) =>
     String(right.updatedAt).localeCompare(String(left.updatedAt)),
   );
+  const currentRun = state.library.runs.find((run) => run.id === state.currentRunId) ?? null;
+  const historyDefinition =
+    savedInspections.find((definition) => definition.id === state.activeHistoryDefinitionId) ?? null;
+  const historyRuns = selectRunsForDefinition(historyDefinition, state.library.runs);
+  const reportDefinitionId = state.activeSavedInspectionId ?? state.savedDefinitionId;
+  const reportDefinition = savedInspections.find((definition) => definition.id === reportDefinitionId) ?? null;
+  const reportRuns = selectRunsForDefinition(reportDefinition, state.library.runs);
+  const currentRunIndex = currentRun ? reportRuns.findIndex((run) => run.id === currentRun.id) : -1;
+  const comparison =
+    currentRunIndex >= 0 && reportRuns[currentRunIndex + 1]
+      ? compareInspectionRuns(currentRun, reportRuns[currentRunIndex + 1])
+      : null;
   return {
     definitions: savedInspections,
     runs: state.library.runs,
+    cards: savedInspections.map((definition) => {
+      const definitionRuns = selectRunsForDefinition(definition, state.library.runs);
+      return { definition, runs: definitionRuns, latestRun: definitionRuns[0] ?? null };
+    }),
     activeDefinition: savedInspections.find((definition) => definition.id === state.activeSavedInspectionId) ?? null,
+    historyDefinition,
+    historyRuns,
+    historyDiagnostics: state.historyDiagnostics,
+    reportDefinition,
+    comparison,
     refresh: state.savedRunRefresh,
     contextOptions: state.contextOptions,
     selectedContext: state.contextOptions.filter((item) => item.selected),
-    currentRun: state.library.runs.find((run) => run.id === state.currentRunId) ?? null,
+    currentRun,
     savedDefinitionId: state.savedDefinitionId,
     composerPrefill: state.composerPrefill,
     conversation: state.conversation,

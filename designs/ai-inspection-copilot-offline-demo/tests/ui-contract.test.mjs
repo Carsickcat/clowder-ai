@@ -378,6 +378,57 @@ test('a saved inspection becomes a truthful home card with a direct-run action',
   assert.match(html, /data-action="SAVED_INSPECTION_RUN_REQUESTED"/);
   assert.match(html, /data-definition-id="SAVED-001"/);
   assert.match(html, /直跑/);
+  assert.match(html, /data-action="SAVED_INSPECTION_HISTORY_OPENED"/);
+  assert.match(html, /class="run-history-dot/);
+});
+
+test('saved inspection history renders reverse-chronological immutable snapshots without share or save controls', () => {
+  let state = completedFulfillmentReport();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+  const definitionId = state.library.savedInspections[0].id;
+  state = dispatch(state, 'SAVED_INSPECTION_HISTORY_OPENED', { definitionId });
+  const html = renderApp(selectViewModel(state));
+
+  assert.match(html, /data-testid="saved-inspection-history"/);
+  assert.match(html, /运行历史/);
+  assert.match(html, /历史快照/);
+  assert.match(html, /不可修改/);
+  assert.match(html, /data-action="SAVED_INSPECTION_HISTORY_CLOSED"/);
+  assert.match(html, /data-action="SAVED_INSPECTION_RUN_REQUESTED"/);
+  assert.doesNotMatch(html, /data-share-action=/);
+  assert.doesNotMatch(html, /data-save-inspection-form/);
+});
+
+test('current saved run report shows comparison and share controls while degraded history stays runnable', () => {
+  let state = completedFulfillmentReport();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+  const definitionId = state.library.savedInspections[0].id;
+  const library = state.library;
+  state = dispatch(state, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
+  for (let index = 0; index < state.workspace.execution.length; index += 1) {
+    state = dispatch(state, 'EXECUTION_ADVANCED');
+  }
+  const reportHtml = renderApp(selectViewModel(state));
+  assert.match(reportHtml, /与上次相比/);
+  assert.match(reportHtml, /与上次结论一致/);
+  assert.match(reportHtml, /data-share-action="copy"/);
+  assert.match(reportHtml, /data-share-action="export"/);
+
+  const degraded = dispatch(createDemoSession(), 'LIBRARY_HYDRATED', {
+    library,
+    diagnostics: { status: 'degraded', rejectedRunCount: 1 },
+  });
+  const degradedHtml = renderApp(selectViewModel(degraded));
+  assert.match(degradedHtml, /历史暂不可用/);
+  assert.match(degradedHtml, /data-action="SAVED_INSPECTION_RUN_REQUESTED"/);
 });
 
 test('saved-inspection drift states expose one guarded next action', () => {

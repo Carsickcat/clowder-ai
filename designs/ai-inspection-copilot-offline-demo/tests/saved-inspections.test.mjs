@@ -235,7 +235,10 @@ test('structured run comparison classifies improvement, worsening, coverage chan
     trace: 'worsened',
   });
 
-  const stable = compareInspectionRuns(current, runFixture({ id: 'RUN-SAME', executionResults: current.executionResults }));
+  const stable = compareInspectionRuns(
+    current,
+    runFixture({ id: 'RUN-SAME', executionResults: current.executionResults }),
+  );
   assert.deepEqual(stable, {
     previousRunId: 'RUN-SAME',
     previousCompletedAt: '2026-08-16T06:01:00.000Z',

@@ -1641,3 +1641,219 @@
   background: var(--green-soft);
   color: var(--green);
 }
+
+.saved-inspection-copy {
+  flex: 1 1 auto;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.saved-inspection-card:has(.saved-inspection-copy:hover) {
+  border-color: rgba(90, 231, 210, 0.3);
+  background: rgba(12, 28, 49, 0.68);
+}
+.run-history-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  margin-top: 12px;
+}
+.run-history-mini small,
+.run-history-empty,
+.run-history-unavailable {
+  margin: 0 0 0 4px;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.run-history-unavailable {
+  margin: 12px 0 0;
+  color: var(--amber);
+}
+.run-history-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--text-faint);
+  box-shadow: 0 0 0 3px rgba(111, 135, 163, 0.08);
+}
+.run-history-dot.is-proceed {
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+.run-history-dot.is-pause {
+  background: var(--red);
+  box-shadow: 0 0 0 3px var(--red-soft);
+}
+.saved-inspection-history {
+  display: grid;
+  gap: 18px;
+}
+.saved-history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.saved-history-heading h2 {
+  margin: 14px 0 6px;
+  font-size: 22px;
+}
+.saved-history-heading p {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.history-back {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.saved-history-title {
+  margin: 2px 0 -4px;
+  font-size: 13px;
+}
+.saved-history-list,
+.saved-history-earlier {
+  display: grid;
+  gap: 9px;
+}
+.saved-history-earlier > summary {
+  padding: 12px;
+  color: var(--text-soft);
+  cursor: pointer;
+  text-align: center;
+}
+.saved-history-entry {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 16, 31, 0.35);
+}
+.saved-history-entry > summary {
+  display: grid;
+  grid-template-columns: 10px 128px minmax(120px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.saved-history-entry > summary::-webkit-details-marker {
+  display: none;
+}
+.saved-history-entry > summary time,
+.saved-history-entry > summary small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.saved-history-entry > summary strong {
+  font-size: 11px;
+}
+.historical-report {
+  margin: 0 12px 12px;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+}
+.historical-banner {
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(109, 145, 255, 0.3);
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: #bed1ff;
+  font-size: 10px;
+}
+.historical-report .decision-hero h2 {
+  font-size: 22px;
+}
+.decision-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.report-share {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 8px;
+}
+.report-share button {
+  padding: 9px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: rgba(7, 16, 31, 0.4);
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+.report-share button:hover {
+  border-color: rgba(90, 231, 210, 0.45);
+  color: var(--cyan);
+}
+.share-toast {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--green);
+  font-size: 9px;
+  text-align: right;
+}
+.run-comparison {
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px solid rgba(109, 145, 255, 0.28);
+  border-radius: var(--radius);
+  background: var(--blue-soft);
+}
+.run-comparison h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.run-comparison > p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+}
+.run-comparison ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.run-comparison li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+.run-comparison li > span {
+  color: var(--cyan);
+  font-weight: 800;
+}
+.run-comparison li.is-worsened > span,
+.run-comparison li.is-removed > span {
+  color: var(--red);
+}
+.run-comparison li strong {
+  font-size: 10px;
+}
+.run-comparison li p {
+  margin: 3px 0 0;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.5;
+}

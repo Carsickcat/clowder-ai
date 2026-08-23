@@ -1,4 +1,5 @@
 import { inspectionExamples } from '../lib/compiler.mjs';
+import { renderHistoricalReportSnapshot } from './render-report.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 const CONTEXT_GROUPS = [
@@ -20,30 +21,43 @@ function renderExamples() {
     .join('');
 }
 
-function latestRunFor(definition, runs) {
-  return (
-    [...runs]
-      .filter((run) => run.definitionId === definition.id || run.id === definition.sourceRunId)
-      .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0] ?? null
-  );
+function formatRunTime(value) {
+  return value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '—';
 }
 
-function renderSavedCard(definition, runs) {
-  const run = latestRunFor(definition, runs);
+function runTone(run) {
+  return ['Pause', 'Rollback'].includes(run?.report?.action) ? 'pause' : run ? 'proceed' : 'empty';
+}
+
+function renderMiniRunHistory(runs, diagnostics) {
+  if (diagnostics?.status === 'degraded') return '<p class="run-history-unavailable">历史暂不可用</p>';
+  if (!runs.length) return '<p class="run-history-empty">还没有执行记录</p>';
+  const recent = runs.slice(0, 10).reverse();
+  return `<div class="run-history-mini" aria-label="最近 ${recent.length} 次执行">${recent
+    .map((run) => {
+      const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
+      return `<span class="run-history-dot is-${runTone(run)}" title="${escapeHtml(formatRunTime(run.completedAt))} · ${escapeHtml(action)}"></span>`;
+    })
+    .join('')}<small>最近 ${recent.length} 次</small></div>`;
+}
+
+function renderSavedCard(card, diagnostics) {
+  const { definition, runs, latestRun: run } = card;
   const action = run?.report?.actionLabel ?? run?.report?.action ?? '尚未执行';
-  const completedAt = run?.completedAt ? new Date(run.completedAt).toLocaleString('zh-CN', { hour12: false }) : '—';
+  const completedAt = formatRunTime(run?.completedAt);
   return `<article class="saved-inspection-card" data-testid="saved-inspection-card">
-    <div class="saved-inspection-copy">
+    <button class="saved-inspection-copy" data-action="SAVED_INSPECTION_HISTORY_OPENED" data-definition-id="${escapeHtml(definition.id)}" type="button">
       <span class="readiness">本地 mock</span>
       <h3>${escapeHtml(definition.name)}</h3>
       <p>上次：${escapeHtml(action)} · ${escapeHtml(completedAt)}</p>
-    </div>
+      ${renderMiniRunHistory(runs, diagnostics)}
+    </button>
     <button class="saved-run-button" data-action="SAVED_INSPECTION_RUN_REQUESTED" data-definition-id="${escapeHtml(definition.id)}" type="button">直跑 <b>▶</b></button>
   </article>`;
 }
 
 function renderSavedInspectionHome(vm) {
-  const { definitions, runs, storageError } = vm.savedInspection;
+  const { cards, historyDiagnostics, storageError } = vm.savedInspection;
   return `<section class="saved-inspection-home" data-testid="saved-inspection-home" aria-labelledby="saved-title">
     <header class="saved-inspection-heading">
       <div><h2 id="saved-title" data-stage-title>已保存巡检</h2><p>个人任务保存在当前浏览器</p></div>
@@ -51,10 +65,34 @@ function renderSavedInspectionHome(vm) {
     </header>
     ${storageError ? `<p class="storage-warning" role="status">${escapeHtml(storageError)}</p>` : ''}
     ${
-      definitions.length
-        ? `<div class="saved-inspection-list">${definitions.map((definition) => renderSavedCard(definition, runs)).join('')}</div>`
+      cards.length
+        ? `<div class="saved-inspection-list">${cards.map((card) => renderSavedCard(card, historyDiagnostics)).join('')}</div>`
         : '<p class="saved-inspection-empty">还没有保存的巡检，从右侧对话开始 →</p>'
     }
+  </section>`;
+}
+
+function renderHistoryEntry(run) {
+  const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
+  return `<details class="saved-history-entry" data-run-id="${escapeHtml(run.id)}">
+    <summary><span class="run-history-dot is-${runTone(run)}"></span><time>${escapeHtml(formatRunTime(run.completedAt))}</time><strong>${escapeHtml(action)}</strong><small>${escapeHtml(run.report?.summary ?? '')}</small></summary>
+    ${renderHistoricalReportSnapshot(run)}
+  </details>`;
+}
+
+function renderSavedInspectionHistory(vm) {
+  const { historyDefinition: definition, historyRuns: runs, historyDiagnostics } = vm.savedInspection;
+  const recent = runs.slice(0, 20);
+  const earlier = runs.slice(20);
+  return `<section class="saved-inspection-history" data-testid="saved-inspection-history" aria-labelledby="history-title">
+    <header class="saved-history-heading">
+      <div><button class="history-back" data-action="SAVED_INSPECTION_HISTORY_CLOSED" type="button">← 返回</button><h2 id="history-title" data-stage-title>${escapeHtml(definition.name)}</h2><p>创建于 ${escapeHtml(formatRunTime(definition.createdAt))} · 共执行 ${runs.length} 次</p></div>
+      <button class="saved-run-button" data-action="SAVED_INSPECTION_RUN_REQUESTED" data-definition-id="${escapeHtml(definition.id)}" type="button">直跑 <b>▶</b></button>
+    </header>
+    <h3 class="saved-history-title">运行历史</h3>
+    ${historyDiagnostics?.status === 'degraded' ? '<p class="storage-warning" role="status">历史暂不可用：已隔离损坏记录，仍可直跑</p>' : ''}
+    ${recent.length ? `<div class="saved-history-list">${recent.map(renderHistoryEntry).join('')}</div>` : '<p class="saved-inspection-empty">还没有执行记录</p>'}
+    ${earlier.length ? `<details class="saved-history-earlier"><summary>显示更早（${earlier.length}）</summary>${earlier.map(renderHistoryEntry).join('')}</details>` : ''}
   </section>`;
 }
 
@@ -119,5 +157,6 @@ export function renderConversationComposer(vm) {
 }
 
 export function renderIntake(vm) {
+  if (vm.savedInspection.historyDefinition) return renderSavedInspectionHistory(vm);
   return vm.workspace ? renderContextSelection(vm) : renderSavedInspectionHome(vm);
 }

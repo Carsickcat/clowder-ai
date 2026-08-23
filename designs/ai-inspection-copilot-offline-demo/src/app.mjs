@@ -2,14 +2,17 @@ import { inspectionExamples } from '../lib/compiler.mjs';
 import { createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import { selectViewModel } from '../lib/selectors.mjs';
 import { renderApp } from './render.mjs';
+import { buildReportFilename, buildReportShareText, buildStandaloneReportHtml } from './report-share.mjs';
 import { createInspectionLibraryStorage, INSPECTION_LIBRARY_STORAGE_KEY } from './storage.mjs';
 
 const root = document.querySelector('#app');
 const libraryStorage = createInspectionLibraryStorage(window.localStorage);
 const actorId = window.crypto.randomUUID();
+const hydratedLibrary = libraryStorage.loadWithDiagnostics();
 let state = demoReducer(createDemoSession({ actorId }), {
   type: 'LIBRARY_HYDRATED',
-  library: libraryStorage.load(),
+  library: hydratedLibrary.library,
+  diagnostics: hydratedLibrary.diagnostics,
 });
 
 function render() {
@@ -35,6 +38,57 @@ function dispatch(action) {
   }
 }
 
+async function copyOfflineText(text) {
+  if (window.location.protocol !== 'file:' && window.navigator.clipboard?.writeText) {
+    try {
+      await window.navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Non-file origins can still deny clipboard permission; retain the local DOM fallback.
+    }
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.append(textarea);
+  textarea.select();
+  const copied = document.execCommand?.('copy');
+  textarea.remove();
+  if (!copied) throw new Error('copy-unavailable');
+}
+
+function downloadOfflineReport(html, filename) {
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function shareCurrentReport(action) {
+  const vm = selectViewModel(state);
+  const run = vm.savedInspection.currentRun;
+  if (!run) return;
+  const taskName =
+    vm.savedInspection.reportDefinition?.name ?? `${vm.workspace?.declaredChange?.entities?.[0] ?? '服务'} 巡检`;
+  try {
+    if (action === 'copy') {
+      await copyOfflineText(buildReportShareText(run, taskName));
+      dispatch({ type: 'SHARE_FEEDBACK_SET', message: '摘要已复制' });
+      return;
+    }
+    downloadOfflineReport(buildStandaloneReportHtml(run, taskName), buildReportFilename(run, taskName));
+    dispatch({ type: 'SHARE_FEEDBACK_SET', message: '离线报告已导出' });
+  } catch {
+    dispatch({ type: 'SHARE_FEEDBACK_SET', message: '分享失败，请重试' });
+  }
+}
+
 window.addEventListener('storage', (event) => {
   if (event.key !== INSPECTION_LIBRARY_STORAGE_KEY || typeof event.newValue !== 'string') return;
   dispatch({ type: 'LIBRARY_MERGED', library: libraryStorage.merge(state.library, event.newValue) });
@@ -50,6 +104,12 @@ root.addEventListener('click', (event) => {
     form.elements.namedItem('target-service').value = example.targetService;
     form.elements.namedItem('context-reference').value = example.contextReference;
     form.elements.namedItem('inspection-intent').focus();
+    return;
+  }
+
+  const shareButton = event.target.closest('[data-share-action]');
+  if (shareButton) {
+    void shareCurrentReport(shareButton.dataset.shareAction);
     return;
   }
 
@@ -69,7 +129,7 @@ root.addEventListener('click', (event) => {
     dispatch({ type: action, contextId: actionButton.dataset.contextId });
     return;
   }
-  if (action === 'SAVED_INSPECTION_RUN_REQUESTED') {
+  if (['SAVED_INSPECTION_RUN_REQUESTED', 'SAVED_INSPECTION_HISTORY_OPENED'].includes(action)) {
     dispatch({ type: action, definitionId: actionButton.dataset.definitionId });
     return;
   }

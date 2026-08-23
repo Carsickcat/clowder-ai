@@ -36,7 +36,7 @@ export function renderSavedExecutionStatus(savedInspection) {
   </div>`;
 }
 
-function renderSelectedContextResults(run) {
+export function renderSelectedContextResults(run) {
   if (!run?.selectedContextResults?.length) return '';
   return `<section class="report-context-results" data-testid="selected-context-results">
     <h3>本次选择的巡检结果</h3>

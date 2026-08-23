@@ -1,11 +1,8 @@
 import { renderConversationComposer, renderIntake } from './render-intake.mjs';
 import { renderInspectionPlan } from './render-plan.mjs';
-import { renderPlaybookMatch, renderPlaybookProposal, renderPlaybookReference } from './render-playbook.mjs';
-import {
-  renderReportJourneyDetails,
-  renderSavedExecutionStatus,
-  renderSavedInspectionRefresh,
-} from './render-saved-inspections.mjs';
+import { renderPlaybookMatch, renderPlaybookReference } from './render-playbook.mjs';
+import { renderCurrentReport } from './render-report.mjs';
+import { renderSavedExecutionStatus, renderSavedInspectionRefresh } from './render-saved-inspections.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 const PHASES = [
@@ -140,50 +137,13 @@ function renderExecution(vm) {
     </div>`;
 }
 
-function renderReport(vm) {
-  const report = vm.report;
-  return `
-    <div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report">
-      <div class="decision-hero">
-        <h2>${escapeHtml(report.actionLabel)}</h2>
-        <p>${escapeHtml(report.title)}</p>
-      </div>
-      <div class="semantic-pair">
-        <div><span>证据结论</span><code>${report.evidenceVerdict}</code></div>
-        <div><span>行动决策</span><code>${report.action}</code></div>
-      </div>
-      <div class="evidence-badges">
-        <span class="verified">✓ ${report.evidenceCounts.verified} 已验证</span>
-        <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
-        <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
-      </div>
-      <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
-      <div class="report-columns">
-        <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-        <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-      </div>
-      ${renderReportJourneyDetails(vm)}
-      ${renderPlaybookProposal(vm.playbook)}
-      ${
-        report.rcAgent
-          ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
-            ${
-              vm.state.rcExpanded
-                ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
-                : ''
-            }`
-          : ''
-      }
-    </div>`;
-}
-
 function renderStage(vm) {
   const renderers = {
     intake: renderIntake,
     context: renderScope,
     plan: renderInspectionPlan,
     execution: renderExecution,
-    report: renderReport,
+    report: renderCurrentReport,
   };
   return renderers[vm.state.phase](vm);
 }

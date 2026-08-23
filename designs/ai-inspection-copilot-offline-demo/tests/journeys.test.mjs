@@ -545,3 +545,38 @@ test('unknown saved definition and repeated final execution events are no-ops', 
   assert.equal(state, completed);
   assert.equal(state.library.runs.length, 1);
 });
+
+test('saved inspection history navigation is transient and never mutates the audit ledger', () => {
+  let { state } = completePersonalInspection();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  state = dispatch(state, 'RESET');
+  const definitionId = state.library.savedInspections[0].id;
+  const librarySnapshot = structuredClone(state.library);
+
+  state = dispatch(state, 'SAVED_INSPECTION_HISTORY_OPENED', { definitionId });
+  assert.equal(state.phase, 'intake');
+  assert.equal(state.workspace, null);
+  assert.equal(state.activeHistoryDefinitionId, definitionId);
+  assert.deepEqual(state.library, librarySnapshot);
+
+  state = dispatch(state, 'SAVED_INSPECTION_HISTORY_CLOSED');
+  assert.equal(state.activeHistoryDefinitionId, null);
+  assert.deepEqual(state.library, librarySnapshot);
+});
+
+test('library hydration keeps history diagnostics separate from persisted user data', () => {
+  let { state } = completePersonalInspection();
+  state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
+    name: '履约发布后巡检',
+    now: '2026-08-16T06:10:00.000Z',
+  });
+  const library = state.library;
+  const diagnostics = { status: 'degraded', rejectedRunCount: 1 };
+
+  const hydrated = dispatch(createDemoSession(), 'LIBRARY_HYDRATED', { library, diagnostics });
+  assert.deepEqual(hydrated.historyDiagnostics, diagnostics);
+  assert.equal(JSON.stringify(hydrated.library).includes('historyDiagnostics'), false);
+});

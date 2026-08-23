@@ -3,7 +3,9 @@ feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
 topics: [aiops, inspection, run-history, trend-comparison, report-sharing, offline-demo]
 doc_kind: implementation_plan
 created: 2026-08-23
-status: implementation
+status: review
+tips_exempt:
+  reason: Standalone offline demo artifact with no Cat Café runtime discovery surface.
 ---
 
 # AI Inspection Run History & Sharing Implementation Plan
