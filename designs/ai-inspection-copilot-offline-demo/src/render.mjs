@@ -151,10 +151,10 @@ function renderStage(vm) {
 function primaryAction(vm) {
   if (!vm.workspace) return '';
   if (vm.state.phase === 'intake') return '';
+  if (vm.state.phase === 'plan') return '';
   if (vm.state.phase === 'context' && (vm.playbook.match || vm.savedInspection.refresh)) return '';
   const actions = {
     context: ['SCOPE_ACCEPTED', '生成任务'],
-    plan: ['PLAN_CONFIRMED', vm.readiness.status === 'ready' ? '开始执行' : '请先处置高风险候选'],
     execution: [
       'EXECUTION_ADVANCED',
       vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? '生成报告' : '运行下一项',
@@ -162,8 +162,7 @@ function primaryAction(vm) {
     report: ['RESET', '新建巡检工作区'],
   };
   const [action, label] = actions[vm.state.phase];
-  const disabled = vm.state.phase === 'plan' && vm.readiness.status !== 'ready';
-  return `<button class="primary-action" data-action="${action}" ${disabled ? 'disabled' : ''} type="button"><span>${escapeHtml(label)}</span><b>→</b></button>`;
+  return `<button class="primary-action" data-action="${action}" type="button"><span>${escapeHtml(label)}</span><b>→</b></button>`;
 }
 
 function renderCopilot(vm) {
@@ -172,7 +171,7 @@ function renderCopilot(vm) {
     : {
         intake: '待确认',
         context: vm.playbook.match ? '方案待选择' : '范围待确认',
-        plan: vm.readiness.status === 'ready' ? '可执行' : '候选待处置',
+        plan: vm.readiness.status === 'ready' ? '可以开始' : '有建议待确认',
         execution: '执行中',
         report: '报告已生成',
       }[vm.state.phase];
