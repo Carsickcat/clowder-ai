@@ -225,6 +225,35 @@ test('run materialization cannot report a rejected candidate as an executed viol
   assert.equal(run.report.interpretation.likelyCause.text, '证据不足');
 });
 
+test('run materialization removes AI claims whose evidence was deselected from the locked plan', () => {
+  const workspace = compileInspectionRequest(request);
+  const lockedTask = task(workspace);
+  lockedTask.inspectionPlan.checks = lockedTask.inspectionPlan.checks.filter(
+    (check) => check.id !== 'business-outcome',
+  );
+  lockedTask.inspectionPlan.checkIds = lockedTask.inspectionPlan.checks.map((check) => check.id);
+
+  const run = createInspectionRun({
+    id: 'RUN-0050',
+    taskInstance: lockedTask,
+    selectedContext: createContextOptions(workspace),
+    executionResults: workspace.execution,
+    report: workspace.report,
+    startedAt: '2026-08-16T06:00:00.000Z',
+    completedAt: '2026-08-16T06:01:00.000Z',
+  });
+
+  assert.doesNotMatch(run.report.interpretation.whatHappened.text, /核心业务成功率/);
+  assert.doesNotMatch(run.report.interpretation.recommendedAction.text, /核心业务成功率/);
+  assert.doesNotMatch(run.report.summary, /核心业务结果/);
+  assert.doesNotMatch(run.report.title, /声明范围内/);
+  assert.equal(
+    run.report.interpretation.whatHappened.evidenceIds.includes('fulfillment-service-success-rate'),
+    false,
+  );
+  assert.match(run.report.interpretation.whatHappened.text, /p95|downstream|cache/);
+});
+
 test('run history is derived from the immutable run ledger and sorted newest first', () => {
   const definition = definitionFixture();
   const sourceRun = runFixture({

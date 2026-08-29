@@ -80,8 +80,17 @@
   }
   .understanding-grid,
   .source-list,
-  .report-columns {
+  .report-columns,
+  .evidence-grid,
+  .interpretation-list {
     grid-template-columns: 1fr;
+  }
+  .report-check-result > summary {
+    grid-template-columns: 70px minmax(0, 1fr) minmax(82px, 0.45fr) minmax(96px, 0.55fr);
+  }
+  .report-check-toggle {
+    grid-column: 2 / -1;
+    text-align: right;
   }
   .app-footer {
     flex-direction: column;
@@ -133,6 +142,57 @@
     min-height: 320px;
   }
   .semantic-pair {
+    grid-template-columns: 1fr;
+  }
+  .report-section {
+    padding: 12px;
+  }
+  .report-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .evidence-card header {
+    gap: 8px;
+  }
+  .evidence-measurement,
+  .evidence-qualitative {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .evidence-measurement span,
+  .evidence-qualitative span {
+    text-align: left;
+  }
+  .report-check-result > summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+  }
+  .report-check-status {
+    grid-column: 1;
+  }
+  .report-check-toggle {
+    grid-column: 2;
+    text-align: right;
+  }
+  .report-check-name {
+    grid-column: 1 / -1;
+  }
+  .report-check-value {
+    grid-column: 1;
+  }
+  .report-check-gate {
+    grid-column: 2;
+  }
+  .report-check-name strong,
+  .report-check-value strong,
+  .report-check-gate strong {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .report-check-body dl,
+  .report-boundary {
     grid-template-columns: 1fr;
   }
   .impact-matrix {

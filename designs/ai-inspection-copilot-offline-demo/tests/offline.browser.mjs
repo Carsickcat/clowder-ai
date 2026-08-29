@@ -69,7 +69,7 @@ async function main() {
       if (/^https?:/i.test(request.url)) networkRequests.push(request.url);
     });
     session.on('Runtime.exceptionThrown', ({ exceptionDetails }) => {
-      browserErrors.push(exceptionDetails.text);
+      browserErrors.push(exceptionDetails.exception?.description ?? exceptionDetails.text);
     });
     session.on('Log.entryAdded', ({ entry }) => {
       if (entry.level === 'error') browserErrors.push(entry.text);
@@ -151,12 +151,31 @@ async function main() {
     await screenshot(session, '11-draft-optional-suggestion.png');
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
+    assert.deepEqual(browserErrors, [], 'generic report renders without browser errors');
     text = await bodyText(session);
     assert.match(text, /Proceed/);
     assert.match(text, /Verified/);
-    assert.match(text, /声明范围内未发现异常退化/);
+    assert.match(text, /已执行检查未发现关键违例/);
     assert.match(text, /本次选择的巡检结果/);
-    assert.match(text, /模型风险总结/);
+    assert.match(text, /fulfillment-service 巡检 · .*窗口 .*实例 INS-/);
+    assert.match(text, /证据仪表盘/);
+    assert.match(text, /检查结果/);
+    assert.match(text, /AI 解读/);
+    assert.doesNotMatch(
+      await session.evaluate('document.querySelector("[data-testid=ai-interpretation]").innerText'),
+      /核心业务成功率/,
+      'AI interpretation cannot retain a claim whose evidence was deselected',
+    );
+    assert.match(await session.evaluate('document.querySelector(".report-summary").innerText'), /锁定计划内的 3 项检查/);
+    assert.doesNotMatch(await session.evaluate('document.querySelector(".report-summary").innerText'), /核心业务结果/);
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=report-check-result]").length'), 3);
+    assert.equal(
+      await session.evaluate(
+        'getComputedStyle(document.querySelector(".evidence-grid")).gridTemplateColumns.split(" ").length',
+      ),
+      2,
+      'desktop evidence dashboard uses two readable columns',
+    );
     const firstRunSnapshot = await session.evaluate(
       'JSON.parse(localStorage.getItem("nova.inspection-library.v1")).runs[0]',
     );
@@ -229,6 +248,22 @@ async function main() {
     await click(session, '.saved-history-entry summary');
     assert.match(await bodyText(session), /历史快照/);
     assert.match(await bodyText(session), /不可修改/);
+    assert.equal(
+      await session.evaluate(
+        'document.querySelectorAll(".saved-history-entry[open] [data-testid=evidence-dashboard]").length',
+      ),
+      1,
+    );
+    assert.equal(
+      await session.evaluate('document.querySelectorAll(".saved-history-entry[open] [data-testid=report-checks]").length'),
+      1,
+    );
+    assert.equal(
+      await session.evaluate(
+        'document.querySelectorAll(".saved-history-entry[open] [data-testid=ai-interpretation]").length',
+      ),
+      1,
+    );
     await screenshot(session, '17-saved-inspection-history.png');
     await click(session, '[data-action="SAVED_INSPECTION_HISTORY_CLOSED"]');
 
@@ -361,6 +396,27 @@ async function main() {
     assert.match(text, /建议暂停在 25% 灰度/);
     assert.match(text, /Violated/);
     assert.match(text, /Pause/);
+    assert.equal(
+      await session.evaluate('document.querySelector(".evidence-card").classList.contains("is-violated")'),
+      true,
+      'violated evidence is promoted to the first dashboard card',
+    );
+    assert.equal(
+      await session.evaluate('document.querySelectorAll("[data-testid=report-check-result]").length'),
+      4,
+      'the report preserves every executed check',
+    );
+    await click(session, '[data-evidence-target="settlement-pool-utilization"]');
+    await waitForPaint(session);
+    const highlightedEvidence = await session.evaluate(`(() => {
+      const card = document.querySelector('[data-evidence-id="settlement-pool-utilization"]');
+      return {
+        highlighted: card.classList.contains('is-highlighted'),
+        outline: getComputedStyle(card).outlineStyle,
+      };
+    })()`);
+    assert.equal(highlightedEvidence.highlighted, true, 'AI evidence anchors focus the matching evidence card');
+    assert.notEqual(highlightedEvidence.outline, 'none', 'the focused evidence card is visibly highlighted');
     await click(session, '[data-action="RC_TOGGLED"]');
     text = await bodyText(session);
     assert.match(text, /共享配置包将 DB 连接池上限从 120 降为 60/);
@@ -424,6 +480,27 @@ async function main() {
     await advanceExecution(session);
     assert.match(await bodyText(session), /本次选择的巡检结果/);
     assert.match(await bodyText(session), /与上次相比/);
+    const mobileReport = await session.evaluate(`(() => {
+      const viewport = window.innerWidth;
+      const withinViewport = (node) => node.getBoundingClientRect().right <= viewport + 1;
+      return {
+        noOverflow: document.documentElement.scrollWidth <= viewport + 1,
+        evidenceColumns: getComputedStyle(document.querySelector('.evidence-grid')).gridTemplateColumns.split(' ').length,
+        interpretationColumns: getComputedStyle(document.querySelector('.interpretation-list')).gridTemplateColumns.split(' ').length,
+        trackWidth: Math.round(document.querySelector('.evidence-track').getBoundingClientRect().width),
+        checksFit: [...document.querySelectorAll('.report-check-result')].every(withinViewport),
+      };
+    })()`);
+    assert.equal(mobileReport.noOverflow, true, 'mobile report v2 must not overflow horizontally');
+    assert.equal(mobileReport.evidenceColumns, 1, 'mobile evidence cards use one column');
+    assert.equal(mobileReport.interpretationColumns, 1, 'mobile AI interpretation uses one column');
+    assert.ok(mobileReport.trackWidth >= 120, 'mobile evidence tracks remain readable');
+    assert.equal(mobileReport.checksFit, true, 'mobile check results remain inside the viewport');
+    await session.evaluate(
+      'document.querySelector("[data-testid=evidence-dashboard]").scrollIntoView({ block: "start" })',
+    );
+    await waitForPaint(session);
+    await screenshot(session, '19-mobile-report-v2.png');
     await click(session, '[data-action="RESET"]');
     await click(session, '[data-action="SAVED_INSPECTION_HISTORY_OPENED"]');
     assert.equal(

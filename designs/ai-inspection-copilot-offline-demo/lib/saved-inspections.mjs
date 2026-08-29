@@ -353,17 +353,33 @@ function interpretationForResults(report, checkResults) {
     checkResults.flatMap((result) => result.measurements.map((measurement) => measurement.id)),
   );
   const groundSection = (section) => {
-    const anchors = (section?.evidenceIds ?? []).filter((id) => evidenceIds.has(id));
-    return section?.text && anchors.length
+    const anchors = section?.evidenceIds ?? [];
+    return section?.text && anchors.length && anchors.every((id) => evidenceIds.has(id))
       ? { text: section.text, evidenceIds: anchors }
+      : { text: '证据不足', evidenceIds: [] };
+  };
+  const summarizeResults = (results) => {
+    const grounded = results.filter((result) => result.measurements.length);
+    return grounded.length
+      ? {
+          text: grounded.map((result) => result.summary).join('；'),
+          evidenceIds: grounded.map((result) => result.measurements[0].id),
+        }
       : { text: '证据不足', evidenceIds: [] };
   };
   const violated = checkResults.filter((result) => result.status === 'Violated');
   if (violated.length) {
+    const whatHappened = groundSection(report.interpretation.whatHappened);
+    const recommendedAction = groundSection(report.interpretation.recommendedAction);
     return {
-      whatHappened: groundSection(report.interpretation.whatHappened),
+      whatHappened: whatHappened.evidenceIds.length ? whatHappened : summarizeResults(violated),
       likelyCause: groundSection(report.interpretation.likelyCause),
-      recommendedAction: groundSection(report.interpretation.recommendedAction),
+      recommendedAction: recommendedAction.evidenceIds.length
+        ? recommendedAction
+        : {
+            text: '按违例检查的失败动作处置，并在证据恢复前保持当前变更范围。',
+            evidenceIds: summarizeResults(violated).evidenceIds,
+          },
     };
   }
   const unresolved = checkResults.filter((result) => ['Inconclusive', 'NotEvaluated'].includes(result.status));
@@ -383,10 +399,17 @@ function interpretationForResults(report, checkResults) {
   const verifiedEvidenceIds = checkResults.flatMap((result) =>
     result.measurements.slice(0, 1).map((measurement) => measurement.id),
   );
+  const whatHappened = groundSection(report.interpretation.whatHappened);
+  const recommendedAction = groundSection(report.interpretation.recommendedAction);
   return {
-    whatHappened: groundSection(report.interpretation.whatHappened),
+    whatHappened: whatHappened.evidenceIds.length ? whatHappened : summarizeResults(checkResults),
     likelyCause: groundSection(report.interpretation.likelyCause),
-    recommendedAction: groundSection(report.interpretation.recommendedAction),
+    recommendedAction: recommendedAction.evidenceIds.length
+      ? recommendedAction
+      : {
+          text: '锁定计划内的检查均通过；按当前计划继续，并保持原观察窗口。',
+          evidenceIds: verifiedEvidenceIds,
+        },
     ...(verifiedEvidenceIds.length ? {} : { whatHappened: { text: '证据不足', evidenceIds: [] } }),
   };
 }
@@ -400,6 +423,10 @@ function materializeReportForPlan(report, inspectionPlan) {
     (left, right) =>
       REPORT_RESULT_RANK[left.status] - REPORT_RESULT_RANK[right.status] ||
       inspectionPlan.checkIds.indexOf(left.checkId) - inspectionPlan.checkIds.indexOf(right.checkId),
+  );
+  const planCheckIds = new Set(inspectionPlan.checkIds);
+  const removedConclusiveResult = report.checkResults.some(
+    (result) => !planCheckIds.has(result.checkId) && ['Verified', 'Violated'].includes(result.status),
   );
   const hasViolation = counts.violated > 0;
   const hasUnresolved = counts.unresolved > 0;
@@ -417,9 +444,18 @@ function materializeReportForPlan(report, inspectionPlan) {
       : {
           evidenceVerdict: 'Verified',
           action: 'Proceed',
-          actionLabel: report.evidenceVerdict === 'Verified' ? report.actionLabel : '建议继续执行',
-          title: report.evidenceVerdict === 'Verified' ? report.title : '已执行检查未发现关键违例',
-          summary: report.evidenceVerdict === 'Verified' ? report.summary : '锁定计划内的检查均通过确定性验证。',
+          actionLabel:
+            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
+              ? report.actionLabel
+              : '建议按当前检查计划继续',
+          title:
+            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
+              ? report.title
+              : '已执行检查未发现关键违例',
+          summary:
+            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
+              ? report.summary
+              : `锁定计划内的 ${counts.verified} 项检查均通过确定性验证。`,
           rcAgent: null,
         };
   const materialized = {

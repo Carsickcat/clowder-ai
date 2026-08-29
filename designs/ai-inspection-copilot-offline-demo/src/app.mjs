@@ -114,6 +114,19 @@ root.addEventListener('click', (event) => {
     return;
   }
 
+  const evidenceButton = event.target.closest('[data-evidence-target]');
+  if (evidenceButton) {
+    const target = [...root.querySelectorAll('[data-evidence-id]')].find(
+      (item) => item.dataset.evidenceId === evidenceButton.dataset.evidenceTarget,
+    );
+    if (!target) return;
+    for (const item of root.querySelectorAll('.evidence-card.is-highlighted')) item.classList.remove('is-highlighted');
+    target.classList.add('is-highlighted');
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
   const actionButton = event.target.closest('[data-action]');
   if (!actionButton || actionButton.disabled) return;
   const { action } = actionButton.dataset;

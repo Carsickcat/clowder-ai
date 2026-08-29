@@ -14,6 +14,7 @@ const applicationFiles = [
   '../lib/selectors.mjs',
   '../lib/reducer.mjs',
   'view-utils.mjs',
+  'report-model.mjs',
   'report-share.mjs',
   'render-intake.mjs',
   'render-plan.mjs',

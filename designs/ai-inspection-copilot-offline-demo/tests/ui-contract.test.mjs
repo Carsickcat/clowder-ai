@@ -233,6 +233,15 @@ test('risk report leads with action while preserving evidence semantics', () => 
   assert.match(html, /Violated/);
   assert.match(html, /行动决策/);
   assert.match(html, /Pause/);
+  assert.match(html, /data-testid="report-metadata"[\s\S]*?payment-api 巡检[\s\S]*?实例 INS-/);
+  assert.match(html, /data-testid="evidence-dashboard"/);
+  assert.match(html, /class="evidence-card is-violated"[^>]*data-evidence-id="settlement-pool-utilization"/);
+  assert.ok(html.indexOf('settlement-pool-utilization') < html.indexOf('payment-success-rate'));
+  assert.match(html, /role="progressbar"[^>]*aria-valuenow="100"/);
+  assert.equal((html.match(/data-testid="report-check-result"/g) ?? []).length, 4);
+  assert.match(html, /data-testid="report-check-result"[\s\S]*?实际值[\s\S]*?门禁/);
+  assert.match(html, /data-testid="ai-interpretation"[\s\S]*?发生了什么[\s\S]*?可能原因[\s\S]*?建议动作/);
+  assert.match(html, /data-evidence-target="settlement-pool-utilization"/);
   assert.match(html, /启动 RC Agent/);
 });
 
@@ -451,7 +460,8 @@ test('report echoes selected context and offers a quiet editable personal save',
 
   assert.match(html, /data-testid="selected-context-results"/);
   assert.match(html, /本次选择的巡检结果/);
-  assert.match(html, /模型风险总结/);
+  assert.match(html, /AI 解读/);
+  assert.doesNotMatch(html, /模型风险总结/);
   assert.match(html, /data-save-inspection-form/);
   assert.match(html, /name="saved-inspection-name"/);
   assert.match(html, /保存后下次可从首页直接执行/);
@@ -492,6 +502,10 @@ test('saved inspection history renders reverse-chronological immutable snapshots
   assert.match(html, /运行历史/);
   assert.match(html, /历史快照/);
   assert.match(html, /不可修改/);
+  assert.match(html, /data-testid="report-metadata"[\s\S]*?履约发布后巡检/);
+  assert.match(html, /data-testid="evidence-dashboard"/);
+  assert.match(html, /data-testid="report-checks"/);
+  assert.match(html, /data-testid="ai-interpretation"/);
   assert.match(html, /data-action="SAVED_INSPECTION_HISTORY_CLOSED"/);
   assert.match(html, /data-action="SAVED_INSPECTION_RUN_REQUESTED"/);
   assert.doesNotMatch(html, /data-share-action=/);
