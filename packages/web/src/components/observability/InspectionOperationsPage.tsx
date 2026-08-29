@@ -12,10 +12,10 @@ import type {
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   createInspectionCase,
-  createInspectionJob,
   fetchInspectionCase,
   fetchInspectionJob,
   generateInspectionCandidateSet,
+  InspectionApiError,
   type InspectionSourceMetadata,
   type InspectionWorkspace,
   isInspectionAvailabilityError,
@@ -25,7 +25,6 @@ import {
   listInspectionSources,
   materializeInspectionCandidateSet,
   recordInspectionDecision,
-  reviseInspectionJob,
   startInspectionRun,
 } from '@/utils/inspection-api';
 import styles from './InspectionOperationsPage.module.css';
@@ -52,6 +51,33 @@ function statusLabel(status: string): string {
 
 function sourceLabel(source: InspectionSourceMetadata): string {
   return source.kind === 'replay' ? '验收回放 · 服务端回放数据' : source.label;
+}
+
+function planningDriftMessage(error: unknown): string | null {
+  if (!(error instanceof InspectionApiError) || error.status !== 409) return null;
+  if (!error.details || typeof error.details !== 'object') return null;
+  const details = error.details as { code?: unknown; differences?: unknown };
+  if (details.code !== 'INSPECTION_PLANNING_DRIFT' || !Array.isArray(details.differences)) return null;
+
+  const labels: Record<string, string> = {
+    catalog: '检查规则目录',
+    change: '变更事实',
+    integrity: '规划完整性',
+    topology: '服务拓扑',
+  };
+  const changed = Array.from(
+    new Set(
+      details.differences
+        .map((difference) =>
+          difference && typeof difference === 'object'
+            ? labels[String((difference as { source?: unknown }).source)]
+            : undefined,
+        )
+        .filter((label): label is string => Boolean(label)),
+    ),
+  );
+  const scope = changed.length > 0 ? changed.join('、') : '规划事实';
+  return `巡检依据已变化：${scope}与已固化方案不一致。未创建新的执行记录，请重新生成并确认方案。`;
 }
 
 function environmentLabel(environment: string): string {
@@ -231,21 +257,10 @@ export function InspectionOperationsPage() {
   const [busy, setBusy] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [commandError, setCommandError] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [service, setService] = useState('');
-  const [connectorRef, setConnectorRef] = useState('');
-  const [query, setQuery] = useState('safe_metric');
-  const [threshold, setThreshold] = useState('250');
-  const [changeId, setChangeId] = useState('');
-  const [version, setVersion] = useState('');
   const [purpose, setPurpose] = useState<InspectionRunPurpose>('admission');
   const [editableRevision, setEditableRevision] = useState<InspectionJobRevision | null>(null);
-  const [revisionQuery, setRevisionQuery] = useState('');
-  const [revisionThreshold, setRevisionThreshold] = useState('');
   const [intent, setIntent] = useState('帮我巡检 payments-router 的支付路由配置变更');
-  const [candidateService, setCandidateService] = useState('payments-router');
-  const [candidateChangeId, setCandidateChangeId] = useState('CHG-23841');
-  const [candidateVersion, setCandidateVersion] = useState('v3.18.0');
+  const [changeRef, setChangeRef] = useState('CHG-23841');
 
   const applyCandidateSet = useCallback((next: InspectionCandidateSet | null) => {
     setCandidateSet(next);
@@ -255,11 +270,9 @@ export function InspectionOperationsPage() {
     setCandidateWaivers({});
   }, []);
 
-  function applyRevisionDraft(revision: InspectionJobRevision | null) {
+  const applyRevisionDraft = useCallback((revision: InspectionJobRevision | null) => {
     setEditableRevision(revision);
-    setRevisionQuery(revision?.checks[0]?.query ?? '');
-    setRevisionThreshold(revision?.checks[0] ? String(revision.checks[0].threshold) : '');
-  }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -273,7 +286,6 @@ export function InspectionOperationsPage() {
         if (!active) return;
         setSources(loadedSources);
         setJobs(loadedJobs);
-        setConnectorRef(loadedSources[0]?.id ?? '');
         applyCandidateSet(loadedCandidateSets[0] ?? null);
 
         const firstJob = loadedJobs[0];
@@ -286,9 +298,7 @@ export function InspectionOperationsPage() {
           if (!active) return;
           setCases(loadedCases);
           setJobs((current) => current.map((job) => (job.id === currentJob.job.id ? currentJob.job : job)));
-          setEditableRevision(currentJob.revision);
-          setRevisionQuery(currentJob.revision.checks[0]?.query ?? '');
-          setRevisionThreshold(currentJob.revision.checks[0] ? String(currentJob.revision.checks[0].threshold) : '');
+          applyRevisionDraft(currentJob.revision);
           const firstCase = loadedCases[0];
           if (firstCase) {
             setSelectedCaseId(firstCase.id);
@@ -311,13 +321,10 @@ export function InspectionOperationsPage() {
     return () => {
       active = false;
     };
-  }, [applyCandidateSet]);
+  }, [applyCandidateSet, applyRevisionDraft]);
 
   const selectedJob = useMemo(() => jobs.find((job) => job.id === selectedJobId) ?? null, [jobs, selectedJobId]);
-  const selectedSource = useMemo(
-    () => sources.find((source) => source.id === connectorRef) ?? null,
-    [connectorRef, sources],
-  );
+  const selectedSource = sources[0] ?? null;
   const connectionState = loading
     ? 'booting'
     : connectionError
@@ -336,8 +343,9 @@ export function InspectionOperationsPage() {
     try {
       await operation();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Connected API 请求失败';
-      if (isInspectionAvailabilityError(error)) setConnectionError(message);
+      const driftMessage = planningDriftMessage(error);
+      const message = driftMessage ?? (error instanceof Error ? error.message : 'Connected API 请求失败');
+      if (!driftMessage && isInspectionAvailabilityError(error)) setConnectionError(message);
       else setCommandError(message);
     } finally {
       setBusy(false);
@@ -372,9 +380,7 @@ export function InspectionOperationsPage() {
     setSelectedCandidateIds([]);
     setCandidateWaivers({});
     setIntent('');
-    setCandidateService('');
-    setCandidateChangeId('');
-    setCandidateVersion('');
+    setChangeRef('');
     setPurpose('admission');
     setCommandError(null);
   }
@@ -390,15 +396,10 @@ export function InspectionOperationsPage() {
 
   async function handleGenerateCandidates(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!selectedSource) return;
     await withCommand(async () => {
       const generated = await generateInspectionCandidateSet({
-        intent: intent.trim(),
-        service: candidateService.trim(),
-        environment: selectedSource.scope,
-        connectorRef: selectedSource.id,
-        changeId: candidateChangeId.trim(),
-        version: candidateVersion.trim(),
+        changeRef: changeRef.trim(),
+        ...(intent.trim() ? { intent: intent.trim() } : {}),
       });
       applyCandidateSet(generated);
     });
@@ -424,8 +425,6 @@ export function InspectionOperationsPage() {
       });
       const createdCase = await createInspectionCase({
         jobId: created.job.id,
-        changeId: candidateSet.changeContext.changeId,
-        version: candidateSet.changeContext.version,
       });
       setJobs((current) => [created.job, ...current.filter((item) => item.id !== created.job.id)]);
       setSelectedJobId(created.job.id);
@@ -435,88 +434,6 @@ export function InspectionOperationsPage() {
       const loadedWorkspace = await fetchInspectionCase(createdCase.id);
       setWorkspace(loadedWorkspace);
       setPurpose(suggestedPurpose(loadedWorkspace));
-    });
-  }
-
-  async function handleCreateJob(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedSource) return;
-    await withCommand(async () => {
-      const created = await createInspectionJob({
-        name: name.trim(),
-        service: service.trim(),
-        environment: selectedSource.scope,
-        connectorRef: selectedSource.id,
-        checks: [
-          {
-            id: 'latency',
-            name: 'p95 latency',
-            query: query.trim(),
-            operator: 'lte',
-            threshold: Number(threshold),
-            unit: 'ms',
-            maxAgeMs: 15 * 60 * 1_000,
-          },
-        ],
-      });
-      setJobs((current) => [created.job, ...current]);
-      setSelectedJobId(created.job.id);
-      setCases([]);
-      setSelectedCaseId(null);
-      setWorkspace(null);
-      applyRevisionDraft(created.revision);
-      setName('');
-      setService('');
-    });
-  }
-
-  async function handleCreateCase(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selectedJobId) return;
-    await withCommand(async () => {
-      const created = await createInspectionCase({
-        jobId: selectedJobId,
-        changeId: changeId.trim(),
-        version: version.trim(),
-      });
-      setCases((current) => [created, ...current]);
-      setSelectedCaseId(created.id);
-      const loadedWorkspace = await fetchInspectionCase(created.id);
-      setWorkspace(loadedWorkspace);
-      setPurpose(suggestedPurpose(loadedWorkspace));
-      setChangeId('');
-      setVersion('');
-    });
-  }
-
-  async function handleReviseJob(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (
-      !selectedJob ||
-      !editableRevision ||
-      editableRevision.jobId !== selectedJob.id ||
-      editableRevision.revision !== selectedJob.currentRevision
-    ) {
-      return;
-    }
-    const nextThreshold = Number(revisionThreshold);
-    if (!revisionQuery.trim() || !Number.isFinite(nextThreshold)) return;
-
-    await withCommand(async () => {
-      const revised = await reviseInspectionJob(selectedJob.id, {
-        expectedRevision: selectedJob.currentRevision,
-        checks: editableRevision.checks.map((check, index) =>
-          index === 0
-            ? {
-                ...check,
-                query: revisionQuery.trim(),
-                threshold: nextThreshold,
-              }
-            : check,
-        ),
-      });
-      setJobs((current) => current.map((job) => (job.id === revised.job.id ? revised.job : job)));
-      applyRevisionDraft(revised.revision);
     });
   }
 
@@ -573,16 +490,16 @@ export function InspectionOperationsPage() {
   const activeJourneyStage = journeyStage(workspace);
   const decision = decisionCopy(workspace, candidateSet);
   const changeContext = candidateSet?.changeContext;
-  const displayedService = (workspace?.job.service ?? changeContext?.service ?? candidateService) || '等待识别服务';
-  const displayedVersion = (workspace?.case.version ?? changeContext?.version ?? candidateVersion) || '—';
-  const displayedChangeId = (workspace?.case.changeId ?? changeContext?.changeId ?? candidateChangeId) || '—';
+  const displayedService = (workspace?.job.service ?? changeContext?.service) || '等待服务端识别';
+  const displayedVersion = (workspace?.case.version ?? changeContext?.version) || '—';
+  const displayedChangeId = (workspace?.case.changeId ?? changeContext?.changeId ?? changeRef) || '—';
   const displayedEnvironment = environmentLabel(
     workspace?.job.environment ?? changeContext?.environment ?? selectedSource?.scope ?? '—',
   );
   const visibleJobs = jobs.slice(0, 3);
   const taskSummary = workspace
     ? `巡检 ${workspace.job.service} ${workspace.case.version} 是否具备当前阶段推进条件`
-    : (changeContext?.intent ?? '创建一份变更巡检方案');
+    : (changeContext?.intent ?? (intent.trim() || '用变更引用创建巡检方案'));
   const runtimeUiState = loading
     ? 'loading'
     : connectionError
@@ -637,8 +554,8 @@ export function InspectionOperationsPage() {
       </header>
 
       <output className={styles.environmentBanner} data-testid="runtime-environment-banner">
-        <strong>DEV LOCAL · fixture-backed sources</strong>
-        <span>production topology、LLM、knowledge graph 与发布动作不可用；所有运行仅写入本地巡检审计库。</span>
+        <strong>CONNECTED SYSTEM · server-authoritative facts</strong>
+        <span>变更、拓扑与指标事实只由服务端只读数据源提供；浏览器不能填写或改写权威结果。</span>
       </output>
 
       {connectionError && (
@@ -1086,7 +1003,7 @@ export function InspectionOperationsPage() {
           </header>
           <p className={styles.safetyNote}>我会生成方案和解释证据，但不会代替你执行生产动作。</p>
           <div className={styles.messages}>
-            <p>告诉我服务、版本和这次变更，我会先生成一份可审阅的巡检方案。</p>
+            <p>给我变更引用和你的巡检意图；服务、版本、环境与拓扑由服务端数据源核验。</p>
             {candidateSet && (
               <p data-role="assistant">
                 已识别 {candidateSet.changeContext.service} {candidateSet.changeContext.version}，生成{' '}
@@ -1105,63 +1022,37 @@ export function InspectionOperationsPage() {
           </div>
           <form className={styles.clawForm} onSubmit={handleGenerateCandidates}>
             <label>
-              描述巡检需求
+              巡检意图（可选）
               <textarea
                 data-testid="candidate-intent"
                 value={intent}
                 onChange={(event) => setIntent(event.target.value)}
-                placeholder="请帮我巡检 payments-router v3.18.0 的路由配置变更"
-                required
+                placeholder="例如：重点关注路由变更后的延迟与可用性"
               />
             </label>
             <div className={styles.confirmedContext}>
               <label>
-                服务
+                变更引用
                 <input
-                  data-testid="candidate-service"
-                  value={candidateService}
-                  onChange={(event) => setCandidateService(event.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                变更号
-                <input
-                  data-testid="candidate-change-id"
-                  value={candidateChangeId}
-                  onChange={(event) => setCandidateChangeId(event.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                版本
-                <input
-                  data-testid="candidate-version"
-                  value={candidateVersion}
-                  onChange={(event) => setCandidateVersion(event.target.value)}
+                  data-testid="candidate-change-ref"
+                  value={changeRef}
+                  onChange={(event) => setChangeRef(event.target.value)}
+                  placeholder="CHG-23841"
                   required
                 />
               </label>
             </div>
             <div className={styles.sourceContract}>
-              <span>已确认数据范围</span>
+              <span>服务端只读指标源</span>
               <strong>
-                {selectedSource
-                  ? environmentLabel(selectedSource.scope) + ' · ' + selectedSource.id
+                {sources.length > 0
+                  ? sources
+                      .map((source) => `${sourceLabel(source)} · 类型: ${source.kind} · 范围: ${source.scope}`)
+                      .join('；')
                   : '等待服务端数据源'}
               </strong>
             </div>
-            <button
-              data-testid="generate-candidates"
-              type="submit"
-              disabled={
-                formDisabled ||
-                !intent.trim() ||
-                !candidateService.trim() ||
-                !candidateChangeId.trim() ||
-                !candidateVersion.trim()
-              }
-            >
+            <button data-testid="generate-candidates" type="submit" disabled={formDisabled || !changeRef.trim()}>
               {busy ? '正在生成…' : '生成巡检方案'} <span>↗</span>
             </button>
           </form>
@@ -1225,135 +1116,41 @@ export function InspectionOperationsPage() {
       </section>
 
       <details className={styles.advancedTools}>
-        <summary>高级维护 · 作业版本与手动巡检记录</summary>
+        <summary>高级维护 · 只读作业与版本</summary>
         <div className={styles.advancedGrid}>
-          <form className={styles.form} onSubmit={handleCreateJob}>
-            <h3>保存为可复用作业</h3>
-            <label>
-              作业名
-              <input name="name" value={name} onChange={(event) => setName(event.target.value)} required />
-            </label>
-            <label>
-              服务标识
-              <input
-                name="service"
-                value={service}
-                onChange={(event) => setService(event.target.value)}
-                pattern="[A-Za-z0-9._\-]+"
-                required
-              />
-            </label>
-            <label>
-              环境
-              <input name="environment" value={selectedSource?.scope ?? ''} readOnly required />
-            </label>
-            <label>
-              数据源
-              <select value={connectorRef} onChange={(event) => setConnectorRef(event.target.value)} required>
-                {sources.map((source) => (
-                  <option key={source.id} value={source.id}>
-                    {sourceLabel(source)} · 类型: {source.kind} · 范围: {source.scope}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              精确只读查询
-              <textarea name="query" value={query} onChange={(event) => setQuery(event.target.value)} required />
-            </label>
-            <label>
-              p95 上限（毫秒）
-              <input
-                name="threshold"
-                type="number"
-                min="0"
-                step="0.01"
-                value={threshold}
-                onChange={(event) => setThreshold(event.target.value)}
-                required
-              />
-            </label>
-            <button
-              data-testid="create-job-submit"
-              className={styles.secondaryButton}
-              type="submit"
-              disabled={formDisabled || !name.trim() || !service.trim() || !query.trim()}
-            >
-              {busy ? '保存中…' : '保存作业与版本 1'}
-            </button>
-          </form>
-
-          {selectedJob && (
-            <div>
+          <div>
+            <h3>服务端权威边界</h3>
+            <p>作业与版本只由已确认的服务端方案生成；浏览器不能直建、改写检查或补填变更事实。</p>
+            <p>需要调整检查范围时，请用新的变更引用重新生成候选并完成确认。</p>
+          </div>
+          {selectedJob && editableRevision ? (
+            <div data-testid="readonly-job-revision">
               <h3>{jobLabel(selectedJob)}</h3>
               <p>
                 当前版本 {selectedJob.currentRevision}
                 {workspace ? ' · 当前巡检绑定版本 ' + workspace.revision.revision : ''}
               </p>
-              {editableRevision?.jobId === selectedJob.id &&
-                editableRevision.revision === selectedJob.currentRevision && (
-                  <form className={styles.form} onSubmit={handleReviseJob}>
-                    <label>
-                      检查查询
-                      <textarea
-                        data-testid="revision-query"
-                        value={revisionQuery}
-                        onChange={(event) => setRevisionQuery(event.target.value)}
-                        required
-                      />
-                    </label>
-                    <label>
-                      检查阈值
-                      <input
-                        data-testid="revision-threshold"
-                        type="number"
-                        step="0.01"
-                        value={revisionThreshold}
-                        onChange={(event) => setRevisionThreshold(event.target.value)}
-                        required
-                      />
-                    </label>
-                    <button
-                      data-testid="revise-job-submit"
-                      className={styles.secondaryButton}
-                      type="submit"
-                      disabled={formDisabled || !revisionQuery.trim() || !revisionThreshold.trim()}
-                    >
-                      {busy ? '创建中…' : '保存版本 ' + (selectedJob.currentRevision + 1)}
-                    </button>
-                  </form>
-                )}
-              <form className={styles.form} onSubmit={handleCreateCase}>
-                <label>
-                  变更编号
-                  <input
-                    data-testid="change-id"
-                    value={changeId}
-                    onChange={(event) => setChangeId(event.target.value)}
-                    placeholder="CHG-42"
-                    required
-                  />
-                </label>
-                <label>
-                  版本
-                  <input
-                    data-testid="change-version"
-                    value={version}
-                    onChange={(event) => setVersion(event.target.value)}
-                    placeholder="v3.18.0"
-                    required
-                  />
-                </label>
-                <button
-                  data-testid="create-case-submit"
-                  className={styles.secondaryButton}
-                  type="submit"
-                  disabled={formDisabled || !changeId.trim() || !version.trim()}
-                >
-                  新建独立巡检记录
-                </button>
-              </form>
+              <p>
+                服务 {selectedJob.service} · {environmentLabel(selectedJob.environment)} · 数据源{' '}
+                {selectedJob.connectorRef}
+              </p>
+              <ul>
+                {editableRevision.checks.map((check) => (
+                  <li key={check.id}>
+                    <strong>{metricLabel(check.id)}</strong>
+                    <span>
+                      {operatorLabel(check.operator)} {check.threshold} {check.unit}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <small>
+                方案来源 {editableRevision.origin?.candidateSetId ?? 'legacy'} · 规划摘要{' '}
+                {editableRevision.origin?.planningDigest ?? 'legacy-without-planning-digest'}
+              </small>
             </div>
+          ) : (
+            <p className={styles.empty}>选择一个已固化作业后，可在这里查看其只读版本与来源。</p>
           )}
         </div>
       </details>

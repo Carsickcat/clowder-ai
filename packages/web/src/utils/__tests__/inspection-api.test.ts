@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  createInspectionJob,
+  createInspectionCase,
   fetchInspectionCase,
   fetchInspectionJob,
   generateInspectionCandidateSet,
   listInspectionCandidateSets,
   listInspectionJobs,
   materializeInspectionCandidateSet,
-  reviseInspectionJob,
   startInspectionRun,
 } from '../inspection-api';
 
@@ -37,12 +36,8 @@ describe('inspection-api', () => {
 
   it('generates and reopens persisted candidate sets without browser-authored evidence', async () => {
     const input = {
+      changeRef: 'CHG-23841',
       intent: 'inspect payments-router after CHG-23841',
-      service: 'payments-router',
-      environment: 'acceptance',
-      connectorRef: 'replay-acceptance',
-      changeId: 'CHG-23841',
-      version: 'v3.18.0',
     };
     mocks.apiFetch
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'candidates-1' }) })
@@ -57,7 +52,9 @@ describe('inspection-api', () => {
       body: JSON.stringify(input),
     });
     expect(mocks.apiFetch).toHaveBeenNthCalledWith(2, '/api/observability/inspection-candidate-sets');
-    expect(JSON.stringify(mocks.apiFetch.mock.calls[0])).not.toMatch(/observation|verdict|sourceUrl/);
+    expect(JSON.stringify(mocks.apiFetch.mock.calls[0])).not.toMatch(
+      /service|environment|connectorRef|changeId|version|observation|verdict|sourceUrl/,
+    );
   });
 
   it('materializes a candidate selection and explicit required waivers', async () => {
@@ -83,36 +80,21 @@ describe('inspection-api', () => {
     );
   });
 
-  it('creates a reusable versioned job with exact checks', async () => {
-    const input = {
-      name: 'Payments release',
-      service: 'payments-router',
-      environment: 'acceptance',
-      connectorRef: 'replay-acceptance',
-      checks: [
-        {
-          id: 'latency',
-          name: 'p95 latency',
-          query: 'safe_metric',
-          operator: 'lte' as const,
-          threshold: 250,
-          unit: 'ms',
-          maxAgeMs: 120_000,
-        },
-      ],
-    };
+  it('creates a case from server-owned job lineage only', async () => {
+    const input = { jobId: 'job-1' };
     mocks.apiFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ job: { id: 'job-1' }, revision: { revision: 1 } }),
+      json: () => Promise.resolve({ id: 'case-1', jobId: 'job-1' }),
     });
 
-    await createInspectionJob(input);
+    await createInspectionCase(input);
 
-    expect(mocks.apiFetch).toHaveBeenCalledWith('/api/observability/inspection-jobs', {
+    expect(mocks.apiFetch).toHaveBeenCalledWith('/api/observability/inspection-cases', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
+    expect(JSON.stringify(mocks.apiFetch.mock.calls[0])).not.toMatch(/changeId|version/);
   });
 
   it('starts a run with purpose and idempotency only', async () => {
@@ -132,35 +114,6 @@ describe('inspection-api', () => {
       body: JSON.stringify({ purpose: 'verification' }),
     });
     expect(JSON.stringify(mocks.apiFetch.mock.calls[0])).not.toMatch(/verdict|observation|sourceUrl/);
-  });
-
-  it('creates revision N+1 with optimistic concurrency and exact checks', async () => {
-    const input = {
-      expectedRevision: 1,
-      checks: [
-        {
-          id: 'latency',
-          name: 'p95 latency',
-          query: 'histogram_quantile(0.95, safe_metric)',
-          operator: 'lte' as const,
-          threshold: 220,
-          unit: 'ms',
-          maxAgeMs: 120_000,
-        },
-      ],
-    };
-    mocks.apiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ job: { id: 'job-1', currentRevision: 2 }, revision: { revision: 2 } }),
-    });
-
-    await reviseInspectionJob('job/with space', input);
-
-    expect(mocks.apiFetch).toHaveBeenCalledWith('/api/observability/inspection-jobs/job%2Fwith%20space/revisions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
   });
 
   it('loads the current immutable revision detail for a persisted job', async () => {
@@ -188,6 +141,24 @@ describe('inspection-api', () => {
       name: 'InspectionApiError',
       message: 'Inspection source unavailable',
       status: 503,
+    });
+  });
+
+  it('preserves bounded drift differences for an actionable conflict state', async () => {
+    const details = {
+      code: 'INSPECTION_PLANNING_DRIFT',
+      differences: [{ source: 'topology', expectedHash: 'sha256:old', actualHash: 'sha256:new' }],
+    };
+    mocks.apiFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: () => Promise.resolve({ error: 'Inspection planning facts changed', details }),
+    });
+
+    await expect(startInspectionRun('case-1', 'verification', 'stable-key-2')).rejects.toMatchObject({
+      name: 'InspectionApiError',
+      status: 409,
+      details,
     });
   });
 });

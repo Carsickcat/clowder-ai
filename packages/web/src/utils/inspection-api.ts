@@ -3,7 +3,6 @@ import type {
   InspectionAssessment,
   InspectionCandidateSet,
   InspectionCase,
-  InspectionCheckDefinition,
   InspectionDecisionKind,
   InspectionDecisionRecord,
   InspectionJob,
@@ -36,12 +35,8 @@ export interface InspectionWorkspace {
 }
 
 export interface GenerateInspectionCandidateSetInput {
-  readonly intent: string;
-  readonly service: string;
-  readonly environment: string;
-  readonly connectorRef: string;
-  readonly changeId: string;
-  readonly version: string;
+  readonly changeRef: string;
+  readonly intent?: string;
 }
 
 export interface MaterializeInspectionCandidateSetInput {
@@ -50,23 +45,8 @@ export interface MaterializeInspectionCandidateSetInput {
   readonly waivers: readonly InspectionWaiver[];
 }
 
-export interface CreateInspectionJobInput {
-  readonly name: string;
-  readonly service: string;
-  readonly environment: string;
-  readonly connectorRef: string;
-  readonly checks: readonly InspectionCheckDefinition[];
-}
-
 export interface CreateInspectionCaseInput {
   readonly jobId: string;
-  readonly changeId: string;
-  readonly version: string;
-}
-
-export interface ReviseInspectionJobInput {
-  readonly expectedRevision: number;
-  readonly checks: readonly InspectionCheckDefinition[];
 }
 
 interface DecisionResult {
@@ -78,6 +58,7 @@ export class InspectionApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = 'InspectionApiError';
@@ -92,13 +73,15 @@ async function responseJson<T>(response: Response): Promise<T> {
   if (response.ok) return response.json() as Promise<T>;
 
   let message = `Inspection API request failed (${response.status})`;
+  let details: unknown;
   try {
-    const payload = (await response.json()) as { error?: unknown };
+    const payload = (await response.json()) as { error?: unknown; details?: unknown };
     if (typeof payload.error === 'string' && payload.error.trim()) message = payload.error;
+    details = payload.details;
   } catch {
     // Preserve the bounded fallback; response bodies are not echoed.
   }
-  throw new InspectionApiError(message, response.status);
+  throw new InspectionApiError(message, response.status, details);
 }
 
 function jsonRequest(body: unknown, headers?: Record<string, string>): RequestInit {
@@ -152,21 +135,6 @@ export async function fetchInspectionJob(
   jobId: string,
 ): Promise<{ job: InspectionJob; revision: InspectionJobRevision }> {
   return responseJson(await apiFetch(`/api/observability/inspection-jobs/${encodeURIComponent(jobId)}`));
-}
-
-export async function createInspectionJob(
-  input: CreateInspectionJobInput,
-): Promise<{ job: InspectionJob; revision: InspectionJobRevision }> {
-  return responseJson(await apiFetch('/api/observability/inspection-jobs', jsonRequest(input)));
-}
-
-export async function reviseInspectionJob(
-  jobId: string,
-  input: ReviseInspectionJobInput,
-): Promise<{ job: InspectionJob; revision: InspectionJobRevision }> {
-  return responseJson(
-    await apiFetch(`/api/observability/inspection-jobs/${encodeURIComponent(jobId)}/revisions`, jsonRequest(input)),
-  );
 }
 
 export async function listInspectionCases(jobId?: string): Promise<readonly InspectionCase[]> {

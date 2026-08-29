@@ -5,7 +5,6 @@ import { InspectionApiError } from '@/utils/inspection-api';
 
 const mocks = vi.hoisted(() => ({
   createInspectionCase: vi.fn(),
-  createInspectionJob: vi.fn(),
   generateInspectionCandidateSet: vi.fn(),
   fetchInspectionCase: vi.fn(),
   fetchInspectionJob: vi.fn(),
@@ -15,7 +14,6 @@ const mocks = vi.hoisted(() => ({
   listInspectionSources: vi.fn(),
   materializeInspectionCandidateSet: vi.fn(),
   recordInspectionDecision: vi.fn(),
-  reviseInspectionJob: vi.fn(),
   startInspectionRun: vi.fn(),
 }));
 
@@ -328,22 +326,6 @@ describe('InspectionOperationsPage', () => {
     });
   }
 
-  async function changeInput(element: HTMLInputElement, value: string) {
-    await act(async () => {
-      const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
-      descriptor?.set?.call(element, value);
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-  }
-
-  async function changeTextArea(element: HTMLTextAreaElement, value: string) {
-    await act(async () => {
-      const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
-      descriptor?.set?.call(element, value);
-      element.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-  }
-
   it('keeps the approved 7d991e single-screen product anatomy and Chinese decision language', async () => {
     mocks.listInspectionJobs.mockResolvedValueOnce([job]);
     mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
@@ -375,9 +357,9 @@ describe('InspectionOperationsPage', () => {
     await renderPage();
 
     expect(container.querySelector('[data-testid="runtime-environment-banner"]')?.textContent).toContain(
-      'DEV LOCAL · fixture-backed sources',
+      'CONNECTED SYSTEM · server-authoritative facts',
     );
-    expect(container.textContent).toContain('production topology、LLM、knowledge graph 与发布动作不可用');
+    expect(container.textContent).toContain('变更、拓扑与指标事实只由服务端只读数据源提供');
     expect(container.textContent).toContain('acceptance');
     expect(container.textContent).toContain('sha256:connected-replay-snapshot');
     expect(container.textContent).toContain('Fixture 固化时间');
@@ -415,7 +397,7 @@ describe('InspectionOperationsPage', () => {
 
     expect(container.textContent).toContain('连接中断');
     expect(container.textContent).not.toContain('Payments release inspection');
-    expect(container.querySelector<HTMLButtonElement>('[data-testid="create-job-submit"]')?.disabled).toBe(true);
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="generate-candidates"]')?.disabled).toBe(true);
   });
 
   it('turns change intent into a candidate package, revision and ready Case on one screen', async () => {
@@ -440,15 +422,10 @@ describe('InspectionOperationsPage', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
-    expect(mocks.generateInspectionCandidateSet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        intent: expect.stringContaining('payments-router'),
-        service: 'payments-router',
-        connectorRef: source.id,
-        changeId: 'CHG-23841',
-        version: 'v3.18.0',
-      }),
-    );
+    expect(mocks.generateInspectionCandidateSet).toHaveBeenCalledWith({
+      changeRef: 'CHG-23841',
+      intent: expect.stringContaining('payments-router'),
+    });
     expect(container.textContent).toContain('服务可用性');
     expect(container.textContent).toContain('未覆盖依赖');
 
@@ -462,76 +439,24 @@ describe('InspectionOperationsPage', () => {
       selectedCandidateIds: ['availability', 'latency'],
       waivers: [],
     });
-    expect(mocks.createInspectionCase).toHaveBeenCalledWith({
-      jobId: job.id,
-      changeId: 'CHG-23841',
-      version: 'v3.18.0',
-    });
+    expect(mocks.createInspectionCase).toHaveBeenCalledWith({ jobId: job.id });
     expect(container.textContent).toContain('巡检编号 case-1');
   });
 
-  it('saves an exact check definition as a reusable server job', async () => {
-    mocks.createInspectionJob.mockResolvedValueOnce({
-      job,
-      revision: workspace.revision,
-    });
+  it('exposes no browser mutation surface for authoritative jobs, revisions or case facts', async () => {
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce({ ...workspace, report: null });
 
     await renderPage();
-    const name = container.querySelector<HTMLInputElement>('[name="name"]');
-    const service = container.querySelector<HTMLInputElement>('[name="service"]');
-    const submit = container.querySelector<HTMLButtonElement>('[data-testid="create-job-submit"]');
 
-    if (!name || !service) throw new Error('expected create job fields');
-    await changeInput(name, 'Payments release inspection');
-    await changeInput(service, 'payments-router');
-    await act(async () => {
-      submit?.click();
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    expect(mocks.createInspectionJob).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'Payments release inspection',
-        service: 'payments-router',
-        connectorRef: source.id,
-        checks: [expect.objectContaining({ id: 'latency', query: 'safe_metric' })],
-      }),
-    );
-  });
-
-  it('derives the job environment from the selected server source scope', async () => {
-    const stagingSource = {
-      id: 'prometheus-staging',
-      kind: 'prometheus' as const,
-      label: 'Staging Prometheus',
-      scope: 'staging',
-    };
-    mocks.listInspectionSources.mockResolvedValueOnce([stagingSource]);
-    mocks.createInspectionJob.mockResolvedValueOnce({
-      job: { ...job, connectorRef: stagingSource.id, environment: stagingSource.scope },
-      revision: workspace.revision,
-    });
-
-    await renderPage();
-    const name = container.querySelector<HTMLInputElement>('[name="name"]');
-    const service = container.querySelector<HTMLInputElement>('[name="service"]');
-    const submit = container.querySelector<HTMLButtonElement>('[data-testid="create-job-submit"]');
-
-    if (!name || !service) throw new Error('expected create job fields');
-    await changeInput(name, 'Staging payments inspection');
-    await changeInput(service, 'payments-router');
-    await act(async () => {
-      submit?.click();
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    expect(mocks.createInspectionJob).toHaveBeenCalledWith(
-      expect.objectContaining({
-        connectorRef: stagingSource.id,
-        environment: 'staging',
-      }),
-    );
-    expect(container.querySelector<HTMLInputElement>('[name="environment"]')?.readOnly).toBe(true);
+    expect(container.querySelector('[data-testid="create-job-submit"]')).toBeNull();
+    expect(container.querySelector('[data-testid="revise-job-submit"]')).toBeNull();
+    expect(container.querySelector('[data-testid="create-case-submit"]')).toBeNull();
+    expect(container.querySelector('[data-testid="candidate-service"]')).toBeNull();
+    expect(container.querySelector('[data-testid="candidate-version"]')).toBeNull();
+    expect(container.querySelector('[data-testid="candidate-change-ref"]')).not.toBeNull();
+    expect(container.textContent).toContain('作业与版本只由已确认的服务端方案生成');
   });
 
   it('identifies replay sources as server replay data with explicit kind and scope', async () => {
@@ -542,85 +467,6 @@ describe('InspectionOperationsPage', () => {
     expect(container.textContent).toContain('类型: replay');
     expect(container.textContent).toContain('范围: acceptance');
     expect(container.textContent).not.toContain('真实观测');
-  });
-
-  it('revises the current job to N+1 while preserving the existing Case revision', async () => {
-    const revisionTwo = {
-      ...workspace.revision,
-      id: 'revision-2',
-      revision: 2,
-      checks: [{ ...workspace.revision.checks[0], query: 'updated_metric', threshold: 220 }],
-    };
-    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
-    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
-    mocks.fetchInspectionCase.mockResolvedValueOnce({ ...workspace, report: null });
-    mocks.reviseInspectionJob.mockResolvedValueOnce({
-      job: { ...job, currentRevision: 2 },
-      revision: revisionTwo,
-    });
-
-    await renderPage();
-    const queryInput = container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]');
-    const thresholdInput = container.querySelector<HTMLInputElement>('[data-testid="revision-threshold"]');
-    if (!queryInput || !thresholdInput) throw new Error('expected revision editor fields');
-
-    await changeTextArea(queryInput, 'updated_metric');
-    await changeInput(thresholdInput, '220');
-    await act(async () => {
-      container.querySelector<HTMLButtonElement>('[data-testid="revise-job-submit"]')?.click();
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    expect(mocks.reviseInspectionJob).toHaveBeenCalledWith(job.id, {
-      expectedRevision: 1,
-      checks: [{ ...workspace.revision.checks[0], query: 'updated_metric', threshold: 220 }],
-    });
-    expect(container.textContent).toContain('当前版本 2');
-    expect(container.textContent).toContain('当前巡检绑定版本 1');
-    expect(container.querySelector('[data-testid="case-pill"]')?.textContent).toContain('CHG-42');
-  });
-
-  it('keeps the connected page operable after a revision conflict and allows retry', async () => {
-    const revisionTwo = {
-      ...workspace.revision,
-      id: 'revision-2',
-      revision: 2,
-      checks: [{ ...workspace.revision.checks[0], query: 'updated_metric', threshold: 220 }],
-    };
-    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
-    mocks.listInspectionCases.mockResolvedValueOnce([]);
-    mocks.reviseInspectionJob
-      .mockRejectedValueOnce(new InspectionApiError('Inspection state conflict', 409))
-      .mockResolvedValueOnce({
-        job: { ...job, currentRevision: 2 },
-        revision: revisionTwo,
-      });
-
-    await renderPage();
-    const queryInput = container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]');
-    const thresholdInput = container.querySelector<HTMLInputElement>('[data-testid="revision-threshold"]');
-    const submit = container.querySelector<HTMLButtonElement>('[data-testid="revise-job-submit"]');
-    if (!queryInput || !thresholdInput || !submit) throw new Error('expected revision editor fields');
-
-    await changeTextArea(queryInput, 'updated_metric');
-    await changeInput(thresholdInput, '220');
-    await act(async () => {
-      submit.click();
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    expect(container.textContent).toContain('Inspection state conflict');
-    expect(container.textContent).not.toContain('连接中断');
-    expect(submit.disabled).toBe(false);
-
-    await act(async () => {
-      submit.click();
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    });
-
-    expect(mocks.reviseInspectionJob).toHaveBeenCalledTimes(2);
-    expect(container.textContent).toContain('当前版本 2');
-    expect(container.textContent).not.toContain('Inspection state conflict');
   });
 
   it.each([
@@ -654,66 +500,29 @@ describe('InspectionOperationsPage', () => {
     expect(startRun.disabled).toBe(true);
   });
 
-  it('loads current revision detail so a persisted Job without Cases can be revised', async () => {
-    const revisionTwo = {
-      ...workspace.revision,
-      id: 'revision-2',
-      revision: 2,
-      checks: [{ ...workspace.revision.checks[0], query: 'current_metric', threshold: 230 }],
-    };
-    const jobAtRevisionTwo = { ...job, currentRevision: 2 };
-    mocks.listInspectionJobs.mockResolvedValueOnce([jobAtRevisionTwo]);
-    mocks.listInspectionCases.mockResolvedValueOnce([]);
-    mocks.fetchInspectionJob.mockResolvedValueOnce({ job: jobAtRevisionTwo, revision: revisionTwo });
-    mocks.reviseInspectionJob.mockResolvedValueOnce({
-      job: { ...jobAtRevisionTwo, currentRevision: 3 },
-      revision: { ...revisionTwo, id: 'revision-3', revision: 3 },
-    });
+  it('renders planning drift as a bounded replan action without pretending the API disconnected', async () => {
+    const readyCase = { ...inspectionCase, status: 'ready' };
+    const readyWorkspace = { ...workspace, case: readyCase, runs: [], report: null };
+    mocks.listInspectionJobs.mockResolvedValueOnce([job]);
+    mocks.listInspectionCases.mockResolvedValueOnce([readyCase]);
+    mocks.fetchInspectionCase.mockResolvedValueOnce(readyWorkspace);
+    mocks.startInspectionRun.mockRejectedValueOnce(
+      new InspectionApiError('Inspection planning facts changed', 409, {
+        code: 'INSPECTION_PLANNING_DRIFT',
+        differences: [{ source: 'topology', expectedHash: 'sha256:old', actualHash: 'sha256:new' }],
+      }),
+    );
 
     await renderPage();
-    const queryInput = container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]');
-    const thresholdInput = container.querySelector<HTMLInputElement>('[data-testid="revision-threshold"]');
-    if (!queryInput || !thresholdInput) throw new Error('expected revision editor fields without a Case');
-    expect(queryInput.value).toBe('current_metric');
-    expect(thresholdInput.value).toBe('230');
-
-    await changeTextArea(queryInput, 'next_metric');
     await act(async () => {
-      container.querySelector<HTMLButtonElement>('[data-testid="revise-job-submit"]')?.click();
+      container.querySelector<HTMLButtonElement>('[data-testid="start-run"]')?.click();
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
 
-    expect(mocks.reviseInspectionJob).toHaveBeenCalledWith(job.id, {
-      expectedRevision: 2,
-      checks: [{ ...revisionTwo.checks[0], query: 'next_metric' }],
-    });
-    expect(container.textContent).toContain('当前版本 3');
-  });
-
-  it('edits the current Job revision without replacing an old Case workspace revision', async () => {
-    const revisionTwo = {
-      ...workspace.revision,
-      id: 'revision-2',
-      revision: 2,
-      checks: [{ ...workspace.revision.checks[0], query: 'current_metric', threshold: 230 }],
-    };
-    const jobAtRevisionTwo = { ...job, currentRevision: 2 };
-    mocks.listInspectionJobs.mockResolvedValueOnce([jobAtRevisionTwo]);
-    mocks.listInspectionCases.mockResolvedValueOnce([inspectionCase]);
-    mocks.fetchInspectionJob.mockResolvedValueOnce({ job: jobAtRevisionTwo, revision: revisionTwo });
-    mocks.fetchInspectionCase.mockResolvedValueOnce({
-      ...workspace,
-      job: jobAtRevisionTwo,
-      report: null,
-    });
-
-    await renderPage();
-
-    expect(container.querySelector<HTMLTextAreaElement>('[data-testid="revision-query"]')?.value).toBe(
-      'current_metric',
-    );
-    expect(container.textContent).toContain('当前版本 2');
-    expect(container.textContent).toContain('当前巡检绑定版本 1');
+    expect(container.textContent).toContain('巡检依据已变化');
+    expect(container.textContent).toContain('服务拓扑');
+    expect(container.textContent).toContain('请重新生成并确认方案');
+    expect(container.textContent).not.toContain('连接中断');
   });
 
   it('renders persisted run provenance verbatim after reload', async () => {
