@@ -13,8 +13,10 @@ tips_exempt:
 
 把已验收的 Copilot UX 连接到现有 NOVA Inspection 控制面和真实只读数据源。最终系统只有一份运行时状态：`InspectionWorkspace` 及其持久化对象；demo fixtures 只保留为测试输入。
 
-**Architecture cell:** observability inspection control plane  
-**Map delta:** update existing cell when architecture-ownership map infrastructure reaches this branch  
+**Architecture cell:** observability inspection control plane
+
+**Map delta:** update existing cell when architecture-ownership map infrastructure reaches this branch
+
 **Why:** `ChangeSource` / `TopologySource` extend the existing CandidateSet planning boundary; they do not introduce a second runtime, store or reporting owner.
 
 ## Current Implementation State
