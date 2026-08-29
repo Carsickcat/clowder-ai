@@ -3,6 +3,8 @@ feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO]
 topics: [aiops, inspection, implementation-plan, report]
 doc_kind: plan
 created: 2026-08-29
+tips_exempt:
+  reason: standalone offline deliverable has no Console capability-tip registry surface
 ---
 
 # AI Inspection Report V2 Implementation Plan
