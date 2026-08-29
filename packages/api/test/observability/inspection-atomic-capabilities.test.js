@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 
 import { applyMigrations, CURRENT_SCHEMA_VERSION } from '../../dist/domains/memory/schema.js';
 import { ReplayObservabilitySource } from '../../dist/domains/observability/adapters/ReplayObservabilitySource.js';
+import { InspectionPlanningResolver } from '../../dist/domains/observability/InspectionPlanningResolver.js';
 import {
   InspectionSelectionConflictError,
   InspectionService,
@@ -29,6 +30,7 @@ describe('NOVA atomic inspection capabilities', () => {
   let db;
   let service;
   let store;
+  let planningResolver;
 
   beforeEach(() => {
     db = new Database(':memory:');
@@ -46,8 +48,47 @@ describe('NOVA atomic inspection capabilities', () => {
         'error-rate': { observedAt: NOW, query: 'safe_error_rate_metric', value: 0.002 },
       },
     });
+    planningResolver = new InspectionPlanningResolver({
+      now: () => new Date(NOW),
+      changeSource: {
+        sourceId: 'change-api',
+        async resolve({ changeRef }) {
+          return {
+            sourceId: 'change-api',
+            capturedAt: NOW,
+            changeRef,
+            service: CONTEXT.service,
+            environment: CONTEXT.environment,
+            connectorRef: CONTEXT.connectorRef,
+            changeId: CONTEXT.changeId,
+            version: CONTEXT.version,
+          };
+        },
+      },
+      topologySource: {
+        sourceId: 'topology-api',
+        async resolve({ service }) {
+          return {
+            sourceId: 'topology-api',
+            capturedAt: NOW,
+            catalogVersion: 'topology-test-1',
+            rootService: service,
+            dependencies: [
+              {
+                criticality: 'critical',
+                direction: 'downstream',
+                kind: 'baas',
+                ref: 'baas:payments-connection-pool',
+                signalMapped: false,
+              },
+            ],
+          };
+        },
+      },
+    });
     service = new InspectionService({
       now: () => new Date(NOW),
+      planningSources: planningResolver,
       sources: [
         {
           id: source.sourceId,
@@ -130,17 +171,16 @@ describe('NOVA atomic inspection capabilities', () => {
   });
 
   test('projects an evidence report and assessment without letting coverage omissions rewrite the machine verdict', async () => {
-    const candidateSet = service.generateCandidateSet('user-a', CONTEXT);
+    const candidateSet = await service.generateCandidateSet('user-a', {
+      changeRef: 'ticket/CHG-23841',
+      intent: CONTEXT.intent,
+    });
     const created = service.materializeCandidateSet('user-a', candidateSet.id, {
       name: 'Payments route verification',
       selectedCandidateIds: ['availability', 'latency', 'error-rate'],
       waivers: [],
     });
-    const inspectionCase = service.createCase('user-a', {
-      jobId: created.job.id,
-      changeId: CONTEXT.changeId,
-      version: CONTEXT.version,
-    });
+    const inspectionCase = service.createCase('user-a', { jobId: created.job.id });
     const run = await service.startRun('user-a', inspectionCase.id, 'stage-admission-1', { purpose: 'admission' });
     await service.startRun('user-a', inspectionCase.id, 'stage-canary-1', { purpose: 'canary' });
     await service.startRun('user-a', inspectionCase.id, 'stage-post-change-1', { purpose: 'post_change' });

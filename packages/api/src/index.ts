@@ -502,29 +502,8 @@ async function main(): Promise<void> {
   const { openInspectionDatabase } = await import('./domains/observability/InspectionDatabase.js');
   const { SqliteInspectionStore } = await import('./domains/observability/SqliteInspectionStore.js');
   const { InspectionService } = await import('./domains/observability/InspectionService.js');
-  const { ReplayObservabilitySource } = await import('./domains/observability/adapters/ReplayObservabilitySource.js');
-  const inspectionStartedAt = new Date().toISOString();
-  const replaySource = new ReplayObservabilitySource(
-    {
-      collectedAt: inspectionStartedAt,
-      observations: {
-        availability: { query: 'safe_availability_metric', value: 0.999 },
-        latency: { query: 'safe_metric', value: 184 },
-        'error-rate': { query: 'safe_error_rate_metric', value: 0.002 },
-      },
-      sourceId: 'replay-acceptance',
-    },
-    { clock: () => new Date() },
-  );
-  const inspectionSources: import('./domains/observability/InspectionService.js').RegisteredInspectionSource[] = [
-    {
-      id: replaySource.sourceId,
-      kind: 'replay',
-      label: 'Local acceptance replay',
-      scope: 'acceptance',
-      source: replaySource,
-    },
-  ];
+  const { createInspectionMetricSources } = await import('./domains/observability/InspectionRuntimeSources.js');
+  const inspectionSources = createInspectionMetricSources(process.env);
   const inspectionDatabase = openInspectionDatabase({
     dataRoot: process.env.CAT_CAFE_DATA_DIR?.trim() || resolve(repoRoot, 'data'),
   });

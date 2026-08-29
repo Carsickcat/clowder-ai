@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 import Database from 'better-sqlite3';
 
 import { applyMigrations } from '../../dist/domains/memory/schema.js';
+import { InspectionPlanningResolver } from '../../dist/domains/observability/InspectionPlanningResolver.js';
 import {
   InspectionService,
   InspectionSourceUnavailableError,
@@ -64,6 +65,7 @@ describe('InspectionService', () => {
   let source;
   let service;
   let store;
+  let planningResolver;
 
   beforeEach(() => {
     db = new Database(':memory:');
@@ -73,8 +75,39 @@ describe('InspectionService', () => {
       now: () => NOW,
     });
     source = createSource();
+    planningResolver = new InspectionPlanningResolver({
+      now: () => new Date(NOW),
+      changeSource: {
+        sourceId: 'change-api',
+        async resolve({ changeRef }) {
+          return {
+            sourceId: 'change-api',
+            capturedAt: NOW,
+            changeRef,
+            service: 'payments-router',
+            environment: 'acceptance',
+            connectorRef: 'replay-acceptance',
+            changeId: 'CHG-42',
+            version: 'v3.18.0',
+          };
+        },
+      },
+      topologySource: {
+        sourceId: 'topology-api',
+        async resolve({ service }) {
+          return {
+            sourceId: 'topology-api',
+            capturedAt: NOW,
+            catalogVersion: 'topology-test-1',
+            rootService: service,
+            dependencies: [],
+          };
+        },
+      },
+    });
     service = new InspectionService({
       now: () => new Date(NOW),
+      planningSources: planningResolver,
       sources: [
         {
           id: 'replay-acceptance',
@@ -102,13 +135,34 @@ describe('InspectionService', () => {
     });
   }
 
-  function createCase() {
-    const created = createJob();
-    const inspectionCase = service.createCase('user-a', {
-      jobId: created.job.id,
-      changeId: 'CHG-42',
-      version: 'v3.18.0',
+  async function createCase() {
+    const resolved = await planningResolver.resolve({ changeRef: 'ticket/CHG-42' });
+    const candidateSet = store.createCandidateSet({
+      userId: 'user-a',
+      changeContext: resolved.changeContext,
+      topologySnapshot: resolved.topologySnapshot,
+      planningSnapshot: resolved.planningSnapshot,
+      candidates: [
+        {
+          id: 'latency',
+          name: 'p95 latency',
+          priority: 'required',
+          readiness: 'ready',
+          stages: ['admission', 'canary', 'verification', 'post_change'],
+          check: CHECKS[0],
+          reason: 'Protect request latency.',
+          evidenceRefs: [{ kind: 'rule', ref: 'rule:test-latency', label: 'Test latency rule' }],
+        },
+      ],
+      coverageOmissions: [],
+      generatedAt: NOW,
     });
+    const created = service.materializeCandidateSet('user-a', candidateSet.id, {
+      name: 'Payments canary inspection',
+      selectedCandidateIds: ['latency'],
+      waivers: [],
+    });
+    const inspectionCase = service.createCase('user-a', { jobId: created.job.id });
     return { created, inspectionCase };
   }
 
@@ -166,6 +220,7 @@ describe('InspectionService', () => {
 
     const baselineCapableService = new InspectionService({
       now: () => new Date(NOW),
+      planningSources: planningResolver,
       sources: [
         {
           id: 'replay-acceptance',
@@ -190,9 +245,10 @@ describe('InspectionService', () => {
   });
 
   test('revalidates persisted job environment against the current source scope before execution', async () => {
-    const { inspectionCase } = createCase();
+    const { inspectionCase } = await createCase();
     const changedScopeService = new InspectionService({
       now: () => new Date(NOW),
+      planningSources: planningResolver,
       sources: [
         {
           id: 'replay-acceptance',
@@ -213,7 +269,7 @@ describe('InspectionService', () => {
   });
 
   test('executes server-owned observations and reuses a completed run by idempotency key', async () => {
-    const { inspectionCase } = createCase();
+    const { inspectionCase } = await createCase();
 
     const completed = await service.startRun('user-a', inspectionCase.id, 'request-1', { purpose: 'admission' });
     const retry = await service.startRun('user-a', inspectionCase.id, 'request-1', { purpose: 'admission' });
@@ -245,6 +301,7 @@ describe('InspectionService', () => {
     });
     service = new InspectionService({
       now: () => new Date(NOW),
+      planningSources: planningResolver,
       sources: [
         {
           id: 'replay-acceptance',
@@ -256,7 +313,7 @@ describe('InspectionService', () => {
       ],
       store,
     });
-    const { inspectionCase } = createCase();
+    const { inspectionCase } = await createCase();
 
     const failed = await service.startRun('user-a', inspectionCase.id, 'request-failed', { purpose: 'admission' });
 
@@ -268,7 +325,7 @@ describe('InspectionService', () => {
   });
 
   test('returns a scoped workspace and creates an immutable report only on accept', async () => {
-    const { created, inspectionCase } = createCase();
+    const { created, inspectionCase } = await createCase();
     const admission = await service.startRun('user-a', inspectionCase.id, 'request-report-admission', {
       purpose: 'admission',
     });
@@ -321,6 +378,7 @@ describe('InspectionService', () => {
     });
     service = new InspectionService({
       now: () => new Date(NOW),
+      planningSources: planningResolver,
       sources: [
         {
           id: 'replay-acceptance',
@@ -332,7 +390,7 @@ describe('InspectionService', () => {
       ],
       store,
     });
-    const { inspectionCase } = createCase();
+    const { inspectionCase } = await createCase();
     const run = await service.startRun('user-a', inspectionCase.id, 'request-risk', { purpose: 'admission' });
 
     assert.equal(run.verdict, 'risk');
@@ -349,7 +407,7 @@ describe('InspectionService', () => {
   });
 
   test('rejects accepting an earlier pass after later evidence becomes risky', async () => {
-    const { inspectionCase } = createCase();
+    const { inspectionCase } = await createCase();
     const passed = await service.startRun('user-a', inspectionCase.id, 'request-passed', { purpose: 'admission' });
     const riskSource = createSource({
       collect: async () => ({
@@ -370,6 +428,7 @@ describe('InspectionService', () => {
     });
     service = new InspectionService({
       now: () => new Date(NOW),
+      planningSources: planningResolver,
       sources: [
         {
           id: 'replay-acceptance',

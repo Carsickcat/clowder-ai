@@ -1,16 +1,12 @@
 import assert from 'node:assert/strict';
 import { beforeEach, describe, test } from 'node:test';
 import Fastify from 'fastify';
+import { InspectionPlanningSourceError } from '../../dist/domains/observability/InspectionPlanningResolver.js';
 import {
   InspectionDecisionConflictError,
-  InspectionSourceCapabilityMismatchError,
-  InspectionSourceScopeMismatchError,
-  InspectionSourceUnavailableError,
+  InspectionPlanningDriftError,
 } from '../../dist/domains/observability/InspectionService.js';
-import {
-  InspectionRevisionConflictError,
-  InspectionRunSequenceConflictError,
-} from '../../dist/domains/observability/SqliteInspectionStore.js';
+import { InspectionRunSequenceConflictError } from '../../dist/domains/observability/SqliteInspectionStore.js';
 
 const USER_HEADER = { 'x-cat-cafe-user': 'user-a' };
 
@@ -51,35 +47,6 @@ function createServiceDouble() {
         },
       };
     },
-    createJob(userId, input) {
-      calls.push(['createJob', userId, input]);
-      return {
-        job: {
-          id: 'job-1',
-          userId,
-          name: input.name,
-          service: input.service,
-          environment: input.environment,
-          connectorRef: input.connectorRef,
-          currentRevision: 1,
-          archivedAt: null,
-          createdAt: '2026-07-31T00:00:00.000Z',
-          updatedAt: '2026-07-31T00:00:00.000Z',
-        },
-        revision: {
-          id: 'job-1-r1',
-          jobId: 'job-1',
-          revision: 1,
-          checks: input.checks,
-          createdBy: userId,
-          createdAt: '2026-07-31T00:00:00.000Z',
-        },
-      };
-    },
-    reviseJob(userId, jobId, input) {
-      calls.push(['reviseJob', userId, jobId, input]);
-      return null;
-    },
     createCase(userId, input) {
       calls.push(['createCase', userId, input]);
       return {
@@ -87,8 +54,8 @@ function createServiceDouble() {
         userId,
         jobId: input.jobId,
         jobRevisionId: 'job-1-r1',
-        changeId: input.changeId,
-        version: input.version,
+        changeId: 'CHG-42',
+        version: 'v3.18.0',
         status: 'ready',
         createdAt: '2026-07-31T00:00:00.000Z',
         updatedAt: '2026-07-31T00:00:00.000Z',
@@ -155,11 +122,11 @@ describe('inspection routes', () => {
 
     const listResponse = await app.inject({
       method: 'GET',
-      url: '/api/observability/inspection-jobs',
+      url: '/api/observability/inspection-cases',
     });
     const createResponse = await app.inject({
       method: 'POST',
-      url: '/api/observability/inspection-jobs',
+      url: '/api/observability/inspection-cases',
       payload: {},
     });
 
@@ -167,9 +134,9 @@ describe('inspection routes', () => {
     assert.equal(createResponse.statusCode, 401);
   });
 
-  test('creates a versioned job and returns its owner-scoped current revision detail', async () => {
+  test('keeps job detail readable while direct browser job mutations are unavailable', async () => {
     const app = await createApp();
-    const response = await app.inject({
+    const createResponse = await app.inject({
       method: 'POST',
       url: '/api/observability/inspection-jobs',
       headers: USER_HEADER,
@@ -191,20 +158,46 @@ describe('inspection routes', () => {
         ],
       },
     });
+    const reviseResponse = await app.inject({
+      method: 'POST',
+      url: '/api/observability/inspection-jobs/job-1/revisions',
+      headers: USER_HEADER,
+      payload: { expectedRevision: 1, checks: [] },
+    });
     const detailResponse = await app.inject({
       method: 'GET',
       url: '/api/observability/inspection-jobs/job-1',
       headers: USER_HEADER,
     });
 
-    assert.equal(response.statusCode, 201);
-    assert.equal(response.json().revision.revision, 1);
-    assert.deepEqual(service.calls[0].slice(0, 2), ['createJob', 'user-a']);
-    assert.equal('userId' in service.calls[0][2], false);
+    assert.equal(createResponse.statusCode, 404);
+    assert.equal(reviseResponse.statusCode, 404);
     assert.equal(detailResponse.statusCode, 200);
     assert.equal(detailResponse.json().job.id, 'job-1');
     assert.equal(detailResponse.json().revision.revision, 1);
-    assert.deepEqual(service.calls[1], ['getJobDetail', 'user-a', 'job-1']);
+    assert.deepEqual(service.calls, [['getJobDetail', 'user-a', 'job-1']]);
+  });
+
+  test('derives case change identity from the materialized revision and rejects browser duplicates', async () => {
+    const app = await createApp();
+    const forged = await app.inject({
+      method: 'POST',
+      url: '/api/observability/inspection-cases',
+      headers: USER_HEADER,
+      payload: { jobId: 'job-1', changeId: 'FORGED', version: 'forged-version' },
+    });
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/observability/inspection-cases',
+      headers: USER_HEADER,
+      payload: { jobId: 'job-1' },
+    });
+
+    assert.equal(forged.statusCode, 400);
+    assert.equal(created.statusCode, 201);
+    assert.equal(created.json().changeId, 'CHG-42');
+    assert.equal(created.json().version, 'v3.18.0');
+    assert.deepEqual(service.calls, [['createCase', 'user-a', { jobId: 'job-1' }]]);
   });
 
   test('rejects client-authored observations, verdicts and source URLs', async () => {
@@ -318,13 +311,7 @@ describe('inspection routes', () => {
     assert.deepEqual(service.calls[0].slice(0, 3), ['recordDecision', 'user-a', 'case-1']);
   });
 
-  test('maps connector, revision and decision conflicts to bounded API errors', async () => {
-    service.createJob = () => {
-      throw new InspectionSourceUnavailableError('not-registered');
-    };
-    service.reviseJob = () => {
-      throw new InspectionRevisionConflictError();
-    };
+  test('maps decision and run sequence conflicts to bounded API errors', async () => {
     service.recordDecision = () => {
       throw new InspectionDecisionConflictError('not ready');
     };
@@ -333,47 +320,6 @@ describe('inspection routes', () => {
     };
     const app = await createApp();
 
-    const unavailable = await app.inject({
-      method: 'POST',
-      url: '/api/observability/inspection-jobs',
-      headers: USER_HEADER,
-      payload: {
-        name: 'Safe job',
-        service: 'payments',
-        environment: 'acceptance',
-        connectorRef: 'not-registered',
-        checks: [
-          {
-            id: 'latency',
-            name: 'Latency',
-            query: 'safe_metric',
-            operator: 'lte',
-            threshold: 250,
-            unit: 'ms',
-            maxAgeMs: 120_000,
-          },
-        ],
-      },
-    });
-    const conflict = await app.inject({
-      method: 'POST',
-      url: '/api/observability/inspection-jobs/job-1/revisions',
-      headers: USER_HEADER,
-      payload: {
-        expectedRevision: 1,
-        checks: [
-          {
-            id: 'latency',
-            name: 'Latency',
-            query: 'safe_metric',
-            operator: 'lte',
-            threshold: 200,
-            unit: 'ms',
-            maxAgeMs: 120_000,
-          },
-        ],
-      },
-    });
     const invalidDecision = await app.inject({
       method: 'POST',
       url: '/api/observability/inspection-cases/case-1/decisions',
@@ -390,79 +336,63 @@ describe('inspection routes', () => {
       payload: { purpose: 'post_change' },
     });
 
-    assert.equal(unavailable.statusCode, 503);
-    assert.deepEqual(unavailable.json(), { error: 'Inspection source unavailable' });
-    assert.equal(conflict.statusCode, 409);
-    assert.deepEqual(conflict.json(), { error: 'Inspection state conflict' });
     assert.equal(invalidDecision.statusCode, 409);
     assert.deepEqual(invalidDecision.json(), { error: 'Inspection state conflict' });
     assert.equal(invalidRun.statusCode, 409);
     assert.deepEqual(invalidRun.json(), { error: 'Inspection state conflict' });
   });
 
-  test('maps a server-owned source scope mismatch to a bounded conflict', async () => {
-    service.createJob = () => {
-      throw new InspectionSourceScopeMismatchError('replay-acceptance', 'acceptance');
+  test('returns typed bounded planning drift details without raw source facts', async () => {
+    service.startRun = () => {
+      throw new InspectionPlanningDriftError([
+        {
+          source: 'change',
+          expectedHash: `sha256:${'a'.repeat(64)}`,
+          actualHash: `sha256:${'b'.repeat(64)}`,
+        },
+      ]);
     };
     const app = await createApp();
-
     const response = await app.inject({
       method: 'POST',
-      url: '/api/observability/inspection-jobs',
-      headers: USER_HEADER,
-      payload: {
-        name: 'Mislabeled job',
-        service: 'payments-router',
-        environment: 'production',
-        connectorRef: 'replay-acceptance',
-        checks: [
+      url: '/api/observability/inspection-cases/case-1/runs',
+      headers: { ...USER_HEADER, 'idempotency-key': 'drifted-run' },
+      payload: { purpose: 'admission' },
+    });
+
+    assert.equal(response.statusCode, 409);
+    assert.deepEqual(response.json(), {
+      error: 'Inspection planning facts changed',
+      details: {
+        code: 'INSPECTION_PLANNING_DRIFT',
+        differences: [
           {
-            id: 'latency',
-            name: 'Latency',
-            query: 'safe_metric',
-            operator: 'lte',
-            threshold: 250,
-            unit: 'ms',
-            maxAgeMs: 120_000,
+            source: 'change',
+            expectedHash: `sha256:${'a'.repeat(64)}`,
+            actualHash: `sha256:${'b'.repeat(64)}`,
           },
         ],
       },
     });
-
-    assert.equal(response.statusCode, 409);
-    assert.deepEqual(response.json(), { error: 'Inspection source scope mismatch' });
   });
 
-  test('maps an unsupported source capability to a distinct bounded conflict', async () => {
-    service.createJob = () => {
-      throw new InspectionSourceCapabilityMismatchError('prometheus-configured');
+  test('returns a bounded planning source error without provider payloads', async () => {
+    service.startRun = () => {
+      throw new InspectionPlanningSourceError('topology_unavailable', 'secret provider response');
     };
     const app = await createApp();
-
     const response = await app.inject({
       method: 'POST',
-      url: '/api/observability/inspection-jobs',
-      headers: USER_HEADER,
-      payload: {
-        name: 'Relative baseline job',
-        service: 'payments-router',
-        environment: 'staging',
-        connectorRef: 'prometheus-configured',
-        checks: [
-          {
-            id: 'latency',
-            name: 'Latency',
-            query: 'safe_metric',
-            operator: 'relative_lte',
-            threshold: 1.1,
-            unit: 'ratio',
-            maxAgeMs: 120_000,
-          },
-        ],
-      },
+      url: '/api/observability/inspection-cases/case-1/runs',
+      headers: { ...USER_HEADER, 'idempotency-key': 'unavailable-run' },
+      payload: { purpose: 'admission' },
     });
 
-    assert.equal(response.statusCode, 409);
-    assert.deepEqual(response.json(), { error: 'Inspection source capability mismatch' });
+    assert.equal(response.statusCode, 503);
+    assert.deepEqual(response.json(), {
+      error: 'Inspection planning source unavailable',
+      details: { code: 'topology_unavailable' },
+    });
+    assert.equal(response.body.includes('secret provider response'), false);
   });
 });

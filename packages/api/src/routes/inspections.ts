@@ -1,7 +1,9 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { InspectionPlanningSourceError } from '../domains/observability/InspectionPlanningResolver.js';
 import {
   InspectionDecisionConflictError,
+  InspectionPlanningDriftError,
   InspectionSelectionConflictError,
   InspectionSourceCapabilityMismatchError,
   InspectionSourceScopeMismatchError,
@@ -23,28 +25,10 @@ const idSchema = z
   .max(200)
   .regex(/^[A-Za-z0-9._-]+$/);
 
-const checkSchema = z
-  .object({
-    id: idSchema,
-    name: z.string().trim().min(1).max(120),
-    query: z.string().trim().min(1).max(500),
-    operator: z.enum(['lte', 'gte', 'relative_lte', 'relative_gte']),
-    threshold: z.number().finite(),
-    unit: z.string().trim().min(1).max(32),
-    maxAgeMs: z.number().int().min(15_000).max(86_400_000),
-  })
-  .strict();
-
-const checksSchema = z.array(checkSchema).min(1).max(8);
-
 const generateCandidateSetSchema = z
   .object({
-    intent: z.string().trim().min(1).max(2_000),
-    service: idSchema,
-    environment: idSchema,
-    connectorRef: idSchema,
-    changeId: idSchema,
-    version: z.string().trim().min(1).max(120),
+    changeRef: z.string().trim().min(1).max(200),
+    intent: z.string().trim().min(1).max(2_000).optional(),
   })
   .strict();
 
@@ -65,28 +49,9 @@ const materializeCandidateSetSchema = z
   })
   .strict();
 
-const createJobSchema = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    service: idSchema,
-    environment: idSchema,
-    connectorRef: idSchema,
-    checks: checksSchema,
-  })
-  .strict();
-
-const reviseJobSchema = z
-  .object({
-    expectedRevision: z.number().int().positive(),
-    checks: checksSchema,
-  })
-  .strict();
-
 const createCaseSchema = z
   .object({
     jobId: idSchema,
-    changeId: idSchema,
-    version: z.string().trim().min(1).max(120),
   })
   .strict();
 
@@ -116,12 +81,6 @@ export interface InspectionRoutesService {
   ): unknown | Promise<unknown>;
   listJobs(userId: string): unknown | Promise<unknown>;
   getJobDetail(userId: string, jobId: string): unknown | null | Promise<unknown | null>;
-  createJob(userId: string, input: z.infer<typeof createJobSchema>): unknown | Promise<unknown>;
-  reviseJob(
-    userId: string,
-    jobId: string,
-    input: z.infer<typeof reviseJobSchema>,
-  ): unknown | null | Promise<unknown | null>;
   createCase(userId: string, input: z.infer<typeof createCaseSchema>): unknown | Promise<unknown>;
   getCase(userId: string, caseId: string): unknown | null | Promise<unknown | null>;
   listCases(userId: string, jobId?: string): unknown | Promise<unknown>;
@@ -165,7 +124,22 @@ function idempotencyKey(request: FastifyRequest): string | null {
 function inspectionErrorResponse(error: Error & { statusCode?: number }): {
   readonly message: string;
   readonly statusCode: number;
+  readonly details?: unknown;
 } | null {
+  if (error instanceof InspectionPlanningDriftError) {
+    return {
+      message: 'Inspection planning facts changed',
+      statusCode: 409,
+      details: { code: error.code, differences: error.differences },
+    };
+  }
+  if (error instanceof InspectionPlanningSourceError) {
+    return {
+      message: 'Inspection planning source unavailable',
+      statusCode: 503,
+      details: { code: error.code },
+    };
+  }
   if (error instanceof InspectionSourceUnavailableError) {
     return { message: 'Inspection source unavailable', statusCode: 503 };
   }
@@ -200,7 +174,10 @@ export const inspectionsRoutes: FastifyPluginAsync<InspectionsRoutesOptions> = a
   app.setErrorHandler((error, request, reply) => {
     const response = inspectionErrorResponse(error);
     if (response) {
-      reply.status(response.statusCode).send({ error: response.message });
+      reply.status(response.statusCode).send({
+        error: response.message,
+        ...(response.details ? { details: response.details } : {}),
+      });
       return;
     }
     request.log.error({ err: error }, 'inspection route failed');
@@ -273,37 +250,6 @@ export const inspectionsRoutes: FastifyPluginAsync<InspectionsRoutesOptions> = a
       return { error: 'Inspection job not found' };
     }
     return detail;
-  });
-
-  app.post('/api/observability/inspection-jobs', async (request, reply) => {
-    const userId = requireUserId(request, reply);
-    if (!userId) return;
-    const input = createJobSchema.safeParse(request.body);
-    if (!input.success) {
-      invalidBody(reply, input.error);
-      return;
-    }
-    const created = await service.createJob(userId, input.data);
-    reply.status(201);
-    return created;
-  });
-
-  app.post('/api/observability/inspection-jobs/:id/revisions', async (request, reply) => {
-    const userId = requireUserId(request, reply);
-    if (!userId) return;
-    const input = reviseJobSchema.safeParse(request.body);
-    if (!input.success) {
-      invalidBody(reply, input.error);
-      return;
-    }
-    const { id } = request.params as { id: string };
-    const revision = await service.reviseJob(userId, id, input.data);
-    if (!revision) {
-      reply.status(404);
-      return { error: 'Inspection job not found' };
-    }
-    reply.status(201);
-    return revision;
   });
 
   app.post('/api/observability/inspection-cases', async (request, reply) => {

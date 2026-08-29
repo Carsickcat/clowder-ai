@@ -7,9 +7,10 @@ import {
   SCHEMA_V11_INSPECTION_INTEGRITY,
   SCHEMA_V12_INSPECTION_CANDIDATES,
   SCHEMA_V13_INSPECTION_REPORT_INTELLIGENCE,
+  SCHEMA_V14_INSPECTION_PLANNING_SNAPSHOT,
 } from '../memory/schema.js';
 
-const INSPECTION_SCHEMA_VERSION = 13;
+const INSPECTION_SCHEMA_VERSION = 14;
 
 export interface OpenInspectionDatabaseOptions {
   readonly dataRoot: string;
@@ -80,6 +81,20 @@ function applyInspectionMigrations(db: Database.Database): void {
       );
     });
     applyV13();
+  }
+  if (currentVersion < 14) {
+    const applyV14 = db.transaction(() => {
+      const candidateColumns = db.prepare('PRAGMA table_info(inspection_candidate_sets)').all() as {
+        name: string;
+      }[];
+      if (!candidateColumns.some((column) => column.name === 'planning_snapshot_json')) {
+        db.exec(SCHEMA_V14_INSPECTION_PLANNING_SNAPSHOT);
+      }
+      db.prepare('INSERT INTO inspection_schema_version (version, applied_at) VALUES (14, ?)').run(
+        new Date().toISOString(),
+      );
+    });
+    applyV14();
   }
 
   const migratedVersion = (

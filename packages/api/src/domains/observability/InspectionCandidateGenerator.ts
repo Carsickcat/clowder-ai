@@ -16,9 +16,25 @@ export interface InspectionCandidateDraft {
 
 export interface InspectionCandidateGeneratorOptions {
   readonly now?: () => Date;
+  readonly topologySnapshot?: InspectionTopologySnapshot;
 }
 
-const CATALOG_VERSION = 'nova-mvp-1';
+export const INSPECTION_CANDIDATE_CATALOG_VERSION = 'nova-mvp-1';
+
+export const INSPECTION_CANDIDATE_CATALOG_DESCRIPTOR = {
+  version: INSPECTION_CANDIDATE_CATALOG_VERSION,
+  checks: [
+    {
+      id: 'availability',
+      operator: 'gte',
+      threshold: 0.995,
+      stages: ['admission', 'canary', 'verification', 'post_change'],
+    },
+    { id: 'latency', operator: 'lte', threshold: 250, stages: ['admission', 'canary', 'verification', 'post_change'] },
+    { id: 'error-rate', operator: 'lte', threshold: 0.005, stages: ['canary', 'verification', 'post_change'] },
+  ],
+  topologyCoverage: 'every-unmapped-dependency-produces-an-omission',
+} as const;
 
 function ruleRefs(context: InspectionChangeContext, rule: string) {
   return [
@@ -30,7 +46,7 @@ function ruleRefs(context: InspectionChangeContext, rule: string) {
     {
       kind: 'rule' as const,
       ref: `rule:${rule}`,
-      label: `NOVA rule catalog ${CATALOG_VERSION}`,
+      label: `NOVA rule catalog ${INSPECTION_CANDIDATE_CATALOG_VERSION}`,
     },
   ];
 }
@@ -144,15 +160,20 @@ export function generateInspectionCandidateDraft(
   options: InspectionCandidateGeneratorOptions = {},
 ): InspectionCandidateDraft {
   const generatedAt = (options.now ?? (() => new Date()))().toISOString();
-  const dependencies = dependenciesFor(context.service);
+  const dependencies = options.topologySnapshot?.dependencies ?? dependenciesFor(context.service);
   return {
     changeContext: { ...context },
-    topologySnapshot: {
-      catalogVersion: CATALOG_VERSION,
-      rootService: context.service,
-      capturedAt: generatedAt,
-      dependencies,
-    },
+    topologySnapshot: options.topologySnapshot
+      ? {
+          ...options.topologySnapshot,
+          dependencies: options.topologySnapshot.dependencies.map((dependency) => ({ ...dependency })),
+        }
+      : {
+          catalogVersion: INSPECTION_CANDIDATE_CATALOG_VERSION,
+          rootService: context.service,
+          capturedAt: generatedAt,
+          dependencies,
+        },
     candidates: createCandidates(context),
     coverageOmissions: omissionsFor(context, dependencies),
     generatedAt,

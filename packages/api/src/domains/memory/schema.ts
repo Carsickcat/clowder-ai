@@ -66,7 +66,7 @@ END`,
 END`,
 ];
 
-export const CURRENT_SCHEMA_VERSION = 13;
+export const CURRENT_SCHEMA_VERSION = 14;
 
 // Phase C: embedding metadata (model/dim version anchor)
 export const SCHEMA_V2 = `
@@ -435,6 +435,11 @@ END;
 export const SCHEMA_V13_INSPECTION_REPORT_INTELLIGENCE =
   'ALTER TABLE inspection_reports ADD COLUMN intelligence_json TEXT';
 
+// F257: immutable authority snapshot used to detect planning drift before a run.
+// Nullable only for candidate sets sealed before this migration.
+export const SCHEMA_V14_INSPECTION_PLANNING_SNAPSHOT =
+  'ALTER TABLE inspection_candidate_sets ADD COLUMN planning_snapshot_json TEXT';
+
 /**
  * Apply all schema migrations up to CURRENT_SCHEMA_VERSION.
  * Safe to call on empty DB (creates schema_version table first).
@@ -595,6 +600,19 @@ export function applyMigrations(db: Database.Database): void {
       db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(13, new Date().toISOString());
     });
     applyV13();
+  }
+
+  if (currentVersion < 14) {
+    const applyV14 = db.transaction(() => {
+      const candidateColumns = db.prepare('PRAGMA table_info(inspection_candidate_sets)').all() as {
+        name: string;
+      }[];
+      if (!candidateColumns.some((column) => column.name === 'planning_snapshot_json')) {
+        db.exec(SCHEMA_V14_INSPECTION_PLANNING_SNAPSHOT);
+      }
+      db.prepare('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)').run(14, new Date().toISOString());
+    });
+    applyV14();
   }
 }
 

@@ -112,9 +112,22 @@ test('connected degradation acceptance exempts only the expected API failure', a
   assert.match(acceptance, /assert\.ok\(expectedApiFailures\.length > 0/u);
 });
 
-test('local inspection runtime registers no configurable Prometheus source', async () => {
+test('inspection runtime composes only explicitly configured real metric sources', async () => {
   const apiEntry = await readFile(path.join(repoRoot, 'packages', 'api', 'src', 'index.ts'), 'utf8');
+  const runtimeSources = await readFile(
+    path.join(repoRoot, 'packages', 'api', 'src', 'domains', 'observability', 'InspectionRuntimeSources.ts'),
+    'utf8',
+  );
+  const envRegistry = await readFile(
+    path.join(repoRoot, 'packages', 'api', 'src', 'config', 'env-registry.ts'),
+    'utf8',
+  );
 
-  assert.doesNotMatch(apiEntry, /NOVA_INSPECTION_PROMETHEUS_(?:URL|SCOPE|AUTHORIZATION)/u);
-  assert.doesNotMatch(apiEntry, /PrometheusObservabilitySource/u);
+  assert.match(apiEntry, /createInspectionMetricSources\(process\.env\)/u);
+  assert.doesNotMatch(apiEntry, /ReplayObservabilitySource/u);
+  assert.match(runtimeSources, /NOVA_INSPECTION_PROMETHEUS_(?:URL|SCOPE|AUTHORIZATION)/u);
+  assert.match(runtimeSources, /PrometheusObservabilitySource/u);
+  assert.doesNotMatch(runtimeSources, /ReplayObservabilitySource/u);
+  assert.doesNotMatch(envRegistry, /acceptance replay source/u);
+  assert.match(envRegistry, /未设置 → 不注册巡检指标源/u);
 });

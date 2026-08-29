@@ -8,12 +8,72 @@ import Fastify from 'fastify';
 
 import { applyMigrations } from '../../dist/domains/memory/schema.js';
 import { ReplayObservabilitySource } from '../../dist/domains/observability/adapters/ReplayObservabilitySource.js';
+import { generateInspectionCandidateDraft } from '../../dist/domains/observability/InspectionCandidateGenerator.js';
+import { InspectionPlanningResolver } from '../../dist/domains/observability/InspectionPlanningResolver.js';
 import { InspectionService } from '../../dist/domains/observability/InspectionService.js';
 import { SqliteInspectionStore } from '../../dist/domains/observability/SqliteInspectionStore.js';
 import { inspectionsRoutes } from '../../dist/routes/inspections.js';
 
 const USER_HEADER = { 'x-cat-cafe-user': 'acceptance-user' };
 const COLLECTED_AT = '2026-07-31T08:00:00.000Z';
+
+function createPlanningResolver() {
+  return new InspectionPlanningResolver({
+    now: () => new Date(COLLECTED_AT),
+    changeSource: {
+      sourceId: 'change-api',
+      async resolve({ changeRef }) {
+        const suffix = changeRef.split('/').at(-1) || 'CHG-ACCEPTANCE';
+        return {
+          sourceId: 'change-api',
+          capturedAt: COLLECTED_AT,
+          changeRef,
+          service: 'payments-router',
+          environment: 'acceptance',
+          connectorRef: 'replay-acceptance',
+          changeId: suffix,
+          version: 'v3.18.0',
+        };
+      },
+    },
+    topologySource: {
+      sourceId: 'topology-api',
+      async resolve({ service }) {
+        return {
+          sourceId: 'topology-api',
+          capturedAt: COLLECTED_AT,
+          catalogVersion: 'topology-acceptance-1',
+          rootService: service,
+          dependencies: [],
+        };
+      },
+    },
+  });
+}
+
+function createReplaySource() {
+  return new ReplayObservabilitySource({
+    collectedAt: COLLECTED_AT,
+    observations: {
+      availability: {
+        observedAt: '2026-07-31T07:59:30.000Z',
+        query: 'safe_availability_metric',
+        value: 0.999,
+      },
+      latency: {
+        observedAt: '2026-07-31T07:59:30.000Z',
+        query: 'safe_metric',
+        value: 184,
+      },
+      'error-rate': {
+        observedAt: '2026-07-31T07:59:30.000Z',
+        query: 'safe_error_rate_metric',
+        value: 0.002,
+      },
+    },
+    sourceId: 'replay-acceptance',
+  });
+}
 
 describe('connected inspection restart acceptance', () => {
   let acceptanceDir;
@@ -25,19 +85,10 @@ describe('connected inspection restart acceptance', () => {
   async function createApp(databasePath) {
     const db = new Database(databasePath);
     applyMigrations(db);
-    const source = new ReplayObservabilitySource({
-      collectedAt: COLLECTED_AT,
-      observations: {
-        latency: {
-          observedAt: '2026-07-31T07:59:30.000Z',
-          query: 'safe_metric',
-          value: 184,
-        },
-      },
-      sourceId: 'replay-acceptance',
-    });
+    const source = createReplaySource();
     const service = new InspectionService({
       now: () => new Date(COLLECTED_AT),
+      planningSources: createPlanningResolver(),
       sources: [
         {
           id: source.sourceId,
@@ -59,30 +110,29 @@ describe('connected inspection restart acceptance', () => {
     const databasePath = join(acceptanceDir, 'inspection.sqlite');
     let runtime = await createApp(databasePath);
 
-    const createdJobResponse = await runtime.app.inject({
+    const generatedResponse = await runtime.app.inject({
       method: 'POST',
-      url: '/api/observability/inspection-jobs',
+      url: '/api/observability/inspection-candidate-sets',
+      headers: USER_HEADER,
+      payload: {
+        changeRef: 'ticket/CHG-42',
+        intent: 'Restart-safe payments inspection',
+      },
+    });
+    assert.equal(generatedResponse.statusCode, 201);
+    const candidateSet = generatedResponse.json();
+    const materializedResponse = await runtime.app.inject({
+      method: 'POST',
+      url: `/api/observability/inspection-candidate-sets/${candidateSet.id}/materialize`,
       headers: USER_HEADER,
       payload: {
         name: 'Restart-safe payments inspection',
-        service: 'payments-router',
-        environment: 'acceptance',
-        connectorRef: 'replay-acceptance',
-        checks: [
-          {
-            id: 'latency',
-            name: 'p95 latency',
-            query: 'safe_metric',
-            operator: 'lte',
-            threshold: 250,
-            unit: 'ms',
-            maxAgeMs: 120_000,
-          },
-        ],
+        selectedCandidateIds: candidateSet.candidates.map((candidate) => candidate.id),
+        waivers: [],
       },
     });
-    assert.equal(createdJobResponse.statusCode, 201);
-    const createdJob = createdJobResponse.json();
+    assert.equal(materializedResponse.statusCode, 201);
+    const createdJob = materializedResponse.json();
     await runtime.app.close();
     runtime.db.close();
 
@@ -96,16 +146,12 @@ describe('connected inspection restart acceptance', () => {
     assert.equal(reopenedJobs.json()[0].id, createdJob.job.id);
 
     const caseResponses = await Promise.all(
-      ['CHG-42', 'CHG-43'].map((changeId) =>
+      [0, 1].map(() =>
         runtime.app.inject({
           method: 'POST',
           url: '/api/observability/inspection-cases',
           headers: USER_HEADER,
-          payload: {
-            jobId: createdJob.job.id,
-            changeId,
-            version: changeId === 'CHG-42' ? 'v3.18.0' : 'v3.18.1',
-          },
+          payload: { jobId: createdJob.job.id },
         }),
       ),
     );
@@ -134,11 +180,14 @@ describe('connected inspection restart acceptance', () => {
       assert.equal(response.statusCode, 201);
       const run = response.json();
       assert.equal(run.verdict, 'passed');
-      assert.equal(run.checkResults[0].value, 184);
+      assert.equal(run.checkResults.find((result) => result.checkId === 'latency').value, 184);
       return run;
     });
     assert.notEqual(runs[0].id, runs[1].id);
-    assert.notEqual(runs[0].checkResults[0].id, runs[1].checkResults[0].id);
+    assert.notEqual(
+      runs[0].checkResults.find((result) => result.checkId === 'latency').id,
+      runs[1].checkResults.find((result) => result.checkId === 'latency').id,
+    );
 
     let terminalRun = runs[0];
     for (const purpose of ['canary', 'post_change']) {
@@ -186,7 +235,7 @@ describe('connected inspection restart acceptance', () => {
     runtime.db.close();
   });
 
-  test('rejects dropping candidate coverage through the public revision route', async () => {
+  test('keeps public revision mutation unavailable after candidate materialization', async () => {
     acceptanceDir = mkdtempSync(join(tmpdir(), 'nova-inspection-origin-'));
     const runtime = await createApp(join(acceptanceDir, 'inspection.sqlite'));
     try {
@@ -195,12 +244,8 @@ describe('connected inspection restart acceptance', () => {
         url: '/api/observability/inspection-candidate-sets',
         headers: USER_HEADER,
         payload: {
+          changeRef: 'ticket/CHG-COVERAGE',
           intent: 'Inspect the payments route configuration change.',
-          service: 'payments-router',
-          environment: 'acceptance',
-          connectorRef: 'replay-acceptance',
-          changeId: 'CHG-COVERAGE',
-          version: 'v3.18.3',
         },
       });
       assert.equal(generatedResponse.statusCode, 201);
@@ -239,8 +284,7 @@ describe('connected inspection restart acceptance', () => {
         },
       });
 
-      assert.equal(revisedResponse.statusCode, 409);
-      assert.deepEqual(revisedResponse.json(), { error: 'Inspection state conflict' });
+      assert.equal(revisedResponse.statusCode, 404);
 
       const detailResponse = await runtime.app.inject({
         method: 'GET',
@@ -264,31 +308,36 @@ describe('connected inspection restart acceptance', () => {
     const initialStore = new SqliteInspectionStore(initialDb, {
       now: () => '2026-07-31T07:58:00.000Z',
     });
-    const created = initialStore.createJob({
+    const planningResolver = createPlanningResolver();
+    const resolved = await planningResolver.resolve({ changeRef: 'ticket/CHG-RESTART' });
+    const draft = generateInspectionCandidateDraft(resolved.changeContext, {
+      now: () => new Date(COLLECTED_AT),
+      topologySnapshot: resolved.topologySnapshot,
+    });
+    const candidateSet = initialStore.createCandidateSet({
       userId: 'acceptance-user',
-      name: 'Restart recovery inspection',
-      service: 'payments-router',
-      environment: 'acceptance',
-      connectorRef: 'replay-acceptance',
-      checks: [
+      ...draft,
+      planningSnapshot: resolved.planningSnapshot,
+    });
+    const initialService = new InspectionService({
+      store: initialStore,
+      planningSources: planningResolver,
+      sources: [
         {
-          id: 'latency',
-          name: 'p95 latency',
-          query: 'safe_metric',
-          operator: 'lte',
-          threshold: 250,
-          unit: 'ms',
-          maxAgeMs: 120_000,
+          id: 'replay-acceptance',
+          kind: 'replay',
+          label: 'Acceptance replay',
+          scope: 'acceptance',
+          source: createReplaySource(),
         },
       ],
-      createdBy: 'acceptance-user',
     });
-    const inspectionCase = initialStore.startCase({
-      userId: 'acceptance-user',
-      jobId: created.job.id,
-      changeId: 'CHG-RESTART',
-      version: 'v3.18.2',
+    const created = initialService.materializeCandidateSet('acceptance-user', candidateSet.id, {
+      name: 'Restart recovery inspection',
+      selectedCandidateIds: candidateSet.candidates.map((candidate) => candidate.id),
+      waivers: [],
     });
+    const inspectionCase = initialService.createCase('acceptance-user', { jobId: created.job.id });
     const interrupted = initialStore.startRun({
       userId: 'acceptance-user',
       caseId: inspectionCase.id,

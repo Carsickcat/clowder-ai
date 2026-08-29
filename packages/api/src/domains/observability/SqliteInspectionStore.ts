@@ -11,6 +11,7 @@ import type {
   InspectionDecisionRecord,
   InspectionJob,
   InspectionJobRevision,
+  InspectionPlanningSnapshot,
   InspectionReportIntelligence,
   InspectionReportSnapshot,
   InspectionRevisionOrigin,
@@ -106,6 +107,7 @@ export interface CreateInspectionCandidateSetInput {
   readonly userId: string;
   readonly changeContext: InspectionChangeContext;
   readonly topologySnapshot: InspectionTopologySnapshot;
+  readonly planningSnapshot?: InspectionPlanningSnapshot | null;
   readonly candidates: readonly InspectionCandidate[];
   readonly coverageOmissions: readonly InspectionCoverageOmission[];
   readonly generatedAt: string;
@@ -183,6 +185,7 @@ interface CandidateSetRow {
   change_id: string;
   version: string;
   topology_json: string;
+  planning_snapshot_json: string | null;
   candidates_json: string;
   omissions_json: string;
   generated_at: string;
@@ -297,6 +300,9 @@ function toCandidateSet(row: CandidateSetRow): InspectionCandidateSet {
       version: row.version,
     },
     topologySnapshot: JSON.parse(row.topology_json) as InspectionTopologySnapshot,
+    planningSnapshot: row.planning_snapshot_json
+      ? (JSON.parse(row.planning_snapshot_json) as InspectionPlanningSnapshot)
+      : null,
     candidates: JSON.parse(row.candidates_json) as InspectionCandidate[],
     coverageOmissions: JSON.parse(row.omissions_json) as InspectionCoverageOmission[],
     generatedAt: row.generated_at,
@@ -377,8 +383,8 @@ export class SqliteInspectionStore {
       .prepare(
         `INSERT INTO inspection_candidate_sets
          (id, user_id, intent, service, environment, connector_ref, change_id, version,
-          topology_json, candidates_json, omissions_json, generated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          topology_json, planning_snapshot_json, candidates_json, omissions_json, generated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -390,6 +396,7 @@ export class SqliteInspectionStore {
         input.changeContext.changeId,
         input.changeContext.version,
         JSON.stringify(input.topologySnapshot),
+        input.planningSnapshot ? JSON.stringify(input.planningSnapshot) : null,
         JSON.stringify(input.candidates),
         JSON.stringify(input.coverageOmissions),
         input.generatedAt,
@@ -648,6 +655,16 @@ export class SqliteInspectionStore {
   private requireMatchingIdempotentRun(row: RunRow, purpose: InspectionRunPurpose): InspectionRun {
     if (row.purpose !== purpose) throw new InspectionIdempotencyConflictError();
     return this.toRun(row);
+  }
+
+  getRunByIdempotencyKey(
+    userId: string,
+    caseId: string,
+    idempotencyKey: string,
+    purpose: InspectionRunPurpose,
+  ): InspectionRun | null {
+    const row = this.findRunByIdempotencyKey(userId, caseId, idempotencyKey);
+    return row ? this.requireMatchingIdempotentRun(row, purpose) : null;
   }
 
   private assertCaseCanStartRun(userId: string, caseId: string, purpose: InspectionRunPurpose): void {

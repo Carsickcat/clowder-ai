@@ -24,6 +24,7 @@ import {
 } from './InspectionAssessment.js';
 import { generateInspectionCandidateDraft } from './InspectionCandidateGenerator.js';
 import { evaluateInspection } from './InspectionEvaluator.js';
+import type { InspectionPlanningResolver } from './InspectionPlanningResolver.js';
 import type { ObservabilitySource } from './ports/ObservabilitySource.js';
 import { ObservabilitySourceError } from './ports/ObservabilitySource.js';
 import {
@@ -83,6 +84,7 @@ export interface RegisteredInspectionSource {
 export interface InspectionServiceOptions {
   readonly store: SqliteInspectionStore;
   readonly sources: readonly RegisteredInspectionSource[];
+  readonly planningSources?: InspectionPlanningResolver;
   readonly now?: () => Date;
 }
 
@@ -101,8 +103,26 @@ export interface ReviseInspectionJobCommand {
 
 export interface CreateInspectionCaseCommand {
   readonly jobId: string;
-  readonly changeId: string;
-  readonly version: string;
+}
+
+export interface InspectionPlanningDriftDifference {
+  readonly source: 'change' | 'topology' | 'catalog' | 'integrity';
+  readonly expectedHash: string;
+  readonly actualHash: string;
+}
+
+export class InspectionPlanningDriftError extends Error {
+  readonly code = 'INSPECTION_PLANNING_DRIFT';
+
+  constructor(readonly differences: readonly InspectionPlanningDriftDifference[]) {
+    super('Inspection planning facts changed after the revision was materialized');
+    this.name = 'InspectionPlanningDriftError';
+  }
+}
+
+export interface GenerateInspectionCandidateSetCommand {
+  readonly changeRef: string;
+  readonly intent?: string;
 }
 
 export interface MaterializeInspectionCandidateSetCommand {
@@ -142,11 +162,13 @@ export class InspectionService {
   private readonly store: SqliteInspectionStore;
   private readonly sources = new Map<string, RegisteredInspectionSource>();
   private readonly now: () => Date;
+  private readonly planningSources: InspectionPlanningResolver | null;
   private readonly inFlightRuns = new Map<string, Promise<InspectionRun>>();
 
   constructor(options: InspectionServiceOptions) {
     this.store = options.store;
     this.now = options.now ?? (() => new Date());
+    this.planningSources = options.planningSources ?? null;
     for (const registration of options.sources) {
       if (registration.id !== registration.source.sourceId) {
         throw new TypeError('Inspection source registration id must match sourceId');
@@ -174,13 +196,46 @@ export class InspectionService {
     return this.store.getCandidateSet(userId, candidateSetId);
   }
 
-  generateCandidateSet(userId: string, input: InspectionChangeContext): InspectionCandidateSet {
+  generateCandidateSet(userId: string, input: GenerateInspectionCandidateSetCommand): Promise<InspectionCandidateSet>;
+  generateCandidateSet(userId: string, input: InspectionChangeContext): InspectionCandidateSet;
+  generateCandidateSet(
+    userId: string,
+    input: InspectionChangeContext | GenerateInspectionCandidateSetCommand,
+  ): InspectionCandidateSet | Promise<InspectionCandidateSet> {
+    if ('changeRef' in input) {
+      return this.generateResolvedCandidateSet(userId, input);
+    }
     const source = this.requireSource(input.connectorRef);
     if (input.environment !== source.scope) {
       throw new InspectionSourceScopeMismatchError(input.connectorRef, source.scope);
     }
     const draft = generateInspectionCandidateDraft(input, { now: this.now });
     return this.store.createCandidateSet({ userId, ...draft });
+  }
+
+  private async generateResolvedCandidateSet(
+    userId: string,
+    input: GenerateInspectionCandidateSetCommand,
+  ): Promise<InspectionCandidateSet> {
+    if (!this.planningSources) throw new InspectionSourceUnavailableError('inspection-planning');
+    const resolved = await this.planningSources.resolve(input);
+    const source = this.requireSource(resolved.changeContext.connectorRef);
+    if (resolved.changeContext.environment !== source.scope) {
+      throw new InspectionSourceScopeMismatchError(resolved.changeContext.connectorRef, source.scope);
+    }
+    const draft = generateInspectionCandidateDraft(resolved.changeContext, {
+      now: this.now,
+      topologySnapshot: resolved.topologySnapshot,
+    });
+    this.assertChecksSupported(
+      source,
+      draft.candidates.map((candidate) => candidate.check),
+    );
+    return this.store.createCandidateSet({
+      userId,
+      ...draft,
+      planningSnapshot: resolved.planningSnapshot,
+    });
   }
 
   materializeCandidateSet(
@@ -230,6 +285,7 @@ export class InspectionService {
       createdBy: userId,
       origin: {
         candidateSetId,
+        ...(candidateSet.planningSnapshot ? { planningDigest: candidateSet.planningSnapshot.planningDigest } : {}),
         selectedCandidateIds: selectedIds,
         waivers: relevantWaivers,
       },
@@ -280,7 +336,27 @@ export class InspectionService {
   }
 
   createCase(userId: string, input: CreateInspectionCaseCommand): InspectionCase {
-    return this.store.startCase({ ...input, userId });
+    const detail = this.getJobDetail(userId, input.jobId);
+    if (!detail?.revision.origin) {
+      const legacy = input as CreateInspectionCaseCommand & { changeId?: unknown; version?: unknown };
+      if (typeof legacy.changeId !== 'string' || typeof legacy.version !== 'string') {
+        throw new InspectionNotFoundError('Inspection candidate origin');
+      }
+      return this.store.startCase({
+        userId,
+        jobId: input.jobId,
+        changeId: legacy.changeId,
+        version: legacy.version,
+      });
+    }
+    const candidateSet = this.store.getCandidateSet(userId, detail.revision.origin.candidateSetId);
+    if (!candidateSet) throw new InspectionNotFoundError('Inspection candidate set');
+    return this.store.startCase({
+      userId,
+      jobId: input.jobId,
+      changeId: candidateSet.changeContext.changeId,
+      version: candidateSet.changeContext.version,
+    });
   }
 
   getCase(userId: string, caseId: string): InspectionWorkspace | null {
@@ -320,12 +396,17 @@ export class InspectionService {
     idempotencyKey: string,
     input: StartInspectionRunCommand,
   ): Promise<InspectionRun | null> {
+    const existing = this.store.getRunByIdempotencyKey(userId, caseId, idempotencyKey, input.purpose);
+    if (existing) {
+      return this.inFlightRuns.get(existing.id) ?? existing;
+    }
     const workspace = this.getCase(userId, caseId);
     if (!workspace) return null;
     const registration = this.requireSource(workspace.job.connectorRef);
     if (workspace.job.environment !== registration.scope) {
       throw new InspectionSourceScopeMismatchError(workspace.job.connectorRef, registration.scope);
     }
+    await this.assertPlanningUnchanged(workspace);
     const run = this.store.startRun({
       userId,
       caseId,
@@ -344,6 +425,67 @@ export class InspectionService {
     } finally {
       this.inFlightRuns.delete(run.id);
     }
+  }
+
+  private async assertPlanningUnchanged(workspace: InspectionWorkspace): Promise<void> {
+    const originDigest = workspace.revision.origin?.planningDigest;
+    const expected = workspace.candidateSet?.planningSnapshot;
+    if (!originDigest || !expected) {
+      throw new InspectionPlanningDriftError([
+        {
+          source: 'integrity',
+          expectedHash: originDigest ?? 'missing:revision-planning-digest',
+          actualHash: expected?.planningDigest ?? 'missing:candidate-planning-snapshot',
+        },
+      ]);
+    }
+    if (originDigest !== expected.planningDigest) {
+      throw new InspectionPlanningDriftError([
+        {
+          source: 'integrity',
+          expectedHash: originDigest,
+          actualHash: expected.planningDigest,
+        },
+      ]);
+    }
+    if (!this.planningSources) throw new InspectionSourceUnavailableError('inspection-planning');
+
+    const current = await this.planningSources.resolve({
+      changeRef: expected.change.changeRef,
+      intent: expected.change.context.intent,
+    });
+    if (current.planningSnapshot.planningDigest === originDigest) return;
+
+    const differences: InspectionPlanningDriftDifference[] = [];
+    if (current.planningSnapshot.change.provenance.contentHash !== expected.change.provenance.contentHash) {
+      differences.push({
+        source: 'change',
+        expectedHash: expected.change.provenance.contentHash,
+        actualHash: current.planningSnapshot.change.provenance.contentHash,
+      });
+    }
+    if (current.planningSnapshot.topology.provenance.contentHash !== expected.topology.provenance.contentHash) {
+      differences.push({
+        source: 'topology',
+        expectedHash: expected.topology.provenance.contentHash,
+        actualHash: current.planningSnapshot.topology.provenance.contentHash,
+      });
+    }
+    if (current.planningSnapshot.catalog.hash !== expected.catalog.hash) {
+      differences.push({
+        source: 'catalog',
+        expectedHash: expected.catalog.hash,
+        actualHash: current.planningSnapshot.catalog.hash,
+      });
+    }
+    if (differences.length === 0) {
+      differences.push({
+        source: 'integrity',
+        expectedHash: originDigest,
+        actualHash: current.planningSnapshot.planningDigest,
+      });
+    }
+    throw new InspectionPlanningDriftError(differences);
   }
 
   recordDecision(

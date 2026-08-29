@@ -48,6 +48,33 @@ export interface InspectionTopologySnapshot {
   readonly dependencies: readonly InspectionTopologyDependency[];
 }
 
+export interface InspectionPlanningSourceProvenance {
+  readonly sourceId: string;
+  readonly capturedAt: string;
+  readonly contentHash: string;
+}
+
+export interface InspectionChangePlanningSnapshot {
+  readonly changeRef: string;
+  readonly context: InspectionChangeContext;
+  readonly provenance: InspectionPlanningSourceProvenance;
+}
+
+export interface InspectionTopologyPlanningSnapshot {
+  readonly snapshot: InspectionTopologySnapshot;
+  readonly provenance: InspectionPlanningSourceProvenance;
+}
+
+export interface InspectionPlanningSnapshot {
+  readonly change: InspectionChangePlanningSnapshot;
+  readonly topology: InspectionTopologyPlanningSnapshot;
+  readonly catalog: {
+    readonly version: string;
+    readonly hash: string;
+  };
+  readonly planningDigest: string;
+}
+
 export interface InspectionCheckDefinition {
   readonly id: string;
   readonly name: string;
@@ -83,6 +110,8 @@ export interface InspectionCandidateSet {
   readonly userId: string;
   readonly changeContext: InspectionChangeContext;
   readonly topologySnapshot: InspectionTopologySnapshot;
+  /** Null only for candidate sets sealed before the real-planning migration. */
+  readonly planningSnapshot: InspectionPlanningSnapshot | null;
   readonly candidates: readonly InspectionCandidate[];
   readonly coverageOmissions: readonly InspectionCoverageOmission[];
   readonly generatedAt: string;
@@ -95,6 +124,8 @@ export interface InspectionWaiver {
 
 export interface InspectionRevisionOrigin {
   readonly candidateSetId: string;
+  /** Absent only for revisions materialized before the real-planning migration. */
+  readonly planningDigest?: string;
   readonly selectedCandidateIds: readonly string[];
   readonly waivers: readonly InspectionWaiver[];
 }

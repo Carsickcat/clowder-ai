@@ -208,7 +208,7 @@ export const ENV_VARS: EnvDefinition[] = [
   },
   {
     name: 'NOVA_INSPECTION_PROMETHEUS_URL',
-    defaultValue: '(未设置 → 仅注册本地 acceptance replay source)',
+    defaultValue: '(未设置 → 不注册巡检指标源)',
     description: 'NOVA connected 巡检只读 Prometheus endpoint（仅 development / acceptance / staging）',
     category: 'server',
     sensitive: false,

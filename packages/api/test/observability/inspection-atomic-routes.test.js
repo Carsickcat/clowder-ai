@@ -24,9 +24,9 @@ describe('inspection atomic capability routes', () => {
         calls.push(['getCandidateSet', userId, candidateSetId]);
         return candidateSetId === 'candidates-1' ? { id: candidateSetId } : null;
       },
-      generateCandidateSet(userId, input) {
+      async generateCandidateSet(userId, input) {
         calls.push(['generateCandidateSet', userId, input]);
-        return { id: 'candidates-1', userId, changeContext: input };
+        return { id: 'candidates-1', userId, changeRef: input.changeRef };
       },
       materializeCandidateSet(userId, candidateSetId, input) {
         calls.push(['materializeCandidateSet', userId, candidateSetId, input]);
@@ -41,19 +41,15 @@ describe('inspection atomic capability routes', () => {
   afterEach(async () => app.close());
 
   test('generates, lists, reopens and materializes candidate sets through bounded commands', async () => {
-    const context = {
+    const request = {
       intent: 'inspect the payments route change',
-      service: 'payments-router',
-      environment: 'acceptance',
-      connectorRef: 'replay-acceptance',
-      changeId: 'CHG-23841',
-      version: 'v3.18.0',
+      changeRef: 'CHG-23841',
     };
     const generated = await app.inject({
       method: 'POST',
       url: '/api/observability/inspection-candidate-sets',
       headers: USER_HEADER,
-      payload: context,
+      payload: request,
     });
     assert.equal(generated.statusCode, 201);
 
@@ -83,7 +79,7 @@ describe('inspection atomic capability routes', () => {
     });
     assert.equal(materialized.statusCode, 201);
     assert.deepEqual(calls, [
-      ['generateCandidateSet', 'user-a', context],
+      ['generateCandidateSet', 'user-a', request],
       ['listCandidateSets', 'user-a'],
       ['getCandidateSet', 'user-a', 'candidates-1'],
       [
@@ -99,22 +95,25 @@ describe('inspection atomic capability routes', () => {
     ]);
   });
 
-  test('rejects browser-authored evidence fields from candidate generation', async () => {
+  test('rejects every browser-authored authority field from candidate generation', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/observability/inspection-candidate-sets',
       headers: USER_HEADER,
       payload: {
+        changeRef: 'CHG-23841',
         intent: 'inspect payments',
         service: 'payments-router',
         environment: 'acceptance',
         connectorRef: 'replay-acceptance',
         changeId: 'CHG-23841',
         version: 'v3.18.0',
+        topologySnapshot: { dependencies: [] },
         observations: [{ value: 1, verdict: 'passed' }],
       },
     });
 
     assert.equal(response.statusCode, 400);
+    assert.equal(calls.length, 0);
   });
 });
