@@ -45,11 +45,11 @@ created: 2026-08-30
 
 ## User Journey
 
-1. 用户在 Copilot 输入变更单号、服务或自然语言意图。
-2. 服务端通过 `ChangeSource` 解析权威变更事实，通过 `TopologySource` 补齐依赖和信号覆盖；每个事实携带来源、采集时间和摘要。
+1. 用户在 Copilot 输入变更引用和可选的自然语言意图；公开 API 不接受浏览器提交的 service、environment、connector、version 等权威字段。
+2. 服务端通过 `ChangeSource` 从变更引用解析权威变更事实，通过 `TopologySource` 补齐依赖和信号覆盖；每个事实携带来源、采集时间和摘要。
 3. 确定性规则目录生成正式检查，AI 只能提出候选建议。用户对高风险候选必须表态，对一般候选可选处理。
-4. 用户确认后，CandidateSet materialize 为 NOVA Job/Revision；同一 revision 是后续直跑与历史的不可变定义。
-5. 执行前重新解析变更与拓扑摘要；出现漂移则阻断并要求重新确认。
+4. 用户确认后，CandidateSet materialize 为 NOVA Job/Revision；Case 的 change/version 从 revision 锚定的 CandidateSet 派生，不再接受浏览器重复提交。
+5. 创建新 Run 前重新解析变更与拓扑摘要；出现漂移则返回 typed 409 和差异摘要，且不创建 Run。相同 idempotency key 已存在时先返回既有 Run，不重复访问来源或创建记录。
 6. `InspectionService` 使用注册的真实 `ObservabilitySource` 只读取证，规则引擎计算 Pass / Fail / Inconclusive。
 7. 当前报告、历史快照、复制摘要和导出 HTML 都投影同一个 immutable Report，AI 解读只引用锁定证据。
 8. 任何来源不可用都显示明确 unavailable/inconclusive，不展示伪造的 demo 数值。
@@ -62,26 +62,30 @@ Copilot Web
     ▼
 InspectionService ── SqliteInspectionStore (authoritative, TTL=0)
     │
-    ├── ChangeSource       (new: change facts + provenance)
-    ├── TopologySource     (new: dependencies + coverage)
+    ├── InspectionPlanningSources (narrow resolver, bootstrap-owned)
+    │      ├── ChangeSource   (new: change facts + provenance)
+    │      └── TopologySource (new: dependencies + coverage)
     └── ObservabilitySource (existing: Prometheus/replay adapters)
                          │
                          └── deterministic evaluator → immutable Run/Report
 ```
 
-`PlaybookStore` 是产品概念，不是新的 persistence port：它映射到现有 Job/Revision lineage。MetricSource 同样不另建平行接口，而是扩展并正确组合现有 `ObservabilitySource`。
+`PlaybookStore` 是产品概念，不是新的 persistence port：它映射到现有 Job/Revision lineage。MetricSource 同样不另建平行接口，而是扩展并正确组合现有 `ObservabilitySource`。规划来源不并入 metrics registry；bootstrap 只组合一个窄的 `InspectionPlanningSources` resolver。
+
+CandidateSet 扩展为不可变 `planningSnapshot`：包含 change/topology 两源 provenance、capturedAt、内容哈希、catalog version/hash 和总 `planningDigest`。Revision origin 保存同一 `planningDigest` 作为完整性锚点，不新增 PlanningSnapshot 表。
 
 ## Requirements Checklist
 
 | Area | Requirement | Verification |
 |------|-------------|--------------|
 | Identity | 所有读取和写入继续按 `userId` 隔离 | API/store adversarial tests |
+| Authority | 公开规划入口只接受 change reference + 非权威 intent；Case 不接受 change/version；浏览器不能直建/改 Job checks | route schema adversarial tests |
 | Persistence | Job/Revision/Case/Run/Decision/Report TTL=0，重启后可恢复 | restart persistence test |
 | Provenance | 变更、拓扑、指标均记录 source ID、采集时间、摘要/哈希 | contract + API tests |
 | Freshness | 超龄事实或指标不得判为通过 | evaluator and journey tests |
 | Fail closed | 未配置/超时/401/畸形响应不回退 replay 或 mock | startup and adapter tests |
 | Immutability | 已 materialize revision 与已完成 run/report 不可改写 | store conflict tests |
-| Drift | 直跑前 change/topology digest 漂移必须阻断 | end-to-end journey test |
+| Drift | 创建新 Run 前 change/topology digest 漂移必须阻断且不留下 Run | store count + end-to-end journey test |
 | LLM boundary | LLM 不产生门禁结果，不创造无证据事实 | projection tests |
 | UX continuity | 首访、复访、候选裁决、历史、报告 V2 与已验收 UX 同构 | browser acceptance |
 | Responsive | 390px 无横溢，真实长名称和缺失态可读 | browser assertions |
@@ -90,9 +94,9 @@ InspectionService ── SqliteInspectionStore (authoritative, TTL=0)
 
 - [ ] AC-1: `ChangeSource` / `TopologySource` 契约与错误分类完成，所有事实含 provenance 和 freshness。
 - [ ] AC-2: Prometheus 通过显式生产配置注册；配置缺失时 source 不注册且 API 明确返回 unavailable，不回退 replay。
-- [ ] AC-3: CandidateSet 由服务端解析的真实变更与拓扑生成，前端不能伪造权威事实。
-- [ ] AC-4: CandidateSet materialize 后，Job/Revision/Case/Run/Decision/Report 继续使用现有服务端持久化与不可变约束。
-- [ ] AC-5: 保存任务直跑前校验 change/topology digest；漂移时阻断执行并展示差异。
+- [ ] AC-3: CandidateSet 公开创建接口只接受 change reference 与可选 intent；service/environment/connector/version/topology 均由服务端来源解析，浏览器提交这些字段会被拒绝；公开直建/修改 Job checks 的旁路被移除。
+- [ ] AC-4: CandidateSet materialize 后，Job/Revision/Case/Run/Decision/Report 继续使用现有服务端持久化与不可变约束；Case 的 change/version 必须从 revision origin 派生。
+- [ ] AC-5: 保存任务直跑在创建新 Run 前校验 change/topology digest；漂移时返回 typed 409 + 差异摘要且 Run 数量不变，同 idempotency key 已有 Run 时原样返回。
 - [ ] AC-6: 一个配置的真实服务可完成端到端巡检，指标判定来自真实 ObservabilitySource。
 - [ ] AC-7: Copilot Web 使用现有 NOVA API，页面、历史、分享与导出引用同一权威报告。
 - [ ] AC-8: 数据源 unavailable / timeout / unauthorized / stale / malformed 的路径均 fail closed 且有可操作空态。
@@ -131,6 +135,9 @@ InspectionService ── SqliteInspectionStore (authoritative, TTL=0)
 | 3 | 复用 `ObservabilitySource` 作为 MetricSource | Prometheus adapter 已存在且有安全边界，无需平行抽象 | 2026-08-30 |
 | 4 | 生产源不配置则不注册 | unavailable 必须可见；mock fallback 会伪造安全感 | 2026-08-30 |
 | 5 | 分配 F257 | 共享项目记忆中 F152-F256 已被并行主线占用，避免未来合流碰撞 | 2026-08-30 |
+| 6 | CandidateSet 内嵌 immutable planningSnapshot，不新增表 | 它已是 planning→revision 的自然持久化坐标，revision origin 可用 digest 锚定完整性 | 2026-08-30 |
+| 7 | 规划来源使用窄 resolver，不并入 metrics registry | change/topology 解析与指标采集的生命周期、错误语义不同 | 2026-08-30 |
+| 8 | legacy operations 表面只读且 role-gated | 保留诊断价值，但彻底关闭绕过规划和 drift guard 的第二写路径 | 2026-08-30 |
 
 ## Review Gate
 

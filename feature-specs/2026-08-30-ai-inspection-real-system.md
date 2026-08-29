@@ -23,8 +23,8 @@ created: 2026-08-30
 
 | Object | Current owner | v1 change |
 |--------|---------------|-----------|
-| CandidateSet | `SqliteInspectionStore` | add authoritative change/topology provenance and digests |
-| Job/Revision | `SqliteInspectionStore` | no new store; retain immutable lineage |
+| CandidateSet | `SqliteInspectionStore` | add immutable `planningSnapshot` with two-source provenance, hashes and total `planningDigest` |
+| Job/Revision | `SqliteInspectionStore` | no new store; retain immutable lineage and anchor `planningDigest` in revision origin |
 | Case/Run/Decision/Report | `SqliteInspectionStore` | retain; add pre-run drift evidence |
 | Metric observation | `ObservabilitySource` snapshot | compose real configured source |
 | Change fact | currently request body | resolve through `ChangeSource`, persist normalized snapshot |
@@ -33,12 +33,14 @@ created: 2026-08-30
 
 ## Invariants
 
-1. The browser never supplies authoritative change/topology facts.
-2. A saved task never executes against silently drifted change/topology inputs.
-3. Source failures never produce Pass and never activate replay implicitly.
-4. A completed Run/Report is immutable and remains readable after restart.
-5. AI copy may summarize locked evidence but cannot determine verdicts or invent facts.
-6. Page, history, copy summary and export project the same report snapshot.
+1. The public planning endpoint accepts only a change reference plus optional non-authoritative intent; the browser never supplies service/environment/connector/version/topology facts and cannot directly create or revise Job checks.
+2. Case change/version are derived from the materialized revision's CandidateSet, never repeated by the browser.
+3. A saved task never creates a new Run against silently drifted change/topology inputs.
+4. An existing Run for the same idempotency key is returned before drift re-resolution.
+5. Source failures never produce Pass and never activate replay implicitly.
+6. A completed Run/Report is immutable and remains readable after restart.
+7. AI copy may summarize locked evidence but cannot determine verdicts or invent facts.
+8. Page, history, copy summary and export project the same report snapshot.
 
 ## Phase 0 — Architecture and contracts
 
@@ -47,12 +49,14 @@ created: 2026-08-30
 - `ChangeSource` rejects malformed/oversized/redirected/unauthorized responses with bounded error codes.
 - `TopologySource` returns explicit missing/partial/stale states with provenance.
 - startup config does not register a half-configured source and never substitutes replay.
-- candidate generation cannot accept client-authored authoritative facts on the real endpoint.
+- candidate generation rejects `service`, `environment`, `connectorRef`, `changeId`, `version` and topology fields supplied by a client; only `changeRef` and optional `intent` are public inputs.
+- case creation rejects client-authored `changeId` and `version`; both derive from revision origin.
+- public direct Job creation/revision mutations are unavailable; materialization is the only path from an adjudicated CandidateSet to Job/Revision.
 
 ### Implementation
 
 - Add `ports/ChangeSource.ts` and `ports/TopologySource.ts` with normalized snapshots, provenance, freshness and typed errors.
-- Add configuration/registry composition separate from adapter logic.
+- Add a bootstrap-owned `InspectionPlanningSources` resolver over exactly one `ChangeSource` and one `TopologySource`; do not merge it into the metric source registry.
 - Keep `ObservabilitySource`; extend source metadata/health only where the real UI needs it.
 - Add an inspection ownership cell when the ownership-map infrastructure reaches this branch; until then, keep the boundary explicit in this plan and module paths.
 
@@ -83,16 +87,22 @@ Internal ports, registry and failure semantics can be completed now. Provider ad
 
 ### Red tests
 
-- real candidate generation resolves change/topology server-side and persists their digests.
+- real candidate generation resolves change/topology server-side from `changeRef` and persists immutable provenance and digests.
+- client-authored service/environment/connector/version/topology fields are rejected by strict route schemas.
+- case creation derives change/version from the selected Job/Revision origin and rejects duplicate client values.
+- direct Job create/revise routes cannot bypass CandidateSet materialization.
 - required coverage omissions block or require explicit waiver.
-- direct-run succeeds with unchanged digests and blocks with a typed drift conflict when facts change.
+- direct-run succeeds with unchanged digests and blocks with a typed drift conflict when facts change; the Run count remains unchanged.
+- retrying an already-created Run with the same idempotency key returns that Run before source re-resolution.
 - identity A cannot resolve, materialize or run identity B's objects.
 
 ### Implementation
 
 - Introduce an async planning service around `InspectionCandidateGenerator`; generator remains deterministic over normalized inputs.
-- Extend CandidateSet provenance with change/topology snapshots and catalog version.
-- Re-resolve lightweight digests before run; return a comparison payload on drift.
+- Extend CandidateSet with immutable `planningSnapshot`: change/topology provenance, capturedAt, content hashes, catalog version/hash and total `planningDigest`.
+- Store the same `planningDigest` in revision origin as an integrity anchor; do not add a PlanningSnapshot table.
+- Derive Case change/version from that revision origin.
+- In `startRun`, first return a same-key existing Run; otherwise re-resolve lightweight digests before calling `store.startRun()`. Return a typed 409 comparison payload on drift without creating a Run.
 - Preserve existing Job/Revision store and materialization contract.
 
 ## Phase 3 — Copilot Web projection
@@ -111,6 +121,7 @@ Internal ports, registry and failure semantics can be completed now. Provider ad
 - Reuse existing API functions and add only the planning/drift endpoints required by server truth.
 - Treat browser storage as optional presentation preference only.
 - Preserve Report V2 evidence discipline and readonly historical snapshots.
+- Retain the legacy operations surface only as a role-gated readonly admin/debug projection; remove its mutation paths.
 
 ## Phase 4 — One-service real acceptance
 
