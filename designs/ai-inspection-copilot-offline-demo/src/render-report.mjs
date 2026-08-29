@@ -99,16 +99,17 @@ function renderInterpretation(report) {
     <header class="report-section-heading"><div><h3 id="interpretation-title">AI 解读</h3><p>只解释已锁定证据</p></div></header>
     <div class="interpretation-list">${projectInterpretation(report)
       .map(
-        (section) => `<article><span>${escapeHtml(section.label)}</span><p>${escapeHtml(section.text)}</p><footer>${
-          section.evidenceIds.length
-            ? section.evidenceIds
-                .map(
-                  (id) =>
-                    `<button type="button" data-evidence-target="${escapeHtml(id)}">证据 ${evidenceOrder.get(id) ?? '·'}</button>`,
-                )
-                .join('')
-            : '<small>证据不足</small>'
-        }</footer></article>`,
+        (section) =>
+          `<article><span>${escapeHtml(section.label)}</span><p>${escapeHtml(section.text)}</p><footer>${
+            section.evidenceIds.length
+              ? section.evidenceIds
+                  .map(
+                    (id) =>
+                      `<button type="button" data-evidence-target="${escapeHtml(id)}">证据 ${evidenceOrder.get(id) ?? '·'}</button>`,
+                  )
+                  .join('')
+              : '<small>证据不足</small>'
+          }</footer></article>`,
       )
       .join('')}</div>
   </section>`;

@@ -48,7 +48,7 @@ export function projectReportEvidence(report) {
       kind: 'qualitative',
       displayValue: text,
       gateDisplayValue: '原报告未保存结构化门禁',
-      status: index === 0 ? report?.evidenceVerdict ?? 'NotEvaluated' : 'Verified',
+      status: index === 0 ? (report?.evidenceVerdict ?? 'NotEvaluated') : 'Verified',
       ratioPercent: null,
       order: index,
     }));
@@ -65,8 +65,7 @@ export function projectReportEvidence(report) {
       })),
     )
     .sort(
-      (left, right) =>
-        (STATUS_RANK[left.status] ?? 3) - (STATUS_RANK[right.status] ?? 3) || left.order - right.order,
+      (left, right) => (STATUS_RANK[left.status] ?? 3) - (STATUS_RANK[right.status] ?? 3) || left.order - right.order,
     );
 }
 

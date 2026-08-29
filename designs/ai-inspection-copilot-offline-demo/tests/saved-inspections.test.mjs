@@ -218,7 +218,10 @@ test('run materialization cannot report a rejected candidate as an executed viol
     run.report.checkResults.map((result) => result.checkId),
     lockedTask.inspectionPlan.checkIds,
   );
-  assert.equal(run.report.checkResults.some((result) => result.checkId === 'candidate-db-wait'), false);
+  assert.equal(
+    run.report.checkResults.some((result) => result.checkId === 'candidate-db-wait'),
+    false,
+  );
   assert.equal(run.report.evidenceVerdict, 'Inconclusive');
   assert.equal(run.report.action, 'Proceed-with-conditions');
   assert.equal(run.report.rcAgent, null);
@@ -247,10 +250,7 @@ test('run materialization removes AI claims whose evidence was deselected from t
   assert.doesNotMatch(run.report.interpretation.recommendedAction.text, /核心业务成功率/);
   assert.doesNotMatch(run.report.summary, /核心业务结果/);
   assert.doesNotMatch(run.report.title, /声明范围内/);
-  assert.equal(
-    run.report.interpretation.whatHappened.evidenceIds.includes('fulfillment-service-success-rate'),
-    false,
-  );
+  assert.equal(run.report.interpretation.whatHappened.evidenceIds.includes('fulfillment-service-success-rate'), false);
   assert.match(run.report.interpretation.whatHappened.text, /p95|downstream|cache/);
 });
 

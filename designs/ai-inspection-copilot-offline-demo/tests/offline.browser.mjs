@@ -166,7 +166,10 @@ async function main() {
       /核心业务成功率/,
       'AI interpretation cannot retain a claim whose evidence was deselected',
     );
-    assert.match(await session.evaluate('document.querySelector(".report-summary").innerText'), /锁定计划内的 3 项检查/);
+    assert.match(
+      await session.evaluate('document.querySelector(".report-summary").innerText'),
+      /锁定计划内的 3 项检查/,
+    );
     assert.doesNotMatch(await session.evaluate('document.querySelector(".report-summary").innerText'), /核心业务结果/);
     assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=report-check-result]").length'), 3);
     assert.equal(
@@ -255,7 +258,9 @@ async function main() {
       1,
     );
     assert.equal(
-      await session.evaluate('document.querySelectorAll(".saved-history-entry[open] [data-testid=report-checks]").length'),
+      await session.evaluate(
+        'document.querySelectorAll(".saved-history-entry[open] [data-testid=report-checks]").length',
+      ),
       1,
     );
     assert.equal(

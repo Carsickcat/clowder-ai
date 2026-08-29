@@ -414,10 +414,35 @@ function interpretationForResults(report, checkResults) {
   };
 }
 
+function materializedDecision(report, counts, removedConclusiveResult) {
+  if (counts.violated > 0) return {};
+  if (counts.unresolved > 0) {
+    return {
+      evidenceVerdict: 'Inconclusive',
+      action: 'Proceed-with-conditions',
+      actionLabel: '建议保持当前进度并继续观察',
+      title: '部分检查证据不足',
+      summary: `已执行检查未发现违例，但有 ${counts.unresolved} 项证据不足。`,
+      rcAgent: null,
+    };
+  }
+  const retainOriginalCopy = report.evidenceVerdict === 'Verified' && !removedConclusiveResult;
+  return {
+    evidenceVerdict: 'Verified',
+    action: 'Proceed',
+    actionLabel: retainOriginalCopy ? report.actionLabel : '建议按当前检查计划继续',
+    title: retainOriginalCopy ? report.title : '已执行检查未发现关键违例',
+    summary: retainOriginalCopy ? report.summary : `锁定计划内的 ${counts.verified} 项检查均通过确定性验证。`,
+    rcAgent: null,
+  };
+}
+
 function materializeReportForPlan(report, inspectionPlan) {
   if (!Array.isArray(report?.checkResults) || !report.interpretation) return clone(report);
   const resultByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
-  const checkResults = inspectionPlan.checks.map((check) => clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)));
+  const checkResults = inspectionPlan.checks.map((check) =>
+    clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)),
+  );
   const counts = reportCounts(checkResults);
   const orderedEvidence = [...checkResults].sort(
     (left, right) =>
@@ -428,39 +453,10 @@ function materializeReportForPlan(report, inspectionPlan) {
   const removedConclusiveResult = report.checkResults.some(
     (result) => !planCheckIds.has(result.checkId) && ['Verified', 'Violated'].includes(result.status),
   );
-  const hasViolation = counts.violated > 0;
   const hasUnresolved = counts.unresolved > 0;
-  const decision = hasViolation
-    ? {}
-    : hasUnresolved
-      ? {
-          evidenceVerdict: 'Inconclusive',
-          action: 'Proceed-with-conditions',
-          actionLabel: '建议保持当前进度并继续观察',
-          title: '部分检查证据不足',
-          summary: `已执行检查未发现违例，但有 ${counts.unresolved} 项证据不足。`,
-          rcAgent: null,
-        }
-      : {
-          evidenceVerdict: 'Verified',
-          action: 'Proceed',
-          actionLabel:
-            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
-              ? report.actionLabel
-              : '建议按当前检查计划继续',
-          title:
-            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
-              ? report.title
-              : '已执行检查未发现关键违例',
-          summary:
-            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
-              ? report.summary
-              : `锁定计划内的 ${counts.verified} 项检查均通过确定性验证。`,
-          rcAgent: null,
-        };
   const materialized = {
     ...clone(report),
-    ...decision,
+    ...materializedDecision(report, counts, removedConclusiveResult),
     evidenceCounts: counts,
     keyEvidence: orderedEvidence.slice(0, 3).map((result) => result.summary),
     residualRisks: hasUnresolved

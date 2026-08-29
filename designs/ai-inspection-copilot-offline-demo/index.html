@@ -4523,10 +4523,35 @@ function interpretationForResults(report, checkResults) {
   };
 }
 
+function materializedDecision(report, counts, removedConclusiveResult) {
+  if (counts.violated > 0) return {};
+  if (counts.unresolved > 0) {
+    return {
+      evidenceVerdict: 'Inconclusive',
+      action: 'Proceed-with-conditions',
+      actionLabel: '建议保持当前进度并继续观察',
+      title: '部分检查证据不足',
+      summary: `已执行检查未发现违例，但有 ${counts.unresolved} 项证据不足。`,
+      rcAgent: null,
+    };
+  }
+  const retainOriginalCopy = report.evidenceVerdict === 'Verified' && !removedConclusiveResult;
+  return {
+    evidenceVerdict: 'Verified',
+    action: 'Proceed',
+    actionLabel: retainOriginalCopy ? report.actionLabel : '建议按当前检查计划继续',
+    title: retainOriginalCopy ? report.title : '已执行检查未发现关键违例',
+    summary: retainOriginalCopy ? report.summary : `锁定计划内的 ${counts.verified} 项检查均通过确定性验证。`,
+    rcAgent: null,
+  };
+}
+
 function materializeReportForPlan(report, inspectionPlan) {
   if (!Array.isArray(report?.checkResults) || !report.interpretation) return clone(report);
   const resultByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
-  const checkResults = inspectionPlan.checks.map((check) => clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)));
+  const checkResults = inspectionPlan.checks.map((check) =>
+    clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)),
+  );
   const counts = reportCounts(checkResults);
   const orderedEvidence = [...checkResults].sort(
     (left, right) =>
@@ -4537,39 +4562,10 @@ function materializeReportForPlan(report, inspectionPlan) {
   const removedConclusiveResult = report.checkResults.some(
     (result) => !planCheckIds.has(result.checkId) && ['Verified', 'Violated'].includes(result.status),
   );
-  const hasViolation = counts.violated > 0;
   const hasUnresolved = counts.unresolved > 0;
-  const decision = hasViolation
-    ? {}
-    : hasUnresolved
-      ? {
-          evidenceVerdict: 'Inconclusive',
-          action: 'Proceed-with-conditions',
-          actionLabel: '建议保持当前进度并继续观察',
-          title: '部分检查证据不足',
-          summary: `已执行检查未发现违例，但有 ${counts.unresolved} 项证据不足。`,
-          rcAgent: null,
-        }
-      : {
-          evidenceVerdict: 'Verified',
-          action: 'Proceed',
-          actionLabel:
-            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
-              ? report.actionLabel
-              : '建议按当前检查计划继续',
-          title:
-            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
-              ? report.title
-              : '已执行检查未发现关键违例',
-          summary:
-            report.evidenceVerdict === 'Verified' && !removedConclusiveResult
-              ? report.summary
-              : `锁定计划内的 ${counts.verified} 项检查均通过确定性验证。`,
-          rcAgent: null,
-        };
   const materialized = {
     ...clone(report),
-    ...decision,
+    ...materializedDecision(report, counts, removedConclusiveResult),
     evidenceCounts: counts,
     keyEvidence: orderedEvidence.slice(0, 3).map((result) => result.summary),
     residualRisks: hasUnresolved
@@ -5570,7 +5566,7 @@ function projectReportEvidence(report) {
       kind: 'qualitative',
       displayValue: text,
       gateDisplayValue: '原报告未保存结构化门禁',
-      status: index === 0 ? report?.evidenceVerdict ?? 'NotEvaluated' : 'Verified',
+      status: index === 0 ? (report?.evidenceVerdict ?? 'NotEvaluated') : 'Verified',
       ratioPercent: null,
       order: index,
     }));
@@ -5587,8 +5583,7 @@ function projectReportEvidence(report) {
       })),
     )
     .sort(
-      (left, right) =>
-        (STATUS_RANK[left.status] ?? 3) - (STATUS_RANK[right.status] ?? 3) || left.order - right.order,
+      (left, right) => (STATUS_RANK[left.status] ?? 3) - (STATUS_RANK[right.status] ?? 3) || left.order - right.order,
     );
 }
 
@@ -6312,16 +6307,17 @@ function renderInterpretation(report) {
     <header class="report-section-heading"><div><h3 id="interpretation-title">AI 解读</h3><p>只解释已锁定证据</p></div></header>
     <div class="interpretation-list">${projectInterpretation(report)
       .map(
-        (section) => `<article><span>${escapeHtml(section.label)}</span><p>${escapeHtml(section.text)}</p><footer>${
-          section.evidenceIds.length
-            ? section.evidenceIds
-                .map(
-                  (id) =>
-                    `<button type="button" data-evidence-target="${escapeHtml(id)}">证据 ${evidenceOrder.get(id) ?? '·'}</button>`,
-                )
-                .join('')
-            : '<small>证据不足</small>'
-        }</footer></article>`,
+        (section) =>
+          `<article><span>${escapeHtml(section.label)}</span><p>${escapeHtml(section.text)}</p><footer>${
+            section.evidenceIds.length
+              ? section.evidenceIds
+                  .map(
+                    (id) =>
+                      `<button type="button" data-evidence-target="${escapeHtml(id)}">证据 ${evidenceOrder.get(id) ?? '·'}</button>`,
+                  )
+                  .join('')
+              : '<small>证据不足</small>'
+          }</footer></article>`,
       )
       .join('')}</div>
   </section>`;

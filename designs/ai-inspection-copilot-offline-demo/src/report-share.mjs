@@ -1,4 +1,3 @@
-import { escapeHtml } from './view-utils.mjs';
 import {
   formatReportMetadata,
   projectInterpretation,
@@ -6,6 +5,7 @@ import {
   projectReportEvidence,
   REPORT_STATUS_COPY,
 } from './report-model.mjs';
+import { escapeHtml } from './view-utils.mjs';
 
 function requireShareableRun(run) {
   if (!run?.report || !run.completedAt) throw new TypeError('A completed inspection run is required');
