@@ -909,9 +909,9 @@
     {
       "id": "F257",
       "name": "AI Inspection Real System — AI 巡检真实系统",
-      "status": "spec | **Owner**: Ragdoll + Siamese | **Priority**: P0",
+      "status": "in-progress | **Owner**: Ragdoll + Siamese | **Priority**: P0",
       "file": "F257-ai-inspection-real-system.md"
     }
   ],
-  "generated_at": "2026-08-29T18:09:28.801Z"
+  "generated_at": "2026-08-29T19:07:09.235Z"
 }

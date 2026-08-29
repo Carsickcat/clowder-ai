@@ -11,6 +11,13 @@ created: 2026-08-30
 
 把已验收的 Copilot UX 连接到现有 NOVA Inspection 控制面和真实只读数据源。最终系统只有一份运行时状态：`InspectionWorkspace` 及其持久化对象；demo fixtures 只保留为测试输入。
 
+## Current Implementation State
+
+- Backend authority slice is pushed at `feat/ai-inspection-real@44bac1e`: normalized planning ports, immutable CandidateSet snapshot/digest, strict public schemas, revision lineage, pre-run drift guard and explicit metric-source composition are implemented and covered.
+- Connected Web slice is pushed at `feat/ai-inspection-real@eb6c845`: the browser submits only `changeRef` plus optional intent, has no direct Job/Revision/Case fact mutation surface, and renders bounded drift conflicts as a replan action.
+- Full Web tests and repository `pnpm gate` are green. Production build served the feature route at isolated API/Web ports `3192`/`5192`; interactive Browser acceptance remains open because the current Hub session exposed no controllable browser instance.
+- Provider-specific adapters and one-service real acceptance remain blocked on the operator-owned non-production endpoint, authentication, payload samples and safe test identifiers listed under **Open Inputs Needed**.
+
 ## Existing Truth to Preserve
 
 - `InspectionService` owns CandidateSet → Job/Revision → Case → Run/Decision/Report lifecycle.

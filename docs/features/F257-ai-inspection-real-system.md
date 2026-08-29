@@ -3,13 +3,13 @@ feature_ids: [F257]
 related_features: []
 topics: [aiops, inspection, observability, production-integration, copilot]
 doc_kind: spec
-status: spec
+status: in-progress
 created: 2026-08-30
 ---
 
 # F257: AI Inspection Real System — AI 巡检真实系统
 
-> **Status**: spec | **Owner**: Ragdoll + Siamese | **Priority**: P0
+> **Status**: in-progress | **Owner**: Ragdoll + Siamese | **Priority**: P0
 >
 > 将已经验证过的 AI 巡检 Copilot 产品旅程接到现有 NOVA Inspection 控制面与真实企业数据源；不再运行独立 demo 状态机，不以 mock 作为任何生产降级路径。
 
@@ -92,16 +92,23 @@ CandidateSet 扩展为不可变 `planningSnapshot`：包含 change/topology 两�
 
 ## Acceptance Criteria
 
-- [ ] AC-1: `ChangeSource` / `TopologySource` 契约与错误分类完成，所有事实含 provenance 和 freshness。
+- [x] AC-1: `ChangeSource` / `TopologySource` 契约与错误分类完成，所有事实含 provenance 和 freshness。
 - [ ] AC-2: Prometheus 通过显式生产配置注册；配置缺失时 source 不注册且 API 明确返回 unavailable，不回退 replay。
-- [ ] AC-3: CandidateSet 公开创建接口只接受 change reference 与可选 intent；service/environment/connector/version/topology 均由服务端来源解析，浏览器提交这些字段会被拒绝；公开直建/修改 Job checks 的旁路被移除。
-- [ ] AC-4: CandidateSet materialize 后，Job/Revision/Case/Run/Decision/Report 继续使用现有服务端持久化与不可变约束；Case 的 change/version 必须从 revision origin 派生。
-- [ ] AC-5: 保存任务直跑在创建新 Run 前校验 change/topology digest；漂移时返回 typed 409 + 差异摘要且 Run 数量不变，同 idempotency key 已有 Run 时原样返回。
+- [x] AC-3: CandidateSet 公开创建接口只接受 change reference 与可选 intent；service/environment/connector/version/topology 均由服务端来源解析，浏览器提交这些字段会被拒绝；公开直建/修改 Job checks 的旁路被移除。
+- [x] AC-4: CandidateSet materialize 后，Job/Revision/Case/Run/Decision/Report 继续使用现有服务端持久化与不可变约束；Case 的 change/version 必须从 revision origin 派生。
+- [x] AC-5: 保存任务直跑在创建新 Run 前校验 change/topology digest；漂移时返回 typed 409 + 差异摘要且 Run 数量不变，同 idempotency key 已有 Run 时原样返回。
 - [ ] AC-6: 一个配置的真实服务可完成端到端巡检，指标判定来自真实 ObservabilitySource。
 - [ ] AC-7: Copilot Web 使用现有 NOVA API，页面、历史、分享与导出引用同一权威报告。
 - [ ] AC-8: 数据源 unavailable / timeout / unauthorized / stale / malformed 的路径均 fail closed 且有可操作空态。
 - [ ] AC-9: 既有 NOVA runtime tests 与离线 Copilot 93 项回归保护保持全绿；新增真实旅程覆盖 restart、identity、drift 和 390px。
 - [ ] AC-10: 合入后在隔离 acceptance 环境验证，不接触生产用户数据；真实环境 smoke test 仅在 operator 提供授权接入点后进行。
+
+## Implementation Progress
+
+- `feat/ai-inspection-real@44bac1e`: 完成规划来源端口、不可变 `planningSnapshot` / `planningDigest`、严格公开 schema、Case lineage 派生、Run 前 drift guard、显式 Prometheus 组合与无 replay fallback；API observability 89/89、NOVA deliverables 6/6 通过。
+- `feat/ai-inspection-real@eb6c845`: Connected Web 只提交 `changeRef` 与可选 intent，移除 Job/Revision/Case 权威事实写入口，保留只读 lineage 投影，并把 typed drift 409 呈现为重新规划动作；完整 Web tests 与整仓 `pnpm gate` 通过。
+- production build 在隔离端口 API `3192` / Web `5192` 返回 200；Hub 预览已打开，但当前会话无可控内嵌浏览器实例，因此 390px 与真实长数据视觉验收仍未宣称完成。
+- provider-specific `ChangeSource` / `TopologySource` adapter、真实指标端到端与 smoke test 继续等待 co-creator 提供非生产 endpoint、鉴权、样例 payload、测试服务及允许查询范围。
 
 ## Dependencies
 
