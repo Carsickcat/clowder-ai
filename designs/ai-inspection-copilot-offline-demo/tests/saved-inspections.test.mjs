@@ -184,6 +184,45 @@ test('an inspection run is a locked immutable snapshot with selected results and
   assert.ok(Object.isFrozen(run.executionResults));
   assert.ok(Object.isFrozen(run.executionResults[0]));
   assert.ok(Object.isFrozen(run.report));
+  assert.deepEqual(
+    run.report.checkResults.map((result) => result.checkId),
+    lockedTask.inspectionPlan.checkIds,
+  );
+  assert.deepEqual(run.report.evidenceCounts, { verified: 4, violated: 0, unresolved: 0 });
+  const evidenceIds = new Set(
+    run.report.checkResults.flatMap((result) => result.measurements.map((measurement) => measurement.id)),
+  );
+  for (const section of Object.values(run.report.interpretation)) {
+    assert.ok(section.text === '证据不足' || section.evidenceIds.every((id) => evidenceIds.has(id)));
+  }
+});
+
+test('run materialization cannot report a rejected candidate as an executed violation', () => {
+  const workspace = compileInspectionRequest({
+    prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
+    targetService: 'payment-api',
+    contextReference: 'CHG-84217',
+  });
+  const lockedTask = task(workspace);
+  const run = createInspectionRun({
+    id: 'RUN-0049',
+    taskInstance: lockedTask,
+    selectedContext: createContextOptions(workspace),
+    executionResults: workspace.execution,
+    report: workspace.report,
+    startedAt: '2026-08-16T06:00:00.000Z',
+    completedAt: '2026-08-16T06:01:00.000Z',
+  });
+
+  assert.deepEqual(
+    run.report.checkResults.map((result) => result.checkId),
+    lockedTask.inspectionPlan.checkIds,
+  );
+  assert.equal(run.report.checkResults.some((result) => result.checkId === 'candidate-db-wait'), false);
+  assert.equal(run.report.evidenceVerdict, 'Inconclusive');
+  assert.equal(run.report.action, 'Proceed-with-conditions');
+  assert.equal(run.report.rcAgent, null);
+  assert.equal(run.report.interpretation.likelyCause.text, '证据不足');
 });
 
 test('run history is derived from the immutable run ledger and sorted newest first', () => {

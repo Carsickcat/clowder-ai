@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ACTION_STATUSES, assertCheckContract, EVIDENCE_VERDICTS, reconcileChange } from '../lib/domain.mjs';
+import {
+  ACTION_STATUSES,
+  assertCheckContract,
+  EVIDENCE_VERDICTS,
+  reconcileChange,
+  validReportContract,
+} from '../lib/domain.mjs';
 import { scenarios } from '../lib/scenarios.mjs';
 
 test('every committed check is executable, explainable, and source-grounded', () => {
@@ -63,4 +69,35 @@ test('every scenario declares the four impact dimensions required by SRE review'
       assert.ok(dimension.length > 0);
     }
   }
+});
+
+test('every v2 report is a structured, uniquely anchored evidence contract', () => {
+  for (const scenario of scenarios) {
+    assert.equal(validReportContract(scenario.report), true);
+    assert.ok(scenario.report.checkResults.length >= scenario.committedChecks.length);
+
+    const measurementIds = scenario.report.checkResults.flatMap((result) =>
+      result.measurements.map((measurement) => measurement.id),
+    );
+    assert.equal(new Set(measurementIds).size, measurementIds.length);
+
+    for (const section of Object.values(scenario.report.interpretation)) {
+      assert.ok(section.text.trim());
+      if (section.text !== '证据不足') {
+        assert.ok(section.evidenceIds.length > 0);
+        assert.ok(section.evidenceIds.every((id) => measurementIds.includes(id)));
+      }
+    }
+  }
+});
+
+test('report validation rejects ungrounded interpretation but keeps legacy snapshots readable', () => {
+  const report = structuredClone(scenarios[0].report);
+  report.interpretation.whatHappened.evidenceIds = ['invented-evidence'];
+  assert.equal(validReportContract(report), false);
+
+  const legacy = structuredClone(scenarios[0].report);
+  delete legacy.checkResults;
+  delete legacy.interpretation;
+  assert.equal(validReportContract(legacy), true);
 });

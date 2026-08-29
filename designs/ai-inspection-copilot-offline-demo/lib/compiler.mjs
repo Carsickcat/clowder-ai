@@ -244,6 +244,100 @@ function compileGenericWorkspace(request) {
         `${service} p95 较稳定版本 +3.2%`,
         `${downstream} 无新增错误 Trace`,
       ],
+      checkResults: [
+        {
+          checkId: 'business-outcome',
+          status: 'Verified',
+          summary: `${service} 成功率 99.82%，较基线 +0.03pp`,
+          measurements: [
+            {
+              id: `${service}-success-rate`,
+              label: '核心业务成功率',
+              entity: `${service} 核心业务目标`,
+              kind: 'numeric',
+              value: 99.82,
+              unit: '%',
+              displayValue: '99.82%',
+              gate: { operator: '>=', value: 99.59, unit: '%', displayValue: '下降不超过 0.20pp' },
+            },
+          ],
+        },
+        {
+          checkId: 'service-golden-signals',
+          status: 'Verified',
+          summary: `${service} p95 较稳定版本 +3.2%`,
+          measurements: [
+            {
+              id: `${service}-p95-change`,
+              label: '服务延迟增幅',
+              entity: service,
+              kind: 'numeric',
+              value: 3.2,
+              unit: '%',
+              displayValue: '+3.2%',
+              gate: { operator: '<=', value: 10, unit: '%', displayValue: '≤ 10%' },
+            },
+          ],
+        },
+        {
+          checkId: 'downstream-dependency',
+          status: 'Verified',
+          summary: `${downstream} 无新增错误 Trace`,
+          measurements: [
+            {
+              id: `${service}-downstream-trace`,
+              label: '下游依赖错误',
+              entity: downstream,
+              kind: 'qualitative',
+              displayValue: '无新增错误 Trace',
+              gate: { displayValue: '无新增错误依赖' },
+            },
+          ],
+        },
+        {
+          checkId: 'middleware-health',
+          status: 'Verified',
+          summary: `${cache} 命中率 96.4%，高于 94.4% 门禁`,
+          measurements: [
+            {
+              id: `${service}-cache-hit-rate`,
+              label: '缓存命中率',
+              entity: cache,
+              kind: 'numeric',
+              value: 96.4,
+              unit: '%',
+              displayValue: '96.4%',
+              gate: { operator: '>=', value: 94.4, unit: '%', displayValue: '下降 ≤ 2%' },
+            },
+          ],
+        },
+        {
+          checkId: 'candidate-memory-trend',
+          status: 'Inconclusive',
+          summary: `${service} 短窗口不足以判断缓慢内存爬升`,
+          measurements: [
+            {
+              id: `${service}-memory-trend`,
+              label: '内存变化趋势',
+              entity: service,
+              kind: 'qualitative',
+              displayValue: '短窗口证据不足',
+              gate: { displayValue: '斜率低于历史同版本 P95' },
+            },
+          ],
+        },
+      ],
+      interpretation: {
+        whatHappened: {
+          text: `${service} 核心业务成功率稳定，服务延迟未触及门禁。`,
+          evidenceIds: [`${service}-success-rate`, `${service}-p95-change`],
+        },
+        likelyCause: { text: '证据不足', evidenceIds: [] },
+        recommendedAction: {
+          text: `按当前节奏继续 ${service} 发布，并保持原观察窗口。`,
+          evidenceIds: [`${service}-success-rate`, `${service}-p95-change`],
+        },
+      },
       residualRisks: [`${service} 内存趋势为建议项，未纳入本次硬门禁。`],
       rcAgent: null,
     },
