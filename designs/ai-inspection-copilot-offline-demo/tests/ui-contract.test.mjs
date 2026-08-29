@@ -5,6 +5,7 @@ import { compileInspectionRequest } from '../lib/compiler.mjs';
 import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import { selectViewModel } from '../lib/selectors.mjs';
 import { renderApp } from '../src/render.mjs';
+import { formatReportTime } from '../src/report-model.mjs';
 
 function dispatch(state, type, payload = {}) {
   return demoReducer(state, { type, ...payload });
@@ -497,6 +498,7 @@ test('saved inspection history renders reverse-chronological immutable snapshots
   const definitionId = state.library.savedInspections[0].id;
   state = dispatch(state, 'SAVED_INSPECTION_HISTORY_OPENED', { definitionId });
   const html = renderApp(selectViewModel(state));
+  const reportTime = formatReportTime(state.library.runs[0].completedAt);
 
   assert.match(html, /data-testid="saved-inspection-history"/);
   assert.match(html, /运行历史/);
@@ -506,6 +508,7 @@ test('saved inspection history renders reverse-chronological immutable snapshots
   assert.match(html, /data-testid="evidence-dashboard"/);
   assert.match(html, /data-testid="report-checks"/);
   assert.match(html, /data-testid="ai-interpretation"/);
+  assert.ok(html.split(reportTime).length - 1 >= 2);
   assert.match(html, /data-action="SAVED_INSPECTION_HISTORY_CLOSED"/);
   assert.match(html, /data-action="SAVED_INSPECTION_RUN_REQUESTED"/);
   assert.doesNotMatch(html, /data-share-action=/);

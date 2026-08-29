@@ -5525,9 +5525,9 @@ const REPORT_STATUS_COPY = Object.freeze({
   NotEvaluated: { symbol: '?', label: '未执行', tone: 'unresolved' },
 });
 
-function isoMinute(value) {
+function formatReportTime(value) {
   if (!value || Number.isNaN(new Date(value).getTime())) return '时间未知';
-  return new Date(value).toISOString().slice(0, 16).replace('T', ' ');
+  return `${new Date(value).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 }
 
 function durationLabel(startedAt, completedAt) {
@@ -5539,7 +5539,7 @@ function formatReportMetadata(run, taskName) {
   const name = String(taskName ?? '').trim() || '未命名巡检';
   const window = run?.inspectionPlan?.checks?.[0]?.window ?? '窗口未知';
   const instanceId = run?.taskInstanceId ?? run?.id ?? '实例未知';
-  const completedAt = isoMinute(run?.completedAt);
+  const completedAt = formatReportTime(run?.completedAt);
   const duration = durationLabel(run?.startedAt, run?.completedAt);
   return {
     taskName: name,
@@ -5552,8 +5552,11 @@ function formatReportMetadata(run, taskName) {
 }
 
 function numericRatio(measurement) {
-  if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value) || !measurement.gate?.value) return null;
-  return Math.min(100, Math.max(0, Math.round((measurement.value / measurement.gate.value) * 1000) / 10));
+  const gateValue = measurement.gate?.value;
+  if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value) || !Number.isFinite(gateValue)) return null;
+  if (gateValue === 0) return measurement.value === 0 ? 0 : 100;
+  const ratio = Math.abs(measurement.value / gateValue);
+  return Math.min(100, Math.max(0, Math.round(ratio * 1000) / 10));
 }
 
 function projectReportEvidence(report) {
@@ -5654,10 +5657,14 @@ function buildStandaloneReportHtml(run, taskName) {
   const report = requireShareableRun(run);
   const metadata = formatReportMetadata(run, taskName);
   const name = escapeHtml(String(taskName).trim());
-  const evidence = projectReportEvidence(report)
-    .map((item) => {
+  const reportEvidence = projectReportEvidence(report);
+  const evidenceTargets = new Map(
+    reportEvidence.map((item, index) => [item.id, { id: `evidence-${index + 1}`, label: `证据 ${index + 1}` }]),
+  );
+  const evidence = reportEvidence
+    .map((item, index) => {
       const status = REPORT_STATUS_COPY[item.status] ?? REPORT_STATUS_COPY.NotEvaluated;
-      return `<article class="evidence ${status.tone}"><div><strong>${escapeHtml(item.label)}</strong><span>${status.symbol} ${status.label}</span></div><small>${escapeHtml(item.entity)}</small><p>当前值 ${escapeHtml(item.displayValue)} · 门禁 ${escapeHtml(item.gateDisplayValue)}</p></article>`;
+      return `<article id="evidence-${index + 1}" class="evidence ${status.tone}"><div><strong>${escapeHtml(item.label)}</strong><span>${status.symbol} ${status.label}</span></div><small>${escapeHtml(item.entity)} · 证据 ${index + 1}</small><p>当前值 ${escapeHtml(item.displayValue)} · 门禁 ${escapeHtml(item.gateDisplayValue)}</p></article>`;
     })
     .join('');
   const checks = projectReportChecks(run)
@@ -5667,7 +5674,14 @@ function buildStandaloneReportHtml(run, taskName) {
     })
     .join('');
   const interpretation = projectInterpretation(report)
-    .map((item) => `<article><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.text)}</p></article>`)
+    .map((item) => {
+      const references = item.evidenceIds
+        .map((evidenceId) => evidenceTargets.get(evidenceId))
+        .filter(Boolean)
+        .map((target) => `<a href="#${target.id}">${target.label}</a>`)
+        .join('');
+      return `<article><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.text)}</p><footer>${references || '<small>证据不足</small>'}</footer></article>`;
+    })
     .join('');
   const risks = report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
   const doctype = '<!' + 'doctype html>';
@@ -5686,7 +5700,7 @@ function buildStandaloneReportHtml(run, taskName) {
     .meta{color:#72e6a6;font-size:12px}.pair,.evidence-grid,.interpretation{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .evidence{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.evidence>div{display:flex;justify-content:space-between;gap:12px}.evidence.violated{border-color:#a94456}.evidence.unresolved{border-color:#8d6b35}.evidence small{color:#738aa3}
     table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #29415f;text-align:left;color:#b9cadc}
-    .interpretation article{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}
+    .interpretation article{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.interpretation footer{display:flex;flex-wrap:wrap;gap:8px}.interpretation a{color:#72e6a6;text-decoration:none;border:1px solid #397462;border-radius:999px;padding:3px 8px;font-size:12px}.interpretation small{color:#738aa3}
     .pair section{margin:0}.foot{font-size:12px;color:#738aa3;text-align:center;border:0;background:transparent}
     @media(max-width:560px){body{padding:16px 12px}.pair,.evidence-grid,.interpretation{grid-template-columns:1fr}h1{font-size:24px}table{font-size:12px}}
   </style>
@@ -6215,11 +6229,6 @@ function renderReportJourneyDetails(vm) {
   const run = vm.savedInspection.currentRun;
   return `${renderSelectedContextResults(run)}
     ${renderPersonalSave(vm)}`;
-}
-
-function formatReportTime(value) {
-  if (!value) return '时间未知';
-  return new Date(value).toLocaleString('zh-CN', { hour12: false });
 }
 
 function renderReportMetadata(run, taskName) {

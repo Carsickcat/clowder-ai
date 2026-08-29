@@ -2,17 +2,13 @@ import { renderPlaybookProposal } from './render-playbook.mjs';
 import { renderReportJourneyDetails, renderSelectedContextResults } from './render-saved-inspections.mjs';
 import {
   formatReportMetadata,
+  formatReportTime,
   projectInterpretation,
   projectReportChecks,
   projectReportEvidence,
   REPORT_STATUS_COPY,
 } from './report-model.mjs';
 import { escapeHtml } from './view-utils.mjs';
-
-function formatReportTime(value) {
-  if (!value) return '时间未知';
-  return new Date(value).toLocaleString('zh-CN', { hour12: false });
-}
 
 function renderReportMetadata(run, taskName) {
   return `<p class="report-metadata" data-testid="report-metadata">${escapeHtml(formatReportMetadata(run, taskName).line)}</p>`;

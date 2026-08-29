@@ -7,9 +7,9 @@ export const REPORT_STATUS_COPY = Object.freeze({
   NotEvaluated: { symbol: '?', label: '未执行', tone: 'unresolved' },
 });
 
-function isoMinute(value) {
+export function formatReportTime(value) {
   if (!value || Number.isNaN(new Date(value).getTime())) return '时间未知';
-  return new Date(value).toISOString().slice(0, 16).replace('T', ' ');
+  return `${new Date(value).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 }
 
 function durationLabel(startedAt, completedAt) {
@@ -21,7 +21,7 @@ export function formatReportMetadata(run, taskName) {
   const name = String(taskName ?? '').trim() || '未命名巡检';
   const window = run?.inspectionPlan?.checks?.[0]?.window ?? '窗口未知';
   const instanceId = run?.taskInstanceId ?? run?.id ?? '实例未知';
-  const completedAt = isoMinute(run?.completedAt);
+  const completedAt = formatReportTime(run?.completedAt);
   const duration = durationLabel(run?.startedAt, run?.completedAt);
   return {
     taskName: name,
@@ -34,8 +34,11 @@ export function formatReportMetadata(run, taskName) {
 }
 
 function numericRatio(measurement) {
-  if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value) || !measurement.gate?.value) return null;
-  return Math.min(100, Math.max(0, Math.round((measurement.value / measurement.gate.value) * 1000) / 10));
+  const gateValue = measurement.gate?.value;
+  if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value) || !Number.isFinite(gateValue)) return null;
+  if (gateValue === 0) return measurement.value === 0 ? 0 : 100;
+  const ratio = Math.abs(measurement.value / gateValue);
+  return Math.min(100, Math.max(0, Math.round(ratio * 1000) / 10));
 }
 
 export function projectReportEvidence(report) {

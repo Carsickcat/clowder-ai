@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { compileInspectionRequest } from '../lib/compiler.mjs';
-import { formatReportMetadata, projectReportEvidence } from '../src/report-model.mjs';
+import { formatReportMetadata, formatReportTime, projectReportEvidence } from '../src/report-model.mjs';
 import { buildReportFilename, buildReportShareText, buildStandaloneReportHtml } from '../src/report-share.mjs';
 
 const workspace = compileInspectionRequest({
@@ -34,6 +34,11 @@ test('copied report summary is exactly five readable lines', () => {
   assert.match(lines[4], /^结论边界：/);
 });
 
+test('report timestamps use one explicit timezone-bearing representation', () => {
+  assert.equal(formatReportTime(run.completedAt), '2026-08-22 14:00 UTC');
+  assert.equal(formatReportMetadata(run, '履约发布后巡检').completedAt, formatReportTime(run.completedAt));
+});
+
 test('exported report is one escaped self-contained offline HTML document', () => {
   const hostileName = '履约</title><script>alert(1)</script>巡检';
   const html = buildStandaloneReportHtml(run, hostileName);
@@ -46,6 +51,10 @@ test('exported report is one escaped self-contained offline HTML document', () =
   assert.match(html, /证据仪表盘/);
   assert.match(html, /当前值 99\.82%/);
   assert.match(html, /AI 解读/);
+  assert.match(html, /id="evidence-1"/);
+  const evidenceLink = html.match(/href="#(evidence-\d+)"[^>]*>证据 \d+<\/a>/);
+  assert.ok(evidenceLink);
+  assert.match(html, new RegExp(`id="${evidenceLink[1]}"`));
   assert.match(html, /<style>[\s\S]+<\/style>/);
   assert.doesNotMatch(html, /https?:\/\//i);
   assert.doesNotMatch(html, /<script/i);
@@ -69,4 +78,30 @@ test('structured evidence projection sorts violations first and caps numeric bar
   assert.equal(evidence[0].id, 'settlement-pool-utilization');
   assert.equal(evidence[0].ratioPercent, 100);
   assert.ok(evidence.some((item) => item.kind === 'qualitative' && item.ratioPercent === null));
+});
+
+test('zero-valued numeric gates keep a valid progress representation', () => {
+  const evidence = projectReportEvidence({
+    checkResults: [
+      {
+        checkId: 'zero-error-budget',
+        status: 'Violated',
+        summary: '检测到错误',
+        measurements: [
+          {
+            id: 'error-count',
+            label: '错误数',
+            entity: 'fulfillment-service',
+            kind: 'numeric',
+            value: 3,
+            unit: '次',
+            displayValue: '3 次',
+            gate: { value: 0, unit: '次', operator: '<=', displayValue: '<= 0 次' },
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(evidence[0].ratioPercent, 100);
 });
