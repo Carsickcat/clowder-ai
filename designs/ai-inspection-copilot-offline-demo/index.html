@@ -1316,6 +1316,332 @@ a:focus-visible {
   font-size: 13px;
   line-height: 1.7;
 }
+.report-metadata {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(7, 16, 31, 0.42);
+  color: var(--text-faint);
+  font: 9px / 1.55 var(--mono);
+  overflow-wrap: anywhere;
+}
+.report-section {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 16, 31, 0.38);
+}
+.report-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.report-section-heading h3,
+.report-boundary h3 {
+  margin: 0;
+  font-size: 12px;
+}
+.report-section-heading p {
+  margin: 5px 0 0;
+  color: var(--text-faint);
+  font-size: 9px;
+}
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.evidence-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  outline: 0 solid transparent;
+  background: rgba(12, 28, 49, 0.62);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    outline-color 160ms ease;
+}
+.evidence-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.evidence-card header div {
+  min-width: 0;
+}
+.evidence-card header strong,
+.evidence-card header small {
+  display: block;
+}
+.evidence-card header strong {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.evidence-card header small {
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--text-faint);
+  font: 9px / 1.35 var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evidence-card header > span {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+}
+.evidence-card.is-verified header > span {
+  background: var(--green-soft);
+  color: var(--green);
+}
+.evidence-card.is-violated {
+  border-color: rgba(255, 109, 127, 0.42);
+  background: linear-gradient(145deg, rgba(255, 109, 127, 0.13), rgba(7, 16, 31, 0.55));
+}
+.evidence-card.is-violated header > span {
+  background: var(--red-soft);
+  color: var(--red);
+}
+.evidence-card.is-unresolved header > span {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.evidence-card.is-highlighted {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(90, 231, 210, 0.12);
+}
+.evidence-measurement,
+.evidence-qualitative {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+}
+.evidence-measurement strong,
+.evidence-qualitative strong {
+  min-width: 0;
+  color: var(--text);
+  font: 700 18px / 1 var(--mono);
+  overflow-wrap: anywhere;
+}
+.evidence-measurement span,
+.evidence-qualitative span {
+  color: var(--text-faint);
+  font-size: 9px;
+  text-align: right;
+}
+.evidence-track {
+  min-width: 120px;
+  height: 6px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(111, 135, 163, 0.16);
+}
+.evidence-track i {
+  width: var(--evidence-progress);
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+}
+.evidence-card.is-violated .evidence-track i {
+  background: linear-gradient(90deg, var(--amber), var(--red));
+}
+.report-check-list {
+  display: grid;
+  gap: 8px;
+}
+.report-check-result {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 28, 49, 0.48);
+}
+.report-check-result.is-violated {
+  border-color: rgba(255, 109, 127, 0.38);
+  background: rgba(255, 109, 127, 0.07);
+}
+.report-check-result > summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 76px minmax(150px, 1fr) minmax(82px, 0.42fr) minmax(96px, 0.5fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.report-check-result > summary::-webkit-details-marker {
+  display: none;
+}
+.report-check-status {
+  font-size: 9px;
+  font-weight: 700;
+}
+.report-check-result.is-verified .report-check-status {
+  color: var(--green);
+}
+.report-check-result.is-violated .report-check-status {
+  color: var(--red);
+}
+.report-check-result.is-unresolved .report-check-status {
+  color: var(--amber);
+}
+.report-check-name,
+.report-check-value,
+.report-check-gate {
+  min-width: 0;
+}
+.report-check-name strong,
+.report-check-name small,
+.report-check-value small,
+.report-check-value strong,
+.report-check-gate small,
+.report-check-gate strong {
+  display: block;
+}
+.report-check-name strong,
+.report-check-value strong,
+.report-check-gate strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-check-name strong {
+  font-size: 10px;
+}
+.report-check-name small,
+.report-check-value small,
+.report-check-gate small {
+  margin-bottom: 4px;
+  color: var(--text-faint);
+  font-size: 8px;
+}
+.report-check-name small {
+  margin: 4px 0 0;
+}
+.report-check-value strong,
+.report-check-gate strong {
+  font: 9px / 1.35 var(--mono);
+}
+.report-check-toggle {
+  color: var(--cyan);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.report-check-result[open] .report-check-toggle {
+  color: var(--text-faint);
+}
+.report-check-body {
+  padding: 0 12px 14px;
+  border-top: 1px solid var(--line);
+}
+.report-check-body > p {
+  margin: 12px 0;
+  color: var(--text-soft);
+  font-size: 10px;
+}
+.report-check-body dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.report-check-body dl div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.report-check-body dt {
+  color: var(--text-faint);
+  font-size: 8px;
+}
+.report-check-body dd {
+  margin: 5px 0 0;
+  color: var(--text-soft);
+  font-size: 9px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.report-check-body code {
+  color: var(--cyan);
+}
+.interpretation-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.interpretation-list article {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 28, 49, 0.55);
+}
+.interpretation-list article > span {
+  color: var(--cyan);
+  font: 700 9px / 1 var(--mono);
+}
+.interpretation-list p {
+  flex: 1 1 auto;
+  margin: 10px 0 14px;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.interpretation-list footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.interpretation-list button {
+  padding: 5px 7px;
+  border: 1px solid rgba(90, 231, 210, 0.28);
+  border-radius: 999px;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  cursor: pointer;
+  font-size: 8px;
+}
+.interpretation-list footer small {
+  color: var(--amber);
+  font-size: 9px;
+}
+.report-boundary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.report-boundary p,
+.report-boundary li {
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.report-boundary p {
+  margin: 8px 0 0;
+}
+.report-boundary ul {
+  margin: 8px 0 0;
+  padding-left: 17px;
+}
 .report-columns {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -2195,8 +2521,17 @@ a:focus-visible {
   }
   .understanding-grid,
   .source-list,
-  .report-columns {
+  .report-columns,
+  .evidence-grid,
+  .interpretation-list {
     grid-template-columns: 1fr;
+  }
+  .report-check-result > summary {
+    grid-template-columns: 70px minmax(0, 1fr) minmax(82px, 0.45fr) minmax(96px, 0.55fr);
+  }
+  .report-check-toggle {
+    grid-column: 2 / -1;
+    text-align: right;
   }
   .app-footer {
     flex-direction: column;
@@ -2248,6 +2583,57 @@ a:focus-visible {
     min-height: 320px;
   }
   .semantic-pair {
+    grid-template-columns: 1fr;
+  }
+  .report-section {
+    padding: 12px;
+  }
+  .report-section-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .evidence-card header {
+    gap: 8px;
+  }
+  .evidence-measurement,
+  .evidence-qualitative {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .evidence-measurement span,
+  .evidence-qualitative span {
+    text-align: left;
+  }
+  .report-check-result > summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
+  }
+  .report-check-status {
+    grid-column: 1;
+  }
+  .report-check-toggle {
+    grid-column: 2;
+    text-align: right;
+  }
+  .report-check-name {
+    grid-column: 1 / -1;
+  }
+  .report-check-value {
+    grid-column: 1;
+  }
+  .report-check-gate {
+    grid-column: 2;
+  }
+  .report-check-name strong,
+  .report-check-value strong,
+  .report-check-gate strong {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .report-check-body dl,
+  .report-boundary {
     grid-template-columns: 1fr;
   }
   .impact-matrix {
@@ -2487,6 +2873,71 @@ function validRootCauseAgent(agent) {
   );
 }
 
+function validMeasurement(measurement) {
+  if (
+    !measurement ||
+    typeof measurement !== 'object' ||
+    !nonEmptyString(measurement.id) ||
+    !nonEmptyString(measurement.label) ||
+    !nonEmptyString(measurement.entity) ||
+    !['numeric', 'qualitative'].includes(measurement.kind) ||
+    !nonEmptyString(measurement.displayValue) ||
+    !measurement.gate ||
+    typeof measurement.gate !== 'object' ||
+    !nonEmptyString(measurement.gate.displayValue)
+  ) {
+    return false;
+  }
+  if (measurement.kind === 'qualitative') return true;
+  return (
+    Number.isFinite(measurement.value) &&
+    nonEmptyString(measurement.unit) &&
+    Number.isFinite(measurement.gate.value) &&
+    nonEmptyString(measurement.gate.operator) &&
+    nonEmptyString(measurement.gate.unit)
+  );
+}
+
+function validV2ReportContract(report) {
+  const hasResults = Object.hasOwn(report, 'checkResults');
+  const hasInterpretation = Object.hasOwn(report, 'interpretation');
+  if (!hasResults && !hasInterpretation) return true;
+  if (!hasResults || !hasInterpretation || !Array.isArray(report.checkResults) || !report.checkResults.length) {
+    return false;
+  }
+  const checkIds = new Set();
+  const measurementIds = new Set();
+  for (const result of report.checkResults) {
+    if (
+      !result ||
+      typeof result !== 'object' ||
+      !nonEmptyString(result.checkId) ||
+      checkIds.has(result.checkId) ||
+      !EVIDENCE_VERDICT_SET.has(result.status) ||
+      !nonEmptyString(result.summary) ||
+      !Array.isArray(result.measurements) ||
+      !result.measurements.length ||
+      !result.measurements.every(validMeasurement)
+    ) {
+      return false;
+    }
+    checkIds.add(result.checkId);
+    for (const measurement of result.measurements) {
+      if (measurementIds.has(measurement.id)) return false;
+      measurementIds.add(measurement.id);
+    }
+  }
+  const interpretationKeys = ['whatHappened', 'likelyCause', 'recommendedAction'];
+  return interpretationKeys.every((key) => {
+    const section = report.interpretation?.[key];
+    if (!section || typeof section !== 'object' || !nonEmptyString(section.text) || !stringArray(section.evidenceIds)) {
+      return false;
+    }
+    if (section.text === '证据不足') return section.evidenceIds.length === 0;
+    return section.evidenceIds.length > 0 && section.evidenceIds.every((id) => measurementIds.has(id));
+  });
+}
+
 function validReportContract(report) {
   return (
     report &&
@@ -2500,7 +2951,8 @@ function validReportContract(report) {
     validEvidenceCounts(report.evidenceCounts) &&
     stringArray(report.keyEvidence) &&
     stringArray(report.residualRisks) &&
-    validRootCauseAgent(report.rcAgent)
+    validRootCauseAgent(report.rcAgent) &&
+    validV2ReportContract(report)
   );
 }
 
@@ -2689,6 +3141,110 @@ const naturalLanguagePass = {
       'order-api p95 186ms，较稳定版本 +3.2%',
       'payment-gateway 无新增错误 Trace',
     ],
+    checkResults: [
+      {
+        checkId: 'order-success',
+        status: 'Verified',
+        summary: '订单提交成功率 99.82%，较基线 +0.03pp',
+        measurements: [
+          {
+            id: 'order-success-rate',
+            label: '订单提交成功率',
+            entity: '订单提交旅程',
+            kind: 'numeric',
+            value: 99.82,
+            unit: '%',
+            displayValue: '99.82%',
+            gate: { operator: '>=', value: 99.59, unit: '%', displayValue: '下降不超过 0.20pp' },
+          },
+        ],
+      },
+      {
+        checkId: 'service-golden-signals',
+        status: 'Verified',
+        summary: 'order-api p95 186ms，较稳定版本 +3.2%',
+        measurements: [
+          {
+            id: 'order-api-p95',
+            label: '服务延迟 p95',
+            entity: 'order-api',
+            kind: 'numeric',
+            value: 186,
+            unit: 'ms',
+            displayValue: '186ms',
+            gate: { operator: '<=', value: 198, unit: 'ms', displayValue: '增幅 ≤ 10%' },
+          },
+          {
+            id: 'order-api-error-rate',
+            label: '服务错误率',
+            entity: 'order-api',
+            kind: 'numeric',
+            value: 0.18,
+            unit: '%',
+            displayValue: '0.18%',
+            gate: { operator: '<=', value: 0.5, unit: '%', displayValue: '≤ 0.5%' },
+          },
+        ],
+      },
+      {
+        checkId: 'payment-dependency',
+        status: 'Verified',
+        summary: 'payment-gateway 无新增错误 Trace',
+        measurements: [
+          {
+            id: 'payment-trace-errors',
+            label: '支付依赖错误 Trace',
+            entity: 'payment-gateway',
+            kind: 'qualitative',
+            displayValue: '无新增错误 Trace',
+            gate: { displayValue: '无新增错误依赖' },
+          },
+        ],
+      },
+      {
+        checkId: 'cache-health',
+        status: 'Verified',
+        summary: 'order-cache 命令 p99 3.8ms，低于 6ms 门禁',
+        measurements: [
+          {
+            id: 'order-cache-p99',
+            label: '缓存命令 p99',
+            entity: 'order-cache',
+            kind: 'numeric',
+            value: 3.8,
+            unit: 'ms',
+            displayValue: '3.8ms',
+            gate: { operator: '<=', value: 6, unit: 'ms', displayValue: '≤ 6ms' },
+          },
+        ],
+      },
+      {
+        checkId: 'candidate-memory-trend',
+        status: 'Inconclusive',
+        summary: '短窗口不足以判断缓慢内存爬升',
+        measurements: [
+          {
+            id: 'order-memory-trend',
+            label: '内存变化趋势',
+            entity: 'order-api',
+            kind: 'qualitative',
+            displayValue: '短窗口证据不足',
+            gate: { displayValue: '斜率低于历史同版本 P95' },
+          },
+        ],
+      },
+    ],
+    interpretation: {
+      whatHappened: {
+        text: '订单提交成功率保持稳定，服务延迟未触及门禁。',
+        evidenceIds: ['order-success-rate', 'order-api-p95'],
+      },
+      likelyCause: { text: '证据不足', evidenceIds: [] },
+      recommendedAction: {
+        text: '按当前节奏继续发布，并保持原观察窗口。',
+        evidenceIds: ['order-success-rate', 'order-api-p95'],
+      },
+    },
     residualRisks: ['内存趋势为建议项，未纳入本次硬门禁。'],
     rcAgent: null,
   },
@@ -2826,6 +3382,106 @@ const changeTicketRisk = {
       '连接等待 p95 68ms（门禁 20ms）',
       '支付成功率当前稳定，但属于滞后结果信号',
     ],
+    checkResults: [
+      {
+        checkId: 'payment-success',
+        status: 'Verified',
+        summary: '支付成功率 99.91%，当前未退化',
+        measurements: [
+          {
+            id: 'payment-success-rate',
+            label: '支付确认成功率',
+            entity: '支付确认旅程',
+            kind: 'numeric',
+            value: 99.91,
+            unit: '%',
+            displayValue: '99.91%',
+            gate: { operator: '>=', value: 99.82, unit: '%', displayValue: '下降不超过 0.10pp' },
+          },
+        ],
+      },
+      {
+        checkId: 'payment-service',
+        status: 'Verified',
+        summary: 'payment-api p95 210ms，仍在 216ms 门禁内',
+        measurements: [
+          {
+            id: 'payment-api-p95',
+            label: '服务延迟 p95',
+            entity: 'payment-api',
+            kind: 'numeric',
+            value: 210,
+            unit: 'ms',
+            displayValue: '210ms',
+            gate: { operator: '<=', value: 216, unit: 'ms', displayValue: '增幅 ≤ 8%' },
+          },
+        ],
+      },
+      {
+        checkId: 'invoice-backlog',
+        status: 'Inconclusive',
+        summary: '低流量窗口不足以判断 invoice-worker 积压趋势',
+        measurements: [
+          {
+            id: 'invoice-backlog-rate',
+            label: '异步积压增长率',
+            entity: 'invoice-worker',
+            kind: 'qualitative',
+            displayValue: '低流量窗口证据不足',
+            gate: { displayValue: '增长率 ≤ 5%' },
+          },
+        ],
+      },
+      {
+        checkId: 'candidate-db-wait',
+        status: 'Violated',
+        summary: 'settlement-db 连接池占用 96%，等待 p95 68ms',
+        measurements: [
+          {
+            id: 'settlement-pool-utilization',
+            label: '连接池占用',
+            entity: 'settlement-db',
+            kind: 'numeric',
+            value: 96,
+            unit: '%',
+            displayValue: '96%',
+            gate: { operator: '<=', value: 80, unit: '%', displayValue: '≤ 80%' },
+          },
+          {
+            id: 'settlement-pool-wait',
+            label: '连接等待 p95',
+            entity: 'settlement-db',
+            kind: 'numeric',
+            value: 68,
+            unit: 'ms',
+            displayValue: '68ms',
+            gate: { operator: '<=', value: 20, unit: 'ms', displayValue: '≤ 20ms' },
+          },
+          {
+            id: 'settlement-pool-config',
+            label: '连接池上限',
+            entity: 'shared-payment-stack@c2bd',
+            kind: 'qualitative',
+            displayValue: '120 → 60',
+            gate: { displayValue: '保持基线配置' },
+          },
+        ],
+      },
+    ],
+    interpretation: {
+      whatHappened: {
+        text: 'settlement-db 连接池占用与等待 p95 同时越过门禁。',
+        evidenceIds: ['settlement-pool-utilization', 'settlement-pool-wait'],
+      },
+      likelyCause: {
+        text: '共享配置包将连接池上限从 120 降为 60。',
+        evidenceIds: ['settlement-pool-config'],
+      },
+      recommendedAction: {
+        text: '暂停灰度，恢复连接池上限后复验。',
+        evidenceIds: ['settlement-pool-utilization', 'settlement-pool-config'],
+      },
+    },
     residualRisks: ['invoice-worker 当前样本不足，证据为 Inconclusive。'],
     rcAgent: {
       title: 'RC Agent · 诊断完成',
@@ -3089,6 +3745,100 @@ function compileGenericWorkspace(request) {
         `${service} p95 较稳定版本 +3.2%`,
         `${downstream} 无新增错误 Trace`,
       ],
+      checkResults: [
+        {
+          checkId: 'business-outcome',
+          status: 'Verified',
+          summary: `${service} 成功率 99.82%，较基线 +0.03pp`,
+          measurements: [
+            {
+              id: `${service}-success-rate`,
+              label: '核心业务成功率',
+              entity: `${service} 核心业务目标`,
+              kind: 'numeric',
+              value: 99.82,
+              unit: '%',
+              displayValue: '99.82%',
+              gate: { operator: '>=', value: 99.59, unit: '%', displayValue: '下降不超过 0.20pp' },
+            },
+          ],
+        },
+        {
+          checkId: 'service-golden-signals',
+          status: 'Verified',
+          summary: `${service} p95 较稳定版本 +3.2%`,
+          measurements: [
+            {
+              id: `${service}-p95-change`,
+              label: '服务延迟增幅',
+              entity: service,
+              kind: 'numeric',
+              value: 3.2,
+              unit: '%',
+              displayValue: '+3.2%',
+              gate: { operator: '<=', value: 10, unit: '%', displayValue: '≤ 10%' },
+            },
+          ],
+        },
+        {
+          checkId: 'downstream-dependency',
+          status: 'Verified',
+          summary: `${downstream} 无新增错误 Trace`,
+          measurements: [
+            {
+              id: `${service}-downstream-trace`,
+              label: '下游依赖错误',
+              entity: downstream,
+              kind: 'qualitative',
+              displayValue: '无新增错误 Trace',
+              gate: { displayValue: '无新增错误依赖' },
+            },
+          ],
+        },
+        {
+          checkId: 'middleware-health',
+          status: 'Verified',
+          summary: `${cache} 命中率 96.4%，高于 94.4% 门禁`,
+          measurements: [
+            {
+              id: `${service}-cache-hit-rate`,
+              label: '缓存命中率',
+              entity: cache,
+              kind: 'numeric',
+              value: 96.4,
+              unit: '%',
+              displayValue: '96.4%',
+              gate: { operator: '>=', value: 94.4, unit: '%', displayValue: '下降 ≤ 2%' },
+            },
+          ],
+        },
+        {
+          checkId: 'candidate-memory-trend',
+          status: 'Inconclusive',
+          summary: `${service} 短窗口不足以判断缓慢内存爬升`,
+          measurements: [
+            {
+              id: `${service}-memory-trend`,
+              label: '内存变化趋势',
+              entity: service,
+              kind: 'qualitative',
+              displayValue: '短窗口证据不足',
+              gate: { displayValue: '斜率低于历史同版本 P95' },
+            },
+          ],
+        },
+      ],
+      interpretation: {
+        whatHappened: {
+          text: `${service} 核心业务成功率稳定，服务延迟未触及门禁。`,
+          evidenceIds: [`${service}-success-rate`, `${service}-p95-change`],
+        },
+        likelyCause: { text: '证据不足', evidenceIds: [] },
+        recommendedAction: {
+          text: `按当前节奏继续 ${service} 发布，并保持原观察窗口。`,
+          evidenceIds: [`${service}-success-rate`, `${service}-p95-change`],
+        },
+      },
       residualRisks: [`${service} 内存趋势为建议项，未纳入本次硬门禁。`],
       rcAgent: null,
     },
@@ -3675,6 +4425,159 @@ function selectedContextResults(selectedContext) {
     }));
 }
 
+const REPORT_RESULT_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
+
+function missingCheckResult(check) {
+  return {
+    checkId: check.id,
+    status: 'NotEvaluated',
+    summary: `${check.purpose}：证据不足`,
+    measurements: [
+      {
+        id: `missing-${check.id}`,
+        label: check.metric,
+        entity: check.entity,
+        kind: 'qualitative',
+        displayValue: '证据不足',
+        gate: { displayValue: check.rule },
+      },
+    ],
+  };
+}
+
+function reportCounts(checkResults) {
+  return checkResults.reduce(
+    (counts, result) => {
+      if (result.status === 'Verified') counts.verified += 1;
+      else if (result.status === 'Violated') counts.violated += 1;
+      else counts.unresolved += 1;
+      return counts;
+    },
+    { verified: 0, violated: 0, unresolved: 0 },
+  );
+}
+
+function interpretationForResults(report, checkResults) {
+  const evidenceIds = new Set(
+    checkResults.flatMap((result) => result.measurements.map((measurement) => measurement.id)),
+  );
+  const groundSection = (section) => {
+    const anchors = section?.evidenceIds ?? [];
+    return section?.text && anchors.length && anchors.every((id) => evidenceIds.has(id))
+      ? { text: section.text, evidenceIds: anchors }
+      : { text: '证据不足', evidenceIds: [] };
+  };
+  const summarizeResults = (results) => {
+    const grounded = results.filter((result) => result.measurements.length);
+    return grounded.length
+      ? {
+          text: grounded.map((result) => result.summary).join('；'),
+          evidenceIds: grounded.map((result) => result.measurements[0].id),
+        }
+      : { text: '证据不足', evidenceIds: [] };
+  };
+  const violated = checkResults.filter((result) => result.status === 'Violated');
+  if (violated.length) {
+    const whatHappened = groundSection(report.interpretation.whatHappened);
+    const recommendedAction = groundSection(report.interpretation.recommendedAction);
+    return {
+      whatHappened: whatHappened.evidenceIds.length ? whatHappened : summarizeResults(violated),
+      likelyCause: groundSection(report.interpretation.likelyCause),
+      recommendedAction: recommendedAction.evidenceIds.length
+        ? recommendedAction
+        : {
+            text: '按违例检查的失败动作处置，并在证据恢复前保持当前变更范围。',
+            evidenceIds: summarizeResults(violated).evidenceIds,
+          },
+    };
+  }
+  const unresolved = checkResults.filter((result) => ['Inconclusive', 'NotEvaluated'].includes(result.status));
+  if (unresolved.length) {
+    const unresolvedEvidenceIds = unresolved.flatMap((result) =>
+      result.measurements.map((measurement) => measurement.id),
+    );
+    return {
+      whatHappened: { text: unresolved.map((result) => result.summary).join('；'), evidenceIds: unresolvedEvidenceIds },
+      likelyCause: { text: '证据不足', evidenceIds: [] },
+      recommendedAction: {
+        text: '保持当前进度，补足未决检查证据后再扩大变更范围。',
+        evidenceIds: unresolvedEvidenceIds,
+      },
+    };
+  }
+  const verifiedEvidenceIds = checkResults.flatMap((result) =>
+    result.measurements.slice(0, 1).map((measurement) => measurement.id),
+  );
+  const whatHappened = groundSection(report.interpretation.whatHappened);
+  const recommendedAction = groundSection(report.interpretation.recommendedAction);
+  return {
+    whatHappened: whatHappened.evidenceIds.length ? whatHappened : summarizeResults(checkResults),
+    likelyCause: groundSection(report.interpretation.likelyCause),
+    recommendedAction: recommendedAction.evidenceIds.length
+      ? recommendedAction
+      : {
+          text: '锁定计划内的检查均通过；按当前计划继续，并保持原观察窗口。',
+          evidenceIds: verifiedEvidenceIds,
+        },
+    ...(verifiedEvidenceIds.length ? {} : { whatHappened: { text: '证据不足', evidenceIds: [] } }),
+  };
+}
+
+function materializedDecision(report, counts, removedConclusiveResult) {
+  if (counts.violated > 0) return {};
+  if (counts.unresolved > 0) {
+    return {
+      evidenceVerdict: 'Inconclusive',
+      action: 'Proceed-with-conditions',
+      actionLabel: '建议保持当前进度并继续观察',
+      title: '部分检查证据不足',
+      summary: `已执行检查未发现违例，但有 ${counts.unresolved} 项证据不足。`,
+      rcAgent: null,
+    };
+  }
+  const retainOriginalCopy = report.evidenceVerdict === 'Verified' && !removedConclusiveResult;
+  return {
+    evidenceVerdict: 'Verified',
+    action: 'Proceed',
+    actionLabel: retainOriginalCopy ? report.actionLabel : '建议按当前检查计划继续',
+    title: retainOriginalCopy ? report.title : '已执行检查未发现关键违例',
+    summary: retainOriginalCopy ? report.summary : `锁定计划内的 ${counts.verified} 项检查均通过确定性验证。`,
+    rcAgent: null,
+  };
+}
+
+function materializeReportForPlan(report, inspectionPlan) {
+  if (!Array.isArray(report?.checkResults) || !report.interpretation) return clone(report);
+  const resultByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
+  const checkResults = inspectionPlan.checks.map((check) =>
+    clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)),
+  );
+  const counts = reportCounts(checkResults);
+  const orderedEvidence = [...checkResults].sort(
+    (left, right) =>
+      REPORT_RESULT_RANK[left.status] - REPORT_RESULT_RANK[right.status] ||
+      inspectionPlan.checkIds.indexOf(left.checkId) - inspectionPlan.checkIds.indexOf(right.checkId),
+  );
+  const planCheckIds = new Set(inspectionPlan.checkIds);
+  const removedConclusiveResult = report.checkResults.some(
+    (result) => !planCheckIds.has(result.checkId) && ['Verified', 'Violated'].includes(result.status),
+  );
+  const hasUnresolved = counts.unresolved > 0;
+  const materialized = {
+    ...clone(report),
+    ...materializedDecision(report, counts, removedConclusiveResult),
+    evidenceCounts: counts,
+    keyEvidence: orderedEvidence.slice(0, 3).map((result) => result.summary),
+    residualRisks: hasUnresolved
+      ? checkResults.filter((result) => result.status !== 'Verified').map((result) => result.summary)
+      : clone(report.residualRisks),
+    checkResults,
+    interpretation: interpretationForResults(report, checkResults),
+  };
+  if (!validReportContract(materialized)) throw new TypeError('Inspection run requires a valid report contract');
+  return materialized;
+}
+
 function createInspectionRun({
   id,
   taskInstance,
@@ -3690,6 +4593,7 @@ function createInspectionRun({
   if (!Array.isArray(executionResults) || !executionResults.every(validExecutionResult)) {
     throw new TypeError('Inspection run requires structured execution results');
   }
+  const runReport = materializeReportForPlan(report, taskInstance.inspectionPlan);
   return deepFreeze({
     id,
     taskInstanceId: taskInstance.id,
@@ -3705,7 +4609,7 @@ function createInspectionRun({
       status,
       fact,
     })),
-    report: clone(report),
+    report: runReport,
   });
 }
 
@@ -3928,7 +4832,8 @@ function selectExecutionView(state) {
 
 function selectReportView(state) {
   const workspace = requireWorkspace(state);
-  return state.phase === 'report' ? workspace.report : null;
+  if (state.phase !== 'report') return null;
+  return state.library.runs.find((run) => run.id === state.currentRunId)?.report ?? workspace.report;
 }
 
 function selectPlaybookView(state) {
@@ -4611,23 +5516,126 @@ function escapeHtml(value = '') {
     .replaceAll("'", '&#039;');
 }
 
+const STATUS_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
+
+const REPORT_STATUS_COPY = Object.freeze({
+  Verified: { symbol: '✓', label: '通过', tone: 'verified' },
+  Violated: { symbol: '✕', label: '违例', tone: 'violated' },
+  Inconclusive: { symbol: '?', label: '未决', tone: 'unresolved' },
+  NotEvaluated: { symbol: '?', label: '未执行', tone: 'unresolved' },
+});
+
+function formatReportTime(value) {
+  if (!value || Number.isNaN(new Date(value).getTime())) return '时间未知';
+  return `${new Date(value).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+}
+
+function durationLabel(startedAt, completedAt) {
+  const duration = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  return Number.isFinite(duration) && duration >= 0 ? `${Math.round(duration / 1000)}s` : '耗时未知';
+}
+
+function formatReportMetadata(run, taskName) {
+  const name = String(taskName ?? '').trim() || '未命名巡检';
+  const window = run?.inspectionPlan?.checks?.[0]?.window ?? '窗口未知';
+  const instanceId = run?.taskInstanceId ?? run?.id ?? '实例未知';
+  const completedAt = formatReportTime(run?.completedAt);
+  const duration = durationLabel(run?.startedAt, run?.completedAt);
+  return {
+    taskName: name,
+    completedAt,
+    window,
+    instanceId,
+    duration,
+    line: `${name} · ${completedAt} · 窗口 ${window} · 实例 ${instanceId} · 耗时 ${duration}`,
+  };
+}
+
+function numericRatio(measurement) {
+  const gateValue = measurement.gate?.value;
+  if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value) || !Number.isFinite(gateValue)) return null;
+  if (gateValue === 0) return measurement.value === 0 ? 0 : 100;
+  const ratio = Math.abs(measurement.value / gateValue);
+  return Math.min(100, Math.max(0, Math.round(ratio * 1000) / 10));
+}
+
+function projectReportEvidence(report) {
+  if (!Array.isArray(report?.checkResults)) {
+    return (report?.keyEvidence ?? []).map((text, index) => ({
+      id: `legacy-evidence-${index + 1}`,
+      checkId: null,
+      label: '历史证据',
+      entity: '历史快照',
+      kind: 'qualitative',
+      displayValue: text,
+      gateDisplayValue: '原报告未保存结构化门禁',
+      status: index === 0 ? (report?.evidenceVerdict ?? 'NotEvaluated') : 'Verified',
+      ratioPercent: null,
+      order: index,
+    }));
+  }
+  return report.checkResults
+    .flatMap((result, resultIndex) =>
+      result.measurements.map((measurement, measurementIndex) => ({
+        ...measurement,
+        checkId: result.checkId,
+        status: result.status,
+        gateDisplayValue: measurement.gate.displayValue,
+        ratioPercent: numericRatio(measurement),
+        order: resultIndex * 100 + measurementIndex,
+      })),
+    )
+    .sort(
+      (left, right) => (STATUS_RANK[left.status] ?? 3) - (STATUS_RANK[right.status] ?? 3) || left.order - right.order,
+    );
+}
+
+function projectReportChecks(run) {
+  const results = new Map((run?.report?.checkResults ?? []).map((result) => [result.checkId, result]));
+  return (run?.inspectionPlan?.checks ?? []).map((check) => {
+    const result = results.get(check.id);
+    const measurements = result?.measurements ?? [];
+    return {
+      check,
+      status: result?.status ?? 'NotEvaluated',
+      summary: result?.summary ?? '证据不足',
+      actualDisplay: measurements.map((measurement) => measurement.displayValue).join(' / ') || '证据不足',
+      gateDisplay: measurements.map((measurement) => measurement.gate.displayValue).join(' / ') || check.rule,
+    };
+  });
+}
+
+function projectInterpretation(report) {
+  const interpretation = report?.interpretation;
+  return [
+    ['whatHappened', '发生了什么'],
+    ['likelyCause', '可能原因'],
+    ['recommendedAction', '建议动作'],
+  ].map(([key, label]) => ({
+    key,
+    label,
+    text: interpretation?.[key]?.text ?? '证据不足',
+    evidenceIds: interpretation?.[key]?.evidenceIds ?? [],
+  }));
+}
+
 function requireShareableRun(run) {
   if (!run?.report || !run.completedAt) throw new TypeError('A completed inspection run is required');
   return run.report;
 }
 
-function isoMinute(value) {
-  return new Date(value).toISOString().slice(0, 16).replace('T', ' ');
-}
-
 function buildReportShareText(run, taskName) {
   const report = requireShareableRun(run);
-  const evidence = report.keyEvidence.slice(0, 2).join('；');
+  const metadata = formatReportMetadata(run, taskName);
+  const evidence = projectReportEvidence(report)
+    .slice(0, 2)
+    .map((item) => `${item.label} ${item.displayValue}`)
+    .join('；');
   return [
     `结论：${report.actionLabel}`,
-    `时间：${isoMinute(run.completedAt)}`,
-    `任务：${String(taskName).trim()}`,
+    `报告：${metadata.line}`,
     `关键证据：${evidence}`,
+    `AI 解读：${projectInterpretation(report)[0].text}`,
     `结论边界：${report.scopeStatement}`,
   ].join('\n');
 }
@@ -4647,8 +5655,34 @@ function buildReportFilename(run, taskName) {
 
 function buildStandaloneReportHtml(run, taskName) {
   const report = requireShareableRun(run);
+  const metadata = formatReportMetadata(run, taskName);
   const name = escapeHtml(String(taskName).trim());
-  const evidence = report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  const reportEvidence = projectReportEvidence(report);
+  const evidenceTargets = new Map(
+    reportEvidence.map((item, index) => [item.id, { id: `evidence-${index + 1}`, label: `证据 ${index + 1}` }]),
+  );
+  const evidence = reportEvidence
+    .map((item, index) => {
+      const status = REPORT_STATUS_COPY[item.status] ?? REPORT_STATUS_COPY.NotEvaluated;
+      return `<article id="evidence-${index + 1}" class="evidence ${status.tone}"><div><strong>${escapeHtml(item.label)}</strong><span>${status.symbol} ${status.label}</span></div><small>${escapeHtml(item.entity)} · 证据 ${index + 1}</small><p>当前值 ${escapeHtml(item.displayValue)} · 门禁 ${escapeHtml(item.gateDisplayValue)}</p></article>`;
+    })
+    .join('');
+  const checks = projectReportChecks(run)
+    .map((item) => {
+      const status = REPORT_STATUS_COPY[item.status] ?? REPORT_STATUS_COPY.NotEvaluated;
+      return `<tr><td>${status.symbol} ${status.label}</td><td>${escapeHtml(item.check.purpose)}</td><td>${escapeHtml(item.check.entity)}</td><td>${escapeHtml(item.actualDisplay)} / ${escapeHtml(item.gateDisplay)}</td></tr>`;
+    })
+    .join('');
+  const interpretation = projectInterpretation(report)
+    .map((item) => {
+      const references = item.evidenceIds
+        .map((evidenceId) => evidenceTargets.get(evidenceId))
+        .filter(Boolean)
+        .map((target) => `<a href="#${target.id}">${target.label}</a>`)
+        .join('');
+      return `<article><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.text)}</p><footer>${references || '<small>证据不足</small>'}</footer></article>`;
+    })
+    .join('');
   const risks = report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
   const doctype = '<!' + 'doctype html>';
   return `${doctype}
@@ -4663,15 +5697,21 @@ function buildStandaloneReportHtml(run, taskName) {
     header,section{border:1px solid #29415f;border-radius:16px;background:#0e1d33;padding:22px;margin-bottom:14px}
     header{border-color:#397462;background:linear-gradient(145deg,#153b37,#0e1d33)}
     h1{font-size:30px;margin:8px 0}h2{font-size:16px;margin:0 0 12px}p,li{line-height:1.7;color:#b9cadc}
-    .meta{color:#72e6a6;font-size:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .meta{color:#72e6a6;font-size:12px}.pair,.evidence-grid,.interpretation{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .evidence{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.evidence>div{display:flex;justify-content:space-between;gap:12px}.evidence.violated{border-color:#a94456}.evidence.unresolved{border-color:#8d6b35}.evidence small{color:#738aa3}
+    table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #29415f;text-align:left;color:#b9cadc}
+    .interpretation article{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.interpretation footer{display:flex;flex-wrap:wrap;gap:8px}.interpretation a{color:#72e6a6;text-decoration:none;border:1px solid #397462;border-radius:999px;padding:3px 8px;font-size:12px}.interpretation small{color:#738aa3}
     .pair section{margin:0}.foot{font-size:12px;color:#738aa3;text-align:center;border:0;background:transparent}
-    @media(max-width:560px){body{padding:16px 12px}.pair{grid-template-columns:1fr}h1{font-size:24px}}
+    @media(max-width:560px){body{padding:16px 12px}.pair,.evidence-grid,.interpretation{grid-template-columns:1fr}h1{font-size:24px}table{font-size:12px}}
   </style>
 </head>
 <body>
-  <header><div class="meta">离线巡检报告 · ${escapeHtml(isoMinute(run.completedAt))}</div><h1>${escapeHtml(report.actionLabel)}</h1><p>${escapeHtml(report.title)}</p></header>
+  <header><div class="meta">${escapeHtml(metadata.line)}</div><h1>${escapeHtml(report.actionLabel)}</h1><p>${escapeHtml(report.title)}</p></header>
   <section><h2>${name}</h2><p>${escapeHtml(report.summary)}</p></section>
-  <div class="pair"><section><h2>关键证据</h2><ul>${evidence}</ul></section><section><h2>结论边界</h2><p>${escapeHtml(report.scopeStatement)}</p><h2>残余风险</h2><ul>${risks}</ul></section></div>
+  <section><h2>证据仪表盘</h2><div class="evidence-grid">${evidence}</div></section>
+  <section><h2>检查结果</h2><table><thead><tr><th>状态</th><th>检查</th><th>对象</th><th>实际 / 门禁</th></tr></thead><tbody>${checks}</tbody></table></section>
+  <section><h2>AI 解读</h2><div class="interpretation">${interpretation}</div></section>
+  <div class="pair"><section><h2>结论边界</h2><p>${escapeHtml(report.scopeStatement)}</p></section><section><h2>残余风险</h2><ul>${risks}</ul></section></div>
   <section class="foot">本报告由 NOVA 巡检 Copilot 离线演示生成 · 数据为 mock</section>
 </body>
 </html>`;
@@ -4747,11 +5787,11 @@ function renderSavedInspectionHome(vm) {
   </section>`;
 }
 
-function renderHistoryEntry(run) {
+function renderHistoryEntry(run, taskName) {
   const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
   return `<details class="saved-history-entry" data-run-id="${escapeHtml(run.id)}">
     <summary><span class="run-history-dot is-${runTone(run)}"></span><time>${escapeHtml(formatRunTime(run.completedAt))}</time><strong>${escapeHtml(action)}</strong><small>${escapeHtml(run.report?.summary ?? '')}</small></summary>
-    ${renderHistoricalReportSnapshot(run)}
+    ${renderHistoricalReportSnapshot(run, taskName)}
   </details>`;
 }
 
@@ -4766,8 +5806,8 @@ function renderSavedInspectionHistory(vm) {
     </header>
     <h3 class="saved-history-title">运行历史</h3>
     ${historyDiagnostics?.status === 'degraded' ? '<p class="storage-warning" role="status">历史暂不可用：已隔离损坏记录，仍可直跑</p>' : ''}
-    ${recent.length ? `<div class="saved-history-list">${recent.map(renderHistoryEntry).join('')}</div>` : '<p class="saved-inspection-empty">还没有执行记录</p>'}
-    ${earlier.length ? `<details class="saved-history-earlier"><summary>显示更早（${earlier.length}）</summary>${earlier.map(renderHistoryEntry).join('')}</details>` : ''}
+    ${recent.length ? `<div class="saved-history-list">${recent.map((run) => renderHistoryEntry(run, definition.name)).join('')}</div>` : '<p class="saved-inspection-empty">还没有执行记录</p>'}
+    ${earlier.length ? `<details class="saved-history-earlier"><summary>显示更早（${earlier.length}）</summary>${earlier.map((run) => renderHistoryEntry(run, definition.name)).join('')}</details>` : ''}
   </section>`;
 }
 
@@ -5188,16 +6228,11 @@ function renderPersonalSave(vm) {
 function renderReportJourneyDetails(vm) {
   const run = vm.savedInspection.currentRun;
   return `${renderSelectedContextResults(run)}
-    <section class="model-risk-summary">
-      <h3>模型风险总结</h3>
-      <ul>${vm.report.residualRisks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>
-    </section>
     ${renderPersonalSave(vm)}`;
 }
 
-function formatReportTime(value) {
-  if (!value) return '时间未知';
-  return new Date(value).toLocaleString('zh-CN', { hour12: false });
+function renderReportMetadata(run, taskName) {
+  return `<p class="report-metadata" data-testid="report-metadata">${escapeHtml(formatReportMetadata(run, taskName).line)}</p>`;
 }
 
 function renderDecisionHero(report, extra = '') {
@@ -5207,7 +6242,7 @@ function renderDecisionHero(report, extra = '') {
   </div>`;
 }
 
-function renderReportEvidence(report) {
+function renderEvidenceSummary(report) {
   return `<div class="semantic-pair">
       <div><span>证据结论</span><code>${escapeHtml(report.evidenceVerdict)}</code></div>
       <div><span>行动决策</span><code>${escapeHtml(report.action)}</code></div>
@@ -5217,11 +6252,97 @@ function renderReportEvidence(report) {
       <span class="violated">! ${report.evidenceCounts.violated} 违例</span>
       <span class="unresolved">? ${report.evidenceCounts.unresolved} 未决</span>
     </div>
-    <p class="report-summary single-line-note" title="${escapeHtml(report.summary)}">${escapeHtml(report.summary)}</p>
-    <div class="report-columns">
-      <section><h3>关键证据</h3><ul>${report.keyEvidence.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-      <section><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></section>
-    </div>`;
+    <p class="report-summary">${escapeHtml(report.summary)}</p>`;
+}
+
+function renderEvidenceCard(item) {
+  const status = REPORT_STATUS_COPY[item.status] ?? REPORT_STATUS_COPY.NotEvaluated;
+  const measurement =
+    item.kind === 'numeric'
+      ? `<div class="evidence-measurement"><strong>${escapeHtml(item.displayValue)}</strong><span>门禁 ${escapeHtml(item.gateDisplayValue)}</span></div>
+        <div class="evidence-track" role="progressbar" aria-label="${escapeHtml(item.label)}相对门禁" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.ratioPercent}"><i style="--evidence-progress:${item.ratioPercent}%"></i></div>`
+      : `<div class="evidence-qualitative"><strong>${escapeHtml(item.displayValue)}</strong><span>门禁 ${escapeHtml(item.gateDisplayValue)}</span></div>`;
+  return `<article tabindex="-1" class="evidence-card is-${status.tone}" data-evidence-id="${escapeHtml(item.id)}" data-check-id="${escapeHtml(item.checkId ?? '')}">
+    <header><div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.entity)}</small></div><span>${status.symbol} ${status.label}</span></header>
+    ${measurement}
+  </article>`;
+}
+
+function renderEvidenceDashboard(report) {
+  return `<section class="report-section evidence-dashboard" data-testid="evidence-dashboard" aria-labelledby="evidence-title">
+    <header class="report-section-heading"><div><h3 id="evidence-title">证据仪表盘</h3><p>违例与未决优先显示</p></div></header>
+    <div class="evidence-grid">${projectReportEvidence(report).map(renderEvidenceCard).join('')}</div>
+  </section>`;
+}
+
+function renderCheckResult(item) {
+  const { check } = item;
+  const status = REPORT_STATUS_COPY[item.status] ?? REPORT_STATUS_COPY.NotEvaluated;
+  return `<details class="report-check-result is-${status.tone}" data-testid="report-check-result">
+    <summary>
+      <span class="report-check-status">${status.symbol} ${status.label}</span>
+      <span class="report-check-name"><strong>${escapeHtml(check.purpose)}</strong><small>${escapeHtml(check.entity)}</small></span>
+      <span class="report-check-value"><small>实际值</small><strong>${escapeHtml(item.actualDisplay)}</strong></span>
+      <span class="report-check-gate"><small>门禁</small><strong>${escapeHtml(item.gateDisplay)}</strong></span>
+      <span class="report-check-toggle">查看细节⌄</span>
+    </summary>
+    <div class="report-check-body">
+      <p>${escapeHtml(item.summary)}</p>
+      <dl>
+        <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
+        <div><dt>检查指标</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
+        <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
+        <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
+        <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
+        <div><dt>失败动作</dt><dd>${escapeHtml(check.failureAction)}</dd></div>
+        <div><dt>事实来源</dt><dd>${check.sourceRefs.map((source) => `<code>${escapeHtml(source)}</code>`).join(' ')}</dd></div>
+      </dl>
+    </div>
+  </details>`;
+}
+
+function renderReportChecks(run, report) {
+  return `<section class="report-section report-checks" data-testid="report-checks" aria-labelledby="report-checks-title">
+    <header class="report-section-heading"><div><h3 id="report-checks-title">检查结果</h3><p>共 ${run?.inspectionPlan?.checks?.length ?? 0} 项已执行检查</p></div>
+      <div class="evidence-badges"><span class="verified">✓ ${report.evidenceCounts.verified}</span><span class="violated">! ${report.evidenceCounts.violated}</span><span class="unresolved">? ${report.evidenceCounts.unresolved}</span></div>
+    </header>
+    <div class="report-check-list">${projectReportChecks(run).map(renderCheckResult).join('')}</div>
+  </section>`;
+}
+
+function renderInterpretation(report) {
+  const evidenceOrder = new Map(projectReportEvidence(report).map((item, index) => [item.id, index + 1]));
+  return `<section class="report-section ai-interpretation" data-testid="ai-interpretation" aria-labelledby="interpretation-title">
+    <header class="report-section-heading"><div><h3 id="interpretation-title">AI 解读</h3><p>只解释已锁定证据</p></div></header>
+    <div class="interpretation-list">${projectInterpretation(report)
+      .map(
+        (section) =>
+          `<article><span>${escapeHtml(section.label)}</span><p>${escapeHtml(section.text)}</p><footer>${
+            section.evidenceIds.length
+              ? section.evidenceIds
+                  .map(
+                    (id) =>
+                      `<button type="button" data-evidence-target="${escapeHtml(id)}">证据 ${evidenceOrder.get(id) ?? '·'}</button>`,
+                  )
+                  .join('')
+              : '<small>证据不足</small>'
+          }</footer></article>`,
+      )
+      .join('')}</div>
+  </section>`;
+}
+
+function renderBoundary(report) {
+  return `<section class="report-section report-boundary"><div><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p></div><div><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></section>`;
+}
+
+function renderReportCore(run, taskName, report) {
+  return `${renderReportMetadata(run, taskName)}
+    ${renderEvidenceSummary(report)}
+    ${renderEvidenceDashboard(report)}
+    ${renderReportChecks(run, report)}
+    ${renderInterpretation(report)}
+    ${renderBoundary(report)}`;
 }
 
 function comparisonText(item) {
@@ -5243,47 +6364,42 @@ function renderRunComparison(comparison) {
     added: ['+', '新增'],
     removed: ['−', '移除'],
   };
-  return `<section class="run-comparison" data-testid="run-comparison">
-    <h3>${escapeHtml(heading)}</h3>
-    <ul>${comparison.items
-      .map((item) => {
-        const [symbol, label] = labels[item.kind];
-        return `<li class="is-${item.kind}"><span>${symbol}</span><div><strong>${label}</strong><p>${escapeHtml(comparisonText(item))}</p></div></li>`;
-      })
-      .join('')}</ul>
-  </section>`;
+  return `<section class="run-comparison" data-testid="run-comparison"><h3>${escapeHtml(heading)}</h3><ul>${comparison.items
+    .map((item) => {
+      const [symbol, label] = labels[item.kind];
+      return `<li class="is-${item.kind}"><span>${symbol}</span><div><strong>${label}</strong><p>${escapeHtml(comparisonText(item))}</p></div></li>`;
+    })
+    .join('')}</ul></section>`;
 }
 
 function renderShareControls(message) {
-  return `<div class="report-share" aria-label="分享当前报告">
-    <button data-share-action="copy" type="button">复制摘要</button>
-    <button data-share-action="export" type="button">导出报告</button>
-    ${message ? `<p class="share-toast" role="status">${escapeHtml(message)}</p>` : ''}
-  </div>`;
+  return `<div class="report-share" aria-label="分享当前报告"><button data-share-action="copy" type="button">复制摘要</button><button data-share-action="export" type="button">导出报告</button>${message ? `<p class="share-toast" role="status">${escapeHtml(message)}</p>` : ''}</div>`;
 }
 
-function renderHistoricalReportSnapshot(run) {
+function renderHistoricalReportSnapshot(run, taskName = '巡检报告') {
   const report = run.report;
   return `<div class="historical-report report-stage ${report.action.toLowerCase()}" data-testid="historical-report">
     <p class="historical-banner">历史快照 · ${escapeHtml(formatReportTime(run.completedAt))} · 不可修改</p>
     ${renderDecisionHero(report)}
-    ${renderReportEvidence(report)}
+    ${renderReportCore(run, taskName, report)}
     ${renderSelectedContextResults(run)}
   </div>`;
 }
 
 function renderCurrentReport(vm) {
   const report = vm.report;
-  return `<div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report" data-current-run-id="${escapeHtml(vm.savedInspection.currentRun?.id ?? '')}">
+  const run = vm.savedInspection.currentRun;
+  const taskName =
+    vm.savedInspection.reportDefinition?.name ?? `${vm.workspace?.declaredChange?.entities?.[0] ?? '服务'} 巡检`;
+  return `<div class="report-stage ${report.action.toLowerCase()}" data-testid="final-report" data-current-run-id="${escapeHtml(run?.id ?? '')}">
     ${renderDecisionHero(report, renderShareControls(vm.state.shareToast))}
     ${renderRunComparison(vm.savedInspection.comparison)}
-    ${renderReportEvidence(report)}
+    ${renderReportCore(run, taskName, report)}
     ${renderReportJourneyDetails(vm)}
     ${renderPlaybookProposal(vm.playbook)}
     ${
       report.rcAgent
-        ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>
-          ${
+        ? `<button class="rc-button" data-action="RC_TOGGLED" type="button">${vm.state.rcExpanded ? '收起 RC Agent' : '启动 RC Agent'}</button>${
             vm.state.rcExpanded
               ? `<section class="rc-panel"><span>${escapeHtml(report.rcAgent.title)}</span><h3>${escapeHtml(report.rcAgent.rootCause)}</h3><div class="rc-chain">${report.rcAgent.chain.map((item) => `<code>${escapeHtml(item)}</code>`).join('<i>→</i>')}</div><p>${escapeHtml(report.rcAgent.recommendation)}</p></section>`
               : ''
@@ -5652,6 +6768,19 @@ root.addEventListener('click', (event) => {
   const shareButton = event.target.closest('[data-share-action]');
   if (shareButton) {
     void shareCurrentReport(shareButton.dataset.shareAction);
+    return;
+  }
+
+  const evidenceButton = event.target.closest('[data-evidence-target]');
+  if (evidenceButton) {
+    const target = [...root.querySelectorAll('[data-evidence-id]')].find(
+      (item) => item.dataset.evidenceId === evidenceButton.dataset.evidenceTarget,
+    );
+    if (!target) return;
+    for (const item of root.querySelectorAll('.evidence-card.is-highlighted')) item.classList.remove('is-highlighted');
+    target.classList.add('is-highlighted');
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 

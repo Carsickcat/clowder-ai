@@ -72,9 +72,5 @@ function renderPersonalSave(vm) {
 export function renderReportJourneyDetails(vm) {
   const run = vm.savedInspection.currentRun;
   return `${renderSelectedContextResults(run)}
-    <section class="model-risk-summary">
-      <h3>模型风险总结</h3>
-      <ul>${vm.report.residualRisks.map((risk) => `<li>${escapeHtml(risk)}</li>`).join('')}</ul>
-    </section>
     ${renderPersonalSave(vm)}`;
 }

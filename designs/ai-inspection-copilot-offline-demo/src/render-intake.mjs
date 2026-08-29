@@ -72,11 +72,11 @@ function renderSavedInspectionHome(vm) {
   </section>`;
 }
 
-function renderHistoryEntry(run) {
+function renderHistoryEntry(run, taskName) {
   const action = run.report?.actionLabel ?? run.report?.action ?? '未知结论';
   return `<details class="saved-history-entry" data-run-id="${escapeHtml(run.id)}">
     <summary><span class="run-history-dot is-${runTone(run)}"></span><time>${escapeHtml(formatRunTime(run.completedAt))}</time><strong>${escapeHtml(action)}</strong><small>${escapeHtml(run.report?.summary ?? '')}</small></summary>
-    ${renderHistoricalReportSnapshot(run)}
+    ${renderHistoricalReportSnapshot(run, taskName)}
   </details>`;
 }
 
@@ -91,8 +91,8 @@ function renderSavedInspectionHistory(vm) {
     </header>
     <h3 class="saved-history-title">运行历史</h3>
     ${historyDiagnostics?.status === 'degraded' ? '<p class="storage-warning" role="status">历史暂不可用：已隔离损坏记录，仍可直跑</p>' : ''}
-    ${recent.length ? `<div class="saved-history-list">${recent.map(renderHistoryEntry).join('')}</div>` : '<p class="saved-inspection-empty">还没有执行记录</p>'}
-    ${earlier.length ? `<details class="saved-history-earlier"><summary>显示更早（${earlier.length}）</summary>${earlier.map(renderHistoryEntry).join('')}</details>` : ''}
+    ${recent.length ? `<div class="saved-history-list">${recent.map((run) => renderHistoryEntry(run, definition.name)).join('')}</div>` : '<p class="saved-inspection-empty">还没有执行记录</p>'}
+    ${earlier.length ? `<details class="saved-history-earlier"><summary>显示更早（${earlier.length}）</summary>${earlier.map((run) => renderHistoryEntry(run, definition.name)).join('')}</details>` : ''}
   </section>`;
 }
 

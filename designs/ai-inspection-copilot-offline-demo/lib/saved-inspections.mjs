@@ -316,6 +316,159 @@ function selectedContextResults(selectedContext) {
     }));
 }
 
+const REPORT_RESULT_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
+
+function missingCheckResult(check) {
+  return {
+    checkId: check.id,
+    status: 'NotEvaluated',
+    summary: `${check.purpose}：证据不足`,
+    measurements: [
+      {
+        id: `missing-${check.id}`,
+        label: check.metric,
+        entity: check.entity,
+        kind: 'qualitative',
+        displayValue: '证据不足',
+        gate: { displayValue: check.rule },
+      },
+    ],
+  };
+}
+
+function reportCounts(checkResults) {
+  return checkResults.reduce(
+    (counts, result) => {
+      if (result.status === 'Verified') counts.verified += 1;
+      else if (result.status === 'Violated') counts.violated += 1;
+      else counts.unresolved += 1;
+      return counts;
+    },
+    { verified: 0, violated: 0, unresolved: 0 },
+  );
+}
+
+function interpretationForResults(report, checkResults) {
+  const evidenceIds = new Set(
+    checkResults.flatMap((result) => result.measurements.map((measurement) => measurement.id)),
+  );
+  const groundSection = (section) => {
+    const anchors = section?.evidenceIds ?? [];
+    return section?.text && anchors.length && anchors.every((id) => evidenceIds.has(id))
+      ? { text: section.text, evidenceIds: anchors }
+      : { text: '证据不足', evidenceIds: [] };
+  };
+  const summarizeResults = (results) => {
+    const grounded = results.filter((result) => result.measurements.length);
+    return grounded.length
+      ? {
+          text: grounded.map((result) => result.summary).join('；'),
+          evidenceIds: grounded.map((result) => result.measurements[0].id),
+        }
+      : { text: '证据不足', evidenceIds: [] };
+  };
+  const violated = checkResults.filter((result) => result.status === 'Violated');
+  if (violated.length) {
+    const whatHappened = groundSection(report.interpretation.whatHappened);
+    const recommendedAction = groundSection(report.interpretation.recommendedAction);
+    return {
+      whatHappened: whatHappened.evidenceIds.length ? whatHappened : summarizeResults(violated),
+      likelyCause: groundSection(report.interpretation.likelyCause),
+      recommendedAction: recommendedAction.evidenceIds.length
+        ? recommendedAction
+        : {
+            text: '按违例检查的失败动作处置，并在证据恢复前保持当前变更范围。',
+            evidenceIds: summarizeResults(violated).evidenceIds,
+          },
+    };
+  }
+  const unresolved = checkResults.filter((result) => ['Inconclusive', 'NotEvaluated'].includes(result.status));
+  if (unresolved.length) {
+    const unresolvedEvidenceIds = unresolved.flatMap((result) =>
+      result.measurements.map((measurement) => measurement.id),
+    );
+    return {
+      whatHappened: { text: unresolved.map((result) => result.summary).join('；'), evidenceIds: unresolvedEvidenceIds },
+      likelyCause: { text: '证据不足', evidenceIds: [] },
+      recommendedAction: {
+        text: '保持当前进度，补足未决检查证据后再扩大变更范围。',
+        evidenceIds: unresolvedEvidenceIds,
+      },
+    };
+  }
+  const verifiedEvidenceIds = checkResults.flatMap((result) =>
+    result.measurements.slice(0, 1).map((measurement) => measurement.id),
+  );
+  const whatHappened = groundSection(report.interpretation.whatHappened);
+  const recommendedAction = groundSection(report.interpretation.recommendedAction);
+  return {
+    whatHappened: whatHappened.evidenceIds.length ? whatHappened : summarizeResults(checkResults),
+    likelyCause: groundSection(report.interpretation.likelyCause),
+    recommendedAction: recommendedAction.evidenceIds.length
+      ? recommendedAction
+      : {
+          text: '锁定计划内的检查均通过；按当前计划继续，并保持原观察窗口。',
+          evidenceIds: verifiedEvidenceIds,
+        },
+    ...(verifiedEvidenceIds.length ? {} : { whatHappened: { text: '证据不足', evidenceIds: [] } }),
+  };
+}
+
+function materializedDecision(report, counts, removedConclusiveResult) {
+  if (counts.violated > 0) return {};
+  if (counts.unresolved > 0) {
+    return {
+      evidenceVerdict: 'Inconclusive',
+      action: 'Proceed-with-conditions',
+      actionLabel: '建议保持当前进度并继续观察',
+      title: '部分检查证据不足',
+      summary: `已执行检查未发现违例，但有 ${counts.unresolved} 项证据不足。`,
+      rcAgent: null,
+    };
+  }
+  const retainOriginalCopy = report.evidenceVerdict === 'Verified' && !removedConclusiveResult;
+  return {
+    evidenceVerdict: 'Verified',
+    action: 'Proceed',
+    actionLabel: retainOriginalCopy ? report.actionLabel : '建议按当前检查计划继续',
+    title: retainOriginalCopy ? report.title : '已执行检查未发现关键违例',
+    summary: retainOriginalCopy ? report.summary : `锁定计划内的 ${counts.verified} 项检查均通过确定性验证。`,
+    rcAgent: null,
+  };
+}
+
+function materializeReportForPlan(report, inspectionPlan) {
+  if (!Array.isArray(report?.checkResults) || !report.interpretation) return clone(report);
+  const resultByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
+  const checkResults = inspectionPlan.checks.map((check) =>
+    clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)),
+  );
+  const counts = reportCounts(checkResults);
+  const orderedEvidence = [...checkResults].sort(
+    (left, right) =>
+      REPORT_RESULT_RANK[left.status] - REPORT_RESULT_RANK[right.status] ||
+      inspectionPlan.checkIds.indexOf(left.checkId) - inspectionPlan.checkIds.indexOf(right.checkId),
+  );
+  const planCheckIds = new Set(inspectionPlan.checkIds);
+  const removedConclusiveResult = report.checkResults.some(
+    (result) => !planCheckIds.has(result.checkId) && ['Verified', 'Violated'].includes(result.status),
+  );
+  const hasUnresolved = counts.unresolved > 0;
+  const materialized = {
+    ...clone(report),
+    ...materializedDecision(report, counts, removedConclusiveResult),
+    evidenceCounts: counts,
+    keyEvidence: orderedEvidence.slice(0, 3).map((result) => result.summary),
+    residualRisks: hasUnresolved
+      ? checkResults.filter((result) => result.status !== 'Verified').map((result) => result.summary)
+      : clone(report.residualRisks),
+    checkResults,
+    interpretation: interpretationForResults(report, checkResults),
+  };
+  if (!validReportContract(materialized)) throw new TypeError('Inspection run requires a valid report contract');
+  return materialized;
+}
+
 export function createInspectionRun({
   id,
   taskInstance,
@@ -331,6 +484,7 @@ export function createInspectionRun({
   if (!Array.isArray(executionResults) || !executionResults.every(validExecutionResult)) {
     throw new TypeError('Inspection run requires structured execution results');
   }
+  const runReport = materializeReportForPlan(report, taskInstance.inspectionPlan);
   return deepFreeze({
     id,
     taskInstanceId: taskInstance.id,
@@ -346,7 +500,7 @@ export function createInspectionRun({
       status,
       fact,
     })),
-    report: clone(report),
+    report: runReport,
   });
 }
 

@@ -75,6 +75,71 @@ function validRootCauseAgent(agent) {
   );
 }
 
+function validMeasurement(measurement) {
+  if (
+    !measurement ||
+    typeof measurement !== 'object' ||
+    !nonEmptyString(measurement.id) ||
+    !nonEmptyString(measurement.label) ||
+    !nonEmptyString(measurement.entity) ||
+    !['numeric', 'qualitative'].includes(measurement.kind) ||
+    !nonEmptyString(measurement.displayValue) ||
+    !measurement.gate ||
+    typeof measurement.gate !== 'object' ||
+    !nonEmptyString(measurement.gate.displayValue)
+  ) {
+    return false;
+  }
+  if (measurement.kind === 'qualitative') return true;
+  return (
+    Number.isFinite(measurement.value) &&
+    nonEmptyString(measurement.unit) &&
+    Number.isFinite(measurement.gate.value) &&
+    nonEmptyString(measurement.gate.operator) &&
+    nonEmptyString(measurement.gate.unit)
+  );
+}
+
+function validV2ReportContract(report) {
+  const hasResults = Object.hasOwn(report, 'checkResults');
+  const hasInterpretation = Object.hasOwn(report, 'interpretation');
+  if (!hasResults && !hasInterpretation) return true;
+  if (!hasResults || !hasInterpretation || !Array.isArray(report.checkResults) || !report.checkResults.length) {
+    return false;
+  }
+  const checkIds = new Set();
+  const measurementIds = new Set();
+  for (const result of report.checkResults) {
+    if (
+      !result ||
+      typeof result !== 'object' ||
+      !nonEmptyString(result.checkId) ||
+      checkIds.has(result.checkId) ||
+      !EVIDENCE_VERDICT_SET.has(result.status) ||
+      !nonEmptyString(result.summary) ||
+      !Array.isArray(result.measurements) ||
+      !result.measurements.length ||
+      !result.measurements.every(validMeasurement)
+    ) {
+      return false;
+    }
+    checkIds.add(result.checkId);
+    for (const measurement of result.measurements) {
+      if (measurementIds.has(measurement.id)) return false;
+      measurementIds.add(measurement.id);
+    }
+  }
+  const interpretationKeys = ['whatHappened', 'likelyCause', 'recommendedAction'];
+  return interpretationKeys.every((key) => {
+    const section = report.interpretation?.[key];
+    if (!section || typeof section !== 'object' || !nonEmptyString(section.text) || !stringArray(section.evidenceIds)) {
+      return false;
+    }
+    if (section.text === '证据不足') return section.evidenceIds.length === 0;
+    return section.evidenceIds.length > 0 && section.evidenceIds.every((id) => measurementIds.has(id));
+  });
+}
+
 export function validReportContract(report) {
   return (
     report &&
@@ -88,7 +153,8 @@ export function validReportContract(report) {
     validEvidenceCounts(report.evidenceCounts) &&
     stringArray(report.keyEvidence) &&
     stringArray(report.residualRisks) &&
-    validRootCauseAgent(report.rcAgent)
+    validRootCauseAgent(report.rcAgent) &&
+    validV2ReportContract(report)
   );
 }
 

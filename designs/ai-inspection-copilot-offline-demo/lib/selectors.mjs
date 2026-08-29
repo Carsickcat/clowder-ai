@@ -141,7 +141,8 @@ export function selectExecutionView(state) {
 
 export function selectReportView(state) {
   const workspace = requireWorkspace(state);
-  return state.phase === 'report' ? workspace.report : null;
+  if (state.phase !== 'report') return null;
+  return state.library.runs.find((run) => run.id === state.currentRunId)?.report ?? workspace.report;
 }
 
 export function selectPlaybookView(state) {
