@@ -126,9 +126,9 @@ git diff --check origin/main...HEAD
   exit 0
 
 pnpm gate
-  product checks/lint/tests passed; unrelated packages/web build failed
-  same <Html> prerender error independently reproduced on clean main@5b8b9ae
-  feature diff contains 0 packages/web files
+  passed on exact HEAD 856092398723797cd4d671c72cd21d533e0e0993
+  based on latest origin/main@5b8b9ae715cd4cd6bebe1cb9bed96c21b1f63563
+  check, lint, tests, build and Windows smoke all green
 ```
 
 ### 前端证据

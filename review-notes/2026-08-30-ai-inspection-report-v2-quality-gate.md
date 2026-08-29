@@ -69,8 +69,8 @@ Dogfood 发现并关闭两类真缺陷：自定义 bundler 漏收新 projector�
 - Exact product worktree: clean at `6d3f3b8c910236d8d26eddc0db570b9617f16a29` before this review packet.
 - Fresh-context: 3 P2 fixed，Fable scoped recheck 为 0 remaining findings。
 
-Repository `pnpm gate` 已运行并完成 check、lint、tests，随后在无关的 `packages/web` Next build 失败：`<Html> should not be imported outside of pages/_document`。相同命令已在独立、干净的 `main@5b8b9ae` 验收沙箱复现完全相同错误；本分支 diff 不包含 `packages/web/**`。该结果记录为基线构建 blocker，不伪报全仓 gate 绿色，也不在本功能分支修复跨 feature 的 Web 基线。
+Repository `pnpm gate` 已在清除继承的 `NODE_ENV` 后于 exact HEAD 全绿：check、lint、tests、build 与 Windows smoke 均通过，且最终 HEAD/base invariant 成立。此前出现的 Next `<Html>` 预渲染错误由作者错误地把 `NODE_ENV=development` 带入生产构建造成；它不是主线基线故障，也不是产品代码 finding。
 
 ## Gate verdict
 
-本功能的 spec、产品测试、浏览器验收、静态门禁、fresh-context 与设计终审均已闭合，可进入独立正式代码 review。全仓 Next build 的既有基线失败明确保留给 reviewer/merge-gate 判断；本报告不授权提前合入。
+本功能的 spec、产品测试、浏览器验收、完整仓库门禁、fresh-context 与设计终审均已闭合，可进入独立正式代码 review。本报告不授权提前合入。
