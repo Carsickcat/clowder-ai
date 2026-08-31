@@ -1,5 +1,6 @@
 import { deepFreeze, reconcileChange } from './domain.mjs';
 import { createMetricRule } from './metric-catalog.mjs';
+import { createTrendSeries } from './trend-evidence.mjs';
 
 function check(input) {
   return {
@@ -160,6 +161,7 @@ const naturalLanguagePass = {
             value: 99.82,
             unit: '%',
             displayValue: '99.82%',
+            series: createTrendSeries(99.78, 99.8, 99.81, 99.83, 99.82, 99.82),
             gate: { operator: '>=', value: 99.59, unit: '%', displayValue: '下降不超过 0.20pp' },
           },
         ],
@@ -178,6 +180,7 @@ const naturalLanguagePass = {
             value: 186,
             unit: 'ms',
             displayValue: '186ms',
+            series: createTrendSeries(179, 181, 184, 188, 185, 186),
             gate: { operator: '<=', value: 198, unit: 'ms', displayValue: '增幅 ≤ 10%' },
           },
           {
@@ -189,6 +192,7 @@ const naturalLanguagePass = {
             value: 0.18,
             unit: '%',
             displayValue: '0.18%',
+            series: createTrendSeries(0.12, 0.14, 0.16, 0.2, 0.17, 0.18),
             gate: { operator: '<=', value: 0.5, unit: '%', displayValue: '≤ 0.5%' },
           },
         ],
@@ -223,6 +227,7 @@ const naturalLanguagePass = {
             value: 3.8,
             unit: 'ms',
             displayValue: '3.8ms',
+            series: createTrendSeries(3.1, 3.3, 3.6, 4, 3.7, 3.8),
             gate: { operator: '<=', value: 6, unit: 'ms', displayValue: '≤ 6ms' },
           },
         ],
@@ -409,6 +414,7 @@ const changeTicketRisk = {
             value: 99.91,
             unit: '%',
             displayValue: '99.91%',
+            series: createTrendSeries(99.94, 99.93, 99.92, 99.9, 99.91, 99.91),
             gate: { operator: '>=', value: 99.82, unit: '%', displayValue: '下降不超过 0.10pp' },
           },
         ],
@@ -427,6 +433,7 @@ const changeTicketRisk = {
             value: 210,
             unit: 'ms',
             displayValue: '210ms',
+            series: createTrendSeries(196, 201, 205, 214, 211, 210),
             gate: { operator: '<=', value: 216, unit: 'ms', displayValue: '增幅 ≤ 8%' },
           },
         ],
@@ -461,6 +468,7 @@ const changeTicketRisk = {
             value: 96,
             unit: '%',
             displayValue: '96%',
+            series: createTrendSeries(72, 78, 83, 89, 94, 96),
             gate: { operator: '<=', value: 80, unit: '%', displayValue: '≤ 80%' },
           },
           {
@@ -472,6 +480,7 @@ const changeTicketRisk = {
             value: 68,
             unit: 'ms',
             displayValue: '68ms',
+            series: createTrendSeries(12, 18, 26, 39, 55, 68),
             gate: { operator: '<=', value: 20, unit: 'ms', displayValue: '≤ 20ms' },
           },
           {

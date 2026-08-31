@@ -23,17 +23,52 @@ export function selectRunsForDefinition(definition, runs = []) {
 function compareExecutionResult(id, before, after) {
   if (!before) return { id, label: after.label, kind: 'added', before: null, after };
   if (!after) return { id, label: before.label, kind: 'removed', before, after: null };
-  if (before.status === after.status && before.fact === after.fact && before.label === after.label) return null;
+  if (
+    before.status === after.status &&
+    before.fact === after.fact &&
+    before.label === after.label &&
+    before.signature === after.signature
+  ) {
+    return null;
+  }
   const beforeRank = RESULT_RANK[before.status];
   const afterRank = RESULT_RANK[after.status];
   const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
-  return { id, label: after.label, kind, before, after };
+  return {
+    id,
+    label: after.label,
+    kind,
+    before,
+    after,
+    ...(before.fact === after.fact && before.signature !== after.signature ? { evidenceChanged: true } : {}),
+  };
+}
+
+function reportComparisonResults(run) {
+  if (!Array.isArray(run?.report?.checkResults)) return null;
+  const labels = new Map((run.inspectionPlan?.checks ?? []).map((check) => [check.id, check.purpose]));
+  return run.report.checkResults.map((result) => ({
+    id: result.checkId,
+    label: labels.get(result.checkId) ?? result.checkId,
+    status: result.status,
+    fact: result.summary,
+    signature: JSON.stringify({ status: result.status, summary: result.summary, measurements: result.measurements }),
+  }));
+}
+
+function comparisonResults(run) {
+  const reportResults = reportComparisonResults(run);
+  if (reportResults) return reportResults;
+  if (!Array.isArray(run?.executionResults)) return null;
+  return run.executionResults.map((result) => ({ ...result, signature: null }));
 }
 
 export function compareInspectionRuns(currentRun, previousRun) {
-  if (!Array.isArray(currentRun?.executionResults) || !Array.isArray(previousRun?.executionResults)) return null;
-  const current = new Map(currentRun.executionResults.map((result) => [result.id, result]));
-  const previous = new Map(previousRun.executionResults.map((result) => [result.id, result]));
+  const currentResults = comparisonResults(currentRun);
+  const previousResults = comparisonResults(previousRun);
+  if (!currentResults || !previousResults) return null;
+  const current = new Map(currentResults.map((result) => [result.id, result]));
+  const previous = new Map(previousResults.map((result) => [result.id, result]));
   const ids = [...new Set([...current.keys(), ...previous.keys()])].sort();
   const items = [];
   for (const id of ids) {

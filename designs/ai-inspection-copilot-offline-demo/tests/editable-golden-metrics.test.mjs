@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createDemoSession, demoReducer } from '../lib/reducer.mjs';
-import { parseInspectionLibraryWithDiagnostics } from '../lib/saved-inspections.mjs';
-import { selectCommittedChecks, selectReportView, selectViewModel } from '../lib/selectors.mjs';
+import { createInspectionRun, parseInspectionLibraryWithDiagnostics } from '../lib/saved-inspections.mjs';
+import { compareInspectionRuns, selectCommittedChecks, selectReportView, selectViewModel } from '../lib/selectors.mjs';
 import { renderApp } from '../src/render.mjs';
 
 const orderRequest = {
@@ -76,10 +76,29 @@ test('an editable threshold is materialized once and deterministically changes t
   assert.equal(result.status, 'Violated');
   assert.equal(report.evidenceVerdict, 'Violated');
   assert.equal(report.action, 'Pause');
+  assert.doesNotMatch(report.interpretation.whatHappened.text, /保持稳定/);
+  assert.match(report.interpretation.whatHappened.text, /违例/);
 
   const repeated = dispatch(state, 'PLAN_CONFIRMED');
   assert.equal(repeated, state);
   assert.equal(repeated.library.runs.length, 1);
+});
+
+test('an edited passing gate rewrites the locked evidence summary from the materialized rule', () => {
+  let state = advanceToPlan();
+  state = dispatch(state, 'CHECK_RULE_UPDATED', {
+    checkId: 'cache-health',
+    ruleId: 'redis.command_latency',
+    operator: '<=',
+    threshold: 5,
+  });
+  state = dispatch(state, 'PLAN_CONFIRMED');
+
+  const result = selectReportView(state).checkResults.find((item) => item.checkId === 'cache-health');
+  assert.equal(result.status, 'Verified');
+  assert.match(result.summary, /缓存命令 p99 3\.8ms/);
+  assert.match(result.summary, /<= 5ms/);
+  assert.doesNotMatch(result.summary, /6ms/);
 });
 
 test('plan UI drills into golden metrics and offers one parallel execution action', () => {
@@ -97,6 +116,16 @@ test('plan UI drills into golden metrics and offers one parallel execution actio
 
 test('one confirmation skips sequential execution and renders immutable trend evidence', () => {
   let state = advanceToPlan();
+  const sourceSeries = new Map(
+    state.workspace.report.checkResults.flatMap((result) =>
+      result.measurements
+        .filter((measurement) => measurement.kind === 'numeric')
+        .map((measurement) => [measurement.id, measurement.series]),
+    ),
+  );
+  assert.ok(sourceSeries.size > 0);
+  assert.ok([...sourceSeries.values()].every((series) => Array.isArray(series) && series.length >= 2));
+
   state = dispatch(state, 'PLAN_CONFIRMED');
   const html = renderApp(selectViewModel(state));
 
@@ -106,6 +135,49 @@ test('one confirmation skips sequential execution and renders immutable trend ev
   assert.match(html, /aria-label="订单提交成功率趋势"/);
   assert.match(html, /class="trend-threshold-line"/);
   assert.doesNotMatch(html, /execution-number|运行下一项|排队|等待结果/);
+  for (const result of state.library.runs[0].report.checkResults) {
+    for (const measurement of result.measurements.filter((item) => item.kind === 'numeric')) {
+      assert.deepEqual(measurement.series, sourceSeries.get(measurement.id));
+    }
+  }
+
+  const incompleteReport = structuredClone(state.workspace.report);
+  const incompleteMeasurement = incompleteReport.checkResults
+    .flatMap((result) => result.measurements)
+    .find((measurement) => measurement.kind === 'numeric');
+  delete incompleteMeasurement.series;
+  assert.throws(
+    () =>
+      createInspectionRun({
+        id: 'RUN-WITHOUT-TREND',
+        taskInstance: state.taskInstance,
+        selectedContext: state.contextOptions,
+        executionResults: state.workspace.execution,
+        report: incompleteReport,
+        startedAt: '2026-08-31T00:00:00.000Z',
+        completedAt: '2026-08-31T00:01:00.000Z',
+      }),
+    /persisted trend series/,
+  );
+});
+
+test('run comparison uses locked report results even when legacy execution results are unchanged', () => {
+  let state = advanceToPlan();
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  const current = structuredClone(state.library.runs[0]);
+  const previous = structuredClone(current);
+  previous.id = 'RUN-PREVIOUS';
+  previous.completedAt = '2026-08-15T06:00:00.000Z';
+  const previousResult = previous.report.checkResults.find((result) => result.checkId === 'order-success');
+  previousResult.status = 'Violated';
+  previousResult.summary = '订单提交成功率触及上次门禁';
+
+  const comparison = compareInspectionRuns(current, previous);
+  assert.equal(comparison.summary, 'changed');
+  assert.deepEqual(
+    comparison.items.map(({ id, kind }) => ({ id, kind })),
+    [{ id: 'order-success', kind: 'improved' }],
+  );
 });
 
 test('persisted scalar-rule history migrates without losing the locked run', () => {

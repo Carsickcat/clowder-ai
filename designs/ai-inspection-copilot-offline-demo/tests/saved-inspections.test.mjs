@@ -272,26 +272,32 @@ test('run history is derived from the immutable run ledger and sorted newest fir
 });
 
 test('structured run comparison classifies improvement, worsening, coverage change, and stable collapse', () => {
-  const previous = runFixture({
-    id: 'RUN-PREVIOUS',
-    completedAt: '2026-08-16T06:01:00.000Z',
-    executionResults: [
-      { id: 'database', label: '数据库连接', status: 'Violated', fact: '连接池占用 96%' },
-      { id: 'trace', label: '调用链', status: 'Verified', fact: '错误率 0.1%' },
-      { id: 'removed', label: '旧覆盖项', status: 'Verified', fact: '已验证' },
-      { id: 'stable', label: '稳定项', status: 'Verified', fact: '无变化' },
-    ],
-  });
-  const current = runFixture({
-    id: 'RUN-CURRENT',
-    completedAt: '2026-08-17T06:01:00.000Z',
-    executionResults: [
-      { id: 'database', label: '数据库连接', status: 'Verified', fact: '连接池占用 41%' },
-      { id: 'trace', label: '调用链', status: 'Violated', fact: '错误率 8.4%' },
-      { id: 'added', label: '新增覆盖项', status: 'Inconclusive', fact: '样本不足' },
-      { id: 'stable', label: '稳定项', status: 'Verified', fact: '无变化' },
-    ],
-  });
+  const previous = structuredClone(
+    runFixture({
+      id: 'RUN-PREVIOUS',
+      completedAt: '2026-08-16T06:01:00.000Z',
+      executionResults: [
+        { id: 'database', label: '数据库连接', status: 'Violated', fact: '连接池占用 96%' },
+        { id: 'trace', label: '调用链', status: 'Verified', fact: '错误率 0.1%' },
+        { id: 'removed', label: '旧覆盖项', status: 'Verified', fact: '已验证' },
+        { id: 'stable', label: '稳定项', status: 'Verified', fact: '无变化' },
+      ],
+    }),
+  );
+  const current = structuredClone(
+    runFixture({
+      id: 'RUN-CURRENT',
+      completedAt: '2026-08-17T06:01:00.000Z',
+      executionResults: [
+        { id: 'database', label: '数据库连接', status: 'Verified', fact: '连接池占用 41%' },
+        { id: 'trace', label: '调用链', status: 'Violated', fact: '错误率 8.4%' },
+        { id: 'added', label: '新增覆盖项', status: 'Inconclusive', fact: '样本不足' },
+        { id: 'stable', label: '稳定项', status: 'Verified', fact: '无变化' },
+      ],
+    }),
+  );
+  previous.report = undefined;
+  current.report = undefined;
 
   const comparison = compareInspectionRuns(current, previous);
   const kinds = Object.fromEntries(comparison.items.map((item) => [item.id, item.kind]));
@@ -303,10 +309,9 @@ test('structured run comparison classifies improvement, worsening, coverage chan
     trace: 'worsened',
   });
 
-  const stable = compareInspectionRuns(
-    current,
-    runFixture({ id: 'RUN-SAME', executionResults: current.executionResults }),
-  );
+  const stablePrevious = structuredClone(runFixture({ id: 'RUN-SAME', executionResults: current.executionResults }));
+  stablePrevious.report = undefined;
+  const stable = compareInspectionRuns(current, stablePrevious);
   assert.deepEqual(stable, {
     previousRunId: 'RUN-SAME',
     previousCompletedAt: '2026-08-16T06:01:00.000Z',

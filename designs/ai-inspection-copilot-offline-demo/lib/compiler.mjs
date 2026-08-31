@@ -1,6 +1,7 @@
 import { deepFreeze, reconcileChange } from './domain.mjs';
 import { createMetricRule } from './metric-catalog.mjs';
 import { getScenario } from './scenarios.mjs';
+import { createTrendSeries } from './trend-evidence.mjs';
 
 export const inspectionExamples = deepFreeze([
   {
@@ -270,6 +271,7 @@ function compileGenericWorkspace(request) {
               value: 99.82,
               unit: '%',
               displayValue: '99.82%',
+              series: createTrendSeries(99.78, 99.8, 99.81, 99.83, 99.82, 99.82),
               gate: { operator: '>=', value: 99.59, unit: '%', displayValue: '下降不超过 0.20pp' },
             },
           ],
@@ -288,6 +290,7 @@ function compileGenericWorkspace(request) {
               value: 3.2,
               unit: '%',
               displayValue: '+3.2%',
+              series: createTrendSeries(1.8, 2.1, 2.7, 3.5, 3.1, 3.2),
               gate: { operator: '<=', value: 10, unit: '%', displayValue: '≤ 10%' },
             },
           ],
@@ -322,6 +325,7 @@ function compileGenericWorkspace(request) {
               value: 96.4,
               unit: '%',
               displayValue: '96.4%',
+              series: createTrendSeries(96.1, 96.2, 96.5, 96.3, 96.4, 96.4),
               gate: { operator: '>=', value: 94.4, unit: '%', displayValue: '下降 ≤ 2%' },
             },
           ],

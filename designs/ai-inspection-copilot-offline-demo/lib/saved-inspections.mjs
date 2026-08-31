@@ -1,5 +1,5 @@
 import { deepFreeze, validReportContract } from './domain.mjs';
-import { createMetricRule } from './metric-catalog.mjs';
+import { createMetricRule, formatMetricRule } from './metric-catalog.mjs';
 
 export const INSPECTION_LIBRARY_SCHEMA_VERSION = 1;
 
@@ -451,18 +451,6 @@ function evaluateNumericRule(value, rule) {
   return false;
 }
 
-function trendSeries(measurement, rule) {
-  if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value)) return undefined;
-  const distance = Math.abs(measurement.value - (rule?.threshold ?? measurement.value));
-  const scale = Math.max(distance * 0.35, Math.abs(measurement.value) * 0.001, measurement.unit === 'ms' ? 1 : 0.02);
-  const offsets = [-1.8, -1.1, -0.4, 0.35, -0.15, 0];
-  const labels = ['-15m', '-12m', '-9m', '-6m', '-3m', '现在'];
-  return labels.map((label, index) => ({
-    label,
-    value: Math.round((measurement.value + offsets[index] * scale) * 1000) / 1000,
-  }));
-}
-
 function materializeCheckResult(check, sourceResult) {
   const rules = new Map(check.metricRules.map((rule) => [rule.metricId, rule]));
   const result = clone(sourceResult ?? missingCheckResult(check));
@@ -470,8 +458,7 @@ function materializeCheckResult(check, sourceResult) {
   const measurements = result.measurements.map((measurement) => {
     const rule = rules.get(measurement.metricId);
     if (measurement.kind !== 'numeric' || !rule || !Number.isFinite(measurement.value)) {
-      const series = measurement.series ?? trendSeries(measurement, rule);
-      return series ? { ...measurement, series } : measurement;
+      return measurement;
     }
     const passed = evaluateNumericRule(measurement.value, rule);
     evaluated.push({ measurement, rule, passed });
@@ -484,18 +471,40 @@ function materializeCheckResult(check, sourceResult) {
         unit: rule.unit,
         displayValue: `${rule.operator} ${rule.threshold}${rule.unit}`,
       },
-      series: measurement.series ?? trendSeries(measurement, rule),
+      ...(measurement.series ? { series: measurement.series } : {}),
     };
   });
   let status = result.status;
   if (!['Inconclusive', 'NotEvaluated'].includes(status) && evaluated.length) {
     status = evaluated.every((item) => item.passed) ? 'Verified' : 'Violated';
   }
-  const failed = evaluated.filter((item) => !item.passed);
-  const summary = failed.length
-    ? `${failed.map((item) => item.rule.label).join('、')}触及编辑后的门禁`
-    : result.summary;
+  const summary =
+    evaluated.length && !['Inconclusive', 'NotEvaluated'].includes(status)
+      ? evaluated
+          .map(
+            ({ measurement, rule, passed }) =>
+              `${rule.label} ${measurement.displayValue}（门禁 ${formatMetricRule(rule)}，${passed ? '通过' : '违例'}）`,
+          )
+          .join('；')
+      : result.summary;
   return { ...result, status, summary, measurements };
+}
+
+function hasLockedTrendEvidence(report) {
+  return (
+    Array.isArray(report?.checkResults) &&
+    report.checkResults.every((result) =>
+      result.measurements.every(
+        (measurement) =>
+          measurement.kind !== 'numeric' ||
+          (Array.isArray(measurement.series) &&
+            measurement.series.length >= 2 &&
+            measurement.series.every((point) =>
+              Boolean(point && typeof point.label === 'string' && point.label.trim() && Number.isFinite(point.value)),
+            )),
+      ),
+    )
+  );
 }
 
 function reportCounts(checkResults) {
@@ -510,11 +519,12 @@ function reportCounts(checkResults) {
   );
 }
 
-function interpretationForResults(report, checkResults) {
+function interpretationForResults(report, checkResults, allowSourceNarrative) {
   const evidenceIds = new Set(
     checkResults.flatMap((result) => result.measurements.map((measurement) => measurement.id)),
   );
   const groundSection = (section) => {
+    if (!allowSourceNarrative) return { text: '证据不足', evidenceIds: [] };
     const anchors = section?.evidenceIds ?? [];
     return section?.text && anchors.length && anchors.every((id) => evidenceIds.has(id))
       ? { text: section.text, evidenceIds: anchors }
@@ -625,6 +635,24 @@ function materializeReportForPlan(report, inspectionPlan) {
   const removedConclusiveResult = report.checkResults.some(
     (result) => !planCheckIds.has(result.checkId) && ['Verified', 'Violated'].includes(result.status),
   );
+  const sourceByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
+  const executionTruthChanged =
+    removedConclusiveResult ||
+    checkResults.some((result) => {
+      const source = sourceByCheckId.get(result.checkId);
+      if (!source || source.status !== result.status) return true;
+      const sourceMeasurements = new Map(source.measurements.map((measurement) => [measurement.id, measurement]));
+      return result.measurements.some((measurement) => {
+        if (measurement.kind !== 'numeric') return false;
+        const sourceMeasurement = sourceMeasurements.get(measurement.id);
+        return (
+          !sourceMeasurement ||
+          sourceMeasurement.gate?.operator !== measurement.gate?.operator ||
+          sourceMeasurement.gate?.value !== measurement.gate?.value ||
+          sourceMeasurement.gate?.unit !== measurement.gate?.unit
+        );
+      });
+    });
   const hasUnresolved = counts.unresolved > 0;
   const materialized = {
     ...clone(report),
@@ -635,7 +663,7 @@ function materializeReportForPlan(report, inspectionPlan) {
       ? checkResults.filter((result) => result.status !== 'Verified').map((result) => result.summary)
       : clone(report.residualRisks),
     checkResults,
-    interpretation: interpretationForResults(report, checkResults),
+    interpretation: interpretationForResults(report, checkResults, !executionTruthChanged),
   };
   if (!validReportContract(materialized)) throw new TypeError('Inspection run requires a valid report contract');
   return materialized;
@@ -657,6 +685,9 @@ export function createInspectionRun({
     throw new TypeError('Inspection run requires structured execution results');
   }
   const runReport = materializeReportForPlan(report, taskInstance.inspectionPlan);
+  if (!hasLockedTrendEvidence(runReport)) {
+    throw new TypeError('Inspection run requires persisted trend series for numeric measurements');
+  }
   return deepFreeze({
     id,
     taskInstanceId: taskInstance.id,

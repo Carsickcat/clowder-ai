@@ -8,6 +8,7 @@ const styleFiles = ['tokens.css', 'layout.css', 'components.css', 'responsive.cs
 const applicationFiles = [
   '../lib/domain.mjs',
   '../lib/metric-catalog.mjs',
+  '../lib/trend-evidence.mjs',
   '../lib/scenarios.mjs',
   '../lib/compiler.mjs',
   '../lib/playbooks.mjs',

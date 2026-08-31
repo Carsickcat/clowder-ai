@@ -130,6 +130,7 @@ function renderReportCore(run, taskName, report) {
 function comparisonText(item) {
   if (item.kind === 'added') return `新增覆盖：${item.after.label}`;
   if (item.kind === 'removed') return `移除覆盖：${item.before.label}`;
+  if (item.evidenceChanged) return `${item.label}：趋势证据或门禁已变化`;
   return `${item.label}：${item.before.fact} → ${item.after.fact}`;
 }
 
