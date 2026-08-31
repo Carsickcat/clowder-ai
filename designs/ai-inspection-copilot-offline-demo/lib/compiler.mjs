@@ -1,4 +1,5 @@
 import { deepFreeze, reconcileChange } from './domain.mjs';
+import { createMetricRule } from './metric-catalog.mjs';
 import { getScenario } from './scenarios.mjs';
 
 export const inspectionExamples = deepFreeze([
@@ -152,8 +153,7 @@ function compileGenericWorkspace(request) {
         purpose: `识别 ${service} 升级后的缓慢内存爬升`,
         entity: service,
         capability: '容器资源趋势',
-        metric: 'container.memory.working_set',
-        rule: '斜率低于历史同版本 P95',
+        metricRules: [createMetricRule('container.memory.working_set', '<=', 1, { editable: false })],
         failureAction: `延长 ${service} 观察窗口`,
         rationale: `${service} 的资源趋势属于补充证据，不直接制造发布门禁。`,
         sourceRefs: [changeSourceRef, 'metric-catalog'],
@@ -165,8 +165,13 @@ function compileGenericWorkspace(request) {
         purpose: `保护 ${service} 核心业务结果`,
         entity: `${service} 核心业务目标`,
         capability: '业务黄金指标',
-        metric: `${metricPrefix}.success_rate`,
-        rule: '下降不超过 0.20pp',
+        metricRules: [
+          createMetricRule(`${metricPrefix}.success_rate`, '>=', 99.59, {
+            label: `${service} 核心业务成功率`,
+            category: '业务结果',
+            unit: '%',
+          }),
+        ],
         failureAction: `暂停 ${service} 发布并转 RC Agent`,
         rationale: `服务目录将 ${service} 绑定为当前可靠性目标的责任实体。`,
         sourceRefs: [changeSourceRef, 'service-catalog', 'metric-catalog'],
@@ -176,8 +181,10 @@ function compileGenericWorkspace(request) {
         purpose: `验证 ${service} 自身没有退化`,
         entity: service,
         capability: '服务黄金信号',
-        metric: 'http.error_rate + http.duration.p95',
-        rule: '错误率 ≤ 0.5%，p95 增幅 ≤ 10%',
+        metricRules: [
+          createMetricRule('http.error_rate', '<=', 0.5),
+          createMetricRule('http.duration.p95.change_rate', '<=', 10),
+        ],
         failureAction: `暂停并检查 ${service} 新版本实例`,
         rationale: `本次变更直接改变 ${service} 的运行时行为。`,
         sourceRefs: [changeSourceRef, 'metric-catalog'],
@@ -187,8 +194,10 @@ function compileGenericWorkspace(request) {
         purpose: `验证 ${service} 的关键下游依赖`,
         entity: downstream,
         capability: 'Trace 依赖门禁',
-        metric: 'span.client.error_rate + span.client.duration.p95',
-        rule: '无新增错误依赖，p95 增幅 ≤ 8%',
+        metricRules: [
+          createMetricRule('span.client.error_rate', '<=', 0),
+          createMetricRule('span.client.duration.p95.change_rate', '<=', 8),
+        ],
         failureAction: `暂停并下钻 ${service} 依赖 Trace`,
         rationale: `运行时 Trace 证明 ${service} 实际调用 ${downstream}。`,
         sourceRefs: ['service-catalog', 'runtime-trace', 'metric-catalog'],
@@ -198,8 +207,10 @@ function compileGenericWorkspace(request) {
         purpose: `验证 ${service} 缓存无新增饱和`,
         entity: cache,
         capability: 'Redis 开箱指标',
-        metric: 'redis.hit_rate + redis.command_latency',
-        rule: '命中率下降 ≤ 2%，命令 p99 ≤ 6ms',
+        metricRules: [
+          createMetricRule('redis.hit_rate', '>=', 94.4),
+          createMetricRule('redis.command_latency', '<=', 6),
+        ],
         failureAction: `延长 ${service} 观察窗口并人工确认`,
         rationale: `运行时 Trace 证明 ${service} 实际访问 ${cache}。`,
         sourceRefs: ['runtime-trace', 'metric-catalog'],
@@ -252,6 +263,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-success-rate`,
+              metricId: `${metricPrefix}.success_rate`,
               label: '核心业务成功率',
               entity: `${service} 核心业务目标`,
               kind: 'numeric',
@@ -269,6 +281,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-p95-change`,
+              metricId: 'http.duration.p95.change_rate',
               label: '服务延迟增幅',
               entity: service,
               kind: 'numeric',
@@ -286,6 +299,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-downstream-trace`,
+              metricId: 'span.client.error_rate',
               label: '下游依赖错误',
               entity: downstream,
               kind: 'qualitative',
@@ -301,6 +315,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-cache-hit-rate`,
+              metricId: 'redis.hit_rate',
               label: '缓存命中率',
               entity: cache,
               kind: 'numeric',
@@ -318,6 +333,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-memory-trend`,
+              metricId: 'container.memory.working_set',
               label: '内存变化趋势',
               entity: service,
               kind: 'qualitative',

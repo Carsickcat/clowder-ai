@@ -53,6 +53,21 @@ function requireWorkspace(state) {
   return state.workspace;
 }
 
+function applyRuleOverrides(state, checks) {
+  return checks.map((check) => {
+    const overrides = state.checkRuleOverrides?.[check.id];
+    if (!overrides) return check;
+    let changed = false;
+    const metricRules = check.metricRules.map((rule) => {
+      const override = overrides[rule.id];
+      if (!override) return rule;
+      changed = true;
+      return { ...rule, operator: override.operator, threshold: override.threshold };
+    });
+    return changed ? { ...check, metricRules } : check;
+  });
+}
+
 export function selectResolvedScope(state) {
   const workspace = requireWorkspace(state);
   return {
@@ -93,7 +108,7 @@ export function selectCommittedChecks(state) {
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
-  const checks = [...selectedBaseChecks, ...acceptedCandidates];
+  const checks = applyRuleOverrides(state, [...selectedBaseChecks, ...acceptedCandidates]);
   const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
@@ -124,19 +139,6 @@ export function selectPlanSummary(state) {
     optionalPending: pendingCandidates.filter((candidate) => candidate.criticality !== 'high').length,
     rejected: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'rejected').length,
   };
-}
-
-export function selectExecutionView(state) {
-  const workspace = requireWorkspace(state);
-  return workspace.execution.map((step, index) => ({
-    ...step,
-    progress:
-      state.phase === 'report' || index <= state.executionStep
-        ? 'complete'
-        : index === state.executionStep + 1 && state.phase === 'execution'
-          ? 'active'
-          : 'queued',
-  }));
 }
 
 export function selectReportView(state) {
@@ -208,7 +210,6 @@ export function selectViewModel(state) {
       readiness: null,
       committedChecks: [],
       planSummary: null,
-      execution: [],
       report: null,
       playbook: selectPlaybookView(state),
       savedInspection: selectSavedInspectionView(state),
@@ -221,7 +222,6 @@ export function selectViewModel(state) {
     readiness: selectPlanReadiness(state),
     committedChecks: selectCommittedChecks(state),
     planSummary: selectPlanSummary(state),
-    execution: selectExecutionView(state),
     report: selectReportView(state),
     playbook: selectPlaybookView(state),
     savedInspection: selectSavedInspectionView(state),

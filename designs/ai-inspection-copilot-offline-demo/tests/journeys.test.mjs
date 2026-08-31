@@ -50,11 +50,7 @@ function advanceToPlan(request) {
 }
 
 function finishJourney(state) {
-  state = dispatch(state, 'PLAN_CONFIRMED');
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
-  return state;
+  return dispatch(state, 'PLAN_CONFIRMED');
 }
 
 test('natural-language journey reaches a scoped Proceed report', () => {
@@ -124,7 +120,6 @@ test('starting a new request clears workspace, dispositions, execution, and RC s
   assert.deepEqual(state, createDemoSession({ library, nextTaskOrdinal, nextRunOrdinal }));
   assert.equal(state.workspace, null);
   assert.deepEqual(state.candidateDisposition, {});
-  assert.equal(state.executionStep, -1);
   assert.equal(state.rcExpanded, false);
 });
 
@@ -146,8 +141,9 @@ test('exact playbook runs after one confirmation while current reconciliation re
 
   state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
 
-  assert.equal(state.phase, 'execution');
-  assert.equal(state.taskInstance.status, 'executing');
+  assert.equal(state.phase, 'report');
+  assert.equal(state.taskInstance.status, 'locked');
+  assert.equal(state.library.runs.length, 1);
   assert.deepEqual(state.taskInstance.sourcePlaybookRef, {
     id: 'order-release-verification',
     version: 4,
@@ -268,9 +264,6 @@ test('locked task remains immutable while a report submits one idempotent playbo
   state = dispatch(state, 'INTENT_SUBMITTED', { request: orderRequest });
   state = dispatch(state, 'INPUT_CONFIRMED');
   state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
 
   assert.equal(state.phase, 'report');
   assert.equal(state.taskInstance.status, 'locked');
@@ -296,9 +289,6 @@ function completePersonalInspection(reducer = demoReducer, sessionOptions = {}) 
   state = reducer(state, { type: 'INPUT_CONFIRMED' });
   state = reducer(state, { type: 'SCOPE_ACCEPTED' });
   state = reducer(state, { type: 'PLAN_CONFIRMED' });
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = reducer(state, { type: 'EXECUTION_ADVANCED' });
-  }
   return { state, deselectedId };
 }
 
@@ -365,9 +355,6 @@ test('a deselected signal remains outside an exact saved-inspection revisit', ()
   state = dispatch(state, 'INPUT_CONFIRMED');
   state = dispatch(state, 'SCOPE_ACCEPTED');
   state = dispatch(state, 'PLAN_CONFIRMED');
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
   state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
     name: '排除业务结果信号的履约巡检',
     now: '2026-08-16T06:10:00.000Z',
@@ -378,7 +365,7 @@ test('a deselected signal remains outside an exact saved-inspection revisit', ()
   state = dispatch(state, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
 
   assert.deepEqual(state.savedRunRefresh, { status: 'exact', differences: [] });
-  assert.equal(state.phase, 'execution');
+  assert.equal(state.phase, 'report');
   assert.equal(state.contextOptions.find((item) => item.id === signal.id)?.selected, false);
   assert.equal(state.taskInstance.inspectionPlan.checkIds.includes(signal.id.slice('signal:'.length)), false);
 });
@@ -409,13 +396,10 @@ test('saved inspection exact direct-run bypasses intent compilation and creates 
   assert.equal(intentCalls, 0);
   assert.equal(savedCalls, 1);
   assert.equal(state.savedRunRefresh.status, 'exact');
-  assert.equal(state.phase, 'execution');
+  assert.equal(state.phase, 'report');
   assert.equal(state.taskInstance.sourceSavedInspectionId, definitionId);
   assert.notEqual(state.taskInstance.id, historicalRun.taskInstanceId);
 
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = reducer(state, { type: 'EXECUTION_ADVANCED' });
-  }
   assert.equal(state.library.runs.length, 2);
   assert.notEqual(state.library.runs[0].id, state.library.runs[1].id);
   assert.deepEqual(state.library.runs[0], historicalRun);
@@ -435,9 +419,6 @@ test('hydrated saved inspections continue task, run, and definition identifiers 
   let hydrated = dispatch(createDemoSession(), 'LIBRARY_HYDRATED', { library: persistedLibrary });
   hydrated = dispatch(hydrated, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
   assert.notEqual(hydrated.taskInstance.id, historicalTaskId);
-  for (let index = 0; index < hydrated.workspace.execution.length; index += 1) {
-    hydrated = dispatch(hydrated, 'EXECUTION_ADVANCED');
-  }
   assert.notEqual(hydrated.currentRunId, historicalRunId);
   assert.equal(new Set(hydrated.library.runs.map((run) => run.id)).size, 2);
 });
@@ -455,9 +436,6 @@ test('concurrent browser actors create unique tasks, runs, and merged audit reco
     let tab = createDemoSession({ library: commonLibrary, actorId });
     tab = dispatch(tab, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
     const taskInstanceId = tab.taskInstance.id;
-    for (let index = 0; index < tab.workspace.execution.length; index += 1) {
-      tab = dispatch(tab, 'EXECUTION_ADVANCED');
-    }
     return { tab, taskInstanceId };
   }
 
@@ -517,7 +495,8 @@ test('saved inspection minor drift requires acknowledgement and major drift cann
   assert.equal(minor.phase, 'context');
   assert.equal(minor.taskInstance.status, 'draft');
   minor = minorReducer(minor, { type: 'SAVED_INSPECTION_RUN_CONFIRMED' });
-  assert.equal(minor.phase, 'execution');
+  assert.equal(minor.phase, 'report');
+  assert.equal(minor.taskInstance.status, 'locked');
   assert.ok(minor.taskInstance.auditTrail.some((event) => event.type === 'saved-inspection-drift-confirmed'));
 
   const majorReducer = createDemoReducer({
@@ -538,7 +517,7 @@ test('saved inspection minor drift requires acknowledgement and major drift cann
   assert.equal(major.library.savedInspections.length, 1);
 });
 
-test('unknown saved definition and repeated final execution events are no-ops', () => {
+test('unknown saved definition and deprecated execution events are no-ops', () => {
   const empty = createDemoSession();
   assert.equal(dispatch(empty, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId: 'missing' }), empty);
   let { state } = completePersonalInspection();
@@ -593,7 +572,7 @@ test('malformed persisted report is quarantined before saved-history rendering',
   assert.match(renderApp(selectViewModel(recovered)), /还没有执行记录/);
 
   recovered = dispatch(recovered, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
-  assert.equal(recovered.phase, 'execution');
+  assert.equal(recovered.phase, 'report');
 });
 
 test('library hydration keeps history diagnostics separate from persisted user data', () => {

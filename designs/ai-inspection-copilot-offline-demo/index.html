@@ -1459,6 +1459,118 @@ a:focus-visible {
 .evidence-card.is-violated .evidence-track i {
   background: linear-gradient(90deg, var(--amber), var(--red));
 }
+.metric-name-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.metric-name-list li {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.metric-name-list strong {
+  color: var(--text);
+}
+.metric-name-list span,
+.metric-rule-row small {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.check-rule-editor {
+  grid-column: 1 / -1;
+}
+.check-rule-editor dd {
+  display: grid;
+  gap: 8px;
+}
+.rule-summary {
+  margin: 0 0 2px;
+  color: var(--text-soft);
+}
+.parallel-execution-note {
+  margin: -4px 0 14px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+.metric-rule-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(82px, auto) minmax(150px, auto) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 28, 49, 0.52);
+}
+.metric-rule-row > div,
+.metric-rule-row label {
+  display: grid;
+  gap: 4px;
+}
+.metric-rule-row label span {
+  color: var(--text-faint);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.metric-rule-row label:has(input) {
+  grid-template-columns: 1fr auto;
+}
+.metric-rule-row label:has(input) span {
+  grid-column: 1 / -1;
+}
+.metric-rule-row input,
+.metric-rule-row select {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 9px;
+}
+.metric-rule-row button {
+  border: 1px solid rgba(82, 199, 231, 0.42);
+  border-radius: 8px;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  padding: 8px 12px;
+}
+.metric-rule-row.is-readonly {
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+}
+.trend-chart {
+  width: 100%;
+  height: 112px;
+  margin-top: 12px;
+  overflow: visible;
+}
+.trend-axis {
+  stroke: var(--line);
+}
+.trend-series-line {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.trend-chart circle {
+  fill: var(--cyan);
+}
+.trend-threshold-line {
+  stroke: var(--amber);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+}
+.trend-threshold-label,
+.trend-time-label {
+  fill: var(--text-faint);
+  font-size: 9px;
+}
 .report-check-list {
   display: grid;
   gap: 8px;
@@ -2553,6 +2665,18 @@ a:focus-visible {
 }
 
 @media (max-width: 520px) {
+  .metric-name-list li,
+  .metric-rule-row,
+  .metric-rule-row.is-readonly {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .metric-rule-row button {
+    width: 100%;
+  }
+  .trend-chart {
+    height: 128px;
+  }
   .app-shell {
     padding-inline: 10px;
   }
@@ -2809,10 +2933,9 @@ const REQUIRED_CHECK_FIELDS = Object.freeze([
   'purpose',
   'entity',
   'capability',
-  'metric',
+  'metricRules',
   'window',
   'baseline',
-  'rule',
   'severity',
   'failureAction',
   'rationale',
@@ -2842,6 +2965,29 @@ function assertCheckContract(check, sourceIds) {
     if (!sourceIds.has(sourceRef)) {
       throw new Error(`Unknown sourceRef ${sourceRef} on ${check.id}`);
     }
+  }
+  const ruleIds = new Set();
+  for (const rule of check.metricRules) {
+    const validRule =
+      rule &&
+      typeof rule === 'object' &&
+      nonEmptyString(rule.id) &&
+      nonEmptyString(rule.metricId) &&
+      rule.id === rule.metricId &&
+      nonEmptyString(rule.label) &&
+      nonEmptyString(rule.category) &&
+      nonEmptyString(rule.operator) &&
+      Number.isFinite(rule.threshold) &&
+      nonEmptyString(rule.unit) &&
+      typeof rule.editable === 'boolean' &&
+      stringArray(rule.allowedOperators) &&
+      rule.allowedOperators.includes(rule.operator) &&
+      nonEmptyString(rule.sourceRef) &&
+      check.sourceRefs.includes(rule.sourceRef) &&
+      sourceIds.has(rule.sourceRef) &&
+      !ruleIds.has(rule.id);
+    if (!validRule) throw new Error(`Check ${check.id} has invalid metricRule ${rule?.id ?? 'unknown'}`);
+    ruleIds.add(rule.id);
   }
   return true;
 }
@@ -2995,6 +3141,79 @@ function reconcileChange(declaredChange, observedChange) {
   });
 }
 
+const DEFAULT_ALLOWED_OPERATORS = Object.freeze(['<=', '>=', '<', '>']);
+
+const catalogEntries = {
+  'order.submit.success_rate': ['订单提交成功率', '业务结果', '%'],
+  'payment.confirm.success_rate': ['支付确认成功率', '业务结果', '%'],
+  'http.error_rate': ['HTTP 错误率', '服务黄金信号', '%'],
+  'http.duration.p95': ['服务延迟 p95', '服务黄金信号', 'ms'],
+  'http.duration.p95.change_rate': ['服务延迟 p95 增幅', '服务黄金信号', '%'],
+  'span.client.error_rate': ['下游调用错误率', '依赖黄金信号', '%'],
+  'span.client.duration.p95': ['下游调用延迟 p95', '依赖黄金信号', 'ms'],
+  'span.client.duration.p95.change_rate': ['下游延迟 p95 增幅', '依赖黄金信号', '%'],
+  'redis.hit_rate': ['缓存命中率', '中间件黄金信号', '%'],
+  'redis.command_latency': ['缓存命令 p99', '中间件黄金信号', 'ms'],
+  'container.memory.working_set': ['容器内存工作集趋势', '资源黄金信号', '基线比'],
+  'invoice.queue.lag': ['发票队列积压增长率', '异步业务信号', '%'],
+  'db.pool.wait_p95': ['连接等待 p95', '数据库黄金信号', 'ms'],
+  'db.pool.utilization': ['连接池占用', '数据库黄金信号', '%'],
+};
+
+const metricCatalog = Object.freeze(
+  Object.fromEntries(
+    Object.entries(catalogEntries).map(([metricId, [label, category, unit]]) => [
+      metricId,
+      Object.freeze({
+        metricId,
+        label,
+        category,
+        unit,
+        allowedOperators: DEFAULT_ALLOWED_OPERATORS,
+        sourceRef: 'metric-catalog',
+      }),
+    ]),
+  ),
+);
+
+function createMetricRule(metricId, operator, threshold, options = {}) {
+  const entry = metricCatalog[metricId];
+  const label = options.label ?? entry?.label;
+  const category = options.category ?? entry?.category;
+  const unit = options.unit ?? entry?.unit;
+  const allowedOperators = options.allowedOperators ?? entry?.allowedOperators ?? DEFAULT_ALLOWED_OPERATORS;
+  if (
+    !metricId ||
+    !label ||
+    !category ||
+    !unit ||
+    !allowedOperators.includes(operator) ||
+    !Number.isFinite(threshold)
+  ) {
+    throw new TypeError(`Invalid metric rule for ${metricId || 'unknown metric'}`);
+  }
+  return {
+    id: metricId,
+    metricId,
+    label,
+    category,
+    operator,
+    threshold,
+    unit,
+    editable: options.editable !== false,
+    allowedOperators: [...allowedOperators],
+    sourceRef: options.sourceRef ?? entry?.sourceRef ?? 'metric-catalog',
+  };
+}
+
+function formatMetricRule(rule) {
+  return `${rule.operator} ${rule.threshold}${rule.unit}`;
+}
+
+function formatCheckRules(check) {
+  return check.metricRules.map((rule) => `${rule.label} ${formatMetricRule(rule)}`).join('；');
+}
+
 function check(input) {
   return {
     priority: 'required',
@@ -3069,8 +3288,7 @@ const naturalLanguagePass = {
       purpose: '识别升级后的缓慢内存爬升',
       entity: 'order-api',
       capability: '容器资源趋势',
-      metric: 'container.memory.working_set',
-      rule: '斜率低于历史同版本 P95',
+      metricRules: [createMetricRule('container.memory.working_set', '<=', 1, { editable: false })],
       failureAction: '延长观察窗口',
       rationale: '历史复盘出现过长尾内存增长，但本次代码差异未触及缓存模块。',
       sourceRefs: ['nl-intent', 'metric-catalog'],
@@ -3082,8 +3300,7 @@ const naturalLanguagePass = {
       purpose: '保护订单提交业务结果',
       entity: '订单提交旅程',
       capability: '业务黄金指标',
-      metric: 'order.submit.success_rate',
-      rule: '下降不超过 0.20pp',
+      metricRules: [createMetricRule('order.submit.success_rate', '>=', 99.59)],
       failureAction: '暂停发布并转 RC Agent',
       rationale: '业务图谱将 order-api 绑定为订单提交的关键服务。',
       sourceRefs: ['nl-intent', 'order-graph', 'metric-catalog'],
@@ -3093,8 +3310,7 @@ const naturalLanguagePass = {
       purpose: '验证服务自身没有退化',
       entity: 'order-api',
       capability: '服务黄金信号',
-      metric: 'http.error_rate + http.duration.p95',
-      rule: '错误率 ≤ 0.5%，p95 增幅 ≤ 10%',
+      metricRules: [createMetricRule('http.error_rate', '<=', 0.5), createMetricRule('http.duration.p95', '<=', 198)],
       failureAction: '暂停并检查新版本实例',
       rationale: '版本升级直接改变 order-api 运行时行为。',
       sourceRefs: ['nl-intent', 'metric-catalog'],
@@ -3104,8 +3320,10 @@ const naturalLanguagePass = {
       purpose: '验证关键下游支付确认',
       entity: 'payment-gateway',
       capability: 'Trace 依赖门禁',
-      metric: 'span.client.error_rate + span.client.duration.p95',
-      rule: '无新增错误依赖，p95 增幅 ≤ 8%',
+      metricRules: [
+        createMetricRule('span.client.error_rate', '<=', 0),
+        createMetricRule('span.client.duration.p95.change_rate', '<=', 8),
+      ],
       failureAction: '暂停并下钻支付 Trace',
       rationale: '真实 Trace 证明订单提交同步调用 payment-gateway。',
       sourceRefs: ['order-graph', 'order-trace', 'metric-catalog'],
@@ -3115,8 +3333,7 @@ const naturalLanguagePass = {
       purpose: '验证订单缓存无新增饱和',
       entity: 'order-cache',
       capability: 'Redis 开箱指标',
-      metric: 'redis.hit_rate + redis.command_latency',
-      rule: '命中率下降 ≤ 2%，命令 p99 ≤ 6ms',
+      metricRules: [createMetricRule('redis.hit_rate', '>=', 94.4), createMetricRule('redis.command_latency', '<=', 6)],
       failureAction: '标记条件放行并延长观察',
       rationale: 'Trace 证明 order-api 实际访问 order-cache。',
       sourceRefs: ['order-trace', 'metric-catalog'],
@@ -3149,6 +3366,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-success-rate',
+            metricId: 'order.submit.success_rate',
             label: '订单提交成功率',
             entity: '订单提交旅程',
             kind: 'numeric',
@@ -3166,6 +3384,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-api-p95',
+            metricId: 'http.duration.p95',
             label: '服务延迟 p95',
             entity: 'order-api',
             kind: 'numeric',
@@ -3176,6 +3395,7 @@ const naturalLanguagePass = {
           },
           {
             id: 'order-api-error-rate',
+            metricId: 'http.error_rate',
             label: '服务错误率',
             entity: 'order-api',
             kind: 'numeric',
@@ -3193,6 +3413,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'payment-trace-errors',
+            metricId: 'span.client.error_rate',
             label: '支付依赖错误 Trace',
             entity: 'payment-gateway',
             kind: 'qualitative',
@@ -3208,6 +3429,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-cache-p99',
+            metricId: 'redis.command_latency',
             label: '缓存命令 p99',
             entity: 'order-cache',
             kind: 'numeric',
@@ -3225,6 +3447,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-memory-trend',
+            metricId: 'container.memory.working_set',
             label: '内存变化趋势',
             entity: 'order-api',
             kind: 'qualitative',
@@ -3321,8 +3544,10 @@ const changeTicketRisk = {
       purpose: '验证共享配置是否放大数据库连接等待',
       entity: 'settlement-db',
       capability: '数据库连接池检查',
-      metric: 'db.pool.wait_p95 + db.pool.utilization',
-      rule: '等待 p95 ≤ 20ms，池占用 ≤ 80%',
+      metricRules: [
+        createMetricRule('db.pool.wait_p95', '<=', 20, { sourceRef: 'middleware-catalog' }),
+        createMetricRule('db.pool.utilization', '<=', 80, { sourceRef: 'middleware-catalog' }),
+      ],
       failureAction: '暂停灰度并启动 RC Agent',
       rationale: '运行时 hash 对账发现 settlement-db 位于声明外的实际影响面。',
       sourceRefs: ['runtime-diff', 'payment-trace', 'middleware-catalog'],
@@ -3334,8 +3559,7 @@ const changeTicketRisk = {
       purpose: '保护支付确认业务结果',
       entity: '支付确认旅程',
       capability: '业务黄金指标',
-      metric: 'payment.confirm.success_rate',
-      rule: '下降不超过 0.10pp',
+      metricRules: [createMetricRule('payment.confirm.success_rate', '>=', 99.82, { sourceRef: 'payment-graph' })],
       failureAction: '暂停并通知支付 SRE',
       rationale: '业务图谱将 payment-api 与支付确认结果绑定。',
       sourceRefs: ['change-ticket', 'payment-graph'],
@@ -3345,8 +3569,10 @@ const changeTicketRisk = {
       purpose: '验证 payment-api 自身稳定性',
       entity: 'payment-api',
       capability: '服务黄金信号',
-      metric: 'http.error_rate + http.duration.p95',
-      rule: '错误率 ≤ 0.3%，p95 增幅 ≤ 8%',
+      metricRules: [
+        createMetricRule('http.error_rate', '<=', 0.3, { sourceRef: 'middleware-catalog' }),
+        createMetricRule('http.duration.p95', '<=', 216, { sourceRef: 'middleware-catalog' }),
+      ],
       failureAction: '暂停灰度',
       rationale: '电子流声明 payment-api 为直接变更对象。',
       sourceRefs: ['change-ticket', 'middleware-catalog'],
@@ -3356,8 +3582,7 @@ const changeTicketRisk = {
       purpose: '验证异步账单链路无积压',
       entity: 'invoice-worker',
       capability: '消息队列开箱指标',
-      metric: 'invoice.queue.lag',
-      rule: '积压增长率 ≤ 5%',
+      metricRules: [createMetricRule('invoice.queue.lag', '<=', 5, { sourceRef: 'middleware-catalog' })],
       failureAction: '条件放行并延长异步观察',
       rationale: 'Observed-Superset 证明共享配置同时作用于 invoice-worker。',
       sourceRefs: ['runtime-diff', 'payment-graph', 'middleware-catalog'],
@@ -3390,6 +3615,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'payment-success-rate',
+            metricId: 'payment.confirm.success_rate',
             label: '支付确认成功率',
             entity: '支付确认旅程',
             kind: 'numeric',
@@ -3407,6 +3633,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'payment-api-p95',
+            metricId: 'http.duration.p95',
             label: '服务延迟 p95',
             entity: 'payment-api',
             kind: 'numeric',
@@ -3424,6 +3651,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'invoice-backlog-rate',
+            metricId: 'invoice.queue.lag',
             label: '异步积压增长率',
             entity: 'invoice-worker',
             kind: 'qualitative',
@@ -3439,6 +3667,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'settlement-pool-utilization',
+            metricId: 'db.pool.utilization',
             label: '连接池占用',
             entity: 'settlement-db',
             kind: 'numeric',
@@ -3449,6 +3678,7 @@ const changeTicketRisk = {
           },
           {
             id: 'settlement-pool-wait',
+            metricId: 'db.pool.wait_p95',
             label: '连接等待 p95',
             entity: 'settlement-db',
             kind: 'numeric',
@@ -3459,6 +3689,7 @@ const changeTicketRisk = {
           },
           {
             id: 'settlement-pool-config',
+            metricId: 'db.pool.config',
             label: '连接池上限',
             entity: 'shared-payment-stack@c2bd',
             kind: 'qualitative',
@@ -3653,8 +3884,7 @@ function compileGenericWorkspace(request) {
         purpose: `识别 ${service} 升级后的缓慢内存爬升`,
         entity: service,
         capability: '容器资源趋势',
-        metric: 'container.memory.working_set',
-        rule: '斜率低于历史同版本 P95',
+        metricRules: [createMetricRule('container.memory.working_set', '<=', 1, { editable: false })],
         failureAction: `延长 ${service} 观察窗口`,
         rationale: `${service} 的资源趋势属于补充证据，不直接制造发布门禁。`,
         sourceRefs: [changeSourceRef, 'metric-catalog'],
@@ -3666,8 +3896,13 @@ function compileGenericWorkspace(request) {
         purpose: `保护 ${service} 核心业务结果`,
         entity: `${service} 核心业务目标`,
         capability: '业务黄金指标',
-        metric: `${metricPrefix}.success_rate`,
-        rule: '下降不超过 0.20pp',
+        metricRules: [
+          createMetricRule(`${metricPrefix}.success_rate`, '>=', 99.59, {
+            label: `${service} 核心业务成功率`,
+            category: '业务结果',
+            unit: '%',
+          }),
+        ],
         failureAction: `暂停 ${service} 发布并转 RC Agent`,
         rationale: `服务目录将 ${service} 绑定为当前可靠性目标的责任实体。`,
         sourceRefs: [changeSourceRef, 'service-catalog', 'metric-catalog'],
@@ -3677,8 +3912,10 @@ function compileGenericWorkspace(request) {
         purpose: `验证 ${service} 自身没有退化`,
         entity: service,
         capability: '服务黄金信号',
-        metric: 'http.error_rate + http.duration.p95',
-        rule: '错误率 ≤ 0.5%，p95 增幅 ≤ 10%',
+        metricRules: [
+          createMetricRule('http.error_rate', '<=', 0.5),
+          createMetricRule('http.duration.p95.change_rate', '<=', 10),
+        ],
         failureAction: `暂停并检查 ${service} 新版本实例`,
         rationale: `本次变更直接改变 ${service} 的运行时行为。`,
         sourceRefs: [changeSourceRef, 'metric-catalog'],
@@ -3688,8 +3925,10 @@ function compileGenericWorkspace(request) {
         purpose: `验证 ${service} 的关键下游依赖`,
         entity: downstream,
         capability: 'Trace 依赖门禁',
-        metric: 'span.client.error_rate + span.client.duration.p95',
-        rule: '无新增错误依赖，p95 增幅 ≤ 8%',
+        metricRules: [
+          createMetricRule('span.client.error_rate', '<=', 0),
+          createMetricRule('span.client.duration.p95.change_rate', '<=', 8),
+        ],
         failureAction: `暂停并下钻 ${service} 依赖 Trace`,
         rationale: `运行时 Trace 证明 ${service} 实际调用 ${downstream}。`,
         sourceRefs: ['service-catalog', 'runtime-trace', 'metric-catalog'],
@@ -3699,8 +3938,10 @@ function compileGenericWorkspace(request) {
         purpose: `验证 ${service} 缓存无新增饱和`,
         entity: cache,
         capability: 'Redis 开箱指标',
-        metric: 'redis.hit_rate + redis.command_latency',
-        rule: '命中率下降 ≤ 2%，命令 p99 ≤ 6ms',
+        metricRules: [
+          createMetricRule('redis.hit_rate', '>=', 94.4),
+          createMetricRule('redis.command_latency', '<=', 6),
+        ],
         failureAction: `延长 ${service} 观察窗口并人工确认`,
         rationale: `运行时 Trace 证明 ${service} 实际访问 ${cache}。`,
         sourceRefs: ['runtime-trace', 'metric-catalog'],
@@ -3753,6 +3994,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-success-rate`,
+              metricId: `${metricPrefix}.success_rate`,
               label: '核心业务成功率',
               entity: `${service} 核心业务目标`,
               kind: 'numeric',
@@ -3770,6 +4012,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-p95-change`,
+              metricId: 'http.duration.p95.change_rate',
               label: '服务延迟增幅',
               entity: service,
               kind: 'numeric',
@@ -3787,6 +4030,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-downstream-trace`,
+              metricId: 'span.client.error_rate',
               label: '下游依赖错误',
               entity: downstream,
               kind: 'qualitative',
@@ -3802,6 +4046,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-cache-hit-rate`,
+              metricId: 'redis.hit_rate',
               label: '缓存命中率',
               entity: cache,
               kind: 'numeric',
@@ -3819,6 +4064,7 @@ function compileGenericWorkspace(request) {
           measurements: [
             {
               id: `${service}-memory-trend`,
+              metricId: 'container.memory.working_set',
               label: '内存变化趋势',
               entity: service,
               kind: 'qualitative',
@@ -4162,6 +4408,101 @@ function validContextItem(item) {
   );
 }
 
+function validMetricRule(rule) {
+  return (
+    rule &&
+    typeof rule === 'object' &&
+    nonEmptyString(rule.id) &&
+    nonEmptyString(rule.metricId) &&
+    nonEmptyString(rule.label) &&
+    nonEmptyString(rule.category) &&
+    nonEmptyString(rule.operator) &&
+    Number.isFinite(rule.threshold) &&
+    nonEmptyString(rule.unit) &&
+    typeof rule.editable === 'boolean' &&
+    stringArray(rule.allowedOperators, { allowEmpty: false }) &&
+    rule.allowedOperators.includes(rule.operator) &&
+    nonEmptyString(rule.sourceRef)
+  );
+}
+
+function legacyMetricRules(check) {
+  const sourceRef = check.sourceRefs.includes('metric-catalog')
+    ? 'metric-catalog'
+    : (check.sourceRefs.at(-1) ?? 'legacy-snapshot');
+  const create = (metricId, operator, threshold, options = {}) =>
+    createMetricRule(metricId, operator, threshold, { sourceRef, ...options });
+  if (check.id === 'candidate-memory-trend') {
+    return [create('container.memory.working_set', '<=', 1, { editable: false })];
+  }
+  if (check.id === 'order-success') return [create('order.submit.success_rate', '>=', 99.59)];
+  if (check.id === 'payment-success') return [create('payment.confirm.success_rate', '>=', 99.82)];
+  if (check.id === 'business-outcome') {
+    const metricId = String(check.metric).split(' + ')[0];
+    return [
+      create(metricId, '>=', 99.59, {
+        label: `${check.entity}成功率`,
+        category: '业务结果',
+        unit: '%',
+      }),
+    ];
+  }
+  if (check.id === 'service-golden-signals' || check.id === 'payment-service') {
+    if (check.entity === 'order-api') {
+      return [create('http.error_rate', '<=', 0.5), create('http.duration.p95', '<=', 198)];
+    }
+    if (check.entity === 'payment-api') {
+      return [create('http.error_rate', '<=', 0.3), create('http.duration.p95', '<=', 216)];
+    }
+    return [create('http.error_rate', '<=', 0.5), create('http.duration.p95.change_rate', '<=', 10)];
+  }
+  if (check.id === 'payment-dependency' || check.id === 'downstream-dependency') {
+    return [create('span.client.error_rate', '<=', 0), create('span.client.duration.p95.change_rate', '<=', 8)];
+  }
+  if (check.id === 'cache-health' || check.id === 'middleware-health') {
+    return [create('redis.hit_rate', '>=', 94.4), create('redis.command_latency', '<=', 6)];
+  }
+  if (check.id === 'candidate-db-wait') {
+    return [create('db.pool.wait_p95', '<=', 20), create('db.pool.utilization', '<=', 80)];
+  }
+  if (check.id === 'invoice-backlog') return [create('invoice.queue.lag', '<=', 5)];
+  const metricId = String(check.metric ?? check.id).split(' + ')[0];
+  return [
+    create(metricId, '<=', 0, {
+      label: metricId,
+      category: '历史指标',
+      unit: '%',
+      editable: false,
+    }),
+  ];
+}
+
+function upgradeCheck(check) {
+  if (Array.isArray(check.metricRules)) return clone(check);
+  if (!nonEmptyString(check.metric) || !nonEmptyString(check.rule)) return clone(check);
+  const { metric: _legacyMetric, rule: _legacyRule, ...rest } = check;
+  return { ...clone(rest), metricRules: legacyMetricRules(check) };
+}
+
+function upgradePlan(plan) {
+  return plan && Array.isArray(plan.checks) ? { ...clone(plan), checks: plan.checks.map(upgradeCheck) } : clone(plan);
+}
+
+function upgradeLibraryPlans(value) {
+  const upgraded = clone(value);
+  if (!upgraded || typeof upgraded !== 'object') return upgraded;
+  if (Array.isArray(upgraded.savedInspections)) {
+    upgraded.savedInspections = upgraded.savedInspections.map((definition) => ({
+      ...definition,
+      inspectionPlan: upgradePlan(definition.inspectionPlan),
+    }));
+  }
+  if (Array.isArray(upgraded.runs)) {
+    upgraded.runs = upgraded.runs.map((run) => ({ ...run, inspectionPlan: upgradePlan(run.inspectionPlan) }));
+  }
+  return upgraded;
+}
+
 function validPlan(plan) {
   if (
     !plan ||
@@ -4179,7 +4520,10 @@ function validPlan(plan) {
       typeof check === 'object' &&
       nonEmptyString(check.id) &&
       checkIds.has(check.id) &&
-      stringArray(check.sourceRefs),
+      stringArray(check.sourceRefs) &&
+      Array.isArray(check.metricRules) &&
+      check.metricRules.length > 0 &&
+      check.metricRules.every(validMetricRule),
   );
 }
 
@@ -4244,6 +4588,7 @@ function validExecutionResult(result) {
 }
 
 function normalizeLibrary(value) {
+  value = upgradeLibraryPlans(value);
   if (
     !value ||
     value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
@@ -4290,7 +4635,7 @@ function parseInspectionLibraryWithDiagnostics(serialized) {
     });
   }
   try {
-    const value = JSON.parse(serialized);
+    const value = upgradeLibraryPlans(JSON.parse(serialized));
     if (
       !value ||
       value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
@@ -4428,6 +4773,7 @@ function selectedContextResults(selectedContext) {
 const REPORT_RESULT_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
 
 function missingCheckResult(check) {
+  const firstRule = check.metricRules[0];
   return {
     checkId: check.id,
     status: 'NotEvaluated',
@@ -4435,14 +4781,75 @@ function missingCheckResult(check) {
     measurements: [
       {
         id: `missing-${check.id}`,
-        label: check.metric,
+        metricId: firstRule.metricId,
+        label: firstRule.label,
         entity: check.entity,
         kind: 'qualitative',
         displayValue: '证据不足',
-        gate: { displayValue: check.rule },
+        gate: {
+          operator: firstRule.operator,
+          value: firstRule.threshold,
+          unit: firstRule.unit,
+          displayValue: `${firstRule.operator} ${firstRule.threshold}${firstRule.unit}`,
+        },
       },
     ],
   };
+}
+
+function evaluateNumericRule(value, rule) {
+  if (rule.operator === '<=') return value <= rule.threshold;
+  if (rule.operator === '>=') return value >= rule.threshold;
+  if (rule.operator === '<') return value < rule.threshold;
+  if (rule.operator === '>') return value > rule.threshold;
+  return false;
+}
+
+function trendSeries(measurement, rule) {
+  if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value)) return undefined;
+  const distance = Math.abs(measurement.value - (rule?.threshold ?? measurement.value));
+  const scale = Math.max(distance * 0.35, Math.abs(measurement.value) * 0.001, measurement.unit === 'ms' ? 1 : 0.02);
+  const offsets = [-1.8, -1.1, -0.4, 0.35, -0.15, 0];
+  const labels = ['-15m', '-12m', '-9m', '-6m', '-3m', '现在'];
+  return labels.map((label, index) => ({
+    label,
+    value: Math.round((measurement.value + offsets[index] * scale) * 1000) / 1000,
+  }));
+}
+
+function materializeCheckResult(check, sourceResult) {
+  const rules = new Map(check.metricRules.map((rule) => [rule.metricId, rule]));
+  const result = clone(sourceResult ?? missingCheckResult(check));
+  const evaluated = [];
+  const measurements = result.measurements.map((measurement) => {
+    const rule = rules.get(measurement.metricId);
+    if (measurement.kind !== 'numeric' || !rule || !Number.isFinite(measurement.value)) {
+      const series = measurement.series ?? trendSeries(measurement, rule);
+      return series ? { ...measurement, series } : measurement;
+    }
+    const passed = evaluateNumericRule(measurement.value, rule);
+    evaluated.push({ measurement, rule, passed });
+    return {
+      ...measurement,
+      metricId: rule.metricId,
+      gate: {
+        operator: rule.operator,
+        value: rule.threshold,
+        unit: rule.unit,
+        displayValue: `${rule.operator} ${rule.threshold}${rule.unit}`,
+      },
+      series: measurement.series ?? trendSeries(measurement, rule),
+    };
+  });
+  let status = result.status;
+  if (!['Inconclusive', 'NotEvaluated'].includes(status) && evaluated.length) {
+    status = evaluated.every((item) => item.passed) ? 'Verified' : 'Violated';
+  }
+  const failed = evaluated.filter((item) => !item.passed);
+  const summary = failed.length
+    ? `${failed.map((item) => item.rule.label).join('、')}触及编辑后的门禁`
+    : result.summary;
+  return { ...result, status, summary, measurements };
 }
 
 function reportCounts(checkResults) {
@@ -4524,7 +4931,17 @@ function interpretationForResults(report, checkResults) {
 }
 
 function materializedDecision(report, counts, removedConclusiveResult) {
-  if (counts.violated > 0) return {};
+  if (counts.violated > 0) {
+    const retainOriginalCopy = report.evidenceVerdict === 'Violated' && !removedConclusiveResult;
+    return {
+      evidenceVerdict: 'Violated',
+      action: 'Pause',
+      actionLabel: retainOriginalCopy ? report.actionLabel : '建议暂停并处理违例',
+      title: retainOriginalCopy ? report.title : '编辑后的检查门禁发现违例',
+      summary: retainOriginalCopy ? report.summary : `锁定计划中有 ${counts.violated} 项检查触及门禁。`,
+      rcAgent: retainOriginalCopy ? report.rcAgent : null,
+    };
+  }
   if (counts.unresolved > 0) {
     return {
       evidenceVerdict: 'Inconclusive',
@@ -4550,7 +4967,7 @@ function materializeReportForPlan(report, inspectionPlan) {
   if (!Array.isArray(report?.checkResults) || !report.interpretation) return clone(report);
   const resultByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
   const checkResults = inspectionPlan.checks.map((check) =>
-    clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)),
+    materializeCheckResult(check, resultByCheckId.get(check.id)),
   );
   const counts = reportCounts(checkResults);
   const orderedEvidence = [...checkResults].sort(
@@ -4744,6 +5161,21 @@ function requireWorkspace(state) {
   return state.workspace;
 }
 
+function applyRuleOverrides(state, checks) {
+  return checks.map((check) => {
+    const overrides = state.checkRuleOverrides?.[check.id];
+    if (!overrides) return check;
+    let changed = false;
+    const metricRules = check.metricRules.map((rule) => {
+      const override = overrides[rule.id];
+      if (!override) return rule;
+      changed = true;
+      return { ...rule, operator: override.operator, threshold: override.threshold };
+    });
+    return changed ? { ...check, metricRules } : check;
+  });
+}
+
 function selectResolvedScope(state) {
   const workspace = requireWorkspace(state);
   return {
@@ -4784,7 +5216,7 @@ function selectCommittedChecks(state) {
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
-  const checks = [...selectedBaseChecks, ...acceptedCandidates];
+  const checks = applyRuleOverrides(state, [...selectedBaseChecks, ...acceptedCandidates]);
   const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
@@ -4815,19 +5247,6 @@ function selectPlanSummary(state) {
     optionalPending: pendingCandidates.filter((candidate) => candidate.criticality !== 'high').length,
     rejected: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'rejected').length,
   };
-}
-
-function selectExecutionView(state) {
-  const workspace = requireWorkspace(state);
-  return workspace.execution.map((step, index) => ({
-    ...step,
-    progress:
-      state.phase === 'report' || index <= state.executionStep
-        ? 'complete'
-        : index === state.executionStep + 1 && state.phase === 'execution'
-          ? 'active'
-          : 'queued',
-  }));
 }
 
 function selectReportView(state) {
@@ -4899,7 +5318,6 @@ function selectViewModel(state) {
       readiness: null,
       committedChecks: [],
       planSummary: null,
-      execution: [],
       report: null,
       playbook: selectPlaybookView(state),
       savedInspection: selectSavedInspectionView(state),
@@ -4912,7 +5330,6 @@ function selectViewModel(state) {
     readiness: selectPlanReadiness(state),
     committedChecks: selectCommittedChecks(state),
     planSummary: selectPlanSummary(state),
-    execution: selectExecutionView(state),
     report: selectReportView(state),
     playbook: selectPlaybookView(state),
     savedInspection: selectSavedInspectionView(state),
@@ -4927,7 +5344,7 @@ function createDemoSession(options = {}) {
     workspace: null,
     phase: 'intake',
     candidateDisposition: {},
-    executionStep: -1,
+    checkRuleOverrides: {},
     rcExpanded: false,
     playbookMatch: null,
     playbookDecision: null,
@@ -5037,7 +5454,14 @@ function playbookRef(match) {
 }
 
 function snapshotChecks(checks) {
-  return checks.map((check) => ({ ...check, sourceRefs: [...check.sourceRefs] }));
+  return checks.map((check) => ({
+    ...check,
+    sourceRefs: [...check.sourceRefs],
+    metricRules: check.metricRules.map((rule) => ({
+      ...rule,
+      allowedOperators: [...rule.allowedOperators],
+    })),
+  }));
 }
 
 function createInspectionPlan(checks, sourcePlaybookRef = null, sourceSavedInspectionId = null) {
@@ -5069,6 +5493,27 @@ function disposeCandidate(state, action) {
       [candidate.id]: {
         status: action.disposition,
         reason: reason || null,
+      },
+    },
+  };
+}
+
+function updateCheckRule(state, action) {
+  if (state.phase !== 'plan' || !state.workspace) return state;
+  const check = selectCommittedChecks(state).find((item) => item.id === action.checkId);
+  const rule = check?.metricRules.find((item) => item.id === action.ruleId);
+  const operator = String(action.operator ?? '');
+  const threshold =
+    typeof action.threshold === 'string' && !action.threshold.trim() ? Number.NaN : Number(action.threshold);
+  if (!rule?.editable || !rule.allowedOperators.includes(operator) || !Number.isFinite(threshold)) return state;
+  if (rule.operator === operator && rule.threshold === threshold) return state;
+  return {
+    ...state,
+    checkRuleOverrides: {
+      ...state.checkRuleOverrides,
+      [check.id]: {
+        ...(state.checkRuleOverrides[check.id] ?? {}),
+        [rule.id]: { operator, threshold },
       },
     },
   };
@@ -5133,9 +5578,8 @@ function startPlaybookExecution(state) {
     return state;
   }
   const checks = selectChecksForContext(state, state.playbookMatch.checks);
-  return {
+  const plannedState = {
     ...state,
-    phase: 'execution',
     playbookDecision: 'applied',
     taskInstance: updateTaskInstance(
       state.taskInstance,
@@ -5147,6 +5591,7 @@ function startPlaybookExecution(state) {
       { type: 'playbook-applied', playbookRef: playbookRef(state.playbookMatch) },
     ),
   };
+  return completeInspectionRun(plannedState);
 }
 
 function confirmPlaybookDifference(state) {
@@ -5211,10 +5656,8 @@ function acceptScope(state) {
 function confirmPlan(state) {
   if (state.phase !== 'plan' || selectPlanReadiness(state).status !== 'ready') return state;
   const checks = selectCommittedChecks(state);
-  return {
+  const plannedState = {
     ...state,
-    phase: 'execution',
-    executionStep: -1,
     taskInstance: updateTaskInstance(
       state.taskInstance,
       {
@@ -5228,13 +5671,12 @@ function confirmPlan(state) {
       { type: 'plan-confirmed', checkIds: checks.map((check) => check.id) },
     ),
   };
+  return completeInspectionRun(plannedState);
 }
 
-function advanceExecution(state) {
-  if (state.phase !== 'execution' || !state.workspace) return state;
-  const lastIndex = state.workspace.execution.length - 1;
-  const nextStep = state.executionStep + 1;
-  if (nextStep < lastIndex) return { ...state, executionStep: nextStep };
+function completeInspectionRun(state) {
+  if (!state.workspace || state.taskInstance?.status !== 'executing' || !state.taskInstance.inspectionPlan)
+    return state;
   const taskInstance = updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' });
   const id = runId(state.nextRunOrdinal, state.actorId);
   const run = createInspectionRun({
@@ -5250,7 +5692,6 @@ function advanceExecution(state) {
   return {
     ...state,
     phase: 'report',
-    executionStep: lastIndex,
     taskInstance,
     currentRunId: id,
     nextRunOrdinal: state.nextRunOrdinal + 1,
@@ -5358,16 +5799,14 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
   const refresh = classifySavedInspectionRefresh(definition, workspace);
   const ordinal = state.nextTaskOrdinal;
   let taskInstance = createTaskInstance(ordinal, definition.id, state.actorId);
-  let phase = 'context';
   if (refresh.status === 'exact') {
-    phase = 'execution';
     taskInstance = updateTaskInstance(
       taskInstance,
       { status: 'executing', inspectionPlan: savedPlan(definition) },
       { type: 'saved-inspection-applied', definitionId: definition.id, refreshStatus: 'exact' },
     );
   }
-  return {
+  const preparedState = {
     ...createDemoSession({
       library: state.library,
       actorId: state.actorId,
@@ -5376,7 +5815,7 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
       nextSavedOrdinal: state.nextSavedOrdinal,
       historyDiagnostics: state.historyDiagnostics,
     }),
-    phase,
+    phase: 'context',
     workspace,
     contextOptions: selectedSavedContext(definition, workspace),
     activeRequest: { ...definition.request },
@@ -5384,15 +5823,15 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
     savedRunRefresh: refresh,
     taskInstance,
   };
+  return refresh.status === 'exact' ? completeInspectionRun(preparedState) : preparedState;
 }
 
 function confirmSavedInspectionRun(state) {
   if (state.phase !== 'context' || state.savedRunRefresh?.status !== 'minor-drift') return state;
   const definition = state.library.savedInspections.find((item) => item.id === state.activeSavedInspectionId);
   if (!definition) return state;
-  return {
+  const plannedState = {
     ...state,
-    phase: 'execution',
     taskInstance: updateTaskInstance(
       state.taskInstance,
       { status: 'executing', inspectionPlan: savedPlan(definition) },
@@ -5403,6 +5842,7 @@ function confirmSavedInspectionRun(state) {
       },
     ),
   };
+  return completeInspectionRun(plannedState);
 }
 
 function regenerateSavedInspection(state) {
@@ -5486,8 +5926,8 @@ function createDemoReducer(options = {}) {
     PLAYBOOK_REGENERATED: regenerateFromPlaybook,
     SCOPE_ACCEPTED: acceptScope,
     CANDIDATE_DISPOSED: disposeCandidate,
+    CHECK_RULE_UPDATED: updateCheckRule,
     PLAN_CONFIRMED: confirmPlan,
-    EXECUTION_ADVANCED: advanceExecution,
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
     SAVED_INSPECTION_CREATED: createPersonalSavedInspection,
@@ -5600,7 +6040,8 @@ function projectReportChecks(run) {
       status: result?.status ?? 'NotEvaluated',
       summary: result?.summary ?? '证据不足',
       actualDisplay: measurements.map((measurement) => measurement.displayValue).join(' / ') || '证据不足',
-      gateDisplay: measurements.map((measurement) => measurement.gate.displayValue).join(' / ') || check.rule,
+      gateDisplay:
+        measurements.map((measurement) => measurement.gate.displayValue).join(' / ') || formatCheckRules(check),
     };
   });
 }
@@ -5617,6 +6058,45 @@ function projectInterpretation(report) {
     text: interpretation?.[key]?.text ?? '证据不足',
     evidenceIds: interpretation?.[key]?.evidenceIds ?? [],
   }));
+}
+
+function renderTrendChart(measurement) {
+  const series = Array.isArray(measurement?.series)
+    ? measurement.series.filter((point) => Number.isFinite(point?.value))
+    : [];
+  if (measurement?.kind !== 'numeric' || series.length < 2) return '';
+  const threshold = measurement.gate?.value;
+  const values = series.map((point) => point.value);
+  if (Number.isFinite(threshold)) values.push(threshold);
+  let minimum = Math.min(...values);
+  let maximum = Math.max(...values);
+  if (minimum === maximum) {
+    const padding = Math.abs(minimum) * 0.05 || 1;
+    minimum -= padding;
+    maximum += padding;
+  }
+  const left = 16;
+  const right = 304;
+  const top = 12;
+  const bottom = 76;
+  const x = (index) => left + (index * (right - left)) / (series.length - 1);
+  const y = (value) => bottom - ((value - minimum) / (maximum - minimum)) * (bottom - top);
+  const points = series.map((point, index) => `${x(index).toFixed(1)},${y(point.value).toFixed(1)}`).join(' ');
+  const thresholdLine = Number.isFinite(threshold)
+    ? `<line class="trend-threshold-line" x1="${left}" y1="${y(threshold).toFixed(1)}" x2="${right}" y2="${y(threshold).toFixed(1)}"></line><text class="trend-threshold-label" x="${right}" y="${Math.max(10, y(threshold) - 4).toFixed(1)}" text-anchor="end">门禁 ${escapeHtml(measurement.gate.displayValue)}</text>`
+    : '';
+  const dots = series
+    .map(
+      (point, index) =>
+        `<circle cx="${x(index).toFixed(1)}" cy="${y(point.value).toFixed(1)}" r="2.5"><title>${escapeHtml(point.label)} ${escapeHtml(point.value)}${escapeHtml(measurement.unit ?? '')}</title></circle>`,
+    )
+    .join('');
+  return `<svg class="trend-chart" data-trend-metric-id="${escapeHtml(measurement.metricId ?? measurement.id)}" role="img" aria-label="${escapeHtml(measurement.label)}趋势" viewBox="0 0 320 96" preserveAspectRatio="none">
+    <line class="trend-axis" x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}"></line>
+    ${thresholdLine}
+    <polyline class="trend-series-line" points="${points}"></polyline>${dots}
+    <text class="trend-time-label" x="${left}" y="91">${escapeHtml(series[0].label)}</text><text class="trend-time-label" x="${right}" y="91" text-anchor="end">${escapeHtml(series.at(-1).label)}</text>
+  </svg>`;
 }
 
 function requireShareableRun(run) {
@@ -5664,7 +6144,7 @@ function buildStandaloneReportHtml(run, taskName) {
   const evidence = reportEvidence
     .map((item, index) => {
       const status = REPORT_STATUS_COPY[item.status] ?? REPORT_STATUS_COPY.NotEvaluated;
-      return `<article id="evidence-${index + 1}" class="evidence ${status.tone}"><div><strong>${escapeHtml(item.label)}</strong><span>${status.symbol} ${status.label}</span></div><small>${escapeHtml(item.entity)} · 证据 ${index + 1}</small><p>当前值 ${escapeHtml(item.displayValue)} · 门禁 ${escapeHtml(item.gateDisplayValue)}</p></article>`;
+      return `<article id="evidence-${index + 1}" class="evidence ${status.tone}"><div><strong>${escapeHtml(item.label)}</strong><span>${status.symbol} ${status.label}</span></div><small>${escapeHtml(item.entity)} · 证据 ${index + 1}</small><p>当前值 ${escapeHtml(item.displayValue)} · 门禁 ${escapeHtml(item.gateDisplayValue)}</p>${renderTrendChart(item)}</article>`;
     })
     .join('');
   const checks = projectReportChecks(run)
@@ -5701,6 +6181,7 @@ function buildStandaloneReportHtml(run, taskName) {
     .evidence{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.evidence>div{display:flex;justify-content:space-between;gap:12px}.evidence.violated{border-color:#a94456}.evidence.unresolved{border-color:#8d6b35}.evidence small{color:#738aa3}
     table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #29415f;text-align:left;color:#b9cadc}
     .interpretation article{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.interpretation footer{display:flex;flex-wrap:wrap;gap:8px}.interpretation a{color:#72e6a6;text-decoration:none;border:1px solid #397462;border-radius:999px;padding:3px 8px;font-size:12px}.interpretation small{color:#738aa3}
+    .trend-chart{width:100%;height:112px;margin-top:12px;overflow:visible}.trend-axis{stroke:#29415f}.trend-series-line{fill:none;stroke:#72e6a6;stroke-width:2.5}.trend-chart circle{fill:#72e6a6}.trend-threshold-line{stroke:#ffb45b;stroke-width:1.5;stroke-dasharray:5 4}.trend-threshold-label,.trend-time-label{fill:#738aa3;font-size:9px}
     .pair section{margin:0}.foot{font-size:12px;color:#738aa3;text-align:center;border:0;background:transparent}
     @media(max-width:560px){body{padding:16px 12px}.pair,.evidence-grid,.interpretation{grid-template-columns:1fr}h1{font-size:24px}table{font-size:12px}}
   </style>
@@ -5876,6 +6357,33 @@ function renderIntake(vm) {
   return vm.workspace ? renderContextSelection(vm) : renderSavedInspectionHome(vm);
 }
 
+function renderMetricList(metricRules = []) {
+  return `<ul class="metric-name-list">${metricRules
+    .map(
+      (rule) =>
+        `<li><strong>${escapeHtml(rule.label)}</strong><code>${escapeHtml(rule.metricId)}</code><span>${escapeHtml(rule.category)}</span></li>`,
+    )
+    .join('')}</ul>`;
+}
+
+function renderRuleEditor(check, rule) {
+  if (!rule.editable) {
+    return `<article class="metric-rule-row is-readonly"><div><strong>${escapeHtml(rule.label)}</strong><code>${escapeHtml(rule.metricId)}</code></div><span>${escapeHtml(formatMetricRule(rule))}</span><small>固定规则</small></article>`;
+  }
+  const operators = rule.allowedOperators
+    .map(
+      (operator) =>
+        `<option value="${escapeHtml(operator)}" ${operator === rule.operator ? 'selected' : ''}>${escapeHtml(operator)}</option>`,
+    )
+    .join('');
+  return `<form class="metric-rule-row rule-editor" data-rule-editor data-rule-check-id="${escapeHtml(check.id)}" data-rule-id="${escapeHtml(rule.id)}">
+    <div><strong>${escapeHtml(rule.label)}</strong><code>${escapeHtml(rule.metricId)}</code><small>${escapeHtml(rule.category)}</small></div>
+    <label><span>比较</span><select name="rule-operator" aria-label="${escapeHtml(rule.label)}比较符">${operators}</select></label>
+    <label><span>门禁值</span><input name="rule-threshold" type="number" step="any" value="${escapeHtml(rule.threshold)}" aria-label="${escapeHtml(rule.label)}门禁值"><b>${escapeHtml(rule.unit)}</b></label>
+    <button type="submit">应用</button>
+  </form>`;
+}
+
 function renderCandidate(candidate, disposition) {
   const accepted = disposition?.status === 'accepted';
   const rejected = disposition?.status === 'rejected';
@@ -5889,7 +6397,7 @@ function renderCandidate(candidate, disposition) {
       <details class="candidate-details">
         <summary>查看细节</summary>
         <dl>
-          <div><dt>检查指标</dt><dd><code>${escapeHtml(candidate.metric)}</code></dd></div>
+          <div><dt>黄金指标</dt><dd>${renderMetricList(candidate.metricRules)}</dd></div>
           <div><dt>目标实体</dt><dd>${escapeHtml(candidate.entity)}</dd></div>
         </dl>
       </details>
@@ -5923,9 +6431,11 @@ function renderCheck(check, isCandidate, contextSources) {
         <div class="check-rationale"><span>检查依据</span><p>${escapeHtml(check.rationale)}</p></div>
         <dl>
           <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
-          <div><dt>检查指标</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
-          <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
-          <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
+          <div><dt>业务黄金指标</dt><dd>${renderMetricList(check.metricRules)}</dd></div>
+          <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)} <small>由已注册能力提供，不可在草案中修改</small></dd></div>
+          <div class="check-rule-editor"><dt>判定规则</dt><dd><p class="rule-summary">${escapeHtml(formatCheckRules(check))}</p>${check.metricRules
+            .map((rule) => renderRuleEditor(check, rule))
+            .join('')}</dd></div>
           <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
           <div><dt>失败动作</dt><dd>${escapeHtml(check.failureAction)}</dd></div>
           <div class="check-sources"><dt>事实来源</dt><dd><ul>${renderSourceRefs(check, contextSources)}</ul></dd></div>
@@ -5946,10 +6456,10 @@ function renderPlanSummary(committedCount, planSummary) {
   return `<p class="plan-summary" data-testid="plan-summary">本次将执行 ${committedCount} 项检查，${pendingCopy}</p>`;
 }
 
-function renderPlanAction(readiness) {
+function renderPlanAction(readiness, committedCount) {
   const ready = readiness.status === 'ready';
   const label = ready
-    ? '确认并开始巡检'
+    ? `确认并执行 ${committedCount} 项检查`
     : readiness.unresolvedCandidateIds.length
       ? '请先处理上方的建议项'
       : readiness.reconciliationBlocked
@@ -6004,6 +6514,7 @@ function renderInspectionPlan(vm) {
         <span class="readiness ${vm.readiness.status}">${renderReadinessLabel(vm.readiness)}</span>
       </header>
       ${renderPlanSummary(vm.committedChecks.length, vm.planSummary)}
+      <p class="parallel-execution-note">所有已选检查无先后依赖，确认后将并行执行并直接生成报告。</p>
       ${candidateSection}
       <section class="plan-section" aria-labelledby="formal-title">
         <h3 id="formal-title">将执行的检查</h3>
@@ -6013,7 +6524,7 @@ function renderInspectionPlan(vm) {
             .join('')}
         </div>
       </section>
-      ${renderPlanAction(vm.readiness)}
+      ${renderPlanAction(vm.readiness, vm.committedChecks.length)}
     </div>`;
 }
 
@@ -6184,14 +6695,6 @@ function renderSavedInspectionRefresh(savedInspection) {
   </section>`;
 }
 
-function renderSavedExecutionStatus(savedInspection) {
-  if (savedInspection?.refresh?.status !== 'exact' || !savedInspection.activeDefinition) return '';
-  return `<div class="saved-execution-status reconciliation is-exact" data-testid="saved-refresh" data-refresh-status="exact">
-    <span>当前事实</span><strong>一致，已直接执行</strong>
-    <p>${escapeHtml(savedInspection.activeDefinition.name)} · 新任务 ${escapeHtml(savedInspection.currentRun?.taskInstanceId ?? '执行中')}</p>
-  </div>`;
-}
-
 function renderSelectedContextResults(run) {
   if (!run?.selectedContextResults?.length) return '';
   return `<section class="report-context-results" data-testid="selected-context-results">
@@ -6265,6 +6768,7 @@ function renderEvidenceCard(item) {
   return `<article tabindex="-1" class="evidence-card is-${status.tone}" data-evidence-id="${escapeHtml(item.id)}" data-check-id="${escapeHtml(item.checkId ?? '')}">
     <header><div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.entity)}</small></div><span>${status.symbol} ${status.label}</span></header>
     ${measurement}
+    ${renderTrendChart(item)}
   </article>`;
 }
 
@@ -6290,9 +6794,9 @@ function renderCheckResult(item) {
       <p>${escapeHtml(item.summary)}</p>
       <dl>
         <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
-        <div><dt>检查指标</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
+        <div><dt>业务黄金指标</dt><dd>${check.metricRules.map((rule) => `<code>${escapeHtml(rule.label)} · ${escapeHtml(rule.metricId)}</code>`).join(' ')}</dd></div>
         <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
-        <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
+        <div><dt>判定规则</dt><dd>${escapeHtml(formatCheckRules(check))}</dd></div>
         <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
         <div><dt>失败动作</dt><dd>${escapeHtml(check.failureAction)}</dd></div>
         <div><dt>事实来源</dt><dd>${check.sourceRefs.map((source) => `<code>${escapeHtml(source)}</code>`).join(' ')}</dd></div>
@@ -6460,8 +6964,7 @@ const PHASES = [
   ['intake', '输入理解', '01'],
   ['context', '范围对账', '02'],
   ['plan', '任务草案', '03'],
-  ['execution', '执行取证', '04'],
-  ['report', '行动报告', '05'],
+  ['report', '行动报告', '04'],
 ];
 
 function phaseIndex(phase) {
@@ -6569,31 +7072,11 @@ function renderScope(vm) {
     </div>`;
 }
 
-function renderExecution(vm) {
-  return `
-    <div class="execution-stage">
-      ${renderSavedExecutionStatus(vm.savedInspection)}
-      <header class="stage-heading"><div><h2 data-stage-title>执行检查</h2></div><span class="live-dot">● MOCK</span></header>
-      <ol class="execution-list">
-        ${vm.execution
-          .map(
-            (step, index) => `<li class="execution-item ${step.progress} ${step.status.toLowerCase()}">
-              <span class="execution-number">${String(index + 1).padStart(2, '0')}</span>
-              <div><strong>${escapeHtml(step.label)}</strong><p class="single-line-note" title="${step.progress === 'complete' ? escapeHtml(step.fact) : ''}">${step.progress === 'complete' ? escapeHtml(step.fact) : step.progress === 'active' ? '等待结果' : '排队'}</p></div>
-              <code>${step.progress === 'complete' ? step.status : step.progress}</code>
-            </li>`,
-          )
-          .join('')}
-      </ol>
-    </div>`;
-}
-
 function renderStage(vm) {
   const renderers = {
     intake: renderIntake,
     context: renderScope,
     plan: renderInspectionPlan,
-    execution: renderExecution,
     report: renderCurrentReport,
   };
   return renderers[vm.state.phase](vm);
@@ -6606,10 +7089,6 @@ function primaryAction(vm) {
   if (vm.state.phase === 'context' && (vm.playbook.match || vm.savedInspection.refresh)) return '';
   const actions = {
     context: ['SCOPE_ACCEPTED', '生成任务'],
-    execution: [
-      'EXECUTION_ADVANCED',
-      vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? '生成报告' : '运行下一项',
-    ],
     report: ['RESET', '新建巡检工作区'],
   };
   const [action, label] = actions[vm.state.phase];
@@ -6630,7 +7109,6 @@ function renderCopilot(vm) {
         intake: '待确认',
         context: vm.playbook.match ? '方案待选择' : '范围待确认',
         plan: planStatus(vm.readiness),
-        execution: '执行中',
         report: '报告已生成',
       }[vm.state.phase];
   return `
@@ -6658,7 +7136,7 @@ function renderApp(vm) {
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
-      <footer class="app-footer"><span>NOVA 巡检 Copilot · v0.3</span><strong><span class="info-tip" title="离线演示不连接生产数据源">ⓘ</span> 所有数据均为 mock，不会触发真实生产动作</strong></footer>
+      <footer class="app-footer"><span>NOVA 巡检 Copilot · v0.4</span><strong><span class="info-tip" title="离线演示不连接生产数据源">ⓘ</span> 所有数据均为 mock，不会触发真实生产动作</strong></footer>
     </div>`;
 }
 
@@ -6808,6 +7286,19 @@ root.addEventListener('click', (event) => {
 });
 
 root.addEventListener('submit', (event) => {
+  const ruleForm = event.target.closest('[data-rule-editor]');
+  if (ruleForm) {
+    event.preventDefault();
+    const data = new FormData(ruleForm);
+    dispatch({
+      type: 'CHECK_RULE_UPDATED',
+      checkId: ruleForm.dataset.ruleCheckId,
+      ruleId: ruleForm.dataset.ruleId,
+      operator: data.get('rule-operator'),
+      threshold: data.get('rule-threshold'),
+    });
+    return;
+  }
   const saveForm = event.target.closest('[data-save-inspection-form]');
   if (saveForm) {
     event.preventDefault();

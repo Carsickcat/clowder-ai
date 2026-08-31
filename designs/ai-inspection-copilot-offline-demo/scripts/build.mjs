@@ -7,6 +7,7 @@ const artifactName = 'index.html';
 const styleFiles = ['tokens.css', 'layout.css', 'components.css', 'responsive.css'];
 const applicationFiles = [
   '../lib/domain.mjs',
+  '../lib/metric-catalog.mjs',
   '../lib/scenarios.mjs',
   '../lib/compiler.mjs',
   '../lib/playbooks.mjs',
@@ -15,6 +16,7 @@ const applicationFiles = [
   '../lib/reducer.mjs',
   'view-utils.mjs',
   'report-model.mjs',
+  'report-trend.mjs',
   'report-share.mjs',
   'render-intake.mjs',
   'render-plan.mjs',

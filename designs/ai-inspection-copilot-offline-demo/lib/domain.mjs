@@ -11,10 +11,9 @@ const REQUIRED_CHECK_FIELDS = Object.freeze([
   'purpose',
   'entity',
   'capability',
-  'metric',
+  'metricRules',
   'window',
   'baseline',
-  'rule',
   'severity',
   'failureAction',
   'rationale',
@@ -44,6 +43,29 @@ export function assertCheckContract(check, sourceIds) {
     if (!sourceIds.has(sourceRef)) {
       throw new Error(`Unknown sourceRef ${sourceRef} on ${check.id}`);
     }
+  }
+  const ruleIds = new Set();
+  for (const rule of check.metricRules) {
+    const validRule =
+      rule &&
+      typeof rule === 'object' &&
+      nonEmptyString(rule.id) &&
+      nonEmptyString(rule.metricId) &&
+      rule.id === rule.metricId &&
+      nonEmptyString(rule.label) &&
+      nonEmptyString(rule.category) &&
+      nonEmptyString(rule.operator) &&
+      Number.isFinite(rule.threshold) &&
+      nonEmptyString(rule.unit) &&
+      typeof rule.editable === 'boolean' &&
+      stringArray(rule.allowedOperators) &&
+      rule.allowedOperators.includes(rule.operator) &&
+      nonEmptyString(rule.sourceRef) &&
+      check.sourceRefs.includes(rule.sourceRef) &&
+      sourceIds.has(rule.sourceRef) &&
+      !ruleIds.has(rule.id);
+    if (!validRule) throw new Error(`Check ${check.id} has invalid metricRule ${rule?.id ?? 'unknown'}`);
+    ruleIds.add(rule.id);
   }
   return true;
 }

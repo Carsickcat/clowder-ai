@@ -5,6 +5,7 @@ import {
   projectReportEvidence,
   REPORT_STATUS_COPY,
 } from './report-model.mjs';
+import { renderTrendChart } from './report-trend.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 function requireShareableRun(run) {
@@ -52,7 +53,7 @@ export function buildStandaloneReportHtml(run, taskName) {
   const evidence = reportEvidence
     .map((item, index) => {
       const status = REPORT_STATUS_COPY[item.status] ?? REPORT_STATUS_COPY.NotEvaluated;
-      return `<article id="evidence-${index + 1}" class="evidence ${status.tone}"><div><strong>${escapeHtml(item.label)}</strong><span>${status.symbol} ${status.label}</span></div><small>${escapeHtml(item.entity)} · 证据 ${index + 1}</small><p>当前值 ${escapeHtml(item.displayValue)} · 门禁 ${escapeHtml(item.gateDisplayValue)}</p></article>`;
+      return `<article id="evidence-${index + 1}" class="evidence ${status.tone}"><div><strong>${escapeHtml(item.label)}</strong><span>${status.symbol} ${status.label}</span></div><small>${escapeHtml(item.entity)} · 证据 ${index + 1}</small><p>当前值 ${escapeHtml(item.displayValue)} · 门禁 ${escapeHtml(item.gateDisplayValue)}</p>${renderTrendChart(item)}</article>`;
     })
     .join('');
   const checks = projectReportChecks(run)
@@ -89,6 +90,7 @@ export function buildStandaloneReportHtml(run, taskName) {
     .evidence{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.evidence>div{display:flex;justify-content:space-between;gap:12px}.evidence.violated{border-color:#a94456}.evidence.unresolved{border-color:#8d6b35}.evidence small{color:#738aa3}
     table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #29415f;text-align:left;color:#b9cadc}
     .interpretation article{padding:14px;border:1px solid #29415f;border-radius:12px;background:#07101f}.interpretation footer{display:flex;flex-wrap:wrap;gap:8px}.interpretation a{color:#72e6a6;text-decoration:none;border:1px solid #397462;border-radius:999px;padding:3px 8px;font-size:12px}.interpretation small{color:#738aa3}
+    .trend-chart{width:100%;height:112px;margin-top:12px;overflow:visible}.trend-axis{stroke:#29415f}.trend-series-line{fill:none;stroke:#72e6a6;stroke-width:2.5}.trend-chart circle{fill:#72e6a6}.trend-threshold-line{stroke:#ffb45b;stroke-width:1.5;stroke-dasharray:5 4}.trend-threshold-label,.trend-time-label{fill:#738aa3;font-size:9px}
     .pair section{margin:0}.foot{font-size:12px;color:#738aa3;text-align:center;border:0;background:transparent}
     @media(max-width:560px){body{padding:16px 12px}.pair,.evidence-grid,.interpretation{grid-template-columns:1fr}h1{font-size:24px}table{font-size:12px}}
   </style>

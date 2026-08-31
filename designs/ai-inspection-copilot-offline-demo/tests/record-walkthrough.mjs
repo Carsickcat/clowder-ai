@@ -128,11 +128,16 @@ async function main() {
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     frames.push(await captureFrame(session));
     await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
-    await click(session, '[data-action="PLAN_CONFIRMED"]');
+    const edited = await session.evaluate(`(() => {
+      const form = document.querySelector('[data-rule-id="http.duration.p95.change_rate"]');
+      if (!form) return false;
+      form.elements.namedItem('rule-threshold').value = '5';
+      form.requestSubmit();
+      return true;
+    })()`);
+    assert.equal(edited, true, 'Expected a golden metric threshold to be editable');
     frames.push(await captureFrame(session));
-    for (let index = 0; index < 4; index += 1) {
-      await click(session, '[data-action="EXECUTION_ADVANCED"]');
-    }
+    await click(session, '[data-action="PLAN_CONFIRMED"]');
     frames.push(await captureFrame(session));
     const saved = await session.evaluate(`(() => {
       const form = document.querySelector('[data-save-inspection-form]');

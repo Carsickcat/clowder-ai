@@ -1,4 +1,5 @@
 import { deepFreeze, reconcileChange } from './domain.mjs';
+import { createMetricRule } from './metric-catalog.mjs';
 
 function check(input) {
   return {
@@ -74,8 +75,7 @@ const naturalLanguagePass = {
       purpose: '识别升级后的缓慢内存爬升',
       entity: 'order-api',
       capability: '容器资源趋势',
-      metric: 'container.memory.working_set',
-      rule: '斜率低于历史同版本 P95',
+      metricRules: [createMetricRule('container.memory.working_set', '<=', 1, { editable: false })],
       failureAction: '延长观察窗口',
       rationale: '历史复盘出现过长尾内存增长，但本次代码差异未触及缓存模块。',
       sourceRefs: ['nl-intent', 'metric-catalog'],
@@ -87,8 +87,7 @@ const naturalLanguagePass = {
       purpose: '保护订单提交业务结果',
       entity: '订单提交旅程',
       capability: '业务黄金指标',
-      metric: 'order.submit.success_rate',
-      rule: '下降不超过 0.20pp',
+      metricRules: [createMetricRule('order.submit.success_rate', '>=', 99.59)],
       failureAction: '暂停发布并转 RC Agent',
       rationale: '业务图谱将 order-api 绑定为订单提交的关键服务。',
       sourceRefs: ['nl-intent', 'order-graph', 'metric-catalog'],
@@ -98,8 +97,7 @@ const naturalLanguagePass = {
       purpose: '验证服务自身没有退化',
       entity: 'order-api',
       capability: '服务黄金信号',
-      metric: 'http.error_rate + http.duration.p95',
-      rule: '错误率 ≤ 0.5%，p95 增幅 ≤ 10%',
+      metricRules: [createMetricRule('http.error_rate', '<=', 0.5), createMetricRule('http.duration.p95', '<=', 198)],
       failureAction: '暂停并检查新版本实例',
       rationale: '版本升级直接改变 order-api 运行时行为。',
       sourceRefs: ['nl-intent', 'metric-catalog'],
@@ -109,8 +107,10 @@ const naturalLanguagePass = {
       purpose: '验证关键下游支付确认',
       entity: 'payment-gateway',
       capability: 'Trace 依赖门禁',
-      metric: 'span.client.error_rate + span.client.duration.p95',
-      rule: '无新增错误依赖，p95 增幅 ≤ 8%',
+      metricRules: [
+        createMetricRule('span.client.error_rate', '<=', 0),
+        createMetricRule('span.client.duration.p95.change_rate', '<=', 8),
+      ],
       failureAction: '暂停并下钻支付 Trace',
       rationale: '真实 Trace 证明订单提交同步调用 payment-gateway。',
       sourceRefs: ['order-graph', 'order-trace', 'metric-catalog'],
@@ -120,8 +120,7 @@ const naturalLanguagePass = {
       purpose: '验证订单缓存无新增饱和',
       entity: 'order-cache',
       capability: 'Redis 开箱指标',
-      metric: 'redis.hit_rate + redis.command_latency',
-      rule: '命中率下降 ≤ 2%，命令 p99 ≤ 6ms',
+      metricRules: [createMetricRule('redis.hit_rate', '>=', 94.4), createMetricRule('redis.command_latency', '<=', 6)],
       failureAction: '标记条件放行并延长观察',
       rationale: 'Trace 证明 order-api 实际访问 order-cache。',
       sourceRefs: ['order-trace', 'metric-catalog'],
@@ -154,6 +153,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-success-rate',
+            metricId: 'order.submit.success_rate',
             label: '订单提交成功率',
             entity: '订单提交旅程',
             kind: 'numeric',
@@ -171,6 +171,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-api-p95',
+            metricId: 'http.duration.p95',
             label: '服务延迟 p95',
             entity: 'order-api',
             kind: 'numeric',
@@ -181,6 +182,7 @@ const naturalLanguagePass = {
           },
           {
             id: 'order-api-error-rate',
+            metricId: 'http.error_rate',
             label: '服务错误率',
             entity: 'order-api',
             kind: 'numeric',
@@ -198,6 +200,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'payment-trace-errors',
+            metricId: 'span.client.error_rate',
             label: '支付依赖错误 Trace',
             entity: 'payment-gateway',
             kind: 'qualitative',
@@ -213,6 +216,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-cache-p99',
+            metricId: 'redis.command_latency',
             label: '缓存命令 p99',
             entity: 'order-cache',
             kind: 'numeric',
@@ -230,6 +234,7 @@ const naturalLanguagePass = {
         measurements: [
           {
             id: 'order-memory-trend',
+            metricId: 'container.memory.working_set',
             label: '内存变化趋势',
             entity: 'order-api',
             kind: 'qualitative',
@@ -326,8 +331,10 @@ const changeTicketRisk = {
       purpose: '验证共享配置是否放大数据库连接等待',
       entity: 'settlement-db',
       capability: '数据库连接池检查',
-      metric: 'db.pool.wait_p95 + db.pool.utilization',
-      rule: '等待 p95 ≤ 20ms，池占用 ≤ 80%',
+      metricRules: [
+        createMetricRule('db.pool.wait_p95', '<=', 20, { sourceRef: 'middleware-catalog' }),
+        createMetricRule('db.pool.utilization', '<=', 80, { sourceRef: 'middleware-catalog' }),
+      ],
       failureAction: '暂停灰度并启动 RC Agent',
       rationale: '运行时 hash 对账发现 settlement-db 位于声明外的实际影响面。',
       sourceRefs: ['runtime-diff', 'payment-trace', 'middleware-catalog'],
@@ -339,8 +346,7 @@ const changeTicketRisk = {
       purpose: '保护支付确认业务结果',
       entity: '支付确认旅程',
       capability: '业务黄金指标',
-      metric: 'payment.confirm.success_rate',
-      rule: '下降不超过 0.10pp',
+      metricRules: [createMetricRule('payment.confirm.success_rate', '>=', 99.82, { sourceRef: 'payment-graph' })],
       failureAction: '暂停并通知支付 SRE',
       rationale: '业务图谱将 payment-api 与支付确认结果绑定。',
       sourceRefs: ['change-ticket', 'payment-graph'],
@@ -350,8 +356,10 @@ const changeTicketRisk = {
       purpose: '验证 payment-api 自身稳定性',
       entity: 'payment-api',
       capability: '服务黄金信号',
-      metric: 'http.error_rate + http.duration.p95',
-      rule: '错误率 ≤ 0.3%，p95 增幅 ≤ 8%',
+      metricRules: [
+        createMetricRule('http.error_rate', '<=', 0.3, { sourceRef: 'middleware-catalog' }),
+        createMetricRule('http.duration.p95', '<=', 216, { sourceRef: 'middleware-catalog' }),
+      ],
       failureAction: '暂停灰度',
       rationale: '电子流声明 payment-api 为直接变更对象。',
       sourceRefs: ['change-ticket', 'middleware-catalog'],
@@ -361,8 +369,7 @@ const changeTicketRisk = {
       purpose: '验证异步账单链路无积压',
       entity: 'invoice-worker',
       capability: '消息队列开箱指标',
-      metric: 'invoice.queue.lag',
-      rule: '积压增长率 ≤ 5%',
+      metricRules: [createMetricRule('invoice.queue.lag', '<=', 5, { sourceRef: 'middleware-catalog' })],
       failureAction: '条件放行并延长异步观察',
       rationale: 'Observed-Superset 证明共享配置同时作用于 invoice-worker。',
       sourceRefs: ['runtime-diff', 'payment-graph', 'middleware-catalog'],
@@ -395,6 +402,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'payment-success-rate',
+            metricId: 'payment.confirm.success_rate',
             label: '支付确认成功率',
             entity: '支付确认旅程',
             kind: 'numeric',
@@ -412,6 +420,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'payment-api-p95',
+            metricId: 'http.duration.p95',
             label: '服务延迟 p95',
             entity: 'payment-api',
             kind: 'numeric',
@@ -429,6 +438,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'invoice-backlog-rate',
+            metricId: 'invoice.queue.lag',
             label: '异步积压增长率',
             entity: 'invoice-worker',
             kind: 'qualitative',
@@ -444,6 +454,7 @@ const changeTicketRisk = {
         measurements: [
           {
             id: 'settlement-pool-utilization',
+            metricId: 'db.pool.utilization',
             label: '连接池占用',
             entity: 'settlement-db',
             kind: 'numeric',
@@ -454,6 +465,7 @@ const changeTicketRisk = {
           },
           {
             id: 'settlement-pool-wait',
+            metricId: 'db.pool.wait_p95',
             label: '连接等待 p95',
             entity: 'settlement-db',
             kind: 'numeric',
@@ -464,6 +476,7 @@ const changeTicketRisk = {
           },
           {
             id: 'settlement-pool-config',
+            metricId: 'db.pool.config',
             label: '连接池上限',
             entity: 'shared-payment-stack@c2bd',
             kind: 'qualitative',

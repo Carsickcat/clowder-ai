@@ -2,15 +2,14 @@ import { renderConversationComposer, renderIntake } from './render-intake.mjs';
 import { renderInspectionPlan } from './render-plan.mjs';
 import { renderPlaybookMatch, renderPlaybookReference } from './render-playbook.mjs';
 import { renderCurrentReport } from './render-report.mjs';
-import { renderSavedExecutionStatus, renderSavedInspectionRefresh } from './render-saved-inspections.mjs';
+import { renderSavedInspectionRefresh } from './render-saved-inspections.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 const PHASES = [
   ['intake', '输入理解', '01'],
   ['context', '范围对账', '02'],
   ['plan', '任务草案', '03'],
-  ['execution', '执行取证', '04'],
-  ['report', '行动报告', '05'],
+  ['report', '行动报告', '04'],
 ];
 
 function phaseIndex(phase) {
@@ -118,31 +117,11 @@ function renderScope(vm) {
     </div>`;
 }
 
-function renderExecution(vm) {
-  return `
-    <div class="execution-stage">
-      ${renderSavedExecutionStatus(vm.savedInspection)}
-      <header class="stage-heading"><div><h2 data-stage-title>执行检查</h2></div><span class="live-dot">● MOCK</span></header>
-      <ol class="execution-list">
-        ${vm.execution
-          .map(
-            (step, index) => `<li class="execution-item ${step.progress} ${step.status.toLowerCase()}">
-              <span class="execution-number">${String(index + 1).padStart(2, '0')}</span>
-              <div><strong>${escapeHtml(step.label)}</strong><p class="single-line-note" title="${step.progress === 'complete' ? escapeHtml(step.fact) : ''}">${step.progress === 'complete' ? escapeHtml(step.fact) : step.progress === 'active' ? '等待结果' : '排队'}</p></div>
-              <code>${step.progress === 'complete' ? step.status : step.progress}</code>
-            </li>`,
-          )
-          .join('')}
-      </ol>
-    </div>`;
-}
-
 function renderStage(vm) {
   const renderers = {
     intake: renderIntake,
     context: renderScope,
     plan: renderInspectionPlan,
-    execution: renderExecution,
     report: renderCurrentReport,
   };
   return renderers[vm.state.phase](vm);
@@ -155,10 +134,6 @@ function primaryAction(vm) {
   if (vm.state.phase === 'context' && (vm.playbook.match || vm.savedInspection.refresh)) return '';
   const actions = {
     context: ['SCOPE_ACCEPTED', '生成任务'],
-    execution: [
-      'EXECUTION_ADVANCED',
-      vm.state.executionStep + 1 >= vm.workspace.execution.length - 1 ? '生成报告' : '运行下一项',
-    ],
     report: ['RESET', '新建巡检工作区'],
   };
   const [action, label] = actions[vm.state.phase];
@@ -179,7 +154,6 @@ function renderCopilot(vm) {
         intake: '待确认',
         context: vm.playbook.match ? '方案待选择' : '范围待确认',
         plan: planStatus(vm.readiness),
-        execution: '执行中',
         report: '报告已生成',
       }[vm.state.phase];
   return `
@@ -207,6 +181,6 @@ export function renderApp(vm) {
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
-      <footer class="app-footer"><span>NOVA 巡检 Copilot · v0.3</span><strong><span class="info-tip" title="离线演示不连接生产数据源">ⓘ</span> 所有数据均为 mock，不会触发真实生产动作</strong></footer>
+      <footer class="app-footer"><span>NOVA 巡检 Copilot · v0.4</span><strong><span class="info-tip" title="离线演示不连接生产数据源">ⓘ</span> 所有数据均为 mock，不会触发真实生产动作</strong></footer>
     </div>`;
 }

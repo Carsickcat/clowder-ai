@@ -20,7 +20,7 @@ export function createDemoSession(options = {}) {
     workspace: null,
     phase: 'intake',
     candidateDisposition: {},
-    executionStep: -1,
+    checkRuleOverrides: {},
     rcExpanded: false,
     playbookMatch: null,
     playbookDecision: null,
@@ -130,7 +130,14 @@ function playbookRef(match) {
 }
 
 function snapshotChecks(checks) {
-  return checks.map((check) => ({ ...check, sourceRefs: [...check.sourceRefs] }));
+  return checks.map((check) => ({
+    ...check,
+    sourceRefs: [...check.sourceRefs],
+    metricRules: check.metricRules.map((rule) => ({
+      ...rule,
+      allowedOperators: [...rule.allowedOperators],
+    })),
+  }));
 }
 
 function createInspectionPlan(checks, sourcePlaybookRef = null, sourceSavedInspectionId = null) {
@@ -162,6 +169,27 @@ function disposeCandidate(state, action) {
       [candidate.id]: {
         status: action.disposition,
         reason: reason || null,
+      },
+    },
+  };
+}
+
+function updateCheckRule(state, action) {
+  if (state.phase !== 'plan' || !state.workspace) return state;
+  const check = selectCommittedChecks(state).find((item) => item.id === action.checkId);
+  const rule = check?.metricRules.find((item) => item.id === action.ruleId);
+  const operator = String(action.operator ?? '');
+  const threshold =
+    typeof action.threshold === 'string' && !action.threshold.trim() ? Number.NaN : Number(action.threshold);
+  if (!rule?.editable || !rule.allowedOperators.includes(operator) || !Number.isFinite(threshold)) return state;
+  if (rule.operator === operator && rule.threshold === threshold) return state;
+  return {
+    ...state,
+    checkRuleOverrides: {
+      ...state.checkRuleOverrides,
+      [check.id]: {
+        ...(state.checkRuleOverrides[check.id] ?? {}),
+        [rule.id]: { operator, threshold },
       },
     },
   };
@@ -226,9 +254,8 @@ function startPlaybookExecution(state) {
     return state;
   }
   const checks = selectChecksForContext(state, state.playbookMatch.checks);
-  return {
+  const plannedState = {
     ...state,
-    phase: 'execution',
     playbookDecision: 'applied',
     taskInstance: updateTaskInstance(
       state.taskInstance,
@@ -240,6 +267,7 @@ function startPlaybookExecution(state) {
       { type: 'playbook-applied', playbookRef: playbookRef(state.playbookMatch) },
     ),
   };
+  return completeInspectionRun(plannedState);
 }
 
 function confirmPlaybookDifference(state) {
@@ -304,10 +332,8 @@ function acceptScope(state) {
 function confirmPlan(state) {
   if (state.phase !== 'plan' || selectPlanReadiness(state).status !== 'ready') return state;
   const checks = selectCommittedChecks(state);
-  return {
+  const plannedState = {
     ...state,
-    phase: 'execution',
-    executionStep: -1,
     taskInstance: updateTaskInstance(
       state.taskInstance,
       {
@@ -321,13 +347,12 @@ function confirmPlan(state) {
       { type: 'plan-confirmed', checkIds: checks.map((check) => check.id) },
     ),
   };
+  return completeInspectionRun(plannedState);
 }
 
-function advanceExecution(state) {
-  if (state.phase !== 'execution' || !state.workspace) return state;
-  const lastIndex = state.workspace.execution.length - 1;
-  const nextStep = state.executionStep + 1;
-  if (nextStep < lastIndex) return { ...state, executionStep: nextStep };
+function completeInspectionRun(state) {
+  if (!state.workspace || state.taskInstance?.status !== 'executing' || !state.taskInstance.inspectionPlan)
+    return state;
   const taskInstance = updateTaskInstance(state.taskInstance, { status: 'locked' }, { type: 'task-locked' });
   const id = runId(state.nextRunOrdinal, state.actorId);
   const run = createInspectionRun({
@@ -343,7 +368,6 @@ function advanceExecution(state) {
   return {
     ...state,
     phase: 'report',
-    executionStep: lastIndex,
     taskInstance,
     currentRunId: id,
     nextRunOrdinal: state.nextRunOrdinal + 1,
@@ -451,16 +475,14 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
   const refresh = classifySavedInspectionRefresh(definition, workspace);
   const ordinal = state.nextTaskOrdinal;
   let taskInstance = createTaskInstance(ordinal, definition.id, state.actorId);
-  let phase = 'context';
   if (refresh.status === 'exact') {
-    phase = 'execution';
     taskInstance = updateTaskInstance(
       taskInstance,
       { status: 'executing', inspectionPlan: savedPlan(definition) },
       { type: 'saved-inspection-applied', definitionId: definition.id, refreshStatus: 'exact' },
     );
   }
-  return {
+  const preparedState = {
     ...createDemoSession({
       library: state.library,
       actorId: state.actorId,
@@ -469,7 +491,7 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
       nextSavedOrdinal: state.nextSavedOrdinal,
       historyDiagnostics: state.historyDiagnostics,
     }),
-    phase,
+    phase: 'context',
     workspace,
     contextOptions: selectedSavedContext(definition, workspace),
     activeRequest: { ...definition.request },
@@ -477,15 +499,15 @@ function requestSavedInspectionRun(state, action, compileSavedDefinition) {
     savedRunRefresh: refresh,
     taskInstance,
   };
+  return refresh.status === 'exact' ? completeInspectionRun(preparedState) : preparedState;
 }
 
 function confirmSavedInspectionRun(state) {
   if (state.phase !== 'context' || state.savedRunRefresh?.status !== 'minor-drift') return state;
   const definition = state.library.savedInspections.find((item) => item.id === state.activeSavedInspectionId);
   if (!definition) return state;
-  return {
+  const plannedState = {
     ...state,
-    phase: 'execution',
     taskInstance: updateTaskInstance(
       state.taskInstance,
       { status: 'executing', inspectionPlan: savedPlan(definition) },
@@ -496,6 +518,7 @@ function confirmSavedInspectionRun(state) {
       },
     ),
   };
+  return completeInspectionRun(plannedState);
 }
 
 function regenerateSavedInspection(state) {
@@ -579,8 +602,8 @@ export function createDemoReducer(options = {}) {
     PLAYBOOK_REGENERATED: regenerateFromPlaybook,
     SCOPE_ACCEPTED: acceptScope,
     CANDIDATE_DISPOSED: disposeCandidate,
+    CHECK_RULE_UPDATED: updateCheckRule,
     PLAN_CONFIRMED: confirmPlan,
-    EXECUTION_ADVANCED: advanceExecution,
     RC_TOGGLED: toggleRootCause,
     PLAYBOOK_PROPOSAL_SUBMITTED: submitPlaybookProposal,
     SAVED_INSPECTION_CREATED: createPersonalSavedInspection,

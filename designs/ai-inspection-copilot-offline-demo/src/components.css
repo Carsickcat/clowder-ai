@@ -1248,6 +1248,118 @@
 .evidence-card.is-violated .evidence-track i {
   background: linear-gradient(90deg, var(--amber), var(--red));
 }
+.metric-name-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.metric-name-list li {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+.metric-name-list strong {
+  color: var(--text);
+}
+.metric-name-list span,
+.metric-rule-row small {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.check-rule-editor {
+  grid-column: 1 / -1;
+}
+.check-rule-editor dd {
+  display: grid;
+  gap: 8px;
+}
+.rule-summary {
+  margin: 0 0 2px;
+  color: var(--text-soft);
+}
+.parallel-execution-note {
+  margin: -4px 0 14px;
+  color: var(--text-soft);
+  font-size: 12px;
+}
+.metric-rule-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 1fr) minmax(82px, auto) minmax(150px, auto) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: rgba(12, 28, 49, 0.52);
+}
+.metric-rule-row > div,
+.metric-rule-row label {
+  display: grid;
+  gap: 4px;
+}
+.metric-rule-row label span {
+  color: var(--text-faint);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.metric-rule-row label:has(input) {
+  grid-template-columns: 1fr auto;
+}
+.metric-rule-row label:has(input) span {
+  grid-column: 1 / -1;
+}
+.metric-rule-row input,
+.metric-rule-row select {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 9px;
+}
+.metric-rule-row button {
+  border: 1px solid rgba(82, 199, 231, 0.42);
+  border-radius: 8px;
+  background: var(--cyan-soft);
+  color: var(--cyan);
+  padding: 8px 12px;
+}
+.metric-rule-row.is-readonly {
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+}
+.trend-chart {
+  width: 100%;
+  height: 112px;
+  margin-top: 12px;
+  overflow: visible;
+}
+.trend-axis {
+  stroke: var(--line);
+}
+.trend-series-line {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+.trend-chart circle {
+  fill: var(--cyan);
+}
+.trend-threshold-line {
+  stroke: var(--amber);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  vector-effect: non-scaling-stroke;
+}
+.trend-threshold-label,
+.trend-time-label {
+  fill: var(--text-faint);
+  font-size: 9px;
+}
 .report-check-list {
   display: grid;
   gap: 8px;

@@ -1,3 +1,5 @@
+import { formatCheckRules } from '../lib/metric-catalog.mjs';
+
 const STATUS_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
 
 export const REPORT_STATUS_COPY = Object.freeze({
@@ -82,7 +84,8 @@ export function projectReportChecks(run) {
       status: result?.status ?? 'NotEvaluated',
       summary: result?.summary ?? '证据不足',
       actualDisplay: measurements.map((measurement) => measurement.displayValue).join(' / ') || '证据不足',
-      gateDisplay: measurements.map((measurement) => measurement.gate.displayValue).join(' / ') || check.rule,
+      gateDisplay:
+        measurements.map((measurement) => measurement.gate.displayValue).join(' / ') || formatCheckRules(check),
     };
   });
 }
