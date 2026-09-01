@@ -7,8 +7,8 @@ created: 2026-09-01
 
 # Quality Gate: locked plan / Run evidence projection repair
 
-Spec: `feature-specs/2026-08-31-ai-inspection-editable-golden-metrics.md`  
-Original requirements: `review-notes/2026-09-01-ai-inspection-editable-golden-metrics-review-request.md`  
+Spec: `feature-specs/2026-08-31-ai-inspection-editable-golden-metrics.md`
+Original requirements: `review-notes/2026-09-01-ai-inspection-editable-golden-metrics-review-request.md`
 Formal review base: `18884c7b136e29cfc71192a099d693efbfdbcf14`
 
 ## Vision and delivery scope
