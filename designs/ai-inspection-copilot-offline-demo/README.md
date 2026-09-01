@@ -1,50 +1,45 @@
 ---
-feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
-topics: [aiops, inspection, offline-demo, acceptance]
+feature_ids: [F257, AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
+topics: [aiops, inspection, offline-demo, release-validation, acceptance]
 doc_kind: guide
 created: 2026-08-06
+updated: 2026-09-02
 ---
 
 # AI 巡检 Copilot 离线验收 Demo
 
-这是一个无需安装、无需启动服务、无需占用端口的单文件产品 Demo。所有指标、Trace、电子流、证据和 RC 诊断结果均为 mock，不会连接或修改任何生产系统。
+这是一个无需安装、无需启动服务、无需占用端口的单文件产品 Demo。所有变更、指标、Trace、证据与 RC 诊断均为 mock，不会连接或修改生产系统。
 
 ## 直接验收
 
-双击打开 `index.html`，或把该文件发送到另一台电脑后用现代浏览器打开。
+双击打开 `index.html`。首屏以变更单或发布单为主输入，风险关注点可选；两个示例只填充表单，仍可修改。
 
-打开后不会要求选择固定场景。先在“创建任意巡检工作区”中描述自己的目标；目标服务和电子流 / 发布单均为可选补充。页面中的两个示例只会填充表单，内容仍可修改。
+### 路径一：CHG-84501 → 覆盖诚实的 Pause 报告
 
-### 验收路径一：自定义服务 → Scoped Proceed
+1. 输入 `CHG-84501`，可选补充“关注扣款成功和 Redis 客户端”，点击“生成巡检计划”。
+2. 候选计划应直接出现，不再经过“确认巡检信息”或“确认范围”页面。
+3. 确认默认阻断范围只有 `payment-api`；`invoice-worker` 与 `settlement-db` 位于独立的 amber“影响面缺口”区，不会静默进入阻断检查。
+4. `settlement-db` 因存在已批准规则，可点击“加入本次检查”；`invoice-worker` 无可信规则，只能保留为未覆盖风险。
+5. 页面正常路径只有一颗授权按钮：“确认并开始巡检”。点击后锁定规则与范围，创建一个不可变 Run/Report。
+6. 报告应显示 `Violated + Pause`、覆盖徽标“3 项已验证 · 1 项未覆盖”，并在残余风险中明确写出 `invoice-worker`。
+7. 点击“启动 RC Agent”可查看共享配置包与连接池退化的证据链；诊断不能改写门禁结果。
 
-1. 输入“升级 inventory-api v2.3.1，验证库存锁定和下游调用是否正常”。
-2. 可选填写目标服务 `inventory-api` 和发布单 `REL-20260809-17`，点击“编译巡检工作区”。
-3. 确认理解结果，检查自定义服务已传播到影响面、指标、依赖和正式 Check。
-4. 接受范围并生成任务，先看一句话执行摘要；“可选建议”可以加查或不处理，再展开“将执行的检查”查看具体业务黄金指标。
-5. 在指标规则中编辑比较符或门禁值；执行能力与数据源保持只读。点击“确认并执行 N 项检查”后，互不依赖的检查并行完成并直接生成报告。
-6. 报告应显示 `Verified + Proceed`、明确结论边界，并在关键数值证据卡中展示趋势折线与门禁线。
+### 路径二：任意已知发布 → 规则编辑与保存复访
 
-### 验收路径二：可编辑示例 → Pause + RC Agent
+1. 输入 `REL-FUL-72`，关注点可选，生成候选计划。
+2. 展开“将执行的检查”，编辑允许修改的比较符或阈值；指标 ID、执行能力和事实来源保持只读。
+3. 点击一次“确认并开始巡检”，报告、历史、比较、复制与导出均应读取同一锁定快照。
+4. 在报告底部保存为个人巡检；回到首页后可直跑，并生成新的 Run，不覆盖历史报告。
+5. 修改 Redis 延迟门禁为 `<= 3ms` 后执行，报告应变为 `Violated + Pause`，且锁定 Run 不出现第二份 `executionResults` 真相。
 
-1. 在空白入口点击“配置变更示例”；确认它只填充表单，然后自行提交。
-2. 完成输入确认和范围对账；电子流 `CHG-84217` 是本次请求的附加来源，不是产品模式。
-3. 验证系统识别出 `Observed-Superset`，将 `invoice-worker` 与 `settlement-db` 加入声明外影响面。
-4. 未处置高关键度 AI 候选时，“确认并执行”按钮必须禁用。
-5. 点击候选项“加查”，确认它进入“将执行的检查”；再点“不查”验证决定可改回且会留痕，最后重新“加查”。
-6. 展开检查，确认连接等待、池占用、支付成功率等黄金指标逐项列出且门禁可编辑；一次确认后直接得到并行检查结果。
-7. 报告应显示：证据 `Violated`，行动 `Pause`，关键指标卡带趋势折线与门禁线。
-8. 点击“启动 RC Agent”，查看共享配置包导致数据库连接池退化的诊断链。
+## 方案复用边界
 
-## 方案复用验收
+- `REL-ORDER-480` 可命中已批准的订单发布 Playbook，但仍投影到同一候选计划，并通过唯一的 `PLAN_CONFIRMED` 锁定；不再出现独立 Playbook 直跑页。
+- 小幅或重大漂移的旧 Playbook 只作匹配事实，不能恢复第二次授权或绕开当前 CandidateSet。
+- 保存任务直跑仍保留事实刷新与漂移守门；每次执行创建新 Run。
+- Playbook、保存任务和页面工作区都不是第二套可变业务真相；最终仍归入 CandidateSet / Job / Revision / Run / Report 链路。
 
-- 订单升级示例：命中 `订单发布后验证 · v4`，确认后直接执行，但创建新的任务实例并重新采集证据。
-- 支付配置示例：命中 `支付配置变更巡检 · v3`，先确认当前依赖与指标差异，再进入适配计划。
-- 输入“payment-api 拆分出 risk-api，重新验证支付确认链路”：旧方案因重大漂移只能作为参考；看完差异后重新生成，`risk-api` 会进入当前 scope 与正式 Check。
-- 报告阶段的“保存方案/提交更新”只创建待审批的新版本提案，不修改已锁定任务或历史方案。
-
-无匹配时页面不出现方案区域，普通用户自定义旅程保持原样。
-
-## 本地可重复验证
+## 本地验证
 
 要求：Node.js 24+、本机 Chrome。没有第三方 npm 依赖。
 
@@ -54,9 +49,9 @@ pnpm test
 pnpm test:browser
 ```
 
-浏览器验收会从 `file://` 打开产物，自动走完规则编辑、并行直跑、历史复访、无匹配、精准匹配、小幅差异和重大漂移路径，并校验趋势证据、0 个 HTTP(S) 网络请求、0 个浏览器错误以及手机视口无横向溢出。
+浏览器验收直接从 `file://` 打开生成物，覆盖发布缺口、一次确认、规则编辑、exact Playbook 复用、保存/历史/分享以及 390px 响应式，并强制校验 0 个 HTTP(S) 请求和 0 个浏览器错误。
 
-需要重录验收截图时运行：
+重录截图：
 
 ```powershell
 node tests/offline.browser.mjs --evidence
@@ -65,11 +60,11 @@ node tests/offline.browser.mjs --evidence
 ## 文件说明
 
 - `index.html`：唯一交付文件，双击即运行。
-- `ARCHITECTURE.md`：架构边界、核心契约和演进映射。
-- `lib/compiler.mjs`：把用户目标和可选上下文编译为巡检工作区。
-- `lib/scenarios.mjs`：编译器后的不可变验收 fixture，不是产品模式。
-- `lib/` 其余文件：领域契约、状态机与派生选择器。
-- `src/`：纯渲染、高保真样式与浏览器事件适配。
-- `scripts/build.mjs`：无依赖确定性单文件构建器。
-- `tests/`：领域、旅程、UI、构建和浏览器验收。
-- `evidence/`：桌面与手机验收截图。
+- `ARCHITECTURE.md`：对象、权限、证据和演进边界。
+- `DESIGN-JOURNEY.md`：发布发起到覆盖诚实报告的用户旅程。
+- `lib/compiler.mjs`：把变更引用和可选关注点编译成 CandidateSet 视图。
+- `lib/scenarios.mjs`：不可变验收 fixture，不是业务模式或第二套 Store。
+- `lib/reducer.mjs`：一次授权、锁 Revision、创建 Run/Report 的状态机。
+- `src/`：纯渲染、响应式样式与浏览器事件适配。
+- `tests/`：领域、旅程、UI、构建与真实 Chrome 验收。
+- `evidence/`：桌面和 390px 验收截图。

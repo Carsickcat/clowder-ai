@@ -23,7 +23,7 @@ export const inspectionPlaybooks = deepFreeze([
       targetServices: ['payment-api'],
       promptSignals: ['Redis', '超时', '配置', 'config', 'risk-api', '拆分'],
     },
-    checkIds: ['payment-success', 'payment-service', 'invoice-backlog'],
+    checkIds: ['payment-success', 'payment-service'],
     approvedAt: '2026-07-28T08:00:00Z',
     lastUsedAt: '2026-08-10T07:45:00Z',
   },

@@ -3,7 +3,7 @@ feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, architecture, check-contract, evidence]
 doc_kind: architecture
 created: 2026-08-06
-updated: 2026-09-01
+updated: 2026-09-02
 ---
 
 # 架构设计：用户驱动的巡检工作区编译与验证
@@ -13,15 +13,14 @@ updated: 2026-09-01
 首期不建设新的巡检执行平台，也不把 LLM 放在安全闭环中心。Demo 证明的是一条最小、可审阅、可追溯的产品闭环：
 
 ```text
-用户巡检目标
-  + 可选目标服务
-  + 可选电子流 / 发布单上下文
+变更单 / 发布单引用
+  + 可选风险关注点
         ↓
 Inspection Request Compiler
         ↓
 声明变更 ↔ 运行时事实对账
         ↓
-可靠性目标 + 影响范围 + 候选风险假设
+声明内阻断范围 + 声明外 coverage gaps + 候选风险假设
         ↓
 可执行 Check Contract + SRE 处置
         ↓
@@ -38,9 +37,9 @@ Scoped Report / RC Agent
 
 | 层 | 职责 | Demo 实现 | 生产映射 |
 |---|---|---|---|
-| Input Compiler | 将用户目标与可选上下文编译为工作区 | `lib/compiler.mjs`；任意服务动态传播 | 电子流、发布平台、Copilot 对话 |
+| Input Compiler | 将变更引用与可选关注点编译为 CandidateSet 视图 | `lib/compiler.mjs`；任意服务动态传播 | 电子流、发布平台、Copilot 对话 |
 | Change Reconciliation | 对账声明对象与实际版本、配置 hash、实例批次 | `Declared-Observed` 场景契约 | CI/CD 事件、运行时 diff、配置平台 |
-| Scope Resolver | 合并可靠性目标、Trace 事实、中间件依赖 | 纯派生 selector | 业务图谱、Trace、服务目录 |
+| Scope Resolver | 分离默认阻断范围与声明外覆盖缺口 | 纯派生 selector | 业务图谱、Trace、服务目录 |
 | Plan Compiler | 模板 Check + AI 候选；校验完整性和来源 | `Check Contract` + readiness selector | 巡检模板目录、LLM 语义编译器 |
 | Verification Runner | 执行基线、指标、Trace 和中间件检查 | 确定性 mock steps | 现有巡检引擎、CH/DWS/Hive/Prometheus |
 | Evidence Ledger | 保存每条结论的状态、来源、时间窗与边界 | immutable fixture | 可审计证据存储 |
@@ -54,7 +53,7 @@ Scoped Report / RC Agent
 一次验证不能只相信变更单文本。`declaredChange` 与 `observedChange` 分别携带摘要和指纹，`reconciliation.status` 明确表达：
 
 - `Exact`：声明与运行时事实一致；
-- `Observed-Superset`：实际变化大于声明，必须扩大验证范围；
+- `Observed-Superset`：实际变化大于声明；新增实体先进入 `coverageGaps`，不得静默扩大阻断范围；
 - `Conflict` / `Unverifiable`：生产形态下不得宣称 Pass。
 
 ### 3.2 Check Contract
@@ -100,22 +99,23 @@ Proceed / Proceed-with-conditions / Pause / Rollback
 产品一级对象是用户请求与编译后的工作区：
 
 ```text
-InspectionRequest { prompt, targetService?, contextReference? }
+InspectionRequest { contextReference, prompt?, targetService? }
         ↓ compileInspectionRequest
-InspectionWorkspace { scope, evidence sources, hypotheses, checks, report }
+CandidateSetView { blockingScope, coverageGaps, candidates, checks, evidence sources }
 ```
 
 两个 mock fixture 藏在编译器后面，用来提供可复现的执行证据和异常结果；它们不是 session mode，也不出现在一级导航。任意未知服务会走通用 mock catalog，动态生成服务自身指标、直接下游和中间件检查。
 
-会话状态只保存最小事实：当前 workspace（未提交时为 null）、阶段、候选处置、规则 override 与 RC 展开状态。指标目录、能力、单位和来源不可由浏览器改写；SRE 在草案页修改的比较符与阈值先作为瞬态 override，确认后一次性物化进 immutable `InspectionPlan.checks[].metricRules`。
+会话状态只保存最小事实：当前 workspace（未提交时为 null）、`intake → plan → report` 阶段、候选选择、规则 override 与 RC 展开状态。指标目录、能力、单位和来源不可由浏览器改写；SRE 在计划页修改的比较符与阈值先作为瞬态 override，`PLAN_CONFIRMED` 后一次性物化进 immutable `InspectionPlan.checks[].metricRules`。
 
 所有已选检查在 v0.4 中都声明为无依赖，因此没有逐项推进或排队状态。一次确认会对同一批检查做确定性求值、追加一条 immutable Run，并直接进入报告。当前报告、历史、复制摘要和导出 HTML 都读取该 Run 中同一份规则、判定与趋势序列；不存在第二份文本规则或可变的报告证据。
 
 ```text
 createDemoSession (blank)
-  → INTENT_SUBMITTED(request)
-  → compileInspectionRequest(request)
-  → demoReducer(action)
+  → demoReducer(INTENT_SUBMITTED)
+  → compileInspectionRequest(request) → CandidateSet plan
+  → demoReducer(PLAN_CONFIRMED)
+  → locked Revision / Run / Report
   → selectViewModel(state)
   → renderApp(viewModel)
 ```
@@ -144,7 +144,7 @@ index.html
 
 ## 7. 从 Demo 到生产的直线路径
 
-保持 `InspectionRequest / InspectionWorkspace / Check Contract / Evidence × Action` 薄腰契约与 UI 决策路径不变，依次替换适配器：mock request compiler → 真实语义解析与事实检索；mock fixture → 电子流与运行时 diff；mock Check → 已有巡检能力目录；mock evidence → 多引擎查询结果；mock RC → 现有 RC Agent。首期无需重建全局知识图谱，也无需重写现有巡检执行引擎。
+保持 `InspectionRequest / CandidateSet / locked Revision / Evidence × Action` 薄腰契约与 UI 决策路径不变，依次替换适配器：mock request compiler → 真实变更与语义解析；mock fixture → 电子流与运行时 diff；mock Check → 已有巡检能力目录；mock evidence → 多引擎查询结果；mock RC → 现有 RC Agent。首期无需重建全局知识图谱，也无需重写现有巡检执行引擎。
 
 ## 8. Playbook reuse architecture delta
 
@@ -168,4 +168,4 @@ InspectionRequest → current InspectionWorkspace
 
 目录中的 `checkIds` 是审批结构的来源与顺序；matcher 必须将它们显式映射到当前 `InspectionWorkspace.committedChecks`，把当前实体、规则和事实来源写入不可变 match snapshot。任一 ID 无当前绑定时只能进入 major drift。exact/minor 被采纳后，reducer 将该结构冻结为新 Task Instance 的 `inspectionPlan`；因此目录升级会影响下一次新任务，但不会回写已锁定任务，也不会携带历史 evidence。
 
-`TaskInstance.sourcePlaybookRef` 仅用于 exact/minor 复用；major drift 的旧方案只能写入 `referencePlaybookRef`。最终执行步把任务锁定，此后方案沉淀不得改变任务、证据或审计轨迹。Demo catalog 与 proposal 都是内存 mock；生产化时可替换为版本化存储和审批适配器，不改变 matcher、任务不可变性或现有执行引擎边界。
+`TaskInstance.sourcePlaybookRef` 只绑定本次实际采用的 exact Playbook；minor/major drift 不能通过旧的专属确认路径进入执行。最终的 `PLAN_CONFIRMED` 把当前 CandidateSet 锁定，此后方案沉淀不得改变任务、证据或审计轨迹。Demo catalog 与 proposal 都是内存 mock；生产化时可替换为既有 Job/Revision 的版本化查询投影和审批适配器，不引入第二个可变 PlaybookStore。

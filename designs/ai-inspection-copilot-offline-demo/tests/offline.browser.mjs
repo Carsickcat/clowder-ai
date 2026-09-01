@@ -94,16 +94,47 @@ async function main() {
 
     let text = await bodyText(session);
     assert.match(text, /已保存巡检/);
-    assert.match(text, /还没有保存的巡检，从右侧对话开始/);
+    assert.match(text, /还没有保存的巡检，从上方变更单开始/);
     assert.deepEqual(
       await session.evaluate(`(() => {
         const title = document.querySelector('[data-stage-title]');
         return { text: title.textContent.trim(), fontSize: getComputedStyle(title).fontSize };
       })()`),
-      { text: '已保存巡检', fontSize: '18px' },
+      { text: '从变更开始生成巡检计划', fontSize: '17px' },
     );
     assert.equal(await session.evaluate('document.querySelectorAll("[data-scenario-id]").length'), 0);
+    assert.match(text, /变更单 \/ 发布单号/);
+    assert.match(text, /补充说明（可选）/);
+    assert.equal(await session.evaluate('Boolean(document.querySelector("[name=inspection-intent]"))'), true);
+    assert.match(text, /生成巡检计划/);
     await screenshot(session, '00-user-defined-intake.png');
+
+    await submitRequest(session, {
+      prompt: '关注扣款成功和 Redis 客户端',
+      contextReference: 'CHG-84501',
+    });
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'plan');
+    text = await bodyText(session);
+    assert.match(text, /影响面缺口/);
+    assert.match(text, /settlement-db/);
+    assert.match(text, /invoice-worker/);
+    assert.doesNotMatch(text, /已扩大巡检范围/);
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-action=PLAN_CONFIRMED]").length'), 1);
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-action=INPUT_CONFIRMED], [data-action=SCOPE_ACCEPTED]").length'), 0);
+    await click(session, '[data-action="CANDIDATE_INCLUDED"][data-candidate-id="candidate-db-wait"]');
+    await screenshot(session, '22-release-candidate-plan.png');
+    await click(session, '[data-action="PLAN_CONFIRMED"]');
+    await advanceExecution(session);
+    text = await bodyText(session);
+    assert.match(text, /建议暂停在 25% 灰度/);
+    assert.match(text, /覆盖：3 项已验证 · 1 项未覆盖/);
+    assert.match(text, /未覆盖：invoice-worker/);
+    await screenshot(session, '23-release-coverage-honest-report.png');
+    await click(session, '[data-action="RESET"]');
+    const cleanJourneyLoaded = session.once('Page.loadEventFired');
+    await session.evaluate('localStorage.clear()');
+    await session.send('Page.reload');
+    await cleanJourneyLoaded;
 
     await submitRequest(session, {
       prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
@@ -111,33 +142,10 @@ async function main() {
       contextReference: 'REL-FUL-72',
     });
     text = await bodyText(session);
-    assert.match(text, /确认巡检信息/);
-    assert.match(text, /近期变更/);
-    assert.match(text, /关联服务与依赖/);
-    assert.match(text, /可用信号/);
-    await screenshot(session, '11-dual-entry-context-selection.png');
-
-    const deselectedSignalId = await session.evaluate(`(() => {
-      const signal = document.querySelector('[data-context-id^="signal:"]');
-      const contextId = signal.dataset.contextId;
-      signal.click();
-      return contextId;
-    })()`);
-    assert.match(deselectedSignalId, /^signal:/);
-    assert.equal(
-      await session.evaluate(
-        `document.querySelector('[data-context-id="${deselectedSignalId}"]').getAttribute('aria-pressed')`,
-      ),
-      'false',
-    );
-
-    await click(session, '[data-action="INPUT_CONFIRMED"]');
-    text = await bodyText(session);
-    assert.match(text, /本次将执行 3 项检查，另有 1 项 AI 可选建议/);
-    assert.match(text, /可选建议[\s\S]*将执行的检查[\s\S]*确认并执行 3 项检查/);
+    assert.match(text, /REL-FUL-72/);
+    assert.match(text, /4 项阻断/);
+    assert.match(text, /可选观察[\s\S]*将执行的检查[\s\S]*确认并开始巡检/);
     assert.doesNotMatch(text, /需要你确认|有建议待确认|请先处理上方的建议项/);
-    assert.doesNotMatch(text, /fulfillment\.service\.success_rate/);
-    assert.doesNotMatch(text, /http\.error_rate/);
     const genericPlanText = await session.evaluate(`(() => {
       document.querySelectorAll(".check-card").forEach((check) => {
         check.open = true;
@@ -170,7 +178,7 @@ async function main() {
     text = await bodyText(session);
     assert.match(text, /Proceed/);
     assert.match(text, /Verified/);
-    assert.match(text, /已执行检查未发现关键违例/);
+    assert.match(text, /声明范围内未发现异常退化/);
     assert.match(text, /本次选择的巡检结果/);
     assert.match(text, /fulfillment-service 巡检 · .*窗口 .*实例 INS-/);
     assert.match(text, /证据仪表盘/);
@@ -183,17 +191,11 @@ async function main() {
       ),
       true,
     );
-    assert.doesNotMatch(
-      await session.evaluate('document.querySelector("[data-testid=ai-interpretation]").innerText'),
-      /核心业务成功率/,
-      'AI interpretation cannot retain a claim whose evidence was deselected',
-    );
     assert.match(
       await session.evaluate('document.querySelector(".report-summary").innerText'),
-      /锁定计划内的 3 项检查/,
+      /核心业务结果、服务黄金信号、下游依赖与缓存均通过/,
     );
-    assert.doesNotMatch(await session.evaluate('document.querySelector(".report-summary").innerText'), /核心业务结果/);
-    assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=report-check-result]").length'), 3);
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=report-check-result]").length'), 4);
     assert.equal(
       await session.evaluate(
         'getComputedStyle(document.querySelector(".evidence-grid")).gridTemplateColumns.split(" ").length',
@@ -204,7 +206,12 @@ async function main() {
     const firstRunSnapshot = await session.evaluate(
       'JSON.parse(localStorage.getItem("nova.inspection-library.v1")).runs[0]',
     );
-    assert.equal(firstRunSnapshot.inspectionPlan.checkIds.includes(deselectedSignalId.slice('signal:'.length)), false);
+    assert.deepEqual(firstRunSnapshot.inspectionPlan.checkIds, [
+      'business-outcome',
+      'service-golden-signals',
+      'downstream-dependency',
+      'middleware-health',
+    ]);
     assert.equal(
       await session.evaluate(`(() => {
         const form = document.querySelector('[data-save-inspection-form]');
@@ -340,15 +347,12 @@ async function main() {
 
     await click(session, '[data-example-id="order-upgrade"]');
     await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit()');
-    await click(session, '[data-action="INPUT_CONFIRMED"]');
-    assert.equal(
-      await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),
-      'exact',
-    );
-    assert.match(await bodyText(session), /订单发布后验证 · v4/);
-    assert.equal(await session.evaluate('document.querySelectorAll(".playbook-primary").length'), 1);
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'plan');
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-action=PLAN_CONFIRMED]").length'), 1);
+    assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=playbook-match]").length'), 0);
+    assert.match(await bodyText(session), /保护订单提交业务结果/);
     await screenshot(session, '06-playbook-exact-match.png');
-    await click(session, '[data-action="PLAYBOOK_EXECUTION_STARTED"]');
+    await click(session, '[data-action="PLAN_CONFIRMED"]');
     assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
     await advanceExecution(session);
     text = await bodyText(session);
@@ -360,62 +364,29 @@ async function main() {
 
     await click(session, '[data-action="RESET"]');
     await click(session, '[data-example-id="payment-config"]');
-    assert.match(await session.evaluate('document.querySelector("[name=inspection-intent]").value'), /payment-api/);
+    assert.equal(await session.evaluate('document.querySelector("[name=context-reference]").value'), 'CHG-84501');
     assert.equal(await session.evaluate('document.querySelector("[data-intent-form]").requestSubmit(); true'), true);
-    await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
-    assert.match(text, /支付确认 → 账单异步/);
-    assert.match(text, /payment\.confirm\.success_rate/);
-    assert.match(text, /payment-api → settlement-db/);
-    assert.match(text, /settlement-db · Redis · invoice queue/);
-    assert.match(text, /支付配置变更巡检 · v3/);
-    assert.match(text, /2 项当前差异需要确认/);
-    await screenshot(session, '04-impact-dimensions.png');
-    await click(session, '[data-action="PLAYBOOK_DIFF_CONFIRMED"]');
-    text = await bodyText(session);
-    assert.match(text, /Observed-Superset/);
-    assert.match(text, /invoice-worker/);
-    assert.match(text, /settlement-db/);
-    assert.match(
-      await session.evaluate('document.querySelector(\'[data-testid="plan-summary"]\').textContent'),
-      /本次将执行 3 项检查，另有 1 项 AI 建议需要你确认/,
-    );
+    assert.match(text, /CandidateSet/);
+    assert.match(text, /保护支付确认业务结果/);
+    assert.match(text, /影响面缺口/);
+    assert.match(text, /2 项阻断/);
     assert.equal(
-      await session.evaluate(`(() => {
-        const confirmation = document.querySelector('#pending-title');
-        const checks = document.querySelector('#formal-title');
-        return Boolean(confirmation && checks && confirmation.compareDocumentPosition(checks) & Node.DOCUMENT_POSITION_FOLLOWING);
-      })()`),
-      true,
+      await session.evaluate('document.querySelector(\'[data-action="PLAN_CONFIRMED"]\').disabled'),
+      false,
     );
-    assert.equal(await session.evaluate('document.querySelector(\'[data-action="PLAN_CONFIRMED"]\').disabled'), true);
-    assert.match(
-      await session.evaluate('document.querySelector(\'[data-action="PLAN_CONFIRMED"]\').textContent'),
-      /请先处理上方的建议项/,
-    );
-    await screenshot(session, '05-draft-action-first.png');
-
-    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
-    assert.equal(await session.evaluate('document.querySelector(\'[data-action="PLAN_CONFIRMED"]\').disabled'), false);
+    await screenshot(session, '04-impact-dimensions.png');
+    await click(session, '[data-action="CANDIDATE_INCLUDED"][data-candidate-id="candidate-db-wait"]');
     assert.match(
       await session.evaluate('document.querySelector(\'[data-testid="plan-summary"]\').textContent'),
-      /本次将执行 4 项检查，无需额外确认/,
+      /3 项阻断[\s\S]*1 项影响未覆盖/,
     );
-    assert.match(await bodyText(session), /✓ 已加查/);
-    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="rejected"]');
-    assert.match(await bodyText(session), /— 不查/);
-    assert.match(
-      await session.evaluate('document.querySelector(\'[data-testid="plan-summary"]\').textContent'),
-      /本次将执行 3 项检查，无需额外确认/,
-    );
-    assert.equal(await session.evaluate('document.querySelectorAll(".check-card.is-candidate-check").length'), 0);
-    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
-    assert.match(await bodyText(session), /✓ 已加查/);
+    assert.match(await bodyText(session), /已加入锁定计划/);
     assert.equal(await session.evaluate('document.querySelectorAll(".check-card.is-candidate-check").length'), 1);
     await click(session, '.check-card summary');
     const sourceDetail = await session.evaluate("document.querySelector('.check-card[open] .check-sources').innerText");
     assert.match(sourceDetail, /电子流/);
-    assert.match(sourceDetail, /CHG-84217/);
+    assert.match(sourceDetail, /CHG-84501/);
     assert.equal(
       await session.evaluate(`(() => {
         const card = document.querySelector('.check-card[open]');
@@ -440,7 +411,7 @@ async function main() {
     );
     assert.equal(
       await session.evaluate('document.querySelectorAll("[data-testid=report-check-result]").length'),
-      4,
+      3,
       'the report preserves every executed check',
     );
     await click(session, '[data-evidence-target="settlement-pool-utilization"]');
@@ -460,17 +431,7 @@ async function main() {
     await screenshot(session, '02-electronic-flow-pause.png');
 
     await click(session, '[data-action="RESET"]');
-    await submitRequest(session, {
-      prompt: 'payment-api 拆分出 risk-api，重新验证支付确认链路。',
-      targetService: 'payment-api',
-      contextReference: 'CHG-84501',
-    });
-    await click(session, '[data-action="INPUT_CONFIRMED"]');
-    assert.equal(
-      await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),
-      'major-drift',
-    );
-    await screenshot(session, '09-playbook-major-desktop.png');
+    await screenshot(session, '09-release-first-desktop.png');
 
     await session.send('Emulation.setDeviceMetricsOverride', {
       width: 390,
@@ -482,35 +443,26 @@ async function main() {
     await session.send('Page.reload');
     await mobileLoaded;
     assert.match(await bodyText(session), /履约发布后巡检/);
-    const mobileComposer = await session.evaluate(`(() => {
+    const mobileHome = await session.evaluate(`(() => {
         const panel = document.querySelector('.copilot-panel');
-        const composer = document.querySelector('.conversation-form textarea');
         const stage = document.querySelector('.stage-panel');
         const savedCard = document.querySelector('[data-testid="saved-inspection-card"]');
+        const reference = document.querySelector('[name="context-reference"]');
         return {
-          position: getComputedStyle(panel).position,
-          panelTop: Math.round(panel.getBoundingClientRect().top),
-          panelHeight: Math.round(panel.getBoundingClientRect().height),
-          viewportHeight: window.innerHeight,
-          composerHeight: Math.round(composer.getBoundingClientRect().height),
+          panelPosition: getComputedStyle(panel).position,
+          hasComposer: Boolean(document.querySelector('.conversation-form')),
+          referenceHeight: Math.round(reference.getBoundingClientRect().height),
           stageWidth: Math.round(stage.getBoundingClientRect().width),
           savedCardWidth: Math.round(savedCard.getBoundingClientRect().width),
           noOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
         };
       })()`);
-    assert.equal(mobileComposer.position, 'fixed');
-    assert.equal(mobileComposer.noOverflow, true);
-    assert.ok(mobileComposer.stageWidth >= 360, 'mobile saved-inspection stage uses the available width');
-    assert.ok(mobileComposer.savedCardWidth >= 320, 'mobile saved-inspection card remains readable');
-    assert.ok(
-      mobileComposer.panelHeight < 100,
-      `mobile composer stays a compact bottom bar (received ${mobileComposer.panelHeight}px)`,
-    );
-    assert.ok(
-      mobileComposer.panelTop > mobileComposer.viewportHeight - 120,
-      'mobile composer leaves the saved-inspection first screen visible',
-    );
-    assert.ok(mobileComposer.composerHeight >= 44, 'mobile composer keeps a touch-safe hit target');
+    assert.notEqual(mobileHome.panelPosition, 'fixed');
+    assert.equal(mobileHome.hasComposer, false);
+    assert.equal(mobileHome.noOverflow, true);
+    assert.ok(mobileHome.stageWidth >= 360, 'mobile saved-inspection stage uses the available width');
+    assert.ok(mobileHome.savedCardWidth >= 320, 'mobile saved-inspection card remains readable');
+    assert.ok(mobileHome.referenceHeight >= 44, 'mobile release reference keeps a touch-safe hit target');
     await screenshot(session, '14-mobile-saved-home.png', { captureBeyondViewport: false });
     await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
     assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
@@ -550,54 +502,38 @@ async function main() {
     await click(session, '[data-action="SAVED_INSPECTION_HISTORY_CLOSED"]');
 
     await submitRequest(session, {
-      prompt: 'payment-api 拆分出 risk-api，重新验证支付确认链路。',
-      targetService: 'payment-api',
+      prompt: '关注扣款成功和 Redis 客户端',
       contextReference: 'CHG-84501',
     });
-    assert.equal(
-      await session.evaluate(
-        'getComputedStyle(document.querySelector(".context-option-list")).gridTemplateColumns.split(" ").length',
-      ),
-      1,
-    );
-    await click(session, '[data-action="INPUT_CONFIRMED"]');
-    assert.equal(
-      await session.evaluate('document.querySelector("[data-testid=playbook-match]").dataset.matchStatus'),
-      'major-drift',
-    );
-    assert.equal(await session.evaluate('document.querySelector("[data-action=PLAYBOOK_REGENERATED]").disabled'), true);
-    await session.evaluate(`(() => {
-      const drawer = document.querySelector('.playbook-drawer');
-      drawer.open = true;
-      const body = drawer.querySelector('.playbook-drawer-body');
-      body.scrollTop = body.scrollHeight;
-    })()`);
-    await waitForPaint(session);
-    await screenshot(session, '10-playbook-major-mobile-drawer.png');
-    await click(session, '.playbook-drawer [data-action="PLAYBOOK_DRIFT_REVIEWED"]');
-    assert.equal(
-      await session.evaluate('document.querySelector("[data-action=PLAYBOOK_REGENERATED]").disabled'),
-      false,
-    );
-    await click(session, '[data-action="PLAYBOOK_REGENERATED"]');
-    assert.match(await bodyText(session), /旧方案仅作参考/);
     const mobilePlan = await session.evaluate(`(() => {
       const action = document.querySelector('[data-action="PLAN_CONFIRMED"]');
       const card = document.querySelector('.check-card');
+      const coverageGap = document.querySelector('[data-testid="coverage-gaps"]');
       card.open = true;
+      const actionRect = action.getBoundingClientRect();
+      const gapRect = coverageGap.getBoundingClientRect();
       return {
         noOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
         actionInDraft: Boolean(action.closest('[data-testid="inspection-plan"]')),
         actionLabel: action.textContent.trim(),
+        actionPosition: getComputedStyle(action).position,
+        actionHeight: Math.round(action.getBoundingClientRect().height),
+        actionOverlapsGap: actionRect.top < gapRect.bottom && actionRect.bottom > gapRect.top,
+        gapColumns: getComputedStyle(document.querySelector('.coverage-gap-stack')).gridTemplateColumns.split(' ').length,
         editorFits: [...card.querySelectorAll('.rule-editor')].every((editor) =>
           editor.getBoundingClientRect().right <= window.innerWidth + 1
         ),
       };
     })()`);
     assert.equal(mobilePlan.noOverflow, true, 'mobile draft must not overflow horizontally');
-    assert.equal(mobilePlan.actionInDraft, true, 'mobile draft action stays above the conversation composer');
+    assert.equal(mobilePlan.actionInDraft, true, 'mobile draft action stays inside the locked-plan surface');
+    assert.equal(mobilePlan.actionPosition, 'static', 'mobile confirmation remains in document flow');
+    assert.equal(mobilePlan.actionOverlapsGap, false, 'mobile confirmation cannot obscure a coverage gap');
+    assert.ok(mobilePlan.actionHeight >= 44, 'mobile confirmation keeps a touch-safe hit target');
+    assert.equal(mobilePlan.gapColumns, 1, 'mobile coverage gaps stack in one column');
     assert.equal(mobilePlan.editorFits, true, 'expanded mobile rule editors stay inside the viewport');
-    assert.match(mobilePlan.actionLabel, /确认并执行 4 项检查/);
+    assert.match(mobilePlan.actionLabel, /确认并开始巡检/);
+    await screenshot(session, '10-release-gap-mobile-plan.png');
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
     await waitForPaint(session);
@@ -628,7 +564,9 @@ async function main() {
       true,
       'the final action remains the only report hero',
     );
-    await screenshot(session, '08-playbook-major-mobile-report.png');
+    assert.match(await bodyText(session), /覆盖：2 项已验证 · 2 项未覆盖/);
+    assert.match(await bodyText(session), /未覆盖：invoice-worker/);
+    await screenshot(session, '08-release-coverage-mobile-report.png');
 
     await click(session, '[data-action="RESET"]');
     await submitRequest(session, {
@@ -636,7 +574,6 @@ async function main() {
       targetService: 'fulfillment-service',
       contextReference: 'REL-FUL-72',
     });
-    await click(session, '[data-action="INPUT_CONFIRMED"]');
     assert.equal(
       await session.evaluate(`(() => {
         const form = document.querySelector('[data-rule-id="redis.command_latency"]');
@@ -678,7 +615,7 @@ async function main() {
     assert.deepEqual(networkRequests, []);
     assert.deepEqual(browserErrors, []);
     process.stdout.write(
-      'Offline browser acceptance passed: history, comparison, sharing, corrupt-history recovery, unmatched, exact, minor-drift, major-drift, and edited-rule fail-closed journeys; 0 network requests, 0 browser errors.\n',
+      'Offline browser acceptance passed: release-first gaps, one confirmation, immutable evidence, history, sharing, exact reuse, 390px, and edited-rule fail-closed journeys; 0 network requests, 0 browser errors.\n',
     );
   } finally {
     await browser.close();

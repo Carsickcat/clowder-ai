@@ -25,7 +25,12 @@ const orderRequest = {
 const paymentRequest = {
   prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
   targetService: 'payment-api',
-  contextReference: 'CHG-84217',
+  contextReference: 'CHG-84501',
+};
+
+const releaseRequest = {
+  prompt: '关注扣款成功和 Redis 客户端',
+  contextReference: 'CHG-84501',
 };
 
 const majorDriftRequest = {
@@ -43,9 +48,6 @@ const fulfillmentRequest = {
 function advanceToPlan(request) {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  if (state.playbookMatch) state = dispatch(state, 'PLAYBOOK_DISMISSED');
-  state = dispatch(state, 'SCOPE_ACCEPTED');
   return state;
 }
 
@@ -76,6 +78,55 @@ function assertLockedRunProjection(state) {
   }
 }
 
+test('release intake reaches a coverage-honest plan with PLAN_CONFIRMED as its only authorization', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: releaseRequest });
+
+  assert.equal(state.phase, 'plan');
+  assert.equal(state.library.runs.length, 0);
+  assert.deepEqual(state.workspace.blockingScope, ['payment-api']);
+  assert.deepEqual(
+    state.workspace.coverageGaps.map((gap) => gap.entity),
+    ['invoice-worker', 'settlement-db'],
+  );
+  assert.deepEqual(
+    selectCommittedChecks(state).map((check) => check.entity),
+    ['支付确认旅程', 'payment-api'],
+  );
+  assert.equal(selectPlanReadiness(state).status, 'ready');
+
+  assert.equal(dispatch(state, 'INPUT_CONFIRMED'), state, 'legacy intake confirmation is inert on the release plan');
+  assert.equal(dispatch(state, 'SCOPE_ACCEPTED'), state, 'scope acceptance is not a second release authorization');
+
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  assert.equal(state.phase, 'report');
+  assert.equal(state.library.runs.length, 1);
+  assert.match(state.library.runs[0].report.scopeStatement, /声明范围/);
+  assert.ok(state.library.runs[0].report.residualRisks.some((risk) => /未覆盖：invoice-worker/.test(risk)));
+  assert.ok(state.library.runs[0].report.residualRisks.some((risk) => /未覆盖：settlement-db/.test(risk)));
+  assertLockedRunProjection(state);
+});
+
+test('only an approved coverage-gap candidate can be explicitly included before the release is locked', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', { request: releaseRequest });
+  const settlementGap = state.workspace.coverageGaps.find((gap) => gap.entity === 'settlement-db');
+  const invoiceGap = state.workspace.coverageGaps.find((gap) => gap.entity === 'invoice-worker');
+
+  assert.equal(settlementGap.eligibleCandidateId, 'candidate-db-wait');
+  assert.equal(invoiceGap.eligibleCandidateId, null);
+  assert.equal(dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'invoice-backlog' }), state);
+
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: settlementGap.eligibleCandidateId });
+  assert.ok(selectCommittedChecks(state).some((check) => check.id === 'candidate-db-wait'));
+  state = dispatch(state, 'PLAN_CONFIRMED');
+
+  assert.equal(state.library.runs[0].report.action, 'Pause');
+  assert.ok(state.library.runs[0].report.residualRisks.some((risk) => /未覆盖：invoice-worker/.test(risk)));
+  assert.ok(!state.library.runs[0].report.residualRisks.some((risk) => /未覆盖：settlement-db/.test(risk)));
+  assertLockedRunProjection(state);
+});
+
 test('natural-language journey reaches a scoped Proceed report', () => {
   let state = advanceToPlan(orderRequest);
   assert.equal(selectPlanReadiness(state).status, 'ready');
@@ -88,41 +139,22 @@ test('natural-language journey reaches a scoped Proceed report', () => {
   assertLockedRunProjection(state);
 });
 
-test('electronic-flow journey requires disposition of a critical AI candidate', () => {
+test('electronic-flow journey can proceed without silently adding a declaration-external candidate', () => {
   let state = advanceToPlan(paymentRequest);
-  assert.equal(selectPlanReadiness(state).status, 'blocked');
-  assert.equal(selectPlanReadiness(state).unresolvedCandidateIds.length, 1);
-
-  const unchanged = dispatch(state, 'PLAN_CONFIRMED');
-  assert.deepEqual(unchanged, state);
-
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
   assert.equal(selectPlanReadiness(state).status, 'ready');
-  assert.ok(selectCommittedChecks(state).some((check) => check.id === 'candidate-db-wait'));
+  assert.equal(selectPlanReadiness(state).unresolvedCandidateIds.length, 0);
+  assert.ok(!selectCommittedChecks(state).some((check) => check.id === 'candidate-db-wait'));
 
   state = finishJourney(state);
   const report = selectReportView(state);
-  assert.equal(report.action, 'Pause');
-  assert.equal(report.evidenceVerdict, 'Violated');
-  assert.match(report.rcAgent.rootCause, /连接池/);
+  assert.equal(report.action, 'Proceed');
+  assert.equal(report.evidenceVerdict, 'Verified');
+  assert.ok(report.residualRisks.some((risk) => /未覆盖：settlement-db/.test(risk)));
 });
 
-test('rejecting a candidate requires a reason and never executes it', () => {
+test('excluding an optional candidate needs no reason and never executes it', () => {
   let state = advanceToPlan(paymentRequest);
-  const withoutReason = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'rejected',
-  });
-  assert.deepEqual(withoutReason, state);
-
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'rejected',
-    reason: '数据库团队确认该连接池不由本次配置包管理',
-  });
+  state = dispatch(state, 'CANDIDATE_EXCLUDED', { candidateId: 'candidate-db-wait' });
   assert.equal(selectPlanReadiness(state).status, 'ready');
   assert.ok(!selectCommittedChecks(state).some((check) => check.id === 'candidate-db-wait'));
   state = finishJourney(state);
@@ -136,10 +168,7 @@ test('rejecting a candidate requires a reason and never executes it', () => {
 
 test('starting a new request clears workspace, dispositions, execution, and RC state', () => {
   let state = advanceToPlan(paymentRequest);
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'candidate-db-wait' });
   state = finishJourney(state);
   state = dispatch(state, 'RC_TOGGLED');
   assert.equal(state.rcExpanded, true);
@@ -157,20 +186,20 @@ test('starting a new request clears workspace, dispositions, execution, and RC s
 test('resolved scope is derived from reconciliation, not duplicated session state', () => {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request: paymentRequest });
-  assert.deepEqual(selectResolvedScope(state).entities, ['invoice-worker', 'payment-api', 'settlement-db']);
+  assert.deepEqual(selectResolvedScope(state).entities, ['payment-api']);
+  assert.deepEqual(selectResolvedScope(state).addedEntities, ['invoice-worker', 'settlement-db']);
   assert.equal(Object.hasOwn(state, 'resolvedScope'), false);
 });
 
 test('exact playbook runs after one confirmation while current reconciliation remains authoritative', () => {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request: orderRequest });
-  state = dispatch(state, 'INPUT_CONFIRMED');
 
-  assert.equal(state.phase, 'context');
+  assert.equal(state.phase, 'plan');
   assert.equal(state.playbookMatch.status, 'exact');
   assert.equal(state.workspace.reconciliation.status, 'Exact');
 
-  state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
+  state = dispatch(state, 'PLAN_CONFIRMED');
 
   assert.equal(state.phase, 'report');
   assert.equal(state.taskInstance.status, 'locked');
@@ -181,15 +210,13 @@ test('exact playbook runs after one confirmation while current reconciliation re
   });
   assert.deepEqual(state.taskInstance.inspectionPlan.checkIds, inspectionPlaybooks[0].checkIds);
   assert.ok(state.taskInstance.inspectionPlan.checks.every((check) => !Object.hasOwn(check, 'evidence')));
-  assert.ok(state.taskInstance.auditTrail.some((event) => event.type === 'playbook-applied'));
+  assert.ok(state.taskInstance.auditTrail.some((event) => event.type === 'plan-confirmed'));
   assertLockedRunProjection(state);
 });
 
 test('each reused task snapshots the selected catalog checks without rewriting a locked historical task', () => {
   let historical = createDemoSession();
   historical = dispatch(historical, 'INTENT_SUBMITTED', { request: orderRequest });
-  historical = dispatch(historical, 'INPUT_CONFIRMED');
-  historical = dispatch(historical, 'PLAYBOOK_EXECUTION_STARTED');
   historical = finishJourney(historical);
   const lockedTask = structuredClone(historical.taskInstance);
 
@@ -203,8 +230,7 @@ test('each reused task snapshots the selected catalog checks without rewriting a
   const revisedReducer = createDemoReducer({ playbookCatalog: [...inspectionPlaybooks, revised] });
   let current = createDemoSession({ nextTaskOrdinal: historical.nextTaskOrdinal });
   current = revisedReducer(current, { type: 'INTENT_SUBMITTED', request: orderRequest });
-  current = revisedReducer(current, { type: 'INPUT_CONFIRMED' });
-  current = revisedReducer(current, { type: 'PLAYBOOK_EXECUTION_STARTED' });
+  current = revisedReducer(current, { type: 'PLAN_CONFIRMED' });
 
   assert.equal(current.taskInstance.sourcePlaybookRef.version, 5);
   assert.deepEqual(current.taskInstance.inspectionPlan.checkIds, ['service-golden-signals']);
@@ -215,62 +241,45 @@ test('each reused task snapshots the selected catalog checks without rewriting a
   assert.deepEqual(historical.taskInstance, lockedTask);
 });
 
-test('minor playbook drift records the acknowledged differences before adapting the plan', () => {
+test('minor playbook drift remains reference-only while the current CandidateSet is locked', () => {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request: paymentRequest });
-  state = dispatch(state, 'INPUT_CONFIRMED');
 
   assert.equal(state.playbookMatch.status, 'minor-drift');
-  state = dispatch(state, 'PLAYBOOK_DIFF_CONFIRMED');
-
   assert.equal(state.phase, 'plan');
-  assert.equal(state.playbookDecision, 'accepted-with-diff');
-  assert.deepEqual(state.taskInstance.sourcePlaybookRef, {
-    id: 'payment-config-verification',
-    version: 3,
-  });
+  assert.equal(state.playbookDecision, null);
+  assert.equal(state.taskInstance.sourcePlaybookRef, null);
   assert.deepEqual(
     selectCommittedChecks(state).map((check) => check.id),
-    inspectionPlaybooks[1].checkIds,
+    ['payment-success', 'payment-service'],
   );
-  const audit = state.taskInstance.auditTrail.find((event) => event.type === 'playbook-differences-confirmed');
-  assert.deepEqual(audit.differenceIds, ['payment-read-replica', 'payment-success-vocabulary']);
-  assert.ok(selectResolvedScope(state).entities.includes('settlement-db'));
+  assert.deepEqual(dispatch(state, 'PLAYBOOK_DIFF_CONFIRMED'), state);
 
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'candidate-db-wait' });
   state = dispatch(state, 'PLAN_CONFIRMED');
   assert.deepEqual(state.taskInstance.inspectionPlan.checkIds, [
-    ...inspectionPlaybooks[1].checkIds,
+    'payment-success',
+    'payment-service',
     'candidate-db-wait',
   ]);
+  assert.equal(state.taskInstance.sourcePlaybookRef, null);
 });
 
-test('major drift rejects direct execution and keeps the old playbook reference-only', () => {
+test('major playbook drift cannot direct-run and the release still uses the current generated plan', () => {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request: majorDriftRequest });
-  state = dispatch(state, 'INPUT_CONFIRMED');
 
   assert.equal(state.playbookMatch.status, 'major-drift');
   const forbidden = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
   assert.deepEqual(forbidden, state);
+  assert.deepEqual(dispatch(state, 'PLAYBOOK_DRIFT_REVIEWED'), state);
+  assert.deepEqual(dispatch(state, 'PLAYBOOK_REGENERATED'), state);
 
-  const hiddenRegenerate = dispatch(state, 'PLAYBOOK_REGENERATED');
-  assert.deepEqual(hiddenRegenerate, state);
-  state = dispatch(state, 'PLAYBOOK_DRIFT_REVIEWED');
-  assert.equal(state.playbookDriftReviewed, true);
-  state = dispatch(state, 'PLAYBOOK_REGENERATED');
-  assert.equal(state.phase, 'plan');
-  assert.equal(state.playbookDecision, 'regenerated');
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  assert.equal(state.phase, 'report');
   assert.equal(state.taskInstance.sourcePlaybookRef, null);
-  assert.deepEqual(state.taskInstance.referencePlaybookRef, {
-    id: 'payment-config-verification',
-    version: 3,
-  });
-  assert.ok(selectResolvedScope(state).entities.includes('risk-api'));
-  assert.ok(selectCommittedChecks(state).some((check) => check.entity === 'risk-api'));
+  assert.equal(state.taskInstance.referencePlaybookRef, null);
+  assert.deepEqual(state.taskInstance.inspectionPlan.checkIds, ['payment-success', 'payment-service']);
 });
 
 test('reset clears playbook state and assigns a new task instance to the next request', () => {
@@ -294,8 +303,7 @@ test('reset clears playbook state and assigns a new task instance to the next re
 test('locked task remains immutable while a report submits one idempotent playbook proposal', () => {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request: orderRequest });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
+  state = dispatch(state, 'PLAN_CONFIRMED');
 
   assert.equal(state.phase, 'report');
   assert.equal(state.taskInstance.status, 'locked');
@@ -318,8 +326,6 @@ function completePersonalInspection(reducer = demoReducer, sessionOptions = {}) 
   state = reducer(state, { type: 'INTENT_SUBMITTED', request: fulfillmentRequest });
   const deselectedId = state.contextOptions[0].id;
   state = reducer(state, { type: 'CONTEXT_ITEM_TOGGLED', contextId: deselectedId });
-  state = reducer(state, { type: 'INPUT_CONFIRMED' });
-  state = reducer(state, { type: 'SCOPE_ACCEPTED' });
   state = reducer(state, { type: 'PLAN_CONFIRMED' });
   return { state, deselectedId };
 }
@@ -367,8 +373,6 @@ test('deselected signal is removed from the generated inspection plan', () => {
   assert.ok(signal);
 
   state = dispatch(state, 'CONTEXT_ITEM_TOGGLED', { contextId: signal.id });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dispatch(state, 'SCOPE_ACCEPTED');
 
   assert.equal(
     selectCommittedChecks(state).some((check) => `signal:${check.id}` === signal.id),
@@ -386,8 +390,6 @@ test('a deselected signal remains outside an exact saved-inspection revisit', ()
   assert.ok(signal);
 
   state = dispatch(state, 'CONTEXT_ITEM_TOGGLED', { contextId: signal.id });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dispatch(state, 'SCOPE_ACCEPTED');
   state = dispatch(state, 'PLAN_CONFIRMED');
   state = dispatch(state, 'SAVED_INSPECTION_CREATED', {
     name: '排除业务结果信号的履约巡检',

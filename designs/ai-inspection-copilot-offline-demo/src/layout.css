@@ -72,7 +72,7 @@
 }
 .phase-rail {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   margin: 0;
   padding: 18px 0;
   list-style: none;
@@ -85,6 +85,9 @@
 }
 .workspace.is-home {
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.38fr);
+}
+.workspace.without-context:not(.is-home) {
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 0.34fr);
 }
 .panel {
   min-width: 0;

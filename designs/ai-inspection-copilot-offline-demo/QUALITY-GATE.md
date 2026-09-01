@@ -3,20 +3,20 @@ feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, quality-gate, acceptance-evidence]
 doc_kind: verification
 created: 2026-08-09
-updated: 2026-08-13
+updated: 2026-09-02
 ---
 
 # Quality Gate Report
 
-Spec: `feature-specs/2026-08-06-ai-inspection-copilot-offline-demo.md`
+Spec: `feature-specs/2026-09-02-ai-inspection-release-journey-offline-demo.md`
 
 Original request: “输出一份不需要起端口的离线可验收 Demo，要求最少 1-2 个场景可跑完全旅程，数据可以直接 mock。”
 
-Corrected product requirement: “这是一个完成的产品……产品构建用户决定怎么使用，而不是你直接限制住两个场景给用户用。”
+Current product requirement: release/change reference first → CandidateSet plan → one explicit confirmation → immutable evidence report and diagnosis; declaration-external services remain visible coverage gaps unless the user explicitly adds an approved rule.
 
-Checked implementation: user-driven product commit `09d0fa9` plus Terra P1 repair `2c2933d`.
+Checked implementation: `feat/ai-inspection-release-journey` worktree, pending independent review.
 
-Check time: 2026-08-09
+Check time: 2026-09-02
 
 ## Vision coverage
 
@@ -24,8 +24,8 @@ Check time: 2026-08-09
 |---|---|---|
 | 产品由用户决定如何使用 | AC-02 | Pass：首次打开为空白工作区，用户自由输入目标 |
 | 不被两个验收用例限制 | AC-02, AC-03 | Pass：无固定场景导航；示例只填充表单且可编辑 |
-| 支持自然语言和电子流 | AC-03 | Pass：自然语言为主输入，电子流 / 发布单为可选 provenance |
-| 生成可审阅任务 | AC-04, AC-06 | Pass：四维影响面、计划分类、Check 来源与候选处置 |
+| 发布入口开箱即用 | AC-03 | Pass：变更单 / 发布单为主输入，风险关注点可选 |
+| 生成可审阅任务 | AC-04, AC-06 | Pass：CandidateSet 显示阻断检查、可选观察与 coverage gaps |
 | 报告用于行动决策 | AC-07 | Pass：Evidence × Action 分离，风险路径联动 RC Agent |
 | 离线且可完整验收 | AC-01, AC-08 | Pass：单文件 `file://`，两条用户驱动路径、network 0 |
 
@@ -34,11 +34,11 @@ Check time: 2026-08-09
 | AC | Result | Code | Automated evidence |
 |---|---|---|---|
 | AC-01 Offline | Pass | `scripts/build.mjs`, `index.html` | deterministic standalone test + browser |
-| AC-02 User-defined product | Pass | `render-intake.mjs`, `compiler.mjs` | blank intake; non-fixture `fulfillment-service` full journey |
-| AC-03 Composable context | Pass | `InspectionRequest` compiler | optional target service and `REL / CHG` provenance |
+| AC-02 User-defined product | Pass | `render-intake.mjs`, `compiler.mjs` | release-first intake; non-fixture `fulfillment-service` full journey |
+| AC-03 Composable context | Pass | `InspectionRequest` compiler | required `REL / CHG` reference with optional intent |
 | AC-04 Explainable generation | Pass | `domain.mjs`, `render-plan.mjs` | complete Check Contract + resolvable source refs |
-| AC-05 Reconciliation | Pass | `reconcileChange`, scope selector | `Observed-Superset` expands actual scope |
-| AC-06 Plan readiness | Pass | reducer + selectors | high-risk candidate blocks until accepted/rejected |
+| AC-05 Reconciliation | Pass | `reconcileChange`, scope selector | `Observed-Superset` splits blocking scope from coverage gaps |
+| AC-06 Plan readiness | Pass | reducer + selectors | optional gaps do not block; only approved candidates can be included |
 | AC-07 Evidence/action | Pass | report renderer | custom `Verified + Proceed`; risk `Violated + Pause + RC` |
 | AC-08 Responsive/testable | Pass | CDP browser suite | native 390px risk path, no overflow/errors/network |
 
@@ -58,10 +58,11 @@ Relevant `.pen` scan (`inspection|copilot|aiops`): none. The high-fidelity sourc
 
 | Requirement | Evidence |
 |---|---|
-| Blank user-defined product entry | `evidence/00-user-defined-intake.png` |
+| Release-first product entry | `evidence/00-user-defined-intake.png` |
 | Non-fixture `fulfillment-service` request reaches scoped Proceed | `evidence/01-user-defined-proceed.png` |
-| Native 390px risk report with RC evidence | `evidence/03-mobile-report.png` |
-| 15-second user-directed risk walkthrough | `evidence/06-user-directed-risk-walkthrough-15s.webm` (15.070s) |
+| Coverage-honest release report | `evidence/23-release-coverage-honest-report.png` |
+| Native 390px release plan/report | `evidence/10-release-gap-mobile-plan.png`, `evidence/08-release-coverage-mobile-report.png` |
+| 16-second release journey | `evidence/24-release-inspection-journey-15s.webm` |
 
 ## Dogfood-Your-Slice
 
@@ -69,8 +70,9 @@ Scope verdict: required and completed.
 
 Paths executed from the built `file://` artifact:
 
-1. Blank product → custom `fulfillment-service v7.2.0` + optional `REL-FUL-72` → compiled workspace → expand every Check Contract → confirm no order/payment residue → four mock checks → `Verified + Proceed`.
-2. Blank product → editable payment example → form submit → Observed-Superset → candidate disposition → four mock checks → `Violated + Pause` → RC Agent.
+1. Blank product → `CHG-84501` + optional focus → CandidateSet → leave both declaration-external entities unselected → one `PLAN_CONFIRMED` → `Verified + Proceed` with both gaps preserved beside the decision.
+2. Blank product → `CHG-84501` → explicitly include the approved `settlement-db` check → one `PLAN_CONFIRMED` → locked three-check report → `Violated + Pause` + RC Agent; `invoice-worker` remains an unresolved coverage gap.
+3. Save the completed inspection → revisit it from the release-first home → create a fresh direct Run without mutating the prior locked report.
 
 Dogfood findings fixed in this pass:
 
@@ -80,23 +82,24 @@ Dogfood findings fixed in this pass:
 - Mid-session viewport switching produced an unreliable blank mobile screenshot; the native 390px path now reloads and reruns the complete risk workflow before capture.
 - Terra review P1 found that the generic compiler cloned the order fixture and missed ten domain-bearing fields. The generic branch now constructs every source, Check, execution fact and report field from the current service context.
 - Fresh evidence capture exposed Windows Chrome descendants retaining inherited stdio/profile handles. The CDP harness now terminates the exact headless process tree; a child-process timeout regression passed three consecutive runs.
+- Visual review caught the 390px sticky confirmation button overlapping the coverage-gap card even though the browser suite was green. A geometry regression now proves the CTA remains in document flow and never intersects the gap surface.
 
 ## Fresh verification
 
 ```text
 pnpm check
   deterministic standalone build: exit 0
-  unit/domain/compiler/UI/harness tests: 22/22 pass
-  file:// browser paths: 2/2 pass
+  unit/domain/compiler/UI/harness tests: 110/110 pass
+  file:// browser: release-first gaps, one confirmation, immutable evidence, history, sharing, exact reuse, 390px, edited-rule fail-closed
   HTTP(S) network requests: 0
   browser errors: 0
-  native 390px report visible and no horizontal overflow
+  native 390px plan/report visible, no overlap and no horizontal overflow
 
 node --check lib,src,scripts,tests/**/*.mjs
   syntax errors: 0
 
 node tests/record-walkthrough.mjs
-  exit 0; 15070ms; 50112 bytes; VP9 WebM
+  exit 0; 16182ms; 60475 bytes; VP9 WebM
 
 git diff --check
   whitespace errors: 0
@@ -106,11 +109,11 @@ Artifact:
 
 ```text
 path: index.html
-bytes: 80987
-sha256: D66F2052B2BCD89DABD7E95C31B4CBEA4F8897BEE9F39F4C02F77EEA68B8C931
+bytes: 254419
+sha256: EA93ED1B8A7B8C8728F31AD1BCADCEDC396C2D44B5871EAEA3410A4B0F180A39
 ```
 
-Artifact hygiene: no media/design files at repository root. Nine screenshots and one walkthrough are archived under `evidence/`.
+Artifact hygiene: no media/design files at repository root. Screenshots and the current walkthrough are archived under `evidence/`.
 
 ## Delivery completeness
 

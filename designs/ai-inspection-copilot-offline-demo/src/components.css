@@ -1977,6 +1977,211 @@
   display: grid;
   gap: 8px;
 }
+
+.release-home {
+  display: grid;
+  gap: 26px;
+}
+.release-intake {
+  padding-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+}
+.release-intake-heading p {
+  max-width: 720px;
+  color: var(--text-soft);
+}
+.release-form {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.3fr) minmax(230px, 0.9fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 24px;
+}
+.release-form label,
+.release-risk-details label {
+  display: grid;
+  gap: 8px;
+}
+.release-form label > span,
+.release-risk-details label > span {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+.release-form input,
+.release-form textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(4, 16, 31, 0.72);
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+}
+.release-form input:focus,
+.release-form textarea:focus {
+  border-color: var(--cyan);
+  outline: 2px solid color-mix(in srgb, var(--cyan) 20%, transparent);
+}
+.release-risk-details {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.release-risk-details summary {
+  min-height: 24px;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.release-risk-details[open] summary {
+  margin-bottom: 9px;
+}
+.release-submit {
+  min-width: 170px;
+  min-height: 48px;
+  margin: 0;
+}
+.release-examples {
+  margin-top: 14px;
+}
+.conversation-guidance {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.release-context-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 23, 42, 0.72);
+}
+.release-context-strip > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.release-context-strip span,
+.release-context-strip small {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.release-context-strip strong {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.release-context-strip .edit-intent {
+  align-self: center;
+  min-height: 44px;
+}
+.plan-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.plan-summary strong {
+  color: var(--text);
+  font-size: 16px;
+}
+.plan-summary small {
+  color: var(--amber);
+}
+.coverage-gap-section {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--amber) 42%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--amber) 8%, rgba(7, 23, 42, 0.88));
+}
+.coverage-gap-section > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.coverage-gap-section > header span,
+.coverage-gap-section > header small {
+  color: var(--amber);
+  font-size: 11px;
+}
+.coverage-gap-section h3 {
+  margin: 4px 0 0;
+}
+.coverage-gap-stack {
+  display: grid;
+  gap: 10px;
+}
+.coverage-gap-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(160px, 0.75fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, var(--line));
+  border-radius: 11px;
+  background: rgba(9, 25, 44, 0.82);
+}
+.coverage-gap-card.is-included {
+  border-color: color-mix(in srgb, var(--cyan) 46%, var(--line));
+  background: color-mix(in srgb, var(--cyan) 7%, rgba(9, 25, 44, 0.82));
+}
+.coverage-gap-copy,
+.coverage-gap-authority {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.coverage-gap-copy span,
+.coverage-gap-authority small {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.coverage-gap-copy h4,
+.coverage-gap-copy p {
+  margin: 0;
+}
+.coverage-gap-copy p {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.coverage-gap-authority strong {
+  color: var(--amber);
+  font-size: 12px;
+}
+.gap-action {
+  min-height: 44px;
+  padding: 0 14px;
+}
+.decision-tools {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+.coverage-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--green) 36%, var(--line));
+  border-radius: 999px;
+  color: var(--green);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.coverage-badge.has-gap {
+  border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
+  color: var(--amber);
+}
 .conversation-form textarea,
 .conversation-form input,
 .personal-save input {

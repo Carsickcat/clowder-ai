@@ -7,6 +7,7 @@ test('examples are editable request starters rather than product modes', () => {
   assert.equal(inspectionExamples.length, 2);
   for (const example of inspectionExamples) {
     assert.ok(example.prompt);
+    assert.ok(example.contextReference);
     assert.equal(Object.hasOwn(example, 'workspaceId'), false);
   }
 });
@@ -41,7 +42,7 @@ test('a generic workspace contains no domain fixture residue', () => {
 test('known high-risk context still compiles the risk fixture semantics', () => {
   const workspace = compileInspectionRequest({
     prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
-    contextReference: 'CHG-84217',
+    contextReference: 'CHG-84501',
   });
 
   assert.equal(workspace.reconciliation.status, 'Observed-Superset');
@@ -49,4 +50,15 @@ test('known high-risk context still compiles the risk fixture semantics', () => 
   assert.equal(workspace.report.action, 'Pause');
   assert.equal(workspace.eyebrow, 'User-defined inspection workspace');
   assert.equal(workspace.title, 'payment-api 巡检工作区');
+  assert.deepEqual(workspace.blockingScope, ['payment-api']);
+  assert.deepEqual(workspace.coverageGaps.map((gap) => gap.entity), ['invoice-worker', 'settlement-db']);
+});
+
+test('a known change reference can compile without a natural-language intent', () => {
+  const workspace = compileInspectionRequest({ contextReference: 'CHG-84501' });
+
+  assert.equal(workspace.request.targetService, 'payment-api');
+  assert.equal(workspace.request.contextReference, 'CHG-84501');
+  assert.match(workspace.request.prompt, /CHG-84501/);
+  assert.deepEqual(workspace.blockingScope, ['payment-api']);
 });

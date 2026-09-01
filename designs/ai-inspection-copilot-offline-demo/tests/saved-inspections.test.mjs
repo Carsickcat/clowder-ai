@@ -187,11 +187,11 @@ test('a new inspection run keeps its plan-owned report without persisting duplic
   }
 });
 
-test('run materialization cannot report a rejected candidate as an executed violation', () => {
+test('run materialization cannot report an excluded candidate as an executed violation', () => {
   const workspace = compileInspectionRequest({
     prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
     targetService: 'payment-api',
-    contextReference: 'CHG-84217',
+    contextReference: 'CHG-84501',
   });
   const lockedTask = task(workspace);
   const run = createInspectionRun({
@@ -211,8 +211,8 @@ test('run materialization cannot report a rejected candidate as an executed viol
     run.report.checkResults.some((result) => result.checkId === 'candidate-db-wait'),
     false,
   );
-  assert.equal(run.report.evidenceVerdict, 'Inconclusive');
-  assert.equal(run.report.action, 'Proceed-with-conditions');
+  assert.equal(run.report.evidenceVerdict, 'Verified');
+  assert.equal(run.report.action, 'Proceed');
   assert.equal(run.report.rcAgent, null);
   assert.equal(run.report.interpretation.likelyCause.text, '证据不足');
 });

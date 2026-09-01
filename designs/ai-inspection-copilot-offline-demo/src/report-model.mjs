@@ -121,3 +121,9 @@ export function projectInterpretation(report) {
     evidenceIds: interpretation?.[key]?.evidenceIds ?? [],
   }));
 }
+
+export function projectCoverageSummary(report) {
+  const checked = Array.isArray(report?.checkResults) ? report.checkResults.length : 0;
+  const uncovered = (report?.residualRisks ?? []).filter((risk) => /^未覆盖：/.test(risk)).length;
+  return { checked, uncovered };
+}

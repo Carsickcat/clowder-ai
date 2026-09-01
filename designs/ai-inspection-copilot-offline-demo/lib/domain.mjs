@@ -214,6 +214,8 @@ export function reconcileChange(declaredChange, observedChange) {
     declaredEntities,
     observedEntities,
     resolvedEntities: status === 'Conflict' ? [] : observedEntities,
+    blockingEntities: ['Conflict', 'Unverifiable'].includes(status) ? [] : declaredEntities,
+    coverageGapEntities: status === 'Conflict' ? [] : addedEntities,
     addedEntities,
     missingEntities,
   });

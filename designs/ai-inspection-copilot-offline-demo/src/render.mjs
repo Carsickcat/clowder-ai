@@ -6,13 +6,13 @@ import { renderSavedInspectionRefresh } from './render-saved-inspections.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 const PHASES = [
-  ['intake', '输入理解', '01'],
-  ['context', '范围对账', '02'],
-  ['plan', '任务草案', '03'],
-  ['report', '行动报告', '04'],
+  ['intake', '变更发起', '01'],
+  ['plan', '候选计划', '02'],
+  ['report', '证据报告', '03'],
 ];
 
 function phaseIndex(phase) {
+  if (phase === 'context') return 1;
   return PHASES.findIndex(([id]) => id === phase);
 }
 
@@ -93,7 +93,7 @@ function renderContext(vm) {
           ? `<div class="reconciliation ${scope.status === 'Exact' ? 'is-exact' : 'is-expanded'}">
               <span>变化对账</span>
               <strong>${scope.status}</strong>
-              <p>${scope.status === 'Exact' ? '声明与运行时事实一致。' : `发现 ${scope.addedEntities.length} 个声明外实体，已扩大巡检范围。`}</p>
+              <p>${scope.status === 'Exact' ? '声明与运行时事实一致。' : `发现 ${scope.addedEntities.length} 个声明外实体，未自动纳入阻断范围。`}</p>
             </div>
             <ul class="entity-cloud">${scope.entities.map((entity) => `<li>${escapeHtml(entity)}</li>`).join('')}</ul>`
           : ''
@@ -168,6 +168,7 @@ function renderCopilot(vm) {
 
 export function renderApp(vm) {
   const workspaceId = vm.workspace?.id ?? 'new';
+  const showContextPanel = Boolean(vm.workspace) && ['context', 'report'].includes(vm.state.phase);
   return `
     <div class="app-shell" data-phase="${vm.state.phase}" data-workspace="${escapeHtml(workspaceId)}">
       <header class="app-header">
@@ -176,8 +177,8 @@ export function renderApp(vm) {
         <div class="offline-badge"><span>●</span> 离线演示</div>
       </header>
       ${vm.workspace ? `<ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>` : ''}
-      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'}">
-        ${vm.workspace ? renderContext(vm) : ''}
+      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'} ${showContextPanel ? '' : 'without-context'}">
+        ${showContextPanel ? renderContext(vm) : ''}
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>

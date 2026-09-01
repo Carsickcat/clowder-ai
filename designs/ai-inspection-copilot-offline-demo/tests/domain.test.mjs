@@ -30,13 +30,15 @@ test('a formal check rejects missing decision fields and invented sources', () =
   );
 });
 
-test('observed superset expands the resolved scope instead of silently passing', () => {
+test('observed superset separates the declared blocking scope from external coverage gaps', () => {
   const scenario = scenarios.find((item) => item.id === 'change-ticket-risk');
   const result = reconcileChange(scenario.declaredChange, scenario.observedChange);
 
   assert.equal(result.status, 'Observed-Superset');
   assert.deepEqual(result.addedEntities, ['invoice-worker', 'settlement-db']);
   assert.deepEqual(result.resolvedEntities, ['invoice-worker', 'payment-api', 'settlement-db']);
+  assert.deepEqual(result.blockingEntities, ['payment-api']);
+  assert.deepEqual(result.coverageGapEntities, ['invoice-worker', 'settlement-db']);
 });
 
 test('scenario evidence and action use orthogonal vocabularies', () => {

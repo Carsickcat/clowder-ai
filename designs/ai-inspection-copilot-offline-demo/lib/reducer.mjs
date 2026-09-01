@@ -174,6 +174,34 @@ function disposeCandidate(state, action) {
   };
 }
 
+function includeCandidate(state, action) {
+  if (state.phase !== 'plan' || !state.workspace) return state;
+  const candidate = state.workspace.candidateChecks.find((item) => item.id === action.candidateId);
+  if (!candidate || candidate.ruleSourceAuthority !== 'approved') return state;
+  const matchingGap = state.workspace.coverageGaps?.find((gap) => gap.eligibleCandidateId === candidate.id);
+  if (state.workspace.coverageGaps?.some((gap) => gap.entity === candidate.entity) && !matchingGap) return state;
+  return {
+    ...state,
+    candidateDisposition: {
+      ...state.candidateDisposition,
+      [candidate.id]: { status: 'accepted', reason: '用户在锁定前显式加入' },
+    },
+  };
+}
+
+function excludeCandidate(state, action) {
+  if (state.phase !== 'plan' || !state.workspace) return state;
+  const candidate = state.workspace.candidateChecks.find((item) => item.id === action.candidateId);
+  if (!candidate) return state;
+  return {
+    ...state,
+    candidateDisposition: {
+      ...state.candidateDisposition,
+      [candidate.id]: { status: 'rejected', reason: '保留为未覆盖风险' },
+    },
+  };
+}
+
 function updateCheckRule(state, action) {
   if (state.phase !== 'plan' || !state.workspace) return state;
   const check = selectCommittedChecks(state).find((item) => item.id === action.checkId);
@@ -209,19 +237,20 @@ function submitIntent(state, action, playbookCatalog, compileIntent) {
       historyDiagnostics: state.historyDiagnostics,
     }),
     workspace,
+    phase: 'plan',
     contextOptions: createContextOptions(workspace),
     conversation: [
-      { role: 'user', text: action.request.prompt },
-      { role: 'assistant', text: `已识别：${workspace.declaredChange.entities[0]} 巡检` },
+      { role: 'user', text: workspace.request.contextReference || workspace.request.prompt },
+      { role: 'assistant', text: `已生成：${workspace.declaredChange.entities[0]} 候选巡检计划` },
     ],
-    activeRequest: { ...action.request },
+    activeRequest: { ...workspace.request },
     playbookMatch: matchInspectionPlaybook(workspace, playbookCatalog),
     taskInstance: createTaskInstance(ordinal, null, state.actorId),
   };
 }
 
 function toggleDraftContext(state, action) {
-  if (state.phase !== 'intake' || !state.workspace) return state;
+  if (!['intake', 'plan'].includes(state.phase) || !state.workspace) return state;
   const contextOptions = toggleContextSelection(state.contextOptions, action.contextId);
   return contextOptions === state.contextOptions ? state : { ...state, contextOptions };
 }
@@ -332,15 +361,17 @@ function acceptScope(state) {
 function confirmPlan(state) {
   if (state.phase !== 'plan' || selectPlanReadiness(state).status !== 'ready') return state;
   const checks = selectCommittedChecks(state);
+  const exactPlaybookRef = state.playbookMatch?.status === 'exact' ? playbookRef(state.playbookMatch) : null;
   const plannedState = {
     ...state,
     taskInstance: updateTaskInstance(
       state.taskInstance,
       {
         status: 'executing',
+        sourcePlaybookRef: state.taskInstance.sourcePlaybookRef ?? exactPlaybookRef,
         inspectionPlan: createInspectionPlan(
           checks,
-          state.taskInstance.sourcePlaybookRef,
+          state.taskInstance.sourcePlaybookRef ?? exactPlaybookRef,
           state.taskInstance.sourceSavedInspectionId,
         ),
       },
@@ -348,6 +379,28 @@ function confirmPlan(state) {
     ),
   };
   return completeInspectionRun(plannedState);
+}
+
+function reportForCoverageGaps(workspace, inspectionPlan) {
+  const gaps = workspace.coverageGaps ?? [];
+  if (!gaps.length) return workspace.report;
+  const includedCheckIds = new Set(inspectionPlan.checkIds);
+  const uncovered = gaps.filter(
+    (gap) => !gap.eligibleCandidateId || !includedCheckIds.has(gap.eligibleCandidateId),
+  );
+  const gapEntities = gaps.map((gap) => gap.entity);
+  const retainedRisks = workspace.report.residualRisks.filter(
+    (risk) => !gapEntities.some((entity) => risk.includes(entity)),
+  );
+  const residualRisks = [
+    ...retainedRisks,
+    ...uncovered.map((gap) => `未覆盖：${gap.entity}（${gap.reason}）`),
+  ];
+  const coveredEntities = workspace.blockingScope?.join('、') || workspace.declaredChange.entities.join('、');
+  const scopeStatement = uncovered.length
+    ? `结论仅覆盖声明范围内已锁定计划中的 ${coveredEntities}；声明外影响 ${uncovered.map((gap) => gap.entity).join('、')} 未覆盖。`
+    : `结论覆盖声明范围内已锁定计划中的 ${coveredEntities} 及用户显式加入的声明外检查。`;
+  return { ...workspace.report, scopeStatement, residualRisks };
 }
 
 function completeInspectionRun(state) {
@@ -360,7 +413,7 @@ function completeInspectionRun(state) {
     taskInstance,
     definitionId: state.activeSavedInspectionId,
     selectedContext: state.contextOptions,
-    report: state.workspace.report,
+    report: reportForCoverageGaps(state.workspace, taskInstance.inspectionPlan),
     startedAt: taskInstance.startedAt,
     completedAt: demoTimestamp(state.nextRunOrdinal, 1),
   });
@@ -601,6 +654,8 @@ export function createDemoReducer(options = {}) {
     PLAYBOOK_REGENERATED: regenerateFromPlaybook,
     SCOPE_ACCEPTED: acceptScope,
     CANDIDATE_DISPOSED: disposeCandidate,
+    CANDIDATE_INCLUDED: includeCandidate,
+    CANDIDATE_EXCLUDED: excludeCandidate,
     CHECK_RULE_UPDATED: updateCheckRule,
     PLAN_CONFIRMED: confirmPlan,
     RC_TOGGLED: toggleRootCause,

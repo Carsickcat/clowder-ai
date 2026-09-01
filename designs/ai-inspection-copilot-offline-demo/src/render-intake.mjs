@@ -67,8 +67,27 @@ function renderSavedInspectionHome(vm) {
     ${
       cards.length
         ? `<div class="saved-inspection-list">${cards.map((card) => renderSavedCard(card, historyDiagnostics)).join('')}</div>`
-        : '<p class="saved-inspection-empty">还没有保存的巡检，从右侧对话开始 →</p>'
+        : '<p class="saved-inspection-empty">还没有保存的巡检，从上方变更单开始。</p>'
     }
+  </section>`;
+}
+
+function renderReleaseIntake(vm) {
+  const prefill = vm.savedInspection.composerPrefill ?? {};
+  return `<section class="release-intake" data-testid="release-intake" aria-labelledby="release-intake-title">
+    <header class="stage-heading release-intake-heading">
+      <div><span class="source-kind">发布验证</span><h2 id="release-intake-title" data-stage-title>从变更开始生成巡检计划</h2><p>平台会读取变更事实、Trace 拓扑与已批准规则；你只需确认最终计划。</p></div>
+    </header>
+    <form class="release-form" data-intent-form>
+      <label class="release-reference-field"><span>变更单 / 发布单号</span><input name="context-reference" required value="${escapeHtml(prefill.contextReference ?? '')}" placeholder="例如 CHG-84501" autocomplete="off" /></label>
+      <details class="release-risk-details" ${prefill.prompt ? 'open' : ''}>
+        <summary>补充说明（可选）</summary>
+        <label><span>本次关注什么（可选）</span><textarea name="inspection-intent" rows="2" placeholder="例如：关注扣款成功和 Redis 客户端">${escapeHtml(prefill.prompt ?? '')}</textarea></label>
+        <input name="target-service" type="hidden" value="${escapeHtml(prefill.targetService ?? '')}" />
+      </details>
+      <button class="compile-button release-submit" type="submit"><span>生成巡检计划</span><b>→</b></button>
+    </form>
+    <details class="conversation-examples release-examples"><summary>填入演示变更</summary><div class="example-grid">${renderExamples()}</div></details>
   </section>`;
 }
 
@@ -130,9 +149,7 @@ function renderContextSelection(vm) {
 }
 
 export function renderConversationComposer(vm) {
-  const prefill = vm.savedInspection.composerPrefill ?? {};
   const conversation = vm.savedInspection.conversation;
-  const busy = Boolean(vm.workspace);
   return `<div class="conversation-shell">
     <div class="conversation-log" aria-live="polite">
       ${
@@ -140,23 +157,15 @@ export function renderConversationComposer(vm) {
           ? conversation
               .map((message) => `<p class="conversation-message ${message.role}">${escapeHtml(message.text)}</p>`)
               .join('')
-          : '<p class="conversation-empty">描述要巡检的服务或变更</p>'
+          : '<p class="conversation-empty">提交变更后，我会解释计划来源、覆盖缺口与报告结论。</p>'
       }
     </div>
-    <form class="conversation-form" data-intent-form>
-      <textarea name="inspection-intent" rows="3" required ${busy ? 'disabled' : ''} placeholder="例如：巡检 payment-api 本周配置变更">${escapeHtml(prefill.prompt ?? '')}</textarea>
-      <details class="conversation-details" ${prefill.targetService || prefill.contextReference ? 'open' : ''}>
-        <summary>补充服务或电子流</summary>
-        <input name="target-service" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.targetService ?? '')}" placeholder="目标服务（可选）" />
-        <input name="context-reference" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.contextReference ?? '')}" placeholder="电子流 / 发布单（可选）" />
-      </details>
-      <button class="conversation-send" type="submit" ${busy ? 'disabled' : ''}>${busy ? '当前巡检进行中' : '发送'}</button>
-    </form>
-    ${!busy ? `<details class="conversation-examples"><summary>填入示例</summary><div class="example-grid">${renderExamples()}</div></details>` : ''}
+    <p class="conversation-guidance">Agent 只解释候选和证据；门禁计算由确定性规则完成。</p>
   </div>`;
 }
 
 export function renderIntake(vm) {
   if (vm.savedInspection.historyDefinition) return renderSavedInspectionHistory(vm);
-  return vm.workspace ? renderContextSelection(vm) : renderSavedInspectionHome(vm);
+  if (vm.workspace) return renderContextSelection(vm);
+  return `<div class="release-home">${renderReleaseIntake(vm)}${renderSavedInspectionHome(vm)}</div>`;
 }

@@ -17,7 +17,7 @@ function paymentState() {
     request: {
       prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
       targetService: 'payment-api',
-      contextReference: 'CHG-84217',
+      contextReference: 'CHG-84501',
     },
   });
   return state;
@@ -46,10 +46,6 @@ function majorDriftState() {
   return state;
 }
 
-function dismissMatchedPlaybook(state) {
-  return state.playbookMatch ? dispatch(state, 'PLAYBOOK_DISMISSED') : state;
-}
-
 test('intake is a blank user-driven product entry, not fixed journey navigation', () => {
   const html = renderApp(selectViewModel(createDemoSession()));
   assert.match(html, /已保存巡检/);
@@ -63,26 +59,50 @@ test('intake is a blank user-driven product entry, not fixed journey navigation'
   assert.doesNotMatch(html, /class="phase-rail"/);
 });
 
-test('electronic-flow plan exposes reconciliation and blocks unresolved candidate', () => {
-  let state = paymentState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
+test('release-first entry makes the change reference primary and risk intent optional', () => {
+  const html = renderApp(selectViewModel(createDemoSession()));
+
+  assert.match(html, /变更单 \/ 发布单号/);
+  assert.match(html, /name="context-reference"[^>]*required/);
+  assert.match(html, /本次关注什么（可选）/);
+  assert.match(html, /生成巡检计划/);
+  assert.match(html, /CHG-84501/);
+  assert.ok(html.indexOf('name="context-reference"') < html.indexOf('name="inspection-intent"'));
+});
+
+test('release plan shows one authorization and keeps declaration-external entities in amber coverage gaps', () => {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', {
+    request: { contextReference: 'CHG-84501', prompt: '关注扣款成功和 Redis 客户端' },
+  });
+  const html = renderApp(selectViewModel(state));
+
+  assert.equal(state.phase, 'plan');
+  assert.match(html, /data-testid="release-context-strip"/);
+  assert.match(html, /CHG-84501/);
+  assert.match(html, /2 项阻断/);
+  assert.match(html, /影响面缺口/);
+  assert.match(html, /coverage-gap-card is-eligible/);
+  assert.match(html, /settlement-db[\s\S]*?data-action="CANDIDATE_INCLUDED"/);
+  assert.match(html, /invoice-worker[\s\S]*?无可信规则[\s\S]*?本次不覆盖/);
+  const invoiceCard = html.match(/<article[^>]+data-gap-entity="invoice-worker"[\s\S]*?<\/article>/)?.[0] ?? '';
+  assert.doesNotMatch(invoiceCard, /data-action="CANDIDATE_INCLUDED"/);
+  assert.doesNotMatch(html, /已扩大巡检范围|INPUT_CONFIRMED|SCOPE_ACCEPTED/);
+  assert.equal((html.match(/data-action="PLAN_CONFIRMED"/g) ?? []).length, 1);
+  assert.match(html, /确认并开始巡检/);
+});
+
+test('electronic-flow plan exposes reconciliation without making an optional gap block execution', () => {
+  const state = paymentState();
   const html = renderApp(selectViewModel(state));
 
   assert.match(html, /Observed-Superset/);
   assert.match(html, /invoice-worker/);
   assert.match(html, /settlement-db/);
-  assert.match(html, /数据库连接等待/);
-  assert.match(html, /data-testid="plan-summary"[\s\S]*?本次将执行 3 项检查，另有 1 项 AI 建议需要你确认/);
-  assert.ok(html.indexOf('需要你确认') < html.indexOf('将执行的检查'));
-  assert.doesNotMatch(html, /data-testid="plan-stat-/);
-  assert.doesNotMatch(html, /候选待处置|待处置|纳入计划|拒绝并留痕/);
-  assert.match(html, /data-disposition="accepted"[^>]*>加查<\/button>/);
-  assert.match(html, /data-disposition="rejected"[^>]*>不查<\/button>/);
-  assert.match(html, /<details class="candidate-details">[\s\S]*?db\.pool\.wait_p95/);
-  assert.match(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
-  assert.match(html, /data-action="PLAN_CONFIRMED"[^>]*>[\s\S]*?请先处理上方的建议项/);
+  assert.match(html, /已有高权威规则[\s\S]*?加入本次检查/);
+  assert.match(html, /data-testid="plan-summary"[\s\S]*?2 项阻断[\s\S]*?0 项观察[\s\S]*?2 项影响未覆盖/);
+  assert.doesNotMatch(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
+  assert.doesNotMatch(html, /已扩大巡检范围|需要你确认|请先处理上方的建议项/);
   assert.ok(
     html.indexOf('data-action="PLAN_CONFIRMED"') < html.indexOf('class="panel copilot-panel"'),
     'the plan action belongs to the draft rather than the conversation rail',
@@ -91,20 +111,13 @@ test('electronic-flow plan exposes reconciliation and blocks unresolved candidat
 
 test('accepted candidate becomes a formal check and unlocks confirmation', () => {
   let state = paymentState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'candidate-db-wait' });
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /✓ 已加查/);
+  assert.match(html, /已加入锁定计划/);
   assert.match(html, /db\.pool\.wait_p95/);
-  assert.match(html, /本次将执行 4 项检查，无需额外确认/);
-  assert.match(html, /data-disposition="accepted"[^>]*aria-pressed="true"[^>]*>加查<\/button>/);
-  assert.match(html, /data-disposition="rejected"[^>]*aria-pressed="false"[^>]*>不查<\/button>/);
+  assert.match(html, /data-testid="plan-summary"[\s\S]*?3 项阻断[\s\S]*?1 项影响未覆盖/);
+  assert.match(html, /data-action="CANDIDATE_EXCLUDED"[^>]*>移出本次检查<\/button>/);
   assert.match(html, /<details[^>]+class="check-card[^>]*>/);
   assert.match(html, /查看细节/);
   assert.match(html, /目标实体/);
@@ -115,10 +128,10 @@ test('accepted candidate becomes a formal check and unlocks confirmation', () =>
   assert.match(html, /失败动作/);
   assert.match(html, /事实来源/);
   assert.doesNotMatch(html, /class="check-index"/);
-  assert.match(html, /CHG-84217/);
+  assert.match(html, /CHG-84501/);
   assert.match(html, /Observed-Superset/);
   assert.doesNotMatch(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
-  assert.match(html, /data-action="PLAN_CONFIRMED"[^>]*>[\s\S]*?确认并执行 4 项检查/);
+  assert.match(html, /data-action="PLAN_CONFIRMED"[^>]*>[\s\S]*?确认并开始巡检/);
 });
 
 test('medium candidate is presented as optional without pretending to block the plan', () => {
@@ -130,50 +143,32 @@ test('medium candidate is presented as optional without pretending to block the 
       contextReference: 'REL-FUL-72',
     },
   });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /本次将执行 4 项检查，另有 1 项 AI 可选建议/);
-  assert.match(html, /id="pending-title">可选建议/);
+  assert.match(html, /data-testid="plan-summary"[\s\S]*?4 项阻断[\s\S]*?0 项观察/);
+  assert.match(html, /id="pending-title">可选观察/);
   assert.match(html, /class="readiness ready">可以开始/);
+  assert.match(html, /data-action="CANDIDATE_INCLUDED"[^>]*>加入观察<\/button>/);
   assert.doesNotMatch(html, /需要你确认|有建议待确认|请先处理上方的建议项/);
   assert.doesNotMatch(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
 });
 
 test('candidate decision stays visible and can switch between rejected and accepted', () => {
   let state = paymentState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'rejected',
-    reason: '本次变更未触及连接池配置',
-  });
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'candidate-db-wait' });
+  state = dispatch(state, 'CANDIDATE_EXCLUDED', { candidateId: 'candidate-db-wait' });
   let html = renderApp(selectViewModel(state));
 
-  assert.match(html, /— 不查/);
-  assert.match(html, /已记录原因：本次变更未触及连接池配置/);
-  assert.match(html, /data-disposition="accepted"[^>]*aria-pressed="false"[^>]*>加查<\/button>/);
-  assert.match(html, /data-disposition="rejected"[^>]*aria-pressed="true"[^>]*>不查<\/button>/);
-  assert.match(html, /本次将执行 3 项检查，无需额外确认/);
+  assert.match(html, /本次尚未覆盖/);
+  assert.match(html, /data-action="CANDIDATE_INCLUDED"[^>]*>加入本次检查<\/button>/);
+  assert.match(html, /data-testid="plan-summary"[\s\S]*?2 项阻断[\s\S]*?2 项影响未覆盖/);
   assert.doesNotMatch(html, /class="check-card is-candidate-check"/);
 
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'candidate-db-wait' });
   html = renderApp(selectViewModel(state));
 
-  assert.match(html, /✓ 已加查/);
-  assert.doesNotMatch(html, /已记录原因：/);
-  assert.match(html, /本次将执行 4 项检查，无需额外确认/);
+  assert.match(html, /已加入锁定计划/);
+  assert.match(html, /data-testid="plan-summary"[\s\S]*?3 项阻断[\s\S]*?1 项影响未覆盖/);
   assert.match(html, /class="check-card is-candidate-check"/);
 });
 
@@ -186,43 +181,30 @@ test('draft without AI suggestions skips the confirmation section', () => {
       contextReference: 'REL-FUL-72',
     },
   });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
   state = { ...state, workspace: { ...state.workspace, candidateChecks: [] } };
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /本次将执行 \d+ 项检查，无需额外确认/);
+  assert.match(html, /data-testid="plan-summary"[\s\S]*?4 项阻断/);
   assert.doesNotMatch(html, /id="pending-title"/);
   assert.match(html, /id="formal-title">将执行的检查/);
-  assert.match(html, /确认并执行 4 项检查/);
+  assert.match(html, /确认并开始巡检/);
 });
 
-test('scope presents business, metric, trace, and middleware impact dimensions together', () => {
-  let state = paymentState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
+test('plan presents release facts, blocking boundary, source freshness, and external impact together', () => {
+  const state = paymentState();
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /data-testid="impact-matrix"/);
-  assert.match(html, /业务场景/);
-  assert.match(html, /支付确认 → 账单异步/);
-  assert.match(html, /黄金指标/);
+  assert.match(html, /data-testid="release-context-strip"/);
+  assert.match(html, /CHG-84501/);
+  assert.match(html, /阻断范围[\s\S]*?payment-api/);
+  assert.match(html, /刚刚 · 电子流/);
+  assert.match(html, /data-testid="coverage-gaps"[\s\S]*?invoice-worker[\s\S]*?settlement-db/);
   assert.match(html, /payment\.confirm\.success_rate/);
-  assert.match(html, /Trace 直接依赖/);
-  assert.match(html, /payment-api → settlement-db/);
-  assert.match(html, /中间件/);
-  assert.match(html, /settlement-db · Redis · invoice queue/);
 });
 
 test('risk report leads with action while preserving evidence semantics', () => {
   let state = paymentState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'candidate-db-wait' });
   state = dispatch(state, 'PLAN_CONFIRMED');
   const html = renderApp(selectViewModel(state));
 
@@ -236,7 +218,9 @@ test('risk report leads with action while preserving evidence semantics', () => 
   assert.match(html, /class="evidence-card is-violated"[^>]*data-evidence-id="settlement-pool-utilization"/);
   assert.ok(html.indexOf('settlement-pool-utilization') < html.indexOf('payment-success-rate'));
   assert.match(html, /role="progressbar"[^>]*aria-valuenow="100"/);
-  assert.equal((html.match(/data-testid="report-check-result"/g) ?? []).length, 4);
+  assert.equal((html.match(/data-testid="report-check-result"/g) ?? []).length, 3);
+  assert.match(html, /coverage-badge has-gap[^>]*>覆盖：3 项已验证 · 1 项未覆盖/);
+  assert.match(html, /未覆盖：invoice-worker/);
   assert.match(html, /data-testid="report-check-result"[\s\S]*?实际值[\s\S]*?门禁/);
   assert.match(html, /data-testid="ai-interpretation"[\s\S]*?发生了什么[\s\S]*?可能原因[\s\S]*?建议动作/);
   assert.match(html, /data-evidence-target="settlement-pool-utilization"/);
@@ -252,80 +236,59 @@ test('unmatched context renders no playbook product surface', () => {
       contextReference: 'REL-FUL-72',
     },
   });
-  state = dispatch(state, 'INPUT_CONFIRMED');
   const html = renderApp(selectViewModel(state));
 
   assert.doesNotMatch(html, /data-testid="playbook-match"/);
   assert.doesNotMatch(html, /场景巡检方案/);
-  assert.match(html, /巡检任务/);
+  assert.match(html, /CandidateSet/);
+  assert.match(html, /确认并开始巡检/);
 });
 
-test('exact playbook is a green in-context accelerator with one primary action', () => {
-  let state = orderState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
+test('exact playbook is projected into the candidate plan behind the same single authorization', () => {
+  const state = orderState();
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /data-testid="playbook-match"/);
-  assert.match(html, /data-match-status="exact"/);
-  assert.match(html, /订单发布后验证 · v4/);
-  assert.match(html, /匹配 98%/);
-  assert.match(html, /五项校验通过/);
-  assert.match(html, /data-action="PLAYBOOK_EXECUTION_STARTED"/);
-  assert.match(html, /按方案直跑/);
-  assert.match(html, /data-action="PLAYBOOK_DISMISSED"/);
-  assert.equal((html.match(/\bplaybook-primary\b/g) ?? []).length, 1);
+  assert.equal(state.playbookMatch.status, 'exact');
+  assert.match(html, /CandidateSet/);
+  assert.match(html, /订单提交成功率/);
+  assert.doesNotMatch(html, /PLAYBOOK_EXECUTION_STARTED|PLAYBOOK_DISMISSED|data-testid="playbook-match"/);
+  assert.equal((html.match(/data-action="PLAN_CONFIRMED"/g) ?? []).length, 1);
 });
 
-test('minor drift exposes dimension chips and a confirm-differences action', () => {
-  let state = paymentState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
+test('minor playbook drift stays reference-only and does not add another confirmation surface', () => {
+  const state = paymentState();
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /data-match-status="minor-drift"/);
-  assert.match(html, /支付配置变更巡检 · v3/);
-  assert.match(html, /2 项当前差异需要确认/);
-  assert.match(html, /data-difference-dimension="dependency"/);
-  assert.match(html, /settlement-db 新增只读实例/);
-  assert.match(html, /data-difference-dimension="metric"/);
-  assert.match(html, /支付成功率口径 v2 → v3/);
-  assert.match(html, /data-action="PLAYBOOK_DIFF_CONFIRMED"/);
+  assert.equal(state.playbookMatch.status, 'minor-drift');
+  assert.doesNotMatch(html, /PLAYBOOK_DIFF_CONFIRMED|data-match-status="minor-drift"/);
+  assert.equal((html.match(/data-action="PLAN_CONFIRMED"/g) ?? []).length, 1);
+  assert.match(html, /影响面缺口/);
 });
 
-test('major drift blocks regeneration until the current differences are explicitly reviewed', () => {
-  let state = majorDriftState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  let html = renderApp(selectViewModel(state));
-
-  assert.match(html, /data-match-status="major-drift"/);
-  assert.match(html, /方案 v3 不适用：2 项重大差异/);
-  assert.match(html, /payment-api 已拆分为 payment-api \+ risk-api/);
-  assert.match(html, /data-action="PLAYBOOK_DRIFT_REVIEWED"/);
-  assert.match(html, />确认已查看 2 项差异<\/button>/);
-  assert.match(html, /data-action="PLAYBOOK_REGENERATED"[^>]+disabled/);
-  assert.doesNotMatch(html, /PLAYBOOK_EXECUTION_STARTED/);
-
-  state = dispatch(state, 'PLAYBOOK_DRIFT_REVIEWED');
-  html = renderApp(selectViewModel(state));
-  assert.match(html, /class="playbook-reviewed">✓ 已确认看完全部当前差异<\/p>/);
-  assert.doesNotMatch(html, /data-action="PLAYBOOK_REGENERATED"[^>]+disabled/);
-});
-
-test('major drift regeneration leaves a compact reference in the copilot rail', () => {
-  let state = majorDriftState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dispatch(state, 'PLAYBOOK_DRIFT_REVIEWED');
-  state = dispatch(state, 'PLAYBOOK_REGENERATED');
+test('major drift cannot expose an old-package direct-run or a second authorization', () => {
+  const state = majorDriftState();
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /data-testid="playbook-reference"/);
-  assert.match(html, /旧方案仅作参考/);
-  assert.match(html, /payment-config-verification · v3/);
+  assert.equal(state.playbookMatch.status, 'major-drift');
+  assert.doesNotMatch(html, /PLAYBOOK_EXECUTION_STARTED|PLAYBOOK_DRIFT_REVIEWED|PLAYBOOK_REGENERATED/);
+  assert.equal((html.match(/data-action="PLAN_CONFIRMED"/g) ?? []).length, 1);
+  assert.match(html, /CHG-84501/);
+});
+
+test('major drift compatibility events remain inert on the release plan', () => {
+  const state = majorDriftState();
+  const reviewed = dispatch(state, 'PLAYBOOK_DRIFT_REVIEWED');
+  const regenerated = dispatch(state, 'PLAYBOOK_REGENERATED');
+  const html = renderApp(selectViewModel(state));
+
+  assert.equal(reviewed, state);
+  assert.equal(regenerated, state);
+  assert.doesNotMatch(html, /data-testid="playbook-reference"/);
 });
 
 test('report keeps the task locked and offers a secondary versioned proposal', () => {
   let state = orderState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
+  state = dispatch(state, 'PLAN_CONFIRMED');
   let html = renderApp(selectViewModel(state));
 
   assert.match(html, /data-testid="playbook-proposal"/);
@@ -345,15 +308,7 @@ test('the product uses concise task copy instead of slogans or decorative module
 
   let state = paymentState();
   states.push(state);
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  states.push(state);
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
-  states.push(state);
-  state = dispatch(state, 'CANDIDATE_DISPOSED', {
-    candidateId: 'candidate-db-wait',
-    disposition: 'accepted',
-  });
+  state = dispatch(state, 'CANDIDATE_INCLUDED', { candidateId: 'candidate-db-wait' });
   state = dispatch(state, 'PLAN_CONFIRMED');
   states.push(state);
 
@@ -373,17 +328,14 @@ test('the product uses concise task copy instead of slogans or decorative module
   for (const copy of forbiddenCopy) {
     assert.doesNotMatch(html, new RegExp(copy, 'i'));
   }
-  assert.match(html, /确认巡检信息/);
-  assert.match(html, /确认巡检范围/);
-  assert.match(html, /执行检查/);
+  assert.match(html, /生成巡检计划/);
+  assert.match(html, /确认并开始巡检/);
+  assert.doesNotMatch(html, /确认巡检信息|确认巡检范围|已扩大巡检范围/);
   assert.match(html, /<div class="decision-hero">[\s\S]*?建议暂停在 25% 灰度/);
 });
 
 test('the copilot rail stays operational and does not repeat judgement or guardrail speeches', () => {
-  let state = paymentState();
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dismissMatchedPlaybook(state);
-  state = dispatch(state, 'SCOPE_ACCEPTED');
+  const state = paymentState();
   const html = renderApp(selectViewModel(state));
 
   assert.match(html, /data-action="PLAN_CONFIRMED"/);
@@ -393,19 +345,20 @@ test('the copilot rail stays operational and does not repeat judgement or guardr
   assert.doesNotMatch(html, /class="copilot-principles"/);
 });
 
-test('home keeps saved inspections in the main area and natural-language input in the right rail', () => {
+test('home keeps the release-first form and saved inspections together in the main area', () => {
   const html = renderApp(selectViewModel(createDemoSession()));
 
   assert.match(html, /data-testid="saved-inspection-home"/);
   assert.match(html, /已保存巡检/);
-  assert.match(html, /还没有保存的巡检，从右侧对话开始/);
-  assert.match(html, /<aside[^>]+copilot-panel[\s\S]*?data-intent-form/);
-  assert.match(html, /placeholder="例如：巡检 payment-api 本周配置变更"/);
+  assert.match(html, /还没有保存的巡检，从上方变更单开始/);
+  assert.match(html, /data-testid="release-intake"[\s\S]*?data-intent-form/);
+  assert.match(html, /placeholder="例如 CHG-84501"/);
+  assert.doesNotMatch(html, /<aside[^>]+copilot-panel[\s\S]*?data-intent-form/);
   assert.doesNotMatch(html, /我是你的智能巡检助手/);
   assert.doesNotMatch(html, /data-testid="saved-inspection-card"/);
 });
 
-test('parsed intent renders selectable current context in the main area', () => {
+test('parsed release renders a compact fact strip and the single plan authorization', () => {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', {
     request: {
@@ -414,17 +367,13 @@ test('parsed intent renders selectable current context in the main area', () => 
       contextReference: 'REL-FUL-72',
     },
   });
-  const firstId = state.contextOptions[0].id;
-  state = dispatch(state, 'CONTEXT_ITEM_TOGGLED', { contextId: firstId });
   const html = renderApp(selectViewModel(state));
 
-  assert.match(html, /确认巡检信息/);
-  assert.match(html, /近期变更/);
-  assert.match(html, /关联服务与依赖/);
-  assert.match(html, /可用信号/);
-  assert.match(html, new RegExp(`data-context-id="${firstId}"[^>]+aria-pressed="false"`));
-  assert.match(html, /data-action="INPUT_CONFIRMED"/);
-  assert.match(html, /生成任务草案/);
+  assert.match(html, /data-testid="release-context-strip"/);
+  assert.match(html, /REL-FUL-72/);
+  assert.match(html, /阻断范围/);
+  assert.doesNotMatch(html, /data-action="INPUT_CONFIRMED"|data-action="SCOPE_ACCEPTED"/);
+  assert.equal((html.match(/data-action="PLAN_CONFIRMED"/g) ?? []).length, 1);
 });
 
 function completedFulfillmentReport() {
@@ -436,8 +385,6 @@ function completedFulfillmentReport() {
       contextReference: 'REL-FUL-72',
     },
   });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  state = dispatch(state, 'SCOPE_ACCEPTED');
   state = dispatch(state, 'PLAN_CONFIRMED');
   return state;
 }

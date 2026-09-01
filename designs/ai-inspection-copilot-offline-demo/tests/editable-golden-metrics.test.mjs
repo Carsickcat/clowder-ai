@@ -14,7 +14,7 @@ const orderRequest = {
 const paymentRequest = {
   prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
   targetService: 'payment-api',
-  contextReference: 'CHG-84217',
+  contextReference: 'CHG-84501',
 };
 
 const fulfillmentRequest = {
@@ -30,9 +30,7 @@ function dispatch(state, type, payload = {}) {
 function advanceToPlan(request = orderRequest) {
   let state = createDemoSession();
   state = dispatch(state, 'INTENT_SUBMITTED', { request });
-  state = dispatch(state, 'INPUT_CONFIRMED');
-  if (state.playbookMatch) state = dispatch(state, 'PLAYBOOK_DISMISSED');
-  return dispatch(state, 'SCOPE_ACCEPTED');
+  return state;
 }
 
 function editableRuleEvidenceGaps(name, workspace) {
@@ -250,8 +248,8 @@ test('plan UI drills into golden metrics and offers one parallel execution actio
   assert.match(html, /服务延迟 p95/);
   assert.match(html, /data-rule-check-id="order-success"/);
   assert.match(html, /data-rule-id="order\.submit\.success_rate"/);
-  assert.match(html, /无先后依赖，确认后将并行执行并直接生成报告/);
-  assert.match(html, /确认并执行 4 项检查/);
+  assert.match(html, /确认后将一次锁定规则与范围；所有已选检查并行执行并生成不可变报告/);
+  assert.match(html, /确认并开始巡检/);
   assert.doesNotMatch(html, /运行下一项|排队|等待结果/);
 });
 

@@ -41,7 +41,7 @@
   }
   .phase-rail {
     overflow-x: auto;
-    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    grid-template-columns: repeat(3, minmax(104px, 1fr));
     padding-bottom: 13px;
   }
   .workspace {
@@ -49,6 +49,25 @@
   }
   .workspace.is-home {
     grid-template-columns: 1fr;
+  }
+  .workspace.without-context:not(.is-home) {
+    grid-template-columns: 1fr;
+  }
+  .release-form {
+    grid-template-columns: 1fr;
+  }
+  .release-submit {
+    width: 100%;
+  }
+  .release-context-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .coverage-gap-card {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.7fr);
+  }
+  .coverage-gap-card .gap-action {
+    grid-column: 1 / -1;
+    width: 100%;
   }
   .context-panel,
   .copilot-panel {
@@ -112,6 +131,33 @@
 }
 
 @media (max-width: 520px) {
+  .release-context-strip,
+  .coverage-gap-card {
+    grid-template-columns: 1fr;
+  }
+  .release-context-strip strong {
+    white-space: normal;
+  }
+  .coverage-gap-section {
+    padding: 12px;
+  }
+  .coverage-gap-section > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .plan-stage .plan-primary-action {
+    position: static;
+    width: 100%;
+    min-height: 52px;
+    margin: 16px 0 0;
+  }
+  .decision-tools {
+    justify-items: start;
+    width: 100%;
+  }
+  .coverage-badge {
+    white-space: normal;
+  }
   .metric-name-list li,
   .metric-rule-row,
   .metric-rule-row.is-readonly {
@@ -322,40 +368,5 @@
   }
   .personal-save form {
     grid-template-columns: 1fr;
-  }
-  .app-shell[data-workspace="new"] {
-    padding-bottom: 104px;
-  }
-  .app-shell[data-workspace="new"] .copilot-panel {
-    position: fixed;
-    z-index: 20;
-    top: auto;
-    right: 10px;
-    bottom: 8px;
-    left: 10px;
-    overflow: visible;
-  }
-  .app-shell[data-workspace="new"] .copilot-panel > header,
-  .app-shell[data-workspace="new"] .copilot-status,
-  .app-shell[data-workspace="new"] .conversation-log,
-  .app-shell[data-workspace="new"] .conversation-details,
-  .app-shell[data-workspace="new"] .conversation-examples {
-    display: none;
-  }
-  .app-shell[data-workspace="new"] .conversation-shell {
-    padding: 8px;
-  }
-  .app-shell[data-workspace="new"] .conversation-form {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .app-shell[data-workspace="new"] .conversation-form textarea {
-    height: 48px;
-    min-height: 48px;
-    max-height: 84px;
-    resize: none;
-  }
-  .app-shell[data-workspace="new"] .conversation-send {
-    width: 64px;
-    min-height: 48px;
   }
 }

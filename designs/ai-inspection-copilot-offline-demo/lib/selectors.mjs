@@ -107,24 +107,18 @@ export function selectResolvedScope(state) {
   const workspace = requireWorkspace(state);
   return {
     status: workspace.reconciliation.status,
-    entities: workspace.reconciliation.resolvedEntities,
+    entities: workspace.blockingScope ?? workspace.reconciliation.blockingEntities,
     addedEntities: workspace.reconciliation.addedEntities,
+    coverageGaps: workspace.coverageGaps ?? [],
   };
 }
 
 export function selectPlanReadiness(state) {
   const workspace = requireWorkspace(state);
-  const unresolvedCandidateIds = workspace.candidateChecks
-    .filter(
-      (candidate) =>
-        candidate.criticality === 'high' &&
-        !['accepted', 'rejected'].includes(state.candidateDisposition[candidate.id]?.status),
-    )
-    .map((candidate) => candidate.id);
   const reconciliationBlocked = ['Conflict', 'Unverifiable'].includes(workspace.reconciliation.status);
   return {
-    status: reconciliationBlocked || unresolvedCandidateIds.length ? 'blocked' : 'ready',
-    unresolvedCandidateIds,
+    status: reconciliationBlocked ? 'blocked' : 'ready',
+    unresolvedCandidateIds: [],
     reconciliationBlocked,
   };
 }
@@ -138,7 +132,9 @@ export function selectCommittedChecks(state) {
     return checks;
   }
   const baseChecks =
-    state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+    state.playbookMatch?.status === 'exact' || state.playbookDecision === 'accepted-with-diff'
+      ? state.playbookMatch.checks
+      : workspace.committedChecks;
   const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
@@ -162,9 +158,24 @@ export function selectPlanSummary(state) {
   const workspace = requireWorkspace(state);
   const dispositions = state.candidateDisposition;
   const baseChecks =
-    state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+    state.playbookMatch?.status === 'exact' || state.playbookDecision === 'accepted-with-diff'
+      ? state.playbookMatch.checks
+      : workspace.committedChecks;
   const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   const pendingCandidates = workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]);
+  const committedChecks = selectCommittedChecks(state);
+  const blocking = committedChecks.filter(
+    (check) => check.priority === 'required' || check.criticality === 'high',
+  ).length;
+  const observing = committedChecks.length - blocking;
+  const includedCandidateIds = new Set(
+    Object.entries(dispositions)
+      .filter(([, disposition]) => disposition.status === 'accepted')
+      .map(([id]) => id),
+  );
+  const uncovered = (workspace.coverageGaps ?? []).filter(
+    (gap) => !gap.eligibleCandidateId || !includedCandidateIds.has(gap.eligibleCandidateId),
+  ).length;
   return {
     required: selectedBaseChecks.filter((check) => check.priority === 'required').length,
     recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
@@ -173,6 +184,9 @@ export function selectPlanSummary(state) {
     requiredPending: pendingCandidates.filter((candidate) => candidate.criticality === 'high').length,
     optionalPending: pendingCandidates.filter((candidate) => candidate.criticality !== 'high').length,
     rejected: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'rejected').length,
+    blocking,
+    observing,
+    uncovered,
   };
 }
 

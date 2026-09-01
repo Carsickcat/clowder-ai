@@ -4,6 +4,7 @@ import { renderReportJourneyDetails, renderSelectedContextResults } from './rend
 import {
   formatReportMetadata,
   formatReportTime,
+  projectCoverageSummary,
   projectInterpretation,
   projectReportChecks,
   projectReportEvidence,
@@ -17,9 +18,10 @@ function renderReportMetadata(run, taskName) {
 }
 
 function renderDecisionHero(report, extra = '') {
+  const coverage = projectCoverageSummary(report);
   return `<div class="decision-hero">
     <div><h2>${escapeHtml(report.actionLabel)}</h2><p>${escapeHtml(report.title)}</p></div>
-    ${extra}
+    <div class="decision-tools"><span class="coverage-badge ${coverage.uncovered ? 'has-gap' : ''}">覆盖：${coverage.checked} 项已验证 · ${coverage.uncovered} 项未覆盖</span>${extra}</div>
   </div>`;
 }
 
@@ -115,7 +117,7 @@ function renderInterpretation(report) {
 }
 
 function renderBoundary(report) {
-  return `<section class="report-section report-boundary"><div><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p></div><div><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></section>`;
+  return `<section class="report-section report-boundary"><div><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p></div><div><h3>未覆盖 / 残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></section>`;
 }
 
 function renderReportCore(run, taskName, report) {

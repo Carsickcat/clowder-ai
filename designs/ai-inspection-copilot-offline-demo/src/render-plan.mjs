@@ -32,7 +32,7 @@ function renderCandidate(candidate, disposition) {
   const accepted = disposition?.status === 'accepted';
   const rejected = disposition?.status === 'rejected';
   const optional = candidate.criticality !== 'high' && !accepted && !rejected;
-  const status = accepted ? '✓ 已加查' : rejected ? '— 不查' : optional ? '可选' : '待你选择';
+  const status = accepted ? '✓ 已加入' : rejected ? '— 本次不查' : optional ? '可选观察' : '可加入';
   return `
     <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''} ${optional ? 'is-optional' : ''}">
       <header><span>AI 建议</span><strong class="candidate-result">${status}</strong></header>
@@ -46,11 +46,51 @@ function renderCandidate(candidate, disposition) {
         </dl>
       </details>
       <div class="candidate-actions">
-        <button class="${accepted ? 'is-selected' : ''}" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="accepted" aria-pressed="${accepted}" type="button">加查</button>
-        <button class="button-ghost ${rejected ? 'is-selected' : ''}" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="rejected" data-reason="专家确认该风险不属于本次变更边界" aria-pressed="${rejected}" type="button">不查</button>
+        <button class="${accepted ? 'is-selected' : ''}" data-action="CANDIDATE_INCLUDED" data-candidate-id="${candidate.id}" aria-pressed="${accepted}" type="button">加入观察</button>
+        <button class="button-ghost ${rejected ? 'is-selected' : ''}" data-action="CANDIDATE_EXCLUDED" data-candidate-id="${candidate.id}" aria-pressed="${rejected}" type="button">本次不查</button>
       </div>
       ${rejected ? `<small class="candidate-reason">已记录原因：${escapeHtml(disposition.reason)}</small>` : ''}
     </article>`;
+}
+
+function renderReleaseContextStrip(workspace) {
+  const request = workspace.request ?? {};
+  const primarySource = workspace.contextSources[0];
+  return `<section class="release-context-strip" data-testid="release-context-strip" aria-label="本次变更事实">
+    <div><span>变更</span><strong>${escapeHtml(request.contextReference || workspace.declaredChange.id)}</strong><small>${escapeHtml(workspace.declaredChange.summary)}</small></div>
+    <div><span>阻断范围</span><strong>${workspace.blockingScope.map(escapeHtml).join(' · ')}</strong><small>仅声明目标默认进入门禁</small></div>
+    <div><span>对账</span><strong>${escapeHtml(workspace.reconciliation.status)}</strong><small>${escapeHtml(primarySource?.freshness ?? '新鲜度未知')} · ${escapeHtml(primarySource?.kind ?? '来源未知')}</small></div>
+    <button class="edit-intent" data-action="RESET" type="button">重新填写</button>
+  </section>`;
+}
+
+function renderCoverageGap(gap, candidate, disposition) {
+  const included = disposition?.status === 'accepted';
+  const eligible = Boolean(candidate);
+  return `<article class="coverage-gap-card ${eligible ? 'is-eligible' : 'is-unbound'} ${included ? 'is-included' : ''}" data-gap-entity="${escapeHtml(gap.entity)}">
+    <div class="coverage-gap-copy"><span>${included ? '已加入锁定计划' : '本次尚未覆盖'}</span><h4>${escapeHtml(gap.entity)}</h4><p>${escapeHtml(gap.reason)}</p></div>
+    <div class="coverage-gap-authority"><strong>${eligible ? '已有高权威规则' : '无可信规则'}</strong><small>${eligible ? escapeHtml(candidate.capability) : '本次不覆盖，将写入报告残余风险'}</small></div>
+    ${
+      eligible
+        ? included
+          ? `<button class="gap-action button-ghost" data-action="CANDIDATE_EXCLUDED" data-candidate-id="${escapeHtml(candidate.id)}" type="button">移出本次检查</button>`
+          : `<button class="gap-action" data-action="CANDIDATE_INCLUDED" data-candidate-id="${escapeHtml(candidate.id)}" type="button">加入本次检查</button>`
+        : ''
+    }
+  </article>`;
+}
+
+function renderCoverageGaps(workspace, disposition) {
+  if (!workspace.coverageGaps?.length) return '';
+  const candidates = new Map(workspace.candidateChecks.map((candidate) => [candidate.id, candidate]));
+  return `<section class="coverage-gap-section" data-testid="coverage-gaps" aria-labelledby="coverage-gap-title">
+    <header><div><span>影响面缺口</span><h3 id="coverage-gap-title">发现声明外影响（${workspace.coverageGaps.length} 项）</h3></div><small>不会静默进入阻断计划</small></header>
+    <div class="coverage-gap-stack">${workspace.coverageGaps
+      .map((gap) =>
+        renderCoverageGap(gap, candidates.get(gap.eligibleCandidateId), disposition[gap.eligibleCandidateId]),
+      )
+      .join('')}</div>
+  </section>`;
 }
 
 function renderSourceRefs(check, contextSources) {
@@ -89,21 +129,13 @@ function renderCheck(check, isCandidate, contextSources) {
 }
 
 function renderPlanSummary(committedCount, planSummary) {
-  let pendingCopy = '无需额外确认';
-  if (planSummary.requiredPending) {
-    pendingCopy = `另有 ${planSummary.requiredPending} 项 AI 建议需要你确认${
-      planSummary.optionalPending ? `，${planSummary.optionalPending} 项可选` : ''
-    }`;
-  } else if (planSummary.optionalPending) {
-    pendingCopy = `另有 ${planSummary.optionalPending} 项 AI 可选建议`;
-  }
-  return `<p class="plan-summary" data-testid="plan-summary">本次将执行 ${committedCount} 项检查，${pendingCopy}</p>`;
+  return `<p class="plan-summary" data-testid="plan-summary"><strong>${planSummary.blocking} 项阻断</strong><span>+</span><strong>${planSummary.observing} 项观察</strong><small>${planSummary.uncovered ? ` · ${planSummary.uncovered} 项影响未覆盖` : ' · 当前影响已覆盖'}</small></p>`;
 }
 
 function renderPlanAction(readiness, committedCount) {
   const ready = readiness.status === 'ready';
   const label = ready
-    ? `确认并执行 ${committedCount} 项检查`
+    ? '确认并开始巡检'
     : readiness.unresolvedCandidateIds.length
       ? '请先处理上方的建议项'
       : readiness.reconciliationBlocked
@@ -131,7 +163,9 @@ function sortChecks(checks) {
 
 export function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
+  const gapCandidateIds = new Set(vm.workspace.coverageGaps.map((gap) => gap.eligibleCandidateId).filter(Boolean));
   const candidates = vm.workspace.candidateChecks
+    .filter((candidate) => !gapCandidateIds.has(candidate.id))
     .map((candidate) => renderCandidate(candidate, disposition[candidate.id]))
     .join('');
   const acceptedIds = new Set(
@@ -139,12 +173,8 @@ export function renderInspectionPlan(vm) {
       .filter(([, item]) => item.status === 'accepted')
       .map(([id]) => id),
   );
-  const candidateSectionTitle = vm.planSummary.requiredPending
-    ? '需要你确认'
-    : vm.planSummary.optionalPending
-      ? '可选建议'
-      : '已处理的 AI 建议';
-  const candidateSectionClass = vm.planSummary.requiredPending ? '' : ' is-optional';
+  const candidateSectionTitle = '可选观察';
+  const candidateSectionClass = ' is-optional';
   const candidateSection = candidates
     ? `<section class="plan-section plan-confirmation${candidateSectionClass}" aria-labelledby="pending-title">
         <h3 id="pending-title">${candidateSectionTitle}</h3>
@@ -153,12 +183,14 @@ export function renderInspectionPlan(vm) {
     : '';
   return `
     <div class="plan-stage" data-testid="inspection-plan">
+      ${renderReleaseContextStrip(vm.workspace)}
       <header class="stage-heading">
-        <div><h2 data-stage-title>巡检任务</h2></div>
+        <div><span class="source-kind">CandidateSet · ${escapeHtml(vm.workspace.candidateSetId)}</span><h2 data-stage-title>候选巡检计划</h2></div>
         <span class="readiness ${vm.readiness.status}">${renderReadinessLabel(vm.readiness)}</span>
       </header>
       ${renderPlanSummary(vm.committedChecks.length, vm.planSummary)}
-      <p class="parallel-execution-note">所有已选检查无先后依赖，确认后将并行执行并直接生成报告。</p>
+      <p class="parallel-execution-note">确认后将一次锁定规则与范围；所有已选检查并行执行并生成不可变报告。</p>
+      ${renderCoverageGaps(vm.workspace, disposition)}
       ${candidateSection}
       <section class="plan-section" aria-labelledby="formal-title">
         <h3 id="formal-title">将执行的检查</h3>

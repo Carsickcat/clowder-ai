@@ -6,17 +6,17 @@ import { createTrendSeries } from './trend-evidence.mjs';
 export const inspectionExamples = deepFreeze([
   {
     id: 'order-upgrade',
-    label: '服务升级示例',
-    prompt: '今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。',
+    label: '发布单示例',
+    prompt: '发布后关注订单提交和支付链路',
     targetService: 'order-api',
-    contextReference: '',
+    contextReference: 'REL-ORDER-480',
   },
   {
     id: 'payment-config',
-    label: '配置变更示例',
-    prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
+    label: '变更单示例',
+    prompt: '关注扣款成功和 Redis 客户端',
     targetService: 'payment-api',
-    contextReference: 'CHG-84217',
+    contextReference: 'CHG-84501',
   },
 ]);
 
@@ -53,11 +53,13 @@ function extractVersion(prompt) {
 
 function normalizeRequest(request) {
   const prompt = request?.prompt?.trim() ?? '';
-  if (!prompt) throw new Error('Inspection intent is required');
+  const contextReference = request?.contextReference?.trim() ?? '';
+  if (!prompt && !contextReference) throw new Error('A release reference or inspection intent is required');
+  const referenceTarget = /^CHG-84501$/i.test(contextReference) ? 'payment-api' : '';
   return {
-    prompt,
-    targetService: request?.targetService?.trim() || extractService(prompt),
-    contextReference: request?.contextReference?.trim() ?? '',
+    prompt: prompt || `验证变更 ${contextReference}`,
+    targetService: request?.targetService?.trim() || referenceTarget || extractService(prompt),
+    contextReference,
   };
 }
 
@@ -151,6 +153,7 @@ function compileGenericWorkspace(request) {
         id: 'candidate-memory-trend',
         priority: 'recommended',
         criticality: 'medium',
+        ruleSourceAuthority: 'approved',
         purpose: `识别 ${service} 升级后的缓慢内存爬升`,
         entity: service,
         capability: '容器资源趋势',
@@ -405,7 +408,7 @@ function compileGenericWorkspace(request) {
 
 function compileKnownWorkspace(request) {
   const isPaymentRisk =
-    request.contextReference === 'CHG-84217' ||
+    ['CHG-84217', 'CHG-84501'].includes(request.contextReference) ||
     (/payment-api/i.test(request.prompt) && /redis|超时/i.test(request.prompt));
   if (isPaymentRisk) {
     const workspace = cloneFixture('change-ticket-risk');
@@ -420,13 +423,14 @@ function compileKnownWorkspace(request) {
     }
     return workspace;
   }
-  if (/order-api/i.test(request.prompt)) {
+  if (/order-api/i.test(request.prompt) || request.targetService === 'order-api') {
     const workspace = cloneFixture('natural-language-pass');
     workspace.prompt = request.prompt;
     workspace.eyebrow = 'User-defined inspection workspace';
     workspace.title = `${request.targetService} 巡检工作区`;
     workspace.subtitle = '用户目标动态编译的服务升级验证工作区';
     workspace.entryKind = request.contextReference ? 'combined-context' : 'user-intent';
+    if (request.contextReference) workspace.declaredChange.id = request.contextReference;
     return workspace;
   }
   return null;
@@ -437,5 +441,25 @@ export function compileInspectionRequest(input) {
   const workspace = compileKnownWorkspace(request) ?? compileGenericWorkspace(request);
   workspace.request = request;
   workspace.reconciliation = reconcileChange(workspace.declaredChange, workspace.observedChange);
+  workspace.candidateSetId = `candidate-set:${workspace.declaredChange.id}`;
+  workspace.blockingScope = [...workspace.reconciliation.blockingEntities];
+  workspace.coverageGaps = workspace.reconciliation.coverageGapEntities.map((entity) => {
+    const candidate = workspace.candidateChecks.find(
+      (check) => check.entity === entity && check.ruleSourceAuthority === 'approved',
+    );
+    return {
+      id: `coverage-gap:${entity}`,
+      entity,
+      status: 'uncovered',
+      reason:
+        entity === 'invoice-worker'
+          ? '共享配置包触达该服务，但当前没有已批准的直接规则绑定'
+          : '运行时配置指纹显示该实体位于声明外影响面',
+      sourceRefs: ['runtime-diff'].filter((sourceId) =>
+        workspace.contextSources.some((source) => source.id === sourceId),
+      ),
+      eligibleCandidateId: candidate?.id ?? null,
+    };
+  });
   return deepFreeze(workspace);
 }

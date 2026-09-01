@@ -158,7 +158,7 @@ a:focus-visible {
 }
 .phase-rail {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   margin: 0;
   padding: 18px 0;
   list-style: none;
@@ -171,6 +171,9 @@ a:focus-visible {
 }
 .workspace.is-home {
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.38fr);
+}
+.workspace.without-context:not(.is-home) {
+  grid-template-columns: minmax(0, 1fr) minmax(270px, 0.34fr);
 }
 .panel {
   min-width: 0;
@@ -2188,6 +2191,211 @@ a:focus-visible {
   display: grid;
   gap: 8px;
 }
+
+.release-home {
+  display: grid;
+  gap: 26px;
+}
+.release-intake {
+  padding-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+}
+.release-intake-heading p {
+  max-width: 720px;
+  color: var(--text-soft);
+}
+.release-form {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.3fr) minmax(230px, 0.9fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 24px;
+}
+.release-form label,
+.release-risk-details label {
+  display: grid;
+  gap: 8px;
+}
+.release-form label > span,
+.release-risk-details label > span {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+.release-form input,
+.release-form textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(4, 16, 31, 0.72);
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+}
+.release-form input:focus,
+.release-form textarea:focus {
+  border-color: var(--cyan);
+  outline: 2px solid color-mix(in srgb, var(--cyan) 20%, transparent);
+}
+.release-risk-details {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.release-risk-details summary {
+  min-height: 24px;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+.release-risk-details[open] summary {
+  margin-bottom: 9px;
+}
+.release-submit {
+  min-width: 170px;
+  min-height: 48px;
+  margin: 0;
+}
+.release-examples {
+  margin-top: 14px;
+}
+.conversation-guidance {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.release-context-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 23, 42, 0.72);
+}
+.release-context-strip > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.release-context-strip span,
+.release-context-strip small {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.release-context-strip strong {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.release-context-strip .edit-intent {
+  align-self: center;
+  min-height: 44px;
+}
+.plan-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.plan-summary strong {
+  color: var(--text);
+  font-size: 16px;
+}
+.plan-summary small {
+  color: var(--amber);
+}
+.coverage-gap-section {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--amber) 42%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--amber) 8%, rgba(7, 23, 42, 0.88));
+}
+.coverage-gap-section > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.coverage-gap-section > header span,
+.coverage-gap-section > header small {
+  color: var(--amber);
+  font-size: 11px;
+}
+.coverage-gap-section h3 {
+  margin: 4px 0 0;
+}
+.coverage-gap-stack {
+  display: grid;
+  gap: 10px;
+}
+.coverage-gap-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(160px, 0.75fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, var(--line));
+  border-radius: 11px;
+  background: rgba(9, 25, 44, 0.82);
+}
+.coverage-gap-card.is-included {
+  border-color: color-mix(in srgb, var(--cyan) 46%, var(--line));
+  background: color-mix(in srgb, var(--cyan) 7%, rgba(9, 25, 44, 0.82));
+}
+.coverage-gap-copy,
+.coverage-gap-authority {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.coverage-gap-copy span,
+.coverage-gap-authority small {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.coverage-gap-copy h4,
+.coverage-gap-copy p {
+  margin: 0;
+}
+.coverage-gap-copy p {
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.coverage-gap-authority strong {
+  color: var(--amber);
+  font-size: 12px;
+}
+.gap-action {
+  min-height: 44px;
+  padding: 0 14px;
+}
+.decision-tools {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+.coverage-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--green) 36%, var(--line));
+  border-radius: 999px;
+  color: var(--green);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.coverage-badge.has-gap {
+  border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
+  color: var(--amber);
+}
 .conversation-form textarea,
 .conversation-form input,
 .personal-save input {
@@ -2594,7 +2802,7 @@ a:focus-visible {
   }
   .phase-rail {
     overflow-x: auto;
-    grid-template-columns: repeat(5, minmax(104px, 1fr));
+    grid-template-columns: repeat(3, minmax(104px, 1fr));
     padding-bottom: 13px;
   }
   .workspace {
@@ -2602,6 +2810,25 @@ a:focus-visible {
   }
   .workspace.is-home {
     grid-template-columns: 1fr;
+  }
+  .workspace.without-context:not(.is-home) {
+    grid-template-columns: 1fr;
+  }
+  .release-form {
+    grid-template-columns: 1fr;
+  }
+  .release-submit {
+    width: 100%;
+  }
+  .release-context-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .coverage-gap-card {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.7fr);
+  }
+  .coverage-gap-card .gap-action {
+    grid-column: 1 / -1;
+    width: 100%;
   }
   .context-panel,
   .copilot-panel {
@@ -2665,6 +2892,33 @@ a:focus-visible {
 }
 
 @media (max-width: 520px) {
+  .release-context-strip,
+  .coverage-gap-card {
+    grid-template-columns: 1fr;
+  }
+  .release-context-strip strong {
+    white-space: normal;
+  }
+  .coverage-gap-section {
+    padding: 12px;
+  }
+  .coverage-gap-section > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .plan-stage .plan-primary-action {
+    position: static;
+    width: 100%;
+    min-height: 52px;
+    margin: 16px 0 0;
+  }
+  .decision-tools {
+    justify-items: start;
+    width: 100%;
+  }
+  .coverage-badge {
+    white-space: normal;
+  }
   .metric-name-list li,
   .metric-rule-row,
   .metric-rule-row.is-readonly {
@@ -2875,41 +3129,6 @@ a:focus-visible {
   }
   .personal-save form {
     grid-template-columns: 1fr;
-  }
-  .app-shell[data-workspace="new"] {
-    padding-bottom: 104px;
-  }
-  .app-shell[data-workspace="new"] .copilot-panel {
-    position: fixed;
-    z-index: 20;
-    top: auto;
-    right: 10px;
-    bottom: 8px;
-    left: 10px;
-    overflow: visible;
-  }
-  .app-shell[data-workspace="new"] .copilot-panel > header,
-  .app-shell[data-workspace="new"] .copilot-status,
-  .app-shell[data-workspace="new"] .conversation-log,
-  .app-shell[data-workspace="new"] .conversation-details,
-  .app-shell[data-workspace="new"] .conversation-examples {
-    display: none;
-  }
-  .app-shell[data-workspace="new"] .conversation-shell {
-    padding: 8px;
-  }
-  .app-shell[data-workspace="new"] .conversation-form {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-  .app-shell[data-workspace="new"] .conversation-form textarea {
-    height: 48px;
-    min-height: 48px;
-    max-height: 84px;
-    resize: none;
-  }
-  .app-shell[data-workspace="new"] .conversation-send {
-    width: 64px;
-    min-height: 48px;
   }
 }
 
@@ -3136,6 +3355,8 @@ function reconcileChange(declaredChange, observedChange) {
     declaredEntities,
     observedEntities,
     resolvedEntities: status === 'Conflict' ? [] : observedEntities,
+    blockingEntities: ['Conflict', 'Unverifiable'].includes(status) ? [] : declaredEntities,
+    coverageGapEntities: status === 'Conflict' ? [] : addedEntities,
     addedEntities,
     missingEntities,
   });
@@ -3516,12 +3737,12 @@ const naturalLanguagePass = {
 const changeTicketRisk = {
   id: 'change-ticket-risk',
   entryKind: 'change-ticket',
-  eyebrow: 'Journey 02 · Change ticket',
-  title: '支付配置变更巡检',
-  subtitle: '声明与运行时对账后扩大影响面，异常联动 RC Agent',
-  prompt: '电子流 CHG-84217：调整 payment-api Redis 超时，灰度 25%。',
+  eyebrow: 'Release validation · Change ticket',
+  title: '支付配置发布巡检',
+  subtitle: '声明范围内执行门禁，声明外影响保持为显式覆盖缺口',
+  prompt: '变更单 CHG-84501：调整 payment-api Redis 超时 80ms → 120ms，灰度 25%。',
   declaredChange: {
-    id: 'CHG-84217',
+    id: 'CHG-84501',
     summary: 'payment-api Redis 超时 80ms → 120ms',
     version: 'config-2026.08.06.2',
     entities: ['payment-api'],
@@ -3542,7 +3763,7 @@ const changeTicketRisk = {
     {
       id: 'change-ticket',
       kind: '电子流',
-      label: 'CHG-84217',
+      label: 'CHG-84501',
       detail: '声明仅调整 payment-api Redis 超时',
       freshness: '刚刚',
     },
@@ -3581,6 +3802,7 @@ const changeTicketRisk = {
       id: 'candidate-db-wait',
       priority: 'recommended',
       criticality: 'high',
+      ruleSourceAuthority: 'approved',
       purpose: '验证共享配置是否放大数据库连接等待',
       entity: 'settlement-db',
       capability: '数据库连接池检查',
@@ -3616,16 +3838,6 @@ const changeTicketRisk = {
       failureAction: '暂停灰度',
       rationale: '电子流声明 payment-api 为直接变更对象。',
       sourceRefs: ['change-ticket', 'middleware-catalog'],
-    }),
-    check({
-      id: 'invoice-backlog',
-      purpose: '验证异步账单链路无积压',
-      entity: 'invoice-worker',
-      capability: '消息队列开箱指标',
-      metricRules: [createMetricRule('invoice.queue.lag', '<=', 5, { sourceRef: 'middleware-catalog' })],
-      failureAction: '条件放行并延长异步观察',
-      rationale: 'Observed-Superset 证明共享配置同时作用于 invoice-worker。',
-      sourceRefs: ['runtime-diff', 'payment-graph', 'middleware-catalog'],
     }),
   ],
   execution: [
@@ -3795,17 +4007,17 @@ function getScenario(scenarioId) {
 const inspectionExamples = deepFreeze([
   {
     id: 'order-upgrade',
-    label: '服务升级示例',
-    prompt: '今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。',
+    label: '发布单示例',
+    prompt: '发布后关注订单提交和支付链路',
     targetService: 'order-api',
-    contextReference: '',
+    contextReference: 'REL-ORDER-480',
   },
   {
     id: 'payment-config',
-    label: '配置变更示例',
-    prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
+    label: '变更单示例',
+    prompt: '关注扣款成功和 Redis 客户端',
     targetService: 'payment-api',
-    contextReference: 'CHG-84217',
+    contextReference: 'CHG-84501',
   },
 ]);
 
@@ -3842,11 +4054,13 @@ function extractVersion(prompt) {
 
 function normalizeRequest(request) {
   const prompt = request?.prompt?.trim() ?? '';
-  if (!prompt) throw new Error('Inspection intent is required');
+  const contextReference = request?.contextReference?.trim() ?? '';
+  if (!prompt && !contextReference) throw new Error('A release reference or inspection intent is required');
+  const referenceTarget = /^CHG-84501$/i.test(contextReference) ? 'payment-api' : '';
   return {
-    prompt,
-    targetService: request?.targetService?.trim() || extractService(prompt),
-    contextReference: request?.contextReference?.trim() ?? '',
+    prompt: prompt || `验证变更 ${contextReference}`,
+    targetService: request?.targetService?.trim() || referenceTarget || extractService(prompt),
+    contextReference,
   };
 }
 
@@ -3940,6 +4154,7 @@ function compileGenericWorkspace(request) {
         id: 'candidate-memory-trend',
         priority: 'recommended',
         criticality: 'medium',
+        ruleSourceAuthority: 'approved',
         purpose: `识别 ${service} 升级后的缓慢内存爬升`,
         entity: service,
         capability: '容器资源趋势',
@@ -4194,7 +4409,7 @@ function compileGenericWorkspace(request) {
 
 function compileKnownWorkspace(request) {
   const isPaymentRisk =
-    request.contextReference === 'CHG-84217' ||
+    ['CHG-84217', 'CHG-84501'].includes(request.contextReference) ||
     (/payment-api/i.test(request.prompt) && /redis|超时/i.test(request.prompt));
   if (isPaymentRisk) {
     const workspace = cloneFixture('change-ticket-risk');
@@ -4209,13 +4424,14 @@ function compileKnownWorkspace(request) {
     }
     return workspace;
   }
-  if (/order-api/i.test(request.prompt)) {
+  if (/order-api/i.test(request.prompt) || request.targetService === 'order-api') {
     const workspace = cloneFixture('natural-language-pass');
     workspace.prompt = request.prompt;
     workspace.eyebrow = 'User-defined inspection workspace';
     workspace.title = `${request.targetService} 巡检工作区`;
     workspace.subtitle = '用户目标动态编译的服务升级验证工作区';
     workspace.entryKind = request.contextReference ? 'combined-context' : 'user-intent';
+    if (request.contextReference) workspace.declaredChange.id = request.contextReference;
     return workspace;
   }
   return null;
@@ -4226,6 +4442,26 @@ function compileInspectionRequest(input) {
   const workspace = compileKnownWorkspace(request) ?? compileGenericWorkspace(request);
   workspace.request = request;
   workspace.reconciliation = reconcileChange(workspace.declaredChange, workspace.observedChange);
+  workspace.candidateSetId = `candidate-set:${workspace.declaredChange.id}`;
+  workspace.blockingScope = [...workspace.reconciliation.blockingEntities];
+  workspace.coverageGaps = workspace.reconciliation.coverageGapEntities.map((entity) => {
+    const candidate = workspace.candidateChecks.find(
+      (check) => check.entity === entity && check.ruleSourceAuthority === 'approved',
+    );
+    return {
+      id: `coverage-gap:${entity}`,
+      entity,
+      status: 'uncovered',
+      reason:
+        entity === 'invoice-worker'
+          ? '共享配置包触达该服务，但当前没有已批准的直接规则绑定'
+          : '运行时配置指纹显示该实体位于声明外影响面',
+      sourceRefs: ['runtime-diff'].filter((sourceId) =>
+        workspace.contextSources.some((source) => source.id === sourceId),
+      ),
+      eligibleCandidateId: candidate?.id ?? null,
+    };
+  });
   return deepFreeze(workspace);
 }
 
@@ -4252,7 +4488,7 @@ const inspectionPlaybooks = deepFreeze([
       targetServices: ['payment-api'],
       promptSignals: ['Redis', '超时', '配置', 'config', 'risk-api', '拆分'],
     },
-    checkIds: ['payment-success', 'payment-service', 'invoice-backlog'],
+    checkIds: ['payment-success', 'payment-service'],
     approvedAt: '2026-07-28T08:00:00Z',
     lastUsedAt: '2026-08-10T07:45:00Z',
   },
@@ -5354,24 +5590,18 @@ function selectResolvedScope(state) {
   const workspace = requireWorkspace(state);
   return {
     status: workspace.reconciliation.status,
-    entities: workspace.reconciliation.resolvedEntities,
+    entities: workspace.blockingScope ?? workspace.reconciliation.blockingEntities,
     addedEntities: workspace.reconciliation.addedEntities,
+    coverageGaps: workspace.coverageGaps ?? [],
   };
 }
 
 function selectPlanReadiness(state) {
   const workspace = requireWorkspace(state);
-  const unresolvedCandidateIds = workspace.candidateChecks
-    .filter(
-      (candidate) =>
-        candidate.criticality === 'high' &&
-        !['accepted', 'rejected'].includes(state.candidateDisposition[candidate.id]?.status),
-    )
-    .map((candidate) => candidate.id);
   const reconciliationBlocked = ['Conflict', 'Unverifiable'].includes(workspace.reconciliation.status);
   return {
-    status: reconciliationBlocked || unresolvedCandidateIds.length ? 'blocked' : 'ready',
-    unresolvedCandidateIds,
+    status: reconciliationBlocked ? 'blocked' : 'ready',
+    unresolvedCandidateIds: [],
     reconciliationBlocked,
   };
 }
@@ -5385,7 +5615,9 @@ function selectCommittedChecks(state) {
     return checks;
   }
   const baseChecks =
-    state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+    state.playbookMatch?.status === 'exact' || state.playbookDecision === 'accepted-with-diff'
+      ? state.playbookMatch.checks
+      : workspace.committedChecks;
   const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
@@ -5409,9 +5641,24 @@ function selectPlanSummary(state) {
   const workspace = requireWorkspace(state);
   const dispositions = state.candidateDisposition;
   const baseChecks =
-    state.playbookDecision === 'accepted-with-diff' ? state.playbookMatch.checks : workspace.committedChecks;
+    state.playbookMatch?.status === 'exact' || state.playbookDecision === 'accepted-with-diff'
+      ? state.playbookMatch.checks
+      : workspace.committedChecks;
   const selectedBaseChecks = selectChecksForContext(state, baseChecks);
   const pendingCandidates = workspace.candidateChecks.filter((candidate) => !dispositions[candidate.id]);
+  const committedChecks = selectCommittedChecks(state);
+  const blocking = committedChecks.filter(
+    (check) => check.priority === 'required' || check.criticality === 'high',
+  ).length;
+  const observing = committedChecks.length - blocking;
+  const includedCandidateIds = new Set(
+    Object.entries(dispositions)
+      .filter(([, disposition]) => disposition.status === 'accepted')
+      .map(([id]) => id),
+  );
+  const uncovered = (workspace.coverageGaps ?? []).filter(
+    (gap) => !gap.eligibleCandidateId || !includedCandidateIds.has(gap.eligibleCandidateId),
+  ).length;
   return {
     required: selectedBaseChecks.filter((check) => check.priority === 'required').length,
     recommended: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'accepted')
@@ -5420,6 +5667,9 @@ function selectPlanSummary(state) {
     requiredPending: pendingCandidates.filter((candidate) => candidate.criticality === 'high').length,
     optionalPending: pendingCandidates.filter((candidate) => candidate.criticality !== 'high').length,
     rejected: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'rejected').length,
+    blocking,
+    observing,
+    uncovered,
   };
 }
 
@@ -5672,6 +5922,34 @@ function disposeCandidate(state, action) {
   };
 }
 
+function includeCandidate(state, action) {
+  if (state.phase !== 'plan' || !state.workspace) return state;
+  const candidate = state.workspace.candidateChecks.find((item) => item.id === action.candidateId);
+  if (!candidate || candidate.ruleSourceAuthority !== 'approved') return state;
+  const matchingGap = state.workspace.coverageGaps?.find((gap) => gap.eligibleCandidateId === candidate.id);
+  if (state.workspace.coverageGaps?.some((gap) => gap.entity === candidate.entity) && !matchingGap) return state;
+  return {
+    ...state,
+    candidateDisposition: {
+      ...state.candidateDisposition,
+      [candidate.id]: { status: 'accepted', reason: '用户在锁定前显式加入' },
+    },
+  };
+}
+
+function excludeCandidate(state, action) {
+  if (state.phase !== 'plan' || !state.workspace) return state;
+  const candidate = state.workspace.candidateChecks.find((item) => item.id === action.candidateId);
+  if (!candidate) return state;
+  return {
+    ...state,
+    candidateDisposition: {
+      ...state.candidateDisposition,
+      [candidate.id]: { status: 'rejected', reason: '保留为未覆盖风险' },
+    },
+  };
+}
+
 function updateCheckRule(state, action) {
   if (state.phase !== 'plan' || !state.workspace) return state;
   const check = selectCommittedChecks(state).find((item) => item.id === action.checkId);
@@ -5707,19 +5985,20 @@ function submitIntent(state, action, playbookCatalog, compileIntent) {
       historyDiagnostics: state.historyDiagnostics,
     }),
     workspace,
+    phase: 'plan',
     contextOptions: createContextOptions(workspace),
     conversation: [
-      { role: 'user', text: action.request.prompt },
-      { role: 'assistant', text: `已识别：${workspace.declaredChange.entities[0]} 巡检` },
+      { role: 'user', text: workspace.request.contextReference || workspace.request.prompt },
+      { role: 'assistant', text: `已生成：${workspace.declaredChange.entities[0]} 候选巡检计划` },
     ],
-    activeRequest: { ...action.request },
+    activeRequest: { ...workspace.request },
     playbookMatch: matchInspectionPlaybook(workspace, playbookCatalog),
     taskInstance: createTaskInstance(ordinal, null, state.actorId),
   };
 }
 
 function toggleDraftContext(state, action) {
-  if (state.phase !== 'intake' || !state.workspace) return state;
+  if (!['intake', 'plan'].includes(state.phase) || !state.workspace) return state;
   const contextOptions = toggleContextSelection(state.contextOptions, action.contextId);
   return contextOptions === state.contextOptions ? state : { ...state, contextOptions };
 }
@@ -5830,15 +6109,17 @@ function acceptScope(state) {
 function confirmPlan(state) {
   if (state.phase !== 'plan' || selectPlanReadiness(state).status !== 'ready') return state;
   const checks = selectCommittedChecks(state);
+  const exactPlaybookRef = state.playbookMatch?.status === 'exact' ? playbookRef(state.playbookMatch) : null;
   const plannedState = {
     ...state,
     taskInstance: updateTaskInstance(
       state.taskInstance,
       {
         status: 'executing',
+        sourcePlaybookRef: state.taskInstance.sourcePlaybookRef ?? exactPlaybookRef,
         inspectionPlan: createInspectionPlan(
           checks,
-          state.taskInstance.sourcePlaybookRef,
+          state.taskInstance.sourcePlaybookRef ?? exactPlaybookRef,
           state.taskInstance.sourceSavedInspectionId,
         ),
       },
@@ -5846,6 +6127,28 @@ function confirmPlan(state) {
     ),
   };
   return completeInspectionRun(plannedState);
+}
+
+function reportForCoverageGaps(workspace, inspectionPlan) {
+  const gaps = workspace.coverageGaps ?? [];
+  if (!gaps.length) return workspace.report;
+  const includedCheckIds = new Set(inspectionPlan.checkIds);
+  const uncovered = gaps.filter(
+    (gap) => !gap.eligibleCandidateId || !includedCheckIds.has(gap.eligibleCandidateId),
+  );
+  const gapEntities = gaps.map((gap) => gap.entity);
+  const retainedRisks = workspace.report.residualRisks.filter(
+    (risk) => !gapEntities.some((entity) => risk.includes(entity)),
+  );
+  const residualRisks = [
+    ...retainedRisks,
+    ...uncovered.map((gap) => `未覆盖：${gap.entity}（${gap.reason}）`),
+  ];
+  const coveredEntities = workspace.blockingScope?.join('、') || workspace.declaredChange.entities.join('、');
+  const scopeStatement = uncovered.length
+    ? `结论仅覆盖声明范围内已锁定计划中的 ${coveredEntities}；声明外影响 ${uncovered.map((gap) => gap.entity).join('、')} 未覆盖。`
+    : `结论覆盖声明范围内已锁定计划中的 ${coveredEntities} 及用户显式加入的声明外检查。`;
+  return { ...workspace.report, scopeStatement, residualRisks };
 }
 
 function completeInspectionRun(state) {
@@ -5858,7 +6161,7 @@ function completeInspectionRun(state) {
     taskInstance,
     definitionId: state.activeSavedInspectionId,
     selectedContext: state.contextOptions,
-    report: state.workspace.report,
+    report: reportForCoverageGaps(state.workspace, taskInstance.inspectionPlan),
     startedAt: taskInstance.startedAt,
     completedAt: demoTimestamp(state.nextRunOrdinal, 1),
   });
@@ -6099,6 +6402,8 @@ function createDemoReducer(options = {}) {
     PLAYBOOK_REGENERATED: regenerateFromPlaybook,
     SCOPE_ACCEPTED: acceptScope,
     CANDIDATE_DISPOSED: disposeCandidate,
+    CANDIDATE_INCLUDED: includeCandidate,
+    CANDIDATE_EXCLUDED: excludeCandidate,
     CHECK_RULE_UPDATED: updateCheckRule,
     PLAN_CONFIRMED: confirmPlan,
     RC_TOGGLED: toggleRootCause,
@@ -6249,6 +6554,12 @@ function projectInterpretation(report) {
     text: interpretation?.[key]?.text ?? '证据不足',
     evidenceIds: interpretation?.[key]?.evidenceIds ?? [],
   }));
+}
+
+function projectCoverageSummary(report) {
+  const checked = Array.isArray(report?.checkResults) ? report.checkResults.length : 0;
+  const uncovered = (report?.residualRisks ?? []).filter((risk) => /^未覆盖：/.test(risk)).length;
+  return { checked, uncovered };
 }
 
 function renderTrendChart(measurement) {
@@ -6454,8 +6765,27 @@ function renderSavedInspectionHome(vm) {
     ${
       cards.length
         ? `<div class="saved-inspection-list">${cards.map((card) => renderSavedCard(card, historyDiagnostics)).join('')}</div>`
-        : '<p class="saved-inspection-empty">还没有保存的巡检，从右侧对话开始 →</p>'
+        : '<p class="saved-inspection-empty">还没有保存的巡检，从上方变更单开始。</p>'
     }
+  </section>`;
+}
+
+function renderReleaseIntake(vm) {
+  const prefill = vm.savedInspection.composerPrefill ?? {};
+  return `<section class="release-intake" data-testid="release-intake" aria-labelledby="release-intake-title">
+    <header class="stage-heading release-intake-heading">
+      <div><span class="source-kind">发布验证</span><h2 id="release-intake-title" data-stage-title>从变更开始生成巡检计划</h2><p>平台会读取变更事实、Trace 拓扑与已批准规则；你只需确认最终计划。</p></div>
+    </header>
+    <form class="release-form" data-intent-form>
+      <label class="release-reference-field"><span>变更单 / 发布单号</span><input name="context-reference" required value="${escapeHtml(prefill.contextReference ?? '')}" placeholder="例如 CHG-84501" autocomplete="off" /></label>
+      <details class="release-risk-details" ${prefill.prompt ? 'open' : ''}>
+        <summary>补充说明（可选）</summary>
+        <label><span>本次关注什么（可选）</span><textarea name="inspection-intent" rows="2" placeholder="例如：关注扣款成功和 Redis 客户端">${escapeHtml(prefill.prompt ?? '')}</textarea></label>
+        <input name="target-service" type="hidden" value="${escapeHtml(prefill.targetService ?? '')}" />
+      </details>
+      <button class="compile-button release-submit" type="submit"><span>生成巡检计划</span><b>→</b></button>
+    </form>
+    <details class="conversation-examples release-examples"><summary>填入演示变更</summary><div class="example-grid">${renderExamples()}</div></details>
   </section>`;
 }
 
@@ -6517,9 +6847,7 @@ function renderContextSelection(vm) {
 }
 
 function renderConversationComposer(vm) {
-  const prefill = vm.savedInspection.composerPrefill ?? {};
   const conversation = vm.savedInspection.conversation;
-  const busy = Boolean(vm.workspace);
   return `<div class="conversation-shell">
     <div class="conversation-log" aria-live="polite">
       ${
@@ -6527,25 +6855,17 @@ function renderConversationComposer(vm) {
           ? conversation
               .map((message) => `<p class="conversation-message ${message.role}">${escapeHtml(message.text)}</p>`)
               .join('')
-          : '<p class="conversation-empty">描述要巡检的服务或变更</p>'
+          : '<p class="conversation-empty">提交变更后，我会解释计划来源、覆盖缺口与报告结论。</p>'
       }
     </div>
-    <form class="conversation-form" data-intent-form>
-      <textarea name="inspection-intent" rows="3" required ${busy ? 'disabled' : ''} placeholder="例如：巡检 payment-api 本周配置变更">${escapeHtml(prefill.prompt ?? '')}</textarea>
-      <details class="conversation-details" ${prefill.targetService || prefill.contextReference ? 'open' : ''}>
-        <summary>补充服务或电子流</summary>
-        <input name="target-service" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.targetService ?? '')}" placeholder="目标服务（可选）" />
-        <input name="context-reference" ${busy ? 'disabled' : ''} value="${escapeHtml(prefill.contextReference ?? '')}" placeholder="电子流 / 发布单（可选）" />
-      </details>
-      <button class="conversation-send" type="submit" ${busy ? 'disabled' : ''}>${busy ? '当前巡检进行中' : '发送'}</button>
-    </form>
-    ${!busy ? `<details class="conversation-examples"><summary>填入示例</summary><div class="example-grid">${renderExamples()}</div></details>` : ''}
+    <p class="conversation-guidance">Agent 只解释候选和证据；门禁计算由确定性规则完成。</p>
   </div>`;
 }
 
 function renderIntake(vm) {
   if (vm.savedInspection.historyDefinition) return renderSavedInspectionHistory(vm);
-  return vm.workspace ? renderContextSelection(vm) : renderSavedInspectionHome(vm);
+  if (vm.workspace) return renderContextSelection(vm);
+  return `<div class="release-home">${renderReleaseIntake(vm)}${renderSavedInspectionHome(vm)}</div>`;
 }
 
 function renderMetricList(metricRules = []) {
@@ -6579,7 +6899,7 @@ function renderCandidate(candidate, disposition) {
   const accepted = disposition?.status === 'accepted';
   const rejected = disposition?.status === 'rejected';
   const optional = candidate.criticality !== 'high' && !accepted && !rejected;
-  const status = accepted ? '✓ 已加查' : rejected ? '— 不查' : optional ? '可选' : '待你选择';
+  const status = accepted ? '✓ 已加入' : rejected ? '— 本次不查' : optional ? '可选观察' : '可加入';
   return `
     <article class="candidate-card ${accepted ? 'is-accepted' : ''} ${rejected ? 'is-rejected' : ''} ${optional ? 'is-optional' : ''}">
       <header><span>AI 建议</span><strong class="candidate-result">${status}</strong></header>
@@ -6593,11 +6913,51 @@ function renderCandidate(candidate, disposition) {
         </dl>
       </details>
       <div class="candidate-actions">
-        <button class="${accepted ? 'is-selected' : ''}" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="accepted" aria-pressed="${accepted}" type="button">加查</button>
-        <button class="button-ghost ${rejected ? 'is-selected' : ''}" data-action="CANDIDATE_DISPOSED" data-candidate-id="${candidate.id}" data-disposition="rejected" data-reason="专家确认该风险不属于本次变更边界" aria-pressed="${rejected}" type="button">不查</button>
+        <button class="${accepted ? 'is-selected' : ''}" data-action="CANDIDATE_INCLUDED" data-candidate-id="${candidate.id}" aria-pressed="${accepted}" type="button">加入观察</button>
+        <button class="button-ghost ${rejected ? 'is-selected' : ''}" data-action="CANDIDATE_EXCLUDED" data-candidate-id="${candidate.id}" aria-pressed="${rejected}" type="button">本次不查</button>
       </div>
       ${rejected ? `<small class="candidate-reason">已记录原因：${escapeHtml(disposition.reason)}</small>` : ''}
     </article>`;
+}
+
+function renderReleaseContextStrip(workspace) {
+  const request = workspace.request ?? {};
+  const primarySource = workspace.contextSources[0];
+  return `<section class="release-context-strip" data-testid="release-context-strip" aria-label="本次变更事实">
+    <div><span>变更</span><strong>${escapeHtml(request.contextReference || workspace.declaredChange.id)}</strong><small>${escapeHtml(workspace.declaredChange.summary)}</small></div>
+    <div><span>阻断范围</span><strong>${workspace.blockingScope.map(escapeHtml).join(' · ')}</strong><small>仅声明目标默认进入门禁</small></div>
+    <div><span>对账</span><strong>${escapeHtml(workspace.reconciliation.status)}</strong><small>${escapeHtml(primarySource?.freshness ?? '新鲜度未知')} · ${escapeHtml(primarySource?.kind ?? '来源未知')}</small></div>
+    <button class="edit-intent" data-action="RESET" type="button">重新填写</button>
+  </section>`;
+}
+
+function renderCoverageGap(gap, candidate, disposition) {
+  const included = disposition?.status === 'accepted';
+  const eligible = Boolean(candidate);
+  return `<article class="coverage-gap-card ${eligible ? 'is-eligible' : 'is-unbound'} ${included ? 'is-included' : ''}" data-gap-entity="${escapeHtml(gap.entity)}">
+    <div class="coverage-gap-copy"><span>${included ? '已加入锁定计划' : '本次尚未覆盖'}</span><h4>${escapeHtml(gap.entity)}</h4><p>${escapeHtml(gap.reason)}</p></div>
+    <div class="coverage-gap-authority"><strong>${eligible ? '已有高权威规则' : '无可信规则'}</strong><small>${eligible ? escapeHtml(candidate.capability) : '本次不覆盖，将写入报告残余风险'}</small></div>
+    ${
+      eligible
+        ? included
+          ? `<button class="gap-action button-ghost" data-action="CANDIDATE_EXCLUDED" data-candidate-id="${escapeHtml(candidate.id)}" type="button">移出本次检查</button>`
+          : `<button class="gap-action" data-action="CANDIDATE_INCLUDED" data-candidate-id="${escapeHtml(candidate.id)}" type="button">加入本次检查</button>`
+        : ''
+    }
+  </article>`;
+}
+
+function renderCoverageGaps(workspace, disposition) {
+  if (!workspace.coverageGaps?.length) return '';
+  const candidates = new Map(workspace.candidateChecks.map((candidate) => [candidate.id, candidate]));
+  return `<section class="coverage-gap-section" data-testid="coverage-gaps" aria-labelledby="coverage-gap-title">
+    <header><div><span>影响面缺口</span><h3 id="coverage-gap-title">发现声明外影响（${workspace.coverageGaps.length} 项）</h3></div><small>不会静默进入阻断计划</small></header>
+    <div class="coverage-gap-stack">${workspace.coverageGaps
+      .map((gap) =>
+        renderCoverageGap(gap, candidates.get(gap.eligibleCandidateId), disposition[gap.eligibleCandidateId]),
+      )
+      .join('')}</div>
+  </section>`;
 }
 
 function renderSourceRefs(check, contextSources) {
@@ -6636,21 +6996,13 @@ function renderCheck(check, isCandidate, contextSources) {
 }
 
 function renderPlanSummary(committedCount, planSummary) {
-  let pendingCopy = '无需额外确认';
-  if (planSummary.requiredPending) {
-    pendingCopy = `另有 ${planSummary.requiredPending} 项 AI 建议需要你确认${
-      planSummary.optionalPending ? `，${planSummary.optionalPending} 项可选` : ''
-    }`;
-  } else if (planSummary.optionalPending) {
-    pendingCopy = `另有 ${planSummary.optionalPending} 项 AI 可选建议`;
-  }
-  return `<p class="plan-summary" data-testid="plan-summary">本次将执行 ${committedCount} 项检查，${pendingCopy}</p>`;
+  return `<p class="plan-summary" data-testid="plan-summary"><strong>${planSummary.blocking} 项阻断</strong><span>+</span><strong>${planSummary.observing} 项观察</strong><small>${planSummary.uncovered ? ` · ${planSummary.uncovered} 项影响未覆盖` : ' · 当前影响已覆盖'}</small></p>`;
 }
 
 function renderPlanAction(readiness, committedCount) {
   const ready = readiness.status === 'ready';
   const label = ready
-    ? `确认并执行 ${committedCount} 项检查`
+    ? '确认并开始巡检'
     : readiness.unresolvedCandidateIds.length
       ? '请先处理上方的建议项'
       : readiness.reconciliationBlocked
@@ -6678,7 +7030,9 @@ function sortChecks(checks) {
 
 function renderInspectionPlan(vm) {
   const disposition = vm.state.candidateDisposition;
+  const gapCandidateIds = new Set(vm.workspace.coverageGaps.map((gap) => gap.eligibleCandidateId).filter(Boolean));
   const candidates = vm.workspace.candidateChecks
+    .filter((candidate) => !gapCandidateIds.has(candidate.id))
     .map((candidate) => renderCandidate(candidate, disposition[candidate.id]))
     .join('');
   const acceptedIds = new Set(
@@ -6686,12 +7040,8 @@ function renderInspectionPlan(vm) {
       .filter(([, item]) => item.status === 'accepted')
       .map(([id]) => id),
   );
-  const candidateSectionTitle = vm.planSummary.requiredPending
-    ? '需要你确认'
-    : vm.planSummary.optionalPending
-      ? '可选建议'
-      : '已处理的 AI 建议';
-  const candidateSectionClass = vm.planSummary.requiredPending ? '' : ' is-optional';
+  const candidateSectionTitle = '可选观察';
+  const candidateSectionClass = ' is-optional';
   const candidateSection = candidates
     ? `<section class="plan-section plan-confirmation${candidateSectionClass}" aria-labelledby="pending-title">
         <h3 id="pending-title">${candidateSectionTitle}</h3>
@@ -6700,12 +7050,14 @@ function renderInspectionPlan(vm) {
     : '';
   return `
     <div class="plan-stage" data-testid="inspection-plan">
+      ${renderReleaseContextStrip(vm.workspace)}
       <header class="stage-heading">
-        <div><h2 data-stage-title>巡检任务</h2></div>
+        <div><span class="source-kind">CandidateSet · ${escapeHtml(vm.workspace.candidateSetId)}</span><h2 data-stage-title>候选巡检计划</h2></div>
         <span class="readiness ${vm.readiness.status}">${renderReadinessLabel(vm.readiness)}</span>
       </header>
       ${renderPlanSummary(vm.committedChecks.length, vm.planSummary)}
-      <p class="parallel-execution-note">所有已选检查无先后依赖，确认后将并行执行并直接生成报告。</p>
+      <p class="parallel-execution-note">确认后将一次锁定规则与范围；所有已选检查并行执行并生成不可变报告。</p>
+      ${renderCoverageGaps(vm.workspace, disposition)}
       ${candidateSection}
       <section class="plan-section" aria-labelledby="formal-title">
         <h3 id="formal-title">将执行的检查</h3>
@@ -6930,9 +7282,10 @@ function renderReportMetadata(run, taskName) {
 }
 
 function renderDecisionHero(report, extra = '') {
+  const coverage = projectCoverageSummary(report);
   return `<div class="decision-hero">
     <div><h2>${escapeHtml(report.actionLabel)}</h2><p>${escapeHtml(report.title)}</p></div>
-    ${extra}
+    <div class="decision-tools"><span class="coverage-badge ${coverage.uncovered ? 'has-gap' : ''}">覆盖：${coverage.checked} 项已验证 · ${coverage.uncovered} 项未覆盖</span>${extra}</div>
   </div>`;
 }
 
@@ -7028,7 +7381,7 @@ function renderInterpretation(report) {
 }
 
 function renderBoundary(report) {
-  return `<section class="report-section report-boundary"><div><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p></div><div><h3>残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></section>`;
+  return `<section class="report-section report-boundary"><div><h3>结论边界</h3><p>${escapeHtml(report.scopeStatement)}</p></div><div><h3>未覆盖 / 残余风险</h3><ul>${report.residualRisks.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div></section>`;
 }
 
 function renderReportCore(run, taskName, report) {
@@ -7153,13 +7506,13 @@ function createInspectionLibraryStorage(storage, key = INSPECTION_LIBRARY_STORAG
 }
 
 const PHASES = [
-  ['intake', '输入理解', '01'],
-  ['context', '范围对账', '02'],
-  ['plan', '任务草案', '03'],
-  ['report', '行动报告', '04'],
+  ['intake', '变更发起', '01'],
+  ['plan', '候选计划', '02'],
+  ['report', '证据报告', '03'],
 ];
 
 function phaseIndex(phase) {
+  if (phase === 'context') return 1;
   return PHASES.findIndex(([id]) => id === phase);
 }
 
@@ -7240,7 +7593,7 @@ function renderContext(vm) {
           ? `<div class="reconciliation ${scope.status === 'Exact' ? 'is-exact' : 'is-expanded'}">
               <span>变化对账</span>
               <strong>${scope.status}</strong>
-              <p>${scope.status === 'Exact' ? '声明与运行时事实一致。' : `发现 ${scope.addedEntities.length} 个声明外实体，已扩大巡检范围。`}</p>
+              <p>${scope.status === 'Exact' ? '声明与运行时事实一致。' : `发现 ${scope.addedEntities.length} 个声明外实体，未自动纳入阻断范围。`}</p>
             </div>
             <ul class="entity-cloud">${scope.entities.map((entity) => `<li>${escapeHtml(entity)}</li>`).join('')}</ul>`
           : ''
@@ -7315,6 +7668,7 @@ function renderCopilot(vm) {
 
 function renderApp(vm) {
   const workspaceId = vm.workspace?.id ?? 'new';
+  const showContextPanel = Boolean(vm.workspace) && ['context', 'report'].includes(vm.state.phase);
   return `
     <div class="app-shell" data-phase="${vm.state.phase}" data-workspace="${escapeHtml(workspaceId)}">
       <header class="app-header">
@@ -7323,8 +7677,8 @@ function renderApp(vm) {
         <div class="offline-badge"><span>●</span> 离线演示</div>
       </header>
       ${vm.workspace ? `<ol class="phase-rail" aria-label="工作阶段">${renderProgress(vm.state)}</ol>` : ''}
-      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'}">
-        ${vm.workspace ? renderContext(vm) : ''}
+      <main id="main" class="workspace ${vm.workspace ? '' : 'is-home'} ${showContextPanel ? '' : 'without-context'}">
+        ${showContextPanel ? renderContext(vm) : ''}
         <section class="panel stage-panel" aria-live="polite">${renderStage(vm)}</section>
         ${renderCopilot(vm)}
       </main>
@@ -7464,6 +7818,10 @@ root.addEventListener('click', (event) => {
       disposition: actionButton.dataset.disposition,
       reason: actionButton.dataset.reason,
     });
+    return;
+  }
+  if (['CANDIDATE_INCLUDED', 'CANDIDATE_EXCLUDED'].includes(action)) {
+    dispatch({ type: action, candidateId: actionButton.dataset.candidateId });
     return;
   }
   if (action === 'CONTEXT_ITEM_TOGGLED') {

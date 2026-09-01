@@ -7,7 +7,7 @@ import { launchOfflineChrome } from './cdp-client.mjs';
 
 const rootDirectory = path.resolve(import.meta.dirname, '..');
 const artifactPath = path.join(rootDirectory, 'index.html');
-const outputPath = path.join(rootDirectory, 'evidence', '15-dual-entry-inspection-journey-15s.webm');
+const outputPath = path.join(rootDirectory, 'evidence', '24-release-inspection-journey-15s.webm');
 
 async function click(session, selector) {
   const clicked = await session.evaluate(`(() => {
@@ -120,29 +120,19 @@ async function main() {
 
     const frames = [await captureFrame(session)];
     await submitRequest(session, {
-      prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
-      targetService: 'fulfillment-service',
-      contextReference: 'REL-FUL-72',
+      prompt: '关注扣款成功和 Redis 客户端',
+      targetService: 'payment-api',
+      contextReference: 'CHG-84501',
     });
     frames.push(await captureFrame(session));
-    await click(session, '[data-action="INPUT_CONFIRMED"]');
-    frames.push(await captureFrame(session));
-    await click(session, '[data-action="CANDIDATE_DISPOSED"][data-disposition="accepted"]');
-    const edited = await session.evaluate(`(() => {
-      const form = document.querySelector('[data-rule-id="http.duration.p95.change_rate"]');
-      if (!form) return false;
-      form.elements.namedItem('rule-threshold').value = '5';
-      form.requestSubmit();
-      return true;
-    })()`);
-    assert.equal(edited, true, 'Expected a golden metric threshold to be editable');
+    await click(session, '[data-action="CANDIDATE_INCLUDED"][data-candidate-id="candidate-db-wait"]');
     frames.push(await captureFrame(session));
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     frames.push(await captureFrame(session));
     const saved = await session.evaluate(`(() => {
       const form = document.querySelector('[data-save-inspection-form]');
       if (!form) return false;
-      form.elements.namedItem('saved-inspection-name').value = '履约发布后巡检';
+      form.elements.namedItem('saved-inspection-name').value = 'payment-api 发布巡检';
       form.requestSubmit();
       return true;
     })()`);
@@ -150,6 +140,7 @@ async function main() {
     await click(session, '[data-action="RESET"]');
     frames.push(await captureFrame(session));
     await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
+    frames.push(await captureFrame(session));
     frames.push(await captureFrame(session));
 
     const recording = await composeWebm(session, frames);

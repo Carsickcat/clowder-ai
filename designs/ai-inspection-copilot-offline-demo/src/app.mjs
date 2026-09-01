@@ -139,6 +139,10 @@ root.addEventListener('click', (event) => {
     });
     return;
   }
+  if (['CANDIDATE_INCLUDED', 'CANDIDATE_EXCLUDED'].includes(action)) {
+    dispatch({ type: action, candidateId: actionButton.dataset.candidateId });
+    return;
+  }
   if (action === 'CONTEXT_ITEM_TOGGLED') {
     dispatch({ type: action, contextId: actionButton.dataset.contextId });
     return;
