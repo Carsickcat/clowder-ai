@@ -53,6 +53,29 @@ function finishJourney(state) {
   return dispatch(state, 'PLAN_CONFIRMED');
 }
 
+function assertLockedRunProjection(state) {
+  const run = state.library.runs.find((item) => item.id === state.currentRunId);
+  assert.ok(run, 'completed entry path must create one current Run');
+  assert.equal(Object.hasOwn(run, 'executionResults'), false, 'new Runs keep the locked report as their only truth');
+  const results = new Map(run.report.checkResults.map((result) => [result.checkId, result]));
+  for (const check of run.inspectionPlan.checks) {
+    const measurements = results.get(check.id)?.measurements ?? [];
+    for (const rule of check.metricRules.filter((item) => item.editable !== false)) {
+      const measurement = measurements.find((item) => item.metricId === rule.metricId);
+      assert.equal(measurement?.kind, 'numeric', `${check.id}/${rule.metricId} must have numeric evidence`);
+      assert.ok(measurement.series.length >= 2, `${check.id}/${rule.metricId} must retain its trend`);
+      assert.deepEqual(
+        {
+          operator: measurement.gate.operator,
+          value: measurement.gate.value,
+          unit: measurement.gate.unit,
+        },
+        { operator: rule.operator, value: rule.threshold, unit: rule.unit },
+      );
+    }
+  }
+}
+
 test('natural-language journey reaches a scoped Proceed report', () => {
   let state = advanceToPlan(orderRequest);
   assert.equal(selectPlanReadiness(state).status, 'ready');
@@ -62,6 +85,7 @@ test('natural-language journey reaches a scoped Proceed report', () => {
   assert.equal(selectReportView(state).action, 'Proceed');
   assert.equal(selectReportView(state).evidenceVerdict, 'Verified');
   assert.match(selectReportView(state).scopeStatement, /订单提交/);
+  assertLockedRunProjection(state);
 });
 
 test('electronic-flow journey requires disposition of a critical AI candidate', () => {
@@ -101,6 +125,13 @@ test('rejecting a candidate requires a reason and never executes it', () => {
   });
   assert.equal(selectPlanReadiness(state).status, 'ready');
   assert.ok(!selectCommittedChecks(state).some((check) => check.id === 'candidate-db-wait'));
+  state = finishJourney(state);
+  assertLockedRunProjection(state);
+  assert.equal(
+    JSON.stringify(state.library.runs[0]).includes('candidate-db-wait'),
+    false,
+    'a rejected candidate must be absent from the complete new Run snapshot',
+  );
 });
 
 test('starting a new request clears workspace, dispositions, execution, and RC state', () => {
@@ -151,6 +182,7 @@ test('exact playbook runs after one confirmation while current reconciliation re
   assert.deepEqual(state.taskInstance.inspectionPlan.checkIds, inspectionPlaybooks[0].checkIds);
   assert.ok(state.taskInstance.inspectionPlan.checks.every((check) => !Object.hasOwn(check, 'evidence')));
   assert.ok(state.taskInstance.auditTrail.some((event) => event.type === 'playbook-applied'));
+  assertLockedRunProjection(state);
 });
 
 test('each reused task snapshots the selected catalog checks without rewriting a locked historical task', () => {
@@ -298,6 +330,7 @@ test('first-use selected context flows into one immutable run and an immediately
   assert.equal(state.phase, 'report');
   assert.equal(state.library.runs.length, 1);
   assert.equal(state.currentRunId, state.library.runs[0].id);
+  assertLockedRunProjection(state);
   assert.equal(
     state.library.runs[0].selectedContextResults.some((item) => item.contextId === deselectedId),
     false,
@@ -343,6 +376,7 @@ test('deselected signal is removed from the generated inspection plan', () => {
   );
   state = dispatch(state, 'PLAN_CONFIRMED');
   assert.equal(state.taskInstance.inspectionPlan.checkIds.includes(signal.id.slice('signal:'.length)), false);
+  assertLockedRunProjection(state);
 });
 
 test('a deselected signal remains outside an exact saved-inspection revisit', () => {
@@ -403,6 +437,7 @@ test('saved inspection exact direct-run bypasses intent compilation and creates 
   assert.equal(state.library.runs.length, 2);
   assert.notEqual(state.library.runs[0].id, state.library.runs[1].id);
   assert.deepEqual(state.library.runs[0], historicalRun);
+  assertLockedRunProjection(state);
 });
 
 test('hydrated saved inspections continue task, run, and definition identifiers without collisions', () => {

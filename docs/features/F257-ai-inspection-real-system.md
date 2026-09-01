@@ -107,7 +107,7 @@ CandidateSet 扩展为不可变 `planningSnapshot`：包含 change/topology 两�
 
 - `feat/ai-inspection-real@44bac1e`: 完成规划来源端口、不可变 `planningSnapshot` / `planningDigest`、严格公开 schema、Case lineage 派生、Run 前 drift guard、显式 Prometheus 组合与无 replay fallback；API observability 89/89、NOVA deliverables 6/6 通过。
 - `feat/ai-inspection-real@eb6c845`: Connected Web 只提交 `changeRef` 与可选 intent，移除 Job/Revision/Case 权威事实写入口，保留只读 lineage 投影，并把 typed drift 409 呈现为重新规划动作；完整 Web tests 与整仓 `pnpm gate` 通过。
-- `feat/ai-inspection-editable-metrics`: 离线 UX truth 已下钻到目录白名单中的具体黄金指标；SRE 只编辑比较符与阈值，一次确认并行求值全部无依赖检查，报告、历史和导出复用同一份带趋势序列的 immutable Run。该契约将作为真实 provider 接入后的计划与证据投影基准。
+- `feat/ai-inspection-editable-metrics`: 离线 UX truth 已下钻到目录白名单中的具体黄金指标；SRE 只编辑比较符与阈值，一次确认并行求值全部无依赖检查。每条 editable rule 必须有同源 numeric measurement 与持久化趋势，缺失时显式 fail closed；新 Run 只写 locked report，不再写 legacy `executionResults` 第二真相。报告、历史和导出复用同一份 immutable Run。该契约将作为真实 provider 接入后的计划与证据投影基准。
 - production build 在隔离端口 API `3192` / Web `5192` 返回 200；Hub 预览已打开，但当前会话无可控内嵌浏览器实例，因此 390px 与真实长数据视觉验收仍未宣称完成。
 - provider-specific `ChangeSource` / `TopologySource` adapter、真实指标端到端与 smoke test 继续等待 co-creator 提供非生产 endpoint、鉴权、样例 payload、测试服务及允许查询范围。
 

@@ -360,7 +360,6 @@ function completeInspectionRun(state) {
     taskInstance,
     definitionId: state.activeSavedInspectionId,
     selectedContext: state.contextOptions,
-    executionResults: state.workspace.execution,
     report: state.workspace.report,
     startedAt: taskInstance.startedAt,
     completedAt: demoTimestamp(state.nextRunOrdinal, 1),

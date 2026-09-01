@@ -418,28 +418,29 @@ function selectedContextResults(selectedContext) {
 
 const REPORT_RESULT_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
 
+function missingRuleMeasurement(check, rule) {
+  return {
+    id: `missing-${check.id}-${rule.metricId.replaceAll('.', '-')}`,
+    metricId: rule.metricId,
+    label: rule.label,
+    entity: check.entity,
+    kind: 'qualitative',
+    displayValue: '证据不足',
+    gate: {
+      operator: rule.operator,
+      value: rule.threshold,
+      unit: rule.unit,
+      displayValue: `${rule.operator} ${rule.threshold}${rule.unit}`,
+    },
+  };
+}
+
 function missingCheckResult(check) {
-  const firstRule = check.metricRules[0];
   return {
     checkId: check.id,
     status: 'NotEvaluated',
     summary: `${check.purpose}：证据不足`,
-    measurements: [
-      {
-        id: `missing-${check.id}`,
-        metricId: firstRule.metricId,
-        label: firstRule.label,
-        entity: check.entity,
-        kind: 'qualitative',
-        displayValue: '证据不足',
-        gate: {
-          operator: firstRule.operator,
-          value: firstRule.threshold,
-          unit: firstRule.unit,
-          displayValue: `${firstRule.operator} ${firstRule.threshold}${firstRule.unit}`,
-        },
-      },
-    ],
+    measurements: check.metricRules.map((rule) => missingRuleMeasurement(check, rule)),
   };
 }
 
@@ -452,12 +453,22 @@ function evaluateNumericRule(value, rule) {
 }
 
 function materializeCheckResult(check, sourceResult) {
-  const rules = new Map(check.metricRules.map((rule) => [rule.metricId, rule]));
   const result = clone(sourceResult ?? missingCheckResult(check));
+  const rules = new Map(check.metricRules.map((rule) => [rule.metricId, rule]));
+  const sourceMeasurements = new Map(result.measurements.map((measurement) => [measurement.metricId, measurement]));
   const evaluated = [];
-  const measurements = result.measurements.map((measurement) => {
-    const rule = rules.get(measurement.metricId);
-    if (measurement.kind !== 'numeric' || !rule || !Number.isFinite(measurement.value)) {
+  const missingRules = [];
+  const ruleMeasurements = check.metricRules.map((rule) => {
+    const measurement = sourceMeasurements.get(rule.metricId);
+    const requiresNumericEvidence = rule.editable !== false;
+    if (
+      !measurement ||
+      (requiresNumericEvidence && (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value)))
+    ) {
+      missingRules.push(rule);
+      return missingRuleMeasurement(check, rule);
+    }
+    if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value)) {
       return measurement;
     }
     const passed = evaluateNumericRule(measurement.value, rule);
@@ -474,12 +485,17 @@ function materializeCheckResult(check, sourceResult) {
       ...(measurement.series ? { series: measurement.series } : {}),
     };
   });
+  const contextualMeasurements = result.measurements.filter((measurement) => !rules.has(measurement.metricId));
+  const measurements = [...ruleMeasurements, ...contextualMeasurements];
   let status = result.status;
-  if (!['Inconclusive', 'NotEvaluated'].includes(status) && evaluated.length) {
+  if (missingRules.length) {
+    status = 'NotEvaluated';
+  } else if (!['Inconclusive', 'NotEvaluated'].includes(status) && evaluated.length) {
     status = evaluated.every((item) => item.passed) ? 'Verified' : 'Violated';
   }
-  const summary =
-    evaluated.length && !['Inconclusive', 'NotEvaluated'].includes(status)
+  const summary = missingRules.length
+    ? `${check.purpose}：${missingRules.map((rule) => rule.label).join('、')}证据不足`
+    : evaluated.length && !['Inconclusive', 'NotEvaluated'].includes(status)
       ? evaluated
           .map(
             ({ measurement, rule, passed }) =>
@@ -641,12 +657,13 @@ function materializeReportForPlan(report, inspectionPlan) {
     checkResults.some((result) => {
       const source = sourceByCheckId.get(result.checkId);
       if (!source || source.status !== result.status) return true;
+      if (source.measurements.length !== result.measurements.length) return true;
       const sourceMeasurements = new Map(source.measurements.map((measurement) => [measurement.id, measurement]));
       return result.measurements.some((measurement) => {
-        if (measurement.kind !== 'numeric') return false;
         const sourceMeasurement = sourceMeasurements.get(measurement.id);
+        if (!sourceMeasurement || sourceMeasurement.kind !== measurement.kind) return true;
+        if (measurement.kind !== 'numeric') return false;
         return (
-          !sourceMeasurement ||
           sourceMeasurement.gate?.operator !== measurement.gate?.operator ||
           sourceMeasurement.gate?.value !== measurement.gate?.value ||
           sourceMeasurement.gate?.unit !== measurement.gate?.unit
@@ -674,16 +691,12 @@ export function createInspectionRun({
   taskInstance,
   definitionId = null,
   selectedContext,
-  executionResults,
   report,
   startedAt,
   completedAt,
 }) {
   if (!id || !startedAt || !completedAt) throw new TypeError('Inspection run identity and timestamps are required');
   if (taskInstance?.status !== 'locked') throw new TypeError('Inspection run requires a locked task');
-  if (!Array.isArray(executionResults) || !executionResults.every(validExecutionResult)) {
-    throw new TypeError('Inspection run requires structured execution results');
-  }
   const runReport = materializeReportForPlan(report, taskInstance.inspectionPlan);
   if (!hasLockedTrendEvidence(runReport)) {
     throw new TypeError('Inspection run requires persisted trend series for numeric measurements');
@@ -697,12 +710,6 @@ export function createInspectionRun({
     status: 'locked',
     selectedContextResults: selectedContextResults(selectedContext ?? []),
     inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
-    executionResults: executionResults.map(({ id: resultId, label, status, fact }) => ({
-      id: resultId,
-      label,
-      status,
-      fact,
-    })),
     report: runReport,
   });
 }

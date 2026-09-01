@@ -630,10 +630,55 @@ async function main() {
     );
     await screenshot(session, '08-playbook-major-mobile-report.png');
 
+    await click(session, '[data-action="RESET"]');
+    await submitRequest(session, {
+      prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+      targetService: 'fulfillment-service',
+      contextReference: 'REL-FUL-72',
+    });
+    await click(session, '[data-action="INPUT_CONFIRMED"]');
+    assert.equal(
+      await session.evaluate(`(() => {
+        const form = document.querySelector('[data-rule-id="redis.command_latency"]');
+        if (!form) return false;
+        form.elements.namedItem('rule-threshold').value = '3';
+        form.requestSubmit();
+        return true;
+      })()`),
+      true,
+    );
+    await click(session, '[data-action="PLAN_CONFIRMED"]');
+    await advanceExecution(session);
+    text = await bodyText(session);
+    assert.match(text, /Violated/);
+    assert.match(text, /Pause/);
+    assert.match(text, /缓存命令 p99 3\.8ms（门禁 <= 3ms，违例）/);
+    assert.equal(
+      await session.evaluate(`(() => {
+        const run = JSON.parse(localStorage.getItem('nova.inspection-library.v1')).runs.at(-1);
+        return !Object.hasOwn(run, 'executionResults') &&
+          run.report.checkResults.some((result) =>
+            result.checkId === 'middleware-health' &&
+            result.status === 'Violated' &&
+            result.measurements.some((measurement) =>
+              measurement.metricId === 'redis.command_latency' && measurement.gate.value === 3
+            )
+          );
+      })()`),
+      true,
+      'the locked Run contains the edited Redis gate without a parallel execution truth',
+    );
+    assert.equal(
+      await session.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'),
+      true,
+      'the reviewed edited-rule report remains within the 390px viewport',
+    );
+    await screenshot(session, '21-mobile-generic-edited-rule-pause.png');
+
     assert.deepEqual(networkRequests, []);
     assert.deepEqual(browserErrors, []);
     process.stdout.write(
-      'Offline browser acceptance passed: history, comparison, sharing, corrupt-history recovery, unmatched, exact, minor-drift, and major-drift journeys; 0 network requests, 0 browser errors.\n',
+      'Offline browser acceptance passed: history, comparison, sharing, corrupt-history recovery, unmatched, exact, minor-drift, major-drift, and edited-rule fail-closed journeys; 0 network requests, 0 browser errors.\n',
     );
   } finally {
     await browser.close();

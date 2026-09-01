@@ -43,6 +43,24 @@ function numericRatio(measurement) {
   return Math.min(100, Math.max(0, Math.round(ratio * 1000) / 10));
 }
 
+function measurementStatus(measurement, resultStatus) {
+  if (['Inconclusive', 'NotEvaluated'].includes(resultStatus)) return resultStatus;
+  if (
+    measurement.kind !== 'numeric' ||
+    !Number.isFinite(measurement.value) ||
+    !Number.isFinite(measurement.gate?.value)
+  ) {
+    return resultStatus;
+  }
+  const { operator, value: threshold } = measurement.gate;
+  const passed =
+    (operator === '<=' && measurement.value <= threshold) ||
+    (operator === '>=' && measurement.value >= threshold) ||
+    (operator === '<' && measurement.value < threshold) ||
+    (operator === '>' && measurement.value > threshold);
+  return passed ? 'Verified' : 'Violated';
+}
+
 export function projectReportEvidence(report) {
   if (!Array.isArray(report?.checkResults)) {
     return (report?.keyEvidence ?? []).map((text, index) => ({
@@ -63,7 +81,7 @@ export function projectReportEvidence(report) {
       result.measurements.map((measurement, measurementIndex) => ({
         ...measurement,
         checkId: result.checkId,
-        status: result.status,
+        status: measurementStatus(measurement, result.status),
         gateDisplayValue: measurement.gate.displayValue,
         ratioPercent: numericRatio(measurement),
         order: resultIndex * 100 + measurementIndex,

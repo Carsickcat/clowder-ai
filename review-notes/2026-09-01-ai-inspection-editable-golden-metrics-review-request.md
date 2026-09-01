@@ -90,6 +90,23 @@ Total findings: 3（0 P1、3 P2、0 P3），全部 closed；scoped recheck 为 0
 
 Fable 在 exact `a978224` 独立复跑 targeted 18/18 与 diff hygiene，返回 0 findings。请正式 reviewer 在 findings 中标注 `[FC:covered]`、`[FC:new]` 或 `[FC:N/A]`。
 
+## Formal Review Round 1 Fixes
+
+山本在 PR head `18884c7` 返回 `REQUEST_CHANGES`：
+
+- P1：部分可编辑规则没有同源 numeric measurement，编辑后不参与锁定裁决。
+- P2：新 Run 继续持久化计划外 `workspace.execution`，拒绝的候选仍留在第二份执行真相中。
+
+作者按 Red→Green 收口为一个 plan/evidence projection 不变量：
+
+- order、payment、generic 三类 fixture 的每条 editable rule 都有 numeric value 与持久化 series；参数化测试逐条改变门禁并验证 locked report。
+- materialization 改为 rule-first；缺失或非 numeric 的 editable evidence 显式变为 `NotEvaluated`，不再静默继承通过态。
+- 新 Run 不再写 `executionResults`；selector 仍可只读没有 structured report 的 legacy Run。
+- 四入口覆盖 generated、playbook、generic first-use 与 saved direct-run；拒绝候选不出现在完整 Run snapshot。
+- Chrome dogfood 额外收口多规则展示：同一 check 内通过的 measurement 不再继承 sibling violation。
+
+修复 exact SHA 与 clean-tree `pnpm gate` 结果在 Round 2 A2A handoff 中提供。
+
 ## Next Action
 
 请山本在 detached/read-only sandbox 对远端最终 exact HEAD 做跨个体正式 review：

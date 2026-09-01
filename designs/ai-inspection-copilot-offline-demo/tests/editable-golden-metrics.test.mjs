@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { compileInspectionRequest } from '../lib/compiler.mjs';
 import { createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import { createInspectionRun, parseInspectionLibraryWithDiagnostics } from '../lib/saved-inspections.mjs';
 import { compareInspectionRuns, selectCommittedChecks, selectReportView, selectViewModel } from '../lib/selectors.mjs';
@@ -10,17 +11,113 @@ const orderRequest = {
   prompt: '今晚升级 order-api v4.8.0，帮我确认订单提交和支付链路有没有问题。',
 };
 
+const paymentRequest = {
+  prompt: '调整 payment-api Redis 超时，帮我生成巡检计划。',
+  targetService: 'payment-api',
+  contextReference: 'CHG-84217',
+};
+
+const fulfillmentRequest = {
+  prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+  targetService: 'fulfillment-service',
+  contextReference: 'REL-FUL-72',
+};
+
 function dispatch(state, type, payload = {}) {
   return demoReducer(state, { type, ...payload });
 }
 
-function advanceToPlan() {
+function advanceToPlan(request = orderRequest) {
   let state = createDemoSession();
-  state = dispatch(state, 'INTENT_SUBMITTED', { request: orderRequest });
+  state = dispatch(state, 'INTENT_SUBMITTED', { request });
   state = dispatch(state, 'INPUT_CONFIRMED');
   if (state.playbookMatch) state = dispatch(state, 'PLAYBOOK_DISMISSED');
   return dispatch(state, 'SCOPE_ACCEPTED');
 }
+
+function editableRuleEvidenceGaps(name, workspace) {
+  const results = new Map(workspace.report.checkResults.map((result) => [result.checkId, result]));
+  return workspace.committedChecks.flatMap((check) => {
+    const measurements = results.get(check.id)?.measurements ?? [];
+    return check.metricRules
+      .filter((rule) => rule.editable !== false)
+      .flatMap((rule) => {
+        const measurement = measurements.find((item) => item.metricId === rule.metricId);
+        if (!measurement) return [`${name}:${check.id}:${rule.metricId}:missing`];
+        if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value)) {
+          return [`${name}:${check.id}:${rule.metricId}:non-numeric`];
+        }
+        if (!Array.isArray(measurement.series) || measurement.series.length < 2) {
+          return [`${name}:${check.id}:${rule.metricId}:no-series`];
+        }
+        return [];
+      });
+  });
+}
+
+test('every editable fixture rule has same-source numeric evidence with a persisted trend', () => {
+  const workspaces = [
+    ['order', compileInspectionRequest(orderRequest)],
+    ['payment', compileInspectionRequest(paymentRequest)],
+    ['generic', compileInspectionRequest(fulfillmentRequest)],
+  ];
+  assert.deepEqual(
+    workspaces.flatMap(([name, workspace]) => editableRuleEvidenceGaps(name, workspace)),
+    [],
+  );
+});
+
+test('every editable fixture rule is materialized from the locked threshold into its Run report', () => {
+  const workspaces = [
+    ['order', compileInspectionRequest(orderRequest)],
+    ['payment', compileInspectionRequest(paymentRequest)],
+    ['generic', compileInspectionRequest(fulfillmentRequest)],
+  ];
+  let ordinal = 0;
+
+  for (const [name, workspace] of workspaces) {
+    for (const sourceCheck of workspace.committedChecks) {
+      for (const sourceRule of sourceCheck.metricRules.filter((rule) => rule.editable !== false)) {
+        const checks = structuredClone(workspace.committedChecks);
+        const check = checks.find((item) => item.id === sourceCheck.id);
+        const rule = check.metricRules.find((item) => item.id === sourceRule.id);
+        const sourceResult = workspace.report.checkResults.find((item) => item.checkId === check.id);
+        const sourceMeasurement = sourceResult.measurements.find((item) => item.metricId === rule.metricId);
+        const editedThreshold = rule.operator.includes('<') ? sourceMeasurement.value - 1 : sourceMeasurement.value + 1;
+        rule.threshold = editedThreshold;
+        ordinal += 1;
+
+        const run = createInspectionRun({
+          id: `RUN-EDIT-${name}-${ordinal}`,
+          taskInstance: {
+            id: `TASK-EDIT-${name}-${ordinal}`,
+            status: 'locked',
+            inspectionPlan: {
+              source: 'generated',
+              sourcePlaybookRef: null,
+              checkIds: checks.map((item) => item.id),
+              checks,
+            },
+            auditTrail: [{ type: 'task-locked' }],
+          },
+          selectedContext: [],
+          report: workspace.report,
+          startedAt: '2026-08-31T00:00:00.000Z',
+          completedAt: '2026-08-31T00:01:00.000Z',
+        });
+        const result = run.report.checkResults.find((item) => item.checkId === check.id);
+        const measurement = result.measurements.find((item) => item.metricId === rule.metricId);
+
+        assert.equal(measurement.gate.value, editedThreshold, `${name}:${check.id}:${rule.metricId}`);
+        assert.equal(
+          result.status,
+          sourceResult.status === 'Inconclusive' ? 'Inconclusive' : 'Violated',
+          `${name}:${check.id}:${rule.metricId}`,
+        );
+      }
+    }
+  }
+});
 
 test('formal checks enumerate structured golden metric rules instead of scalar rule copy', () => {
   const state = advanceToPlan();
@@ -101,6 +198,50 @@ test('an edited passing gate rewrites the locked evidence summary from the mater
   assert.doesNotMatch(result.summary, /6ms/);
 });
 
+test('the reviewed generic Redis rule edit changes the locked verdict', () => {
+  let state = advanceToPlan(fulfillmentRequest);
+  state = dispatch(state, 'CHECK_RULE_UPDATED', {
+    checkId: 'middleware-health',
+    ruleId: 'redis.command_latency',
+    operator: '<=',
+    threshold: 3,
+  });
+  state = dispatch(state, 'PLAN_CONFIRMED');
+
+  const result = selectReportView(state).checkResults.find((item) => item.checkId === 'middleware-health');
+  const measurement = result.measurements.find((item) => item.metricId === 'redis.command_latency');
+  assert.equal(measurement.gate.value, 3);
+  assert.equal(result.status, 'Violated');
+  assert.equal(selectReportView(state).evidenceVerdict, 'Violated');
+  assert.equal(selectReportView(state).action, 'Pause');
+});
+
+test('a locked rule with missing raw evidence fails closed instead of inheriting Verified', () => {
+  let state = advanceToPlan();
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  const incompleteReport = structuredClone(state.workspace.report);
+  const cache = incompleteReport.checkResults.find((result) => result.checkId === 'cache-health');
+  cache.measurements = cache.measurements.filter((measurement) => measurement.metricId !== 'redis.command_latency');
+
+  const run = createInspectionRun({
+    id: 'RUN-MISSING-RULE-EVIDENCE',
+    taskInstance: state.taskInstance,
+    selectedContext: state.contextOptions,
+    report: incompleteReport,
+    startedAt: '2026-08-31T00:00:00.000Z',
+    completedAt: '2026-08-31T00:01:00.000Z',
+  });
+  const result = run.report.checkResults.find((item) => item.checkId === 'cache-health');
+  const missing = result.measurements.find((item) => item.metricId === 'redis.command_latency');
+
+  assert.equal(result.status, 'NotEvaluated');
+  assert.equal(missing.kind, 'qualitative');
+  assert.equal(missing.displayValue, '证据不足');
+  assert.deepEqual(missing.gate, { operator: '<=', value: 6, unit: 'ms', displayValue: '<= 6ms' });
+  assert.equal(run.report.evidenceVerdict, 'Inconclusive');
+  assert.equal(run.report.action, 'Proceed-with-conditions');
+});
+
 test('plan UI drills into golden metrics and offers one parallel execution action', () => {
   const html = renderApp(selectViewModel(advanceToPlan()));
 
@@ -152,7 +293,6 @@ test('one confirmation skips sequential execution and renders immutable trend ev
         id: 'RUN-WITHOUT-TREND',
         taskInstance: state.taskInstance,
         selectedContext: state.contextOptions,
-        executionResults: state.workspace.execution,
         report: incompleteReport,
         startedAt: '2026-08-31T00:00:00.000Z',
         completedAt: '2026-08-31T00:01:00.000Z',
