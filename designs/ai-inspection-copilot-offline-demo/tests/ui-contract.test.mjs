@@ -6,6 +6,7 @@ import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reduce
 import { selectViewModel } from '../lib/selectors.mjs';
 import { renderApp } from '../src/render.mjs';
 import { formatReportTime } from '../src/report-model.mjs';
+import { renderSelectedContextResults } from '../src/render-saved-inspections.mjs';
 
 function dispatch(state, type, payload = {}) {
   return demoReducer(state, { type, ...payload });
@@ -389,18 +390,51 @@ function completedFulfillmentReport() {
   return state;
 }
 
+function completedReleaseReport() {
+  let state = createDemoSession();
+  state = dispatch(state, 'INTENT_SUBMITTED', {
+    request: {
+      prompt: '关注扣款成功和 Redis 客户端',
+      contextReference: 'CHG-84501',
+    },
+  });
+  state = dispatch(state, 'PLAN_CONFIRMED');
+  return state;
+}
+
 test('report echoes selected context and offers a quiet editable personal save', () => {
   const state = completedFulfillmentReport();
   const html = renderApp(selectViewModel(state));
 
   assert.match(html, /data-testid="selected-context-results"/);
-  assert.match(html, /本次选择的巡检结果/);
+  assert.match(html, /本次使用的上下文/);
   assert.match(html, /AI 解读/);
   assert.doesNotMatch(html, /模型风险总结/);
   assert.match(html, /data-save-inspection-form/);
   assert.match(html, /name="saved-inspection-name"/);
   assert.match(html, /保存后下次可从首页直接执行/);
   assert.doesNotMatch(html, /庆祝/);
+});
+
+test('release report never presents uncovered context as an execution verdict', () => {
+  const html = renderApp(selectViewModel(completedReleaseReport()));
+  const contextSurface = html.match(/<section class="report-context-results"[\s\S]*?<\/section>/)?.[0] ?? '';
+
+  assert.match(contextSurface, /service[\s\S]*invoice-worker[\s\S]*未覆盖/);
+  assert.match(contextSurface, /service[\s\S]*settlement-db[\s\S]*未覆盖/);
+  assert.doesNotMatch(contextSurface, /Verified|Violated|Inconclusive|NotEvaluated/);
+});
+
+test('legacy context snapshots are rendered as metadata instead of replaying their old verdict label', () => {
+  const html = renderSelectedContextResults({
+    selectedContextResults: [
+      { contextId: 'service:legacy-api', kind: 'service', label: 'legacy-api', status: 'Verified' },
+    ],
+  });
+
+  assert.match(html, /本次使用的上下文/);
+  assert.match(html, /legacy-api[\s\S]*历史上下文/);
+  assert.doesNotMatch(html, /Verified/);
 });
 
 test('a saved inspection becomes a truthful home card with a direct-run action', () => {

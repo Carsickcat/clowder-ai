@@ -83,6 +83,19 @@ None. The product direction and this offline implementation slice were explicitl
 
 Terra should review the exact committed HEAD in a detached/read-only sandbox, independently run the full Demo check, inspect the release journey at desktop and 390px, and return `APPROVE — <exact SHA>` or reproducible findings. Author-side quality-gate evidence is not approval.
 
+## Formal Review P1 Closure
+
+Terra reproduced a contradiction at the original review SHA: `invoice-worker` and `settlement-db` were correctly recorded as residual coverage gaps, but the selected-context section labelled both `Verified`. The root cause was a domain-model error, not report aggregation: `selectedContextResults()` treated context inclusion as an evidence verdict.
+
+The closure removes verdict semantics from the entire context projection:
+
+- New Runs persist `contextState: referenced | included-in-plan | uncovered`, derived from the locked inspection plan.
+- The UI is titled “本次使用的上下文” and labels entries “已引用 / 已纳入计划 / 未覆盖”.
+- Legacy snapshots that still carry `status: Verified` render neutrally as “历史上下文”; the old verdict is never replayed.
+- Unit, UI-contract and real-Chrome tests prove default `CHG-84501` leaves both declaration-external services uncovered, while an explicitly selected approved candidate alone becomes included in the plan.
+
+The exact closure SHA is supplied in the A2A handoff after this note is committed.
+
 ## Review Sandbox
 
 - Logical path: `/tmp/cat-cafe-review/feat-ai-inspection-release-journey/opus`
@@ -100,7 +113,7 @@ python -m http.server 4184 --bind 127.0.0.1 --directory designs/ai-inspection-co
 ```text
 pnpm check
   build: exit 0
-  Node tests: 110/110 passed
+  Node tests: 112/112 passed
   offline Chrome: release-first gaps, one confirmation, immutable evidence,
                   history, sharing, exact reuse, 390px, edited-rule fail-closed
   HTTP(S) requests: 0
@@ -110,14 +123,14 @@ node --check lib,src,scripts,tests/**/*.mjs
   36 files, 0 syntax errors
 
 node tests/record-walkthrough.mjs
-  16182ms, 60475 bytes, VP9 WebM
+  16162ms, 60480 bytes, VP9 WebM
 
 git diff --check
   clean
 
 artifact
-  index.html: 254419 bytes
-  sha256: EA93ED1B8A7B8C8728F31AD1BCADCEDC396C2D44B5871EAEA3410A4B0F180A39
+  index.html: 255563 bytes
+  sha256: EC553EF1FA26AB44FC1B18E26EF8F5157CF8150E8144775F3CB5D040E799716F
 ```
 
 Visual evidence:

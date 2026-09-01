@@ -104,6 +104,17 @@ test('release intake reaches a coverage-honest plan with PLAN_CONFIRMED as its o
   assert.match(state.library.runs[0].report.scopeStatement, /声明范围/);
   assert.ok(state.library.runs[0].report.residualRisks.some((risk) => /未覆盖：invoice-worker/.test(risk)));
   assert.ok(state.library.runs[0].report.residualRisks.some((risk) => /未覆盖：settlement-db/.test(risk)));
+  const contextById = new Map(
+    state.library.runs[0].selectedContextResults.map((item) => [item.contextId, item]),
+  );
+  assert.equal(contextById.get('service:payment-api').contextState, 'included-in-plan');
+  assert.equal(contextById.get('service:invoice-worker').contextState, 'uncovered');
+  assert.equal(contextById.get('service:settlement-db').contextState, 'uncovered');
+  assert.equal(
+    state.library.runs[0].selectedContextResults.some((item) => Object.hasOwn(item, 'status')),
+    false,
+    'context metadata must never persist an evidence verdict',
+  );
   assertLockedRunProjection(state);
 });
 

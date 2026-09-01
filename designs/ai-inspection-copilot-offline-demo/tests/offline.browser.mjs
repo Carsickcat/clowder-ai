@@ -179,7 +179,7 @@ async function main() {
     assert.match(text, /Proceed/);
     assert.match(text, /Verified/);
     assert.match(text, /声明范围内未发现异常退化/);
-    assert.match(text, /本次选择的巡检结果/);
+    assert.match(text, /本次使用的上下文/);
     assert.match(text, /fulfillment-service 巡检 · .*窗口 .*实例 INS-/);
     assert.match(text, /证据仪表盘/);
     assert.match(text, /检查结果/);
@@ -467,7 +467,7 @@ async function main() {
     await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
     assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
     await advanceExecution(session);
-    assert.match(await bodyText(session), /本次选择的巡检结果/);
+    assert.match(await bodyText(session), /本次使用的上下文/);
     assert.match(await bodyText(session), /与上次相比/);
     const mobileReport = await session.evaluate(`(() => {
       const viewport = window.innerWidth;
@@ -566,6 +566,13 @@ async function main() {
     );
     assert.match(await bodyText(session), /覆盖：2 项已验证 · 2 项未覆盖/);
     assert.match(await bodyText(session), /未覆盖：invoice-worker/);
+    const releaseContextSurface = await session.evaluate(
+      "document.querySelector('[data-testid=selected-context-results]').innerText",
+    );
+    assert.match(releaseContextSurface, /本次使用的上下文/);
+    assert.match(releaseContextSurface, /invoice-worker[\s\S]*未覆盖/);
+    assert.match(releaseContextSurface, /settlement-db[\s\S]*未覆盖/);
+    assert.doesNotMatch(releaseContextSurface, /Verified|Violated|Inconclusive|NotEvaluated/);
     await screenshot(session, '08-release-coverage-mobile-report.png');
 
     await click(session, '[data-action="RESET"]');

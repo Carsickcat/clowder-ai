@@ -83,13 +83,14 @@ Dogfood findings fixed in this pass:
 - Terra review P1 found that the generic compiler cloned the order fixture and missed ten domain-bearing fields. The generic branch now constructs every source, Check, execution fact and report field from the current service context.
 - Fresh evidence capture exposed Windows Chrome descendants retaining inherited stdio/profile handles. The CDP harness now terminates the exact headless process tree; a child-process timeout regression passed three consecutive runs.
 - Visual review caught the 390px sticky confirmation button overlapping the coverage-gap card even though the browser suite was green. A geometry regression now proves the CTA remains in document flow and never intersects the gap surface.
+- Formal review P1 found that selected context metadata was persisted and rendered as `Verified`, including declaration-external services already listed as uncovered. New Runs now persist neutral `referenced / included-in-plan / uncovered` context states, legacy snapshots render as “历史上下文”, and both desktop/390px contracts forbid evidence-verdict vocabulary on the context surface.
 
 ## Fresh verification
 
 ```text
 pnpm check
   deterministic standalone build: exit 0
-  unit/domain/compiler/UI/harness tests: 110/110 pass
+  unit/domain/compiler/UI/harness tests: 112/112 pass
   file:// browser: release-first gaps, one confirmation, immutable evidence, history, sharing, exact reuse, 390px, edited-rule fail-closed
   HTTP(S) network requests: 0
   browser errors: 0
@@ -99,7 +100,7 @@ node --check lib,src,scripts,tests/**/*.mjs
   syntax errors: 0
 
 node tests/record-walkthrough.mjs
-  exit 0; 16182ms; 60475 bytes; VP9 WebM
+  exit 0; 16162ms; 60480 bytes; VP9 WebM
 
 git diff --check
   whitespace errors: 0
@@ -109,8 +110,8 @@ Artifact:
 
 ```text
 path: index.html
-bytes: 254419
-sha256: EA93ED1B8A7B8C8728F31AD1BCADCEDC396C2D44B5871EAEA3410A4B0F180A39
+bytes: 255563
+sha256: EC553EF1FA26AB44FC1B18E26EF8F5157CF8150E8144775F3CB5D040E799716F
 ```
 
 Artifact hygiene: no media/design files at repository root. Screenshots and the current walkthrough are archived under `evidence/`.

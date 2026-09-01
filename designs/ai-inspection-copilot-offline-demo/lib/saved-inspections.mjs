@@ -404,16 +404,37 @@ export function createSavedInspectionDefinition({
   });
 }
 
-function selectedContextResults(selectedContext) {
+const CONTEXT_STATE_LABELS = Object.freeze({
+  referenced: '已引用',
+  'included-in-plan': '已纳入计划',
+  uncovered: '未覆盖',
+});
+
+function contextState(item, inspectionPlan) {
+  if (item.kind === 'service') {
+    return inspectionPlan.checks.some((check) => check.entity === item.label) ? 'included-in-plan' : 'uncovered';
+  }
+  if (item.kind === 'signal') {
+    const checkId = item.id.startsWith('signal:') ? item.id.slice('signal:'.length) : null;
+    return checkId && inspectionPlan.checkIds.includes(checkId) ? 'included-in-plan' : 'uncovered';
+  }
+  return 'referenced';
+}
+
+function selectedContextResults(selectedContext, inspectionPlan) {
   return selectedContext
     .filter((item) => item.selected !== false)
-    .map((item) => ({
-      contextId: item.id,
-      kind: item.kind,
-      label: item.label,
-      status: 'Verified',
-      detail: item.detail,
-    }));
+    .map((item) => {
+      const state = contextState(item, inspectionPlan);
+      return {
+        contextId: item.id,
+        kind: item.kind,
+        label: item.label,
+        contextState: state,
+        contextStateLabel: CONTEXT_STATE_LABELS[state],
+        detail: item.detail,
+      };
+    });
 }
 
 const REPORT_RESULT_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
@@ -708,7 +729,7 @@ export function createInspectionRun({
     startedAt,
     completedAt,
     status: 'locked',
-    selectedContextResults: selectedContextResults(selectedContext ?? []),
+    selectedContextResults: selectedContextResults(selectedContext ?? [], taskInstance.inspectionPlan),
     inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
     report: runReport,
   });
