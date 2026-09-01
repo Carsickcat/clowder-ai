@@ -51,7 +51,10 @@ test('known high-risk context still compiles the risk fixture semantics', () => 
   assert.equal(workspace.eyebrow, 'User-defined inspection workspace');
   assert.equal(workspace.title, 'payment-api 巡检工作区');
   assert.deepEqual(workspace.blockingScope, ['payment-api']);
-  assert.deepEqual(workspace.coverageGaps.map((gap) => gap.entity), ['invoice-worker', 'settlement-db']);
+  assert.deepEqual(
+    workspace.coverageGaps.map((gap) => gap.entity),
+    ['invoice-worker', 'settlement-db'],
+  );
 });
 
 test('a known change reference can compile without a natural-language intent', () => {

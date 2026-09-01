@@ -33,14 +33,12 @@ export function renderSelectedContextResults(run) {
   return `<section class="report-context-results" data-testid="selected-context-results">
     <h3>本次使用的上下文</h3>
     <div class="report-context-grid">${run.selectedContextResults
-      .map(
-        (item) => {
-          const contextState = item.contextState ?? 'legacy-context';
-          const contextStateLabel = item.contextStateLabel ?? '历史上下文';
-          const symbol = contextState === 'uncovered' ? '!' : '•';
-          return `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small class="is-${escapeHtml(contextState)}">${symbol} ${escapeHtml(contextStateLabel)}</small></article>`;
-        },
-      )
+      .map((item) => {
+        const contextState = item.contextState ?? 'legacy-context';
+        const contextStateLabel = item.contextStateLabel ?? '历史上下文';
+        const symbol = contextState === 'uncovered' ? '!' : '•';
+        return `<article><span>${escapeHtml(item.kind)}</span><strong>${escapeHtml(item.label)}</strong><small class="is-${escapeHtml(contextState)}">${symbol} ${escapeHtml(contextStateLabel)}</small></article>`;
+      })
       .join('')}</div>
   </section>`;
 }

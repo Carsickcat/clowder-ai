@@ -120,7 +120,12 @@ async function main() {
     assert.match(text, /invoice-worker/);
     assert.doesNotMatch(text, /已扩大巡检范围/);
     assert.equal(await session.evaluate('document.querySelectorAll("[data-action=PLAN_CONFIRMED]").length'), 1);
-    assert.equal(await session.evaluate('document.querySelectorAll("[data-action=INPUT_CONFIRMED], [data-action=SCOPE_ACCEPTED]").length'), 0);
+    assert.equal(
+      await session.evaluate(
+        'document.querySelectorAll("[data-action=INPUT_CONFIRMED], [data-action=SCOPE_ACCEPTED]").length',
+      ),
+      0,
+    );
     await click(session, '[data-action="CANDIDATE_INCLUDED"][data-candidate-id="candidate-db-wait"]');
     await screenshot(session, '22-release-candidate-plan.png');
     await click(session, '[data-action="PLAN_CONFIRMED"]');
@@ -371,10 +376,7 @@ async function main() {
     assert.match(text, /保护支付确认业务结果/);
     assert.match(text, /影响面缺口/);
     assert.match(text, /2 项阻断/);
-    assert.equal(
-      await session.evaluate('document.querySelector(\'[data-action="PLAN_CONFIRMED"]\').disabled'),
-      false,
-    );
+    assert.equal(await session.evaluate('document.querySelector(\'[data-action="PLAN_CONFIRMED"]\').disabled'), false);
     await screenshot(session, '04-impact-dimensions.png');
     await click(session, '[data-action="CANDIDATE_INCLUDED"][data-candidate-id="candidate-db-wait"]');
     assert.match(

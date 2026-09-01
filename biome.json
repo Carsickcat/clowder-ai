@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!gitnexus", "!designs/nova-ops-observability-platform-v3/**"]
+    "includes": ["**", "!gitnexus", "!designs/nova-ops-observability-platform-v3"]
   },
   "formatter": {
     "enabled": true,

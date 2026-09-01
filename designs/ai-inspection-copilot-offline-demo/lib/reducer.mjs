@@ -385,17 +385,12 @@ function reportForCoverageGaps(workspace, inspectionPlan) {
   const gaps = workspace.coverageGaps ?? [];
   if (!gaps.length) return workspace.report;
   const includedCheckIds = new Set(inspectionPlan.checkIds);
-  const uncovered = gaps.filter(
-    (gap) => !gap.eligibleCandidateId || !includedCheckIds.has(gap.eligibleCandidateId),
-  );
+  const uncovered = gaps.filter((gap) => !gap.eligibleCandidateId || !includedCheckIds.has(gap.eligibleCandidateId));
   const gapEntities = gaps.map((gap) => gap.entity);
   const retainedRisks = workspace.report.residualRisks.filter(
     (risk) => !gapEntities.some((entity) => risk.includes(entity)),
   );
-  const residualRisks = [
-    ...retainedRisks,
-    ...uncovered.map((gap) => `未覆盖：${gap.entity}（${gap.reason}）`),
-  ];
+  const residualRisks = [...retainedRisks, ...uncovered.map((gap) => `未覆盖：${gap.entity}（${gap.reason}）`)];
   const coveredEntities = workspace.blockingScope?.join('、') || workspace.declaredChange.entities.join('、');
   const scopeStatement = uncovered.length
     ? `结论仅覆盖声明范围内已锁定计划中的 ${coveredEntities}；声明外影响 ${uncovered.map((gap) => gap.entity).join('、')} 未覆盖。`

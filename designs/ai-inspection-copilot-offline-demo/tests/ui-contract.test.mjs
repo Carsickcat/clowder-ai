@@ -5,8 +5,8 @@ import { compileInspectionRequest } from '../lib/compiler.mjs';
 import { createDemoReducer, createDemoSession, demoReducer } from '../lib/reducer.mjs';
 import { selectViewModel } from '../lib/selectors.mjs';
 import { renderApp } from '../src/render.mjs';
-import { formatReportTime } from '../src/report-model.mjs';
 import { renderSelectedContextResults } from '../src/render-saved-inspections.mjs';
+import { formatReportTime } from '../src/report-model.mjs';
 
 function dispatch(state, type, payload = {}) {
   return demoReducer(state, { type, ...payload });
