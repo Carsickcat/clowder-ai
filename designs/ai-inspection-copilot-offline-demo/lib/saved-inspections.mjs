@@ -1,4 +1,5 @@
 import { deepFreeze, validReportContract } from './domain.mjs';
+import { createMetricRule, formatMetricRule } from './metric-catalog.mjs';
 
 export const INSPECTION_LIBRARY_SCHEMA_VERSION = 1;
 
@@ -53,6 +54,101 @@ function validContextItem(item) {
   );
 }
 
+function validMetricRule(rule) {
+  return (
+    rule &&
+    typeof rule === 'object' &&
+    nonEmptyString(rule.id) &&
+    nonEmptyString(rule.metricId) &&
+    nonEmptyString(rule.label) &&
+    nonEmptyString(rule.category) &&
+    nonEmptyString(rule.operator) &&
+    Number.isFinite(rule.threshold) &&
+    nonEmptyString(rule.unit) &&
+    typeof rule.editable === 'boolean' &&
+    stringArray(rule.allowedOperators, { allowEmpty: false }) &&
+    rule.allowedOperators.includes(rule.operator) &&
+    nonEmptyString(rule.sourceRef)
+  );
+}
+
+function legacyMetricRules(check) {
+  const sourceRef = check.sourceRefs.includes('metric-catalog')
+    ? 'metric-catalog'
+    : (check.sourceRefs.at(-1) ?? 'legacy-snapshot');
+  const create = (metricId, operator, threshold, options = {}) =>
+    createMetricRule(metricId, operator, threshold, { sourceRef, ...options });
+  if (check.id === 'candidate-memory-trend') {
+    return [create('container.memory.working_set', '<=', 1, { editable: false })];
+  }
+  if (check.id === 'order-success') return [create('order.submit.success_rate', '>=', 99.59)];
+  if (check.id === 'payment-success') return [create('payment.confirm.success_rate', '>=', 99.82)];
+  if (check.id === 'business-outcome') {
+    const metricId = String(check.metric).split(' + ')[0];
+    return [
+      create(metricId, '>=', 99.59, {
+        label: `${check.entity}成功率`,
+        category: '业务结果',
+        unit: '%',
+      }),
+    ];
+  }
+  if (check.id === 'service-golden-signals' || check.id === 'payment-service') {
+    if (check.entity === 'order-api') {
+      return [create('http.error_rate', '<=', 0.5), create('http.duration.p95', '<=', 198)];
+    }
+    if (check.entity === 'payment-api') {
+      return [create('http.error_rate', '<=', 0.3), create('http.duration.p95', '<=', 216)];
+    }
+    return [create('http.error_rate', '<=', 0.5), create('http.duration.p95.change_rate', '<=', 10)];
+  }
+  if (check.id === 'payment-dependency' || check.id === 'downstream-dependency') {
+    return [create('span.client.error_rate', '<=', 0), create('span.client.duration.p95.change_rate', '<=', 8)];
+  }
+  if (check.id === 'cache-health' || check.id === 'middleware-health') {
+    return [create('redis.hit_rate', '>=', 94.4), create('redis.command_latency', '<=', 6)];
+  }
+  if (check.id === 'candidate-db-wait') {
+    return [create('db.pool.wait_p95', '<=', 20), create('db.pool.utilization', '<=', 80)];
+  }
+  if (check.id === 'invoice-backlog') return [create('invoice.queue.lag', '<=', 5)];
+  const metricId = String(check.metric ?? check.id).split(' + ')[0];
+  return [
+    create(metricId, '<=', 0, {
+      label: metricId,
+      category: '历史指标',
+      unit: '%',
+      editable: false,
+    }),
+  ];
+}
+
+function upgradeCheck(check) {
+  if (Array.isArray(check.metricRules)) return clone(check);
+  if (!nonEmptyString(check.metric) || !nonEmptyString(check.rule)) return clone(check);
+  const { metric: _legacyMetric, rule: _legacyRule, ...rest } = check;
+  return { ...clone(rest), metricRules: legacyMetricRules(check) };
+}
+
+function upgradePlan(plan) {
+  return plan && Array.isArray(plan.checks) ? { ...clone(plan), checks: plan.checks.map(upgradeCheck) } : clone(plan);
+}
+
+function upgradeLibraryPlans(value) {
+  const upgraded = clone(value);
+  if (!upgraded || typeof upgraded !== 'object') return upgraded;
+  if (Array.isArray(upgraded.savedInspections)) {
+    upgraded.savedInspections = upgraded.savedInspections.map((definition) => ({
+      ...definition,
+      inspectionPlan: upgradePlan(definition.inspectionPlan),
+    }));
+  }
+  if (Array.isArray(upgraded.runs)) {
+    upgraded.runs = upgraded.runs.map((run) => ({ ...run, inspectionPlan: upgradePlan(run.inspectionPlan) }));
+  }
+  return upgraded;
+}
+
 function validPlan(plan) {
   if (
     !plan ||
@@ -70,7 +166,10 @@ function validPlan(plan) {
       typeof check === 'object' &&
       nonEmptyString(check.id) &&
       checkIds.has(check.id) &&
-      stringArray(check.sourceRefs),
+      stringArray(check.sourceRefs) &&
+      Array.isArray(check.metricRules) &&
+      check.metricRules.length > 0 &&
+      check.metricRules.every(validMetricRule),
   );
 }
 
@@ -135,6 +234,7 @@ function validExecutionResult(result) {
 }
 
 function normalizeLibrary(value) {
+  value = upgradeLibraryPlans(value);
   if (
     !value ||
     value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
@@ -181,7 +281,7 @@ export function parseInspectionLibraryWithDiagnostics(serialized) {
     });
   }
   try {
-    const value = JSON.parse(serialized);
+    const value = upgradeLibraryPlans(JSON.parse(serialized));
     if (
       !value ||
       value.schemaVersion !== INSPECTION_LIBRARY_SCHEMA_VERSION ||
@@ -318,22 +418,109 @@ function selectedContextResults(selectedContext) {
 
 const REPORT_RESULT_RANK = Object.freeze({ Violated: 0, Inconclusive: 1, NotEvaluated: 1, Verified: 2 });
 
+function missingRuleMeasurement(check, rule) {
+  return {
+    id: `missing-${check.id}-${rule.metricId.replaceAll('.', '-')}`,
+    metricId: rule.metricId,
+    label: rule.label,
+    entity: check.entity,
+    kind: 'qualitative',
+    displayValue: '证据不足',
+    gate: {
+      operator: rule.operator,
+      value: rule.threshold,
+      unit: rule.unit,
+      displayValue: `${rule.operator} ${rule.threshold}${rule.unit}`,
+    },
+  };
+}
+
 function missingCheckResult(check) {
   return {
     checkId: check.id,
     status: 'NotEvaluated',
     summary: `${check.purpose}：证据不足`,
-    measurements: [
-      {
-        id: `missing-${check.id}`,
-        label: check.metric,
-        entity: check.entity,
-        kind: 'qualitative',
-        displayValue: '证据不足',
-        gate: { displayValue: check.rule },
-      },
-    ],
+    measurements: check.metricRules.map((rule) => missingRuleMeasurement(check, rule)),
   };
+}
+
+function evaluateNumericRule(value, rule) {
+  if (rule.operator === '<=') return value <= rule.threshold;
+  if (rule.operator === '>=') return value >= rule.threshold;
+  if (rule.operator === '<') return value < rule.threshold;
+  if (rule.operator === '>') return value > rule.threshold;
+  return false;
+}
+
+function materializeCheckResult(check, sourceResult) {
+  const result = clone(sourceResult ?? missingCheckResult(check));
+  const rules = new Map(check.metricRules.map((rule) => [rule.metricId, rule]));
+  const sourceMeasurements = new Map(result.measurements.map((measurement) => [measurement.metricId, measurement]));
+  const evaluated = [];
+  const missingRules = [];
+  const ruleMeasurements = check.metricRules.map((rule) => {
+    const measurement = sourceMeasurements.get(rule.metricId);
+    const requiresNumericEvidence = rule.editable !== false;
+    if (
+      !measurement ||
+      (requiresNumericEvidence && (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value)))
+    ) {
+      missingRules.push(rule);
+      return missingRuleMeasurement(check, rule);
+    }
+    if (measurement.kind !== 'numeric' || !Number.isFinite(measurement.value)) {
+      return measurement;
+    }
+    const passed = evaluateNumericRule(measurement.value, rule);
+    evaluated.push({ measurement, rule, passed });
+    return {
+      ...measurement,
+      metricId: rule.metricId,
+      gate: {
+        operator: rule.operator,
+        value: rule.threshold,
+        unit: rule.unit,
+        displayValue: `${rule.operator} ${rule.threshold}${rule.unit}`,
+      },
+      ...(measurement.series ? { series: measurement.series } : {}),
+    };
+  });
+  const contextualMeasurements = result.measurements.filter((measurement) => !rules.has(measurement.metricId));
+  const measurements = [...ruleMeasurements, ...contextualMeasurements];
+  let status = result.status;
+  if (missingRules.length) {
+    status = 'NotEvaluated';
+  } else if (!['Inconclusive', 'NotEvaluated'].includes(status) && evaluated.length) {
+    status = evaluated.every((item) => item.passed) ? 'Verified' : 'Violated';
+  }
+  const summary = missingRules.length
+    ? `${check.purpose}：${missingRules.map((rule) => rule.label).join('、')}证据不足`
+    : evaluated.length && !['Inconclusive', 'NotEvaluated'].includes(status)
+      ? evaluated
+          .map(
+            ({ measurement, rule, passed }) =>
+              `${rule.label} ${measurement.displayValue}（门禁 ${formatMetricRule(rule)}，${passed ? '通过' : '违例'}）`,
+          )
+          .join('；')
+      : result.summary;
+  return { ...result, status, summary, measurements };
+}
+
+function hasLockedTrendEvidence(report) {
+  return (
+    Array.isArray(report?.checkResults) &&
+    report.checkResults.every((result) =>
+      result.measurements.every(
+        (measurement) =>
+          measurement.kind !== 'numeric' ||
+          (Array.isArray(measurement.series) &&
+            measurement.series.length >= 2 &&
+            measurement.series.every((point) =>
+              Boolean(point && typeof point.label === 'string' && point.label.trim() && Number.isFinite(point.value)),
+            )),
+      ),
+    )
+  );
 }
 
 function reportCounts(checkResults) {
@@ -348,11 +535,12 @@ function reportCounts(checkResults) {
   );
 }
 
-function interpretationForResults(report, checkResults) {
+function interpretationForResults(report, checkResults, allowSourceNarrative) {
   const evidenceIds = new Set(
     checkResults.flatMap((result) => result.measurements.map((measurement) => measurement.id)),
   );
   const groundSection = (section) => {
+    if (!allowSourceNarrative) return { text: '证据不足', evidenceIds: [] };
     const anchors = section?.evidenceIds ?? [];
     return section?.text && anchors.length && anchors.every((id) => evidenceIds.has(id))
       ? { text: section.text, evidenceIds: anchors }
@@ -415,7 +603,17 @@ function interpretationForResults(report, checkResults) {
 }
 
 function materializedDecision(report, counts, removedConclusiveResult) {
-  if (counts.violated > 0) return {};
+  if (counts.violated > 0) {
+    const retainOriginalCopy = report.evidenceVerdict === 'Violated' && !removedConclusiveResult;
+    return {
+      evidenceVerdict: 'Violated',
+      action: 'Pause',
+      actionLabel: retainOriginalCopy ? report.actionLabel : '建议暂停并处理违例',
+      title: retainOriginalCopy ? report.title : '编辑后的检查门禁发现违例',
+      summary: retainOriginalCopy ? report.summary : `锁定计划中有 ${counts.violated} 项检查触及门禁。`,
+      rcAgent: retainOriginalCopy ? report.rcAgent : null,
+    };
+  }
   if (counts.unresolved > 0) {
     return {
       evidenceVerdict: 'Inconclusive',
@@ -441,7 +639,7 @@ function materializeReportForPlan(report, inspectionPlan) {
   if (!Array.isArray(report?.checkResults) || !report.interpretation) return clone(report);
   const resultByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
   const checkResults = inspectionPlan.checks.map((check) =>
-    clone(resultByCheckId.get(check.id) ?? missingCheckResult(check)),
+    materializeCheckResult(check, resultByCheckId.get(check.id)),
   );
   const counts = reportCounts(checkResults);
   const orderedEvidence = [...checkResults].sort(
@@ -453,6 +651,25 @@ function materializeReportForPlan(report, inspectionPlan) {
   const removedConclusiveResult = report.checkResults.some(
     (result) => !planCheckIds.has(result.checkId) && ['Verified', 'Violated'].includes(result.status),
   );
+  const sourceByCheckId = new Map(report.checkResults.map((result) => [result.checkId, result]));
+  const executionTruthChanged =
+    removedConclusiveResult ||
+    checkResults.some((result) => {
+      const source = sourceByCheckId.get(result.checkId);
+      if (!source || source.status !== result.status) return true;
+      if (source.measurements.length !== result.measurements.length) return true;
+      const sourceMeasurements = new Map(source.measurements.map((measurement) => [measurement.id, measurement]));
+      return result.measurements.some((measurement) => {
+        const sourceMeasurement = sourceMeasurements.get(measurement.id);
+        if (!sourceMeasurement || sourceMeasurement.kind !== measurement.kind) return true;
+        if (measurement.kind !== 'numeric') return false;
+        return (
+          sourceMeasurement.gate?.operator !== measurement.gate?.operator ||
+          sourceMeasurement.gate?.value !== measurement.gate?.value ||
+          sourceMeasurement.gate?.unit !== measurement.gate?.unit
+        );
+      });
+    });
   const hasUnresolved = counts.unresolved > 0;
   const materialized = {
     ...clone(report),
@@ -463,7 +680,7 @@ function materializeReportForPlan(report, inspectionPlan) {
       ? checkResults.filter((result) => result.status !== 'Verified').map((result) => result.summary)
       : clone(report.residualRisks),
     checkResults,
-    interpretation: interpretationForResults(report, checkResults),
+    interpretation: interpretationForResults(report, checkResults, !executionTruthChanged),
   };
   if (!validReportContract(materialized)) throw new TypeError('Inspection run requires a valid report contract');
   return materialized;
@@ -474,17 +691,16 @@ export function createInspectionRun({
   taskInstance,
   definitionId = null,
   selectedContext,
-  executionResults,
   report,
   startedAt,
   completedAt,
 }) {
   if (!id || !startedAt || !completedAt) throw new TypeError('Inspection run identity and timestamps are required');
   if (taskInstance?.status !== 'locked') throw new TypeError('Inspection run requires a locked task');
-  if (!Array.isArray(executionResults) || !executionResults.every(validExecutionResult)) {
-    throw new TypeError('Inspection run requires structured execution results');
-  }
   const runReport = materializeReportForPlan(report, taskInstance.inspectionPlan);
+  if (!hasLockedTrendEvidence(runReport)) {
+    throw new TypeError('Inspection run requires persisted trend series for numeric measurements');
+  }
   return deepFreeze({
     id,
     taskInstanceId: taskInstance.id,
@@ -494,12 +710,6 @@ export function createInspectionRun({
     status: 'locked',
     selectedContextResults: selectedContextResults(selectedContext ?? []),
     inspectionPlan: planSnapshot(taskInstance.inspectionPlan),
-    executionResults: executionResults.map(({ id: resultId, label, status, fact }) => ({
-      id: resultId,
-      label,
-      status,
-      fact,
-    })),
     report: runReport,
   });
 }

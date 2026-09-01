@@ -28,14 +28,6 @@ export function renderSavedInspectionRefresh(savedInspection) {
   </section>`;
 }
 
-export function renderSavedExecutionStatus(savedInspection) {
-  if (savedInspection?.refresh?.status !== 'exact' || !savedInspection.activeDefinition) return '';
-  return `<div class="saved-execution-status reconciliation is-exact" data-testid="saved-refresh" data-refresh-status="exact">
-    <span>当前事实</span><strong>一致，已直接执行</strong>
-    <p>${escapeHtml(savedInspection.activeDefinition.name)} · 新任务 ${escapeHtml(savedInspection.currentRun?.taskInstanceId ?? '执行中')}</p>
-  </div>`;
-}
-
 export function renderSelectedContextResults(run) {
   if (!run?.selectedContextResults?.length) return '';
   return `<section class="report-context-results" data-testid="selected-context-results">

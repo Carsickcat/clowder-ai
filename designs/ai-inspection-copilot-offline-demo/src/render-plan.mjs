@@ -1,4 +1,32 @@
+import { formatCheckRules, formatMetricRule } from '../lib/metric-catalog.mjs';
 import { escapeHtml } from './view-utils.mjs';
+
+function renderMetricList(metricRules = []) {
+  return `<ul class="metric-name-list">${metricRules
+    .map(
+      (rule) =>
+        `<li><strong>${escapeHtml(rule.label)}</strong><code>${escapeHtml(rule.metricId)}</code><span>${escapeHtml(rule.category)}</span></li>`,
+    )
+    .join('')}</ul>`;
+}
+
+function renderRuleEditor(check, rule) {
+  if (!rule.editable) {
+    return `<article class="metric-rule-row is-readonly"><div><strong>${escapeHtml(rule.label)}</strong><code>${escapeHtml(rule.metricId)}</code></div><span>${escapeHtml(formatMetricRule(rule))}</span><small>固定规则</small></article>`;
+  }
+  const operators = rule.allowedOperators
+    .map(
+      (operator) =>
+        `<option value="${escapeHtml(operator)}" ${operator === rule.operator ? 'selected' : ''}>${escapeHtml(operator)}</option>`,
+    )
+    .join('');
+  return `<form class="metric-rule-row rule-editor" data-rule-editor data-rule-check-id="${escapeHtml(check.id)}" data-rule-id="${escapeHtml(rule.id)}">
+    <div><strong>${escapeHtml(rule.label)}</strong><code>${escapeHtml(rule.metricId)}</code><small>${escapeHtml(rule.category)}</small></div>
+    <label><span>比较</span><select name="rule-operator" aria-label="${escapeHtml(rule.label)}比较符">${operators}</select></label>
+    <label><span>门禁值</span><input name="rule-threshold" type="number" step="any" value="${escapeHtml(rule.threshold)}" aria-label="${escapeHtml(rule.label)}门禁值"><b>${escapeHtml(rule.unit)}</b></label>
+    <button type="submit">应用</button>
+  </form>`;
+}
 
 function renderCandidate(candidate, disposition) {
   const accepted = disposition?.status === 'accepted';
@@ -13,7 +41,7 @@ function renderCandidate(candidate, disposition) {
       <details class="candidate-details">
         <summary>查看细节</summary>
         <dl>
-          <div><dt>检查指标</dt><dd><code>${escapeHtml(candidate.metric)}</code></dd></div>
+          <div><dt>黄金指标</dt><dd>${renderMetricList(candidate.metricRules)}</dd></div>
           <div><dt>目标实体</dt><dd>${escapeHtml(candidate.entity)}</dd></div>
         </dl>
       </details>
@@ -47,9 +75,11 @@ function renderCheck(check, isCandidate, contextSources) {
         <div class="check-rationale"><span>检查依据</span><p>${escapeHtml(check.rationale)}</p></div>
         <dl>
           <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
-          <div><dt>检查指标</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
-          <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
-          <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
+          <div><dt>业务黄金指标</dt><dd>${renderMetricList(check.metricRules)}</dd></div>
+          <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)} <small>由已注册能力提供，不可在草案中修改</small></dd></div>
+          <div class="check-rule-editor"><dt>判定规则</dt><dd><p class="rule-summary">${escapeHtml(formatCheckRules(check))}</p>${check.metricRules
+            .map((rule) => renderRuleEditor(check, rule))
+            .join('')}</dd></div>
           <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
           <div><dt>失败动作</dt><dd>${escapeHtml(check.failureAction)}</dd></div>
           <div class="check-sources"><dt>事实来源</dt><dd><ul>${renderSourceRefs(check, contextSources)}</ul></dd></div>
@@ -70,10 +100,10 @@ function renderPlanSummary(committedCount, planSummary) {
   return `<p class="plan-summary" data-testid="plan-summary">本次将执行 ${committedCount} 项检查，${pendingCopy}</p>`;
 }
 
-function renderPlanAction(readiness) {
+function renderPlanAction(readiness, committedCount) {
   const ready = readiness.status === 'ready';
   const label = ready
-    ? '确认并开始巡检'
+    ? `确认并执行 ${committedCount} 项检查`
     : readiness.unresolvedCandidateIds.length
       ? '请先处理上方的建议项'
       : readiness.reconciliationBlocked
@@ -128,6 +158,7 @@ export function renderInspectionPlan(vm) {
         <span class="readiness ${vm.readiness.status}">${renderReadinessLabel(vm.readiness)}</span>
       </header>
       ${renderPlanSummary(vm.committedChecks.length, vm.planSummary)}
+      <p class="parallel-execution-note">所有已选检查无先后依赖，确认后将并行执行并直接生成报告。</p>
       ${candidateSection}
       <section class="plan-section" aria-labelledby="formal-title">
         <h3 id="formal-title">将执行的检查</h3>
@@ -137,6 +168,6 @@ export function renderInspectionPlan(vm) {
             .join('')}
         </div>
       </section>
-      ${renderPlanAction(vm.readiness)}
+      ${renderPlanAction(vm.readiness, vm.committedChecks.length)}
     </div>`;
 }

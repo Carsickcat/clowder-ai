@@ -23,17 +23,52 @@ export function selectRunsForDefinition(definition, runs = []) {
 function compareExecutionResult(id, before, after) {
   if (!before) return { id, label: after.label, kind: 'added', before: null, after };
   if (!after) return { id, label: before.label, kind: 'removed', before, after: null };
-  if (before.status === after.status && before.fact === after.fact && before.label === after.label) return null;
+  if (
+    before.status === after.status &&
+    before.fact === after.fact &&
+    before.label === after.label &&
+    before.signature === after.signature
+  ) {
+    return null;
+  }
   const beforeRank = RESULT_RANK[before.status];
   const afterRank = RESULT_RANK[after.status];
   const kind = afterRank > beforeRank ? 'improved' : afterRank < beforeRank ? 'worsened' : 'stable';
-  return { id, label: after.label, kind, before, after };
+  return {
+    id,
+    label: after.label,
+    kind,
+    before,
+    after,
+    ...(before.fact === after.fact && before.signature !== after.signature ? { evidenceChanged: true } : {}),
+  };
+}
+
+function reportComparisonResults(run) {
+  if (!Array.isArray(run?.report?.checkResults)) return null;
+  const labels = new Map((run.inspectionPlan?.checks ?? []).map((check) => [check.id, check.purpose]));
+  return run.report.checkResults.map((result) => ({
+    id: result.checkId,
+    label: labels.get(result.checkId) ?? result.checkId,
+    status: result.status,
+    fact: result.summary,
+    signature: JSON.stringify({ status: result.status, summary: result.summary, measurements: result.measurements }),
+  }));
+}
+
+function comparisonResults(run) {
+  const reportResults = reportComparisonResults(run);
+  if (reportResults) return reportResults;
+  if (!Array.isArray(run?.executionResults)) return null;
+  return run.executionResults.map((result) => ({ ...result, signature: null }));
 }
 
 export function compareInspectionRuns(currentRun, previousRun) {
-  if (!Array.isArray(currentRun?.executionResults) || !Array.isArray(previousRun?.executionResults)) return null;
-  const current = new Map(currentRun.executionResults.map((result) => [result.id, result]));
-  const previous = new Map(previousRun.executionResults.map((result) => [result.id, result]));
+  const currentResults = comparisonResults(currentRun);
+  const previousResults = comparisonResults(previousRun);
+  if (!currentResults || !previousResults) return null;
+  const current = new Map(currentResults.map((result) => [result.id, result]));
+  const previous = new Map(previousResults.map((result) => [result.id, result]));
   const ids = [...new Set([...current.keys(), ...previous.keys()])].sort();
   const items = [];
   for (const id of ids) {
@@ -51,6 +86,21 @@ export function compareInspectionRuns(currentRun, previousRun) {
 function requireWorkspace(state) {
   if (!state.workspace) throw new Error('Inspection workspace is not compiled');
   return state.workspace;
+}
+
+function applyRuleOverrides(state, checks) {
+  return checks.map((check) => {
+    const overrides = state.checkRuleOverrides?.[check.id];
+    if (!overrides) return check;
+    let changed = false;
+    const metricRules = check.metricRules.map((rule) => {
+      const override = overrides[rule.id];
+      if (!override) return rule;
+      changed = true;
+      return { ...rule, operator: override.operator, threshold: override.threshold };
+    });
+    return changed ? { ...check, metricRules } : check;
+  });
 }
 
 export function selectResolvedScope(state) {
@@ -93,7 +143,7 @@ export function selectCommittedChecks(state) {
   const acceptedCandidates = workspace.candidateChecks.filter(
     (candidate) => state.candidateDisposition[candidate.id]?.status === 'accepted',
   );
-  const checks = [...selectedBaseChecks, ...acceptedCandidates];
+  const checks = applyRuleOverrides(state, [...selectedBaseChecks, ...acceptedCandidates]);
   const sourceIds = new Set(workspace.contextSources.map((source) => source.id));
   for (const check of checks) assertCheckContract(check, sourceIds);
   return checks;
@@ -124,19 +174,6 @@ export function selectPlanSummary(state) {
     optionalPending: pendingCandidates.filter((candidate) => candidate.criticality !== 'high').length,
     rejected: workspace.candidateChecks.filter((candidate) => dispositions[candidate.id]?.status === 'rejected').length,
   };
-}
-
-export function selectExecutionView(state) {
-  const workspace = requireWorkspace(state);
-  return workspace.execution.map((step, index) => ({
-    ...step,
-    progress:
-      state.phase === 'report' || index <= state.executionStep
-        ? 'complete'
-        : index === state.executionStep + 1 && state.phase === 'execution'
-          ? 'active'
-          : 'queued',
-  }));
 }
 
 export function selectReportView(state) {
@@ -208,7 +245,6 @@ export function selectViewModel(state) {
       readiness: null,
       committedChecks: [],
       planSummary: null,
-      execution: [],
       report: null,
       playbook: selectPlaybookView(state),
       savedInspection: selectSavedInspectionView(state),
@@ -221,7 +257,6 @@ export function selectViewModel(state) {
     readiness: selectPlanReadiness(state),
     committedChecks: selectCommittedChecks(state),
     planSummary: selectPlanSummary(state),
-    execution: selectExecutionView(state),
     report: selectReportView(state),
     playbook: selectPlaybookView(state),
     savedInspection: selectSavedInspectionView(state),

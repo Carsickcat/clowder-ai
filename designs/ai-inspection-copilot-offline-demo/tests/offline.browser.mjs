@@ -52,9 +52,8 @@ async function screenshot(session, fileName, { captureBeyondViewport = true } = 
 }
 
 async function advanceExecution(session) {
-  for (let index = 0; index < 4; index += 1) {
-    await click(session, '[data-action="EXECUTION_ADVANCED"]');
-  }
+  assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
+  assert.equal(await session.evaluate('document.querySelectorAll("[data-action=EXECUTION_ADVANCED]").length'), 0);
 }
 
 async function main() {
@@ -135,7 +134,7 @@ async function main() {
     await click(session, '[data-action="INPUT_CONFIRMED"]');
     text = await bodyText(session);
     assert.match(text, /本次将执行 3 项检查，另有 1 项 AI 可选建议/);
-    assert.match(text, /可选建议[\s\S]*将执行的检查[\s\S]*确认并开始巡检/);
+    assert.match(text, /可选建议[\s\S]*将执行的检查[\s\S]*确认并执行 3 项检查/);
     assert.doesNotMatch(text, /需要你确认|有建议待确认|请先处理上方的建议项/);
     assert.doesNotMatch(text, /fulfillment\.service\.success_rate/);
     assert.doesNotMatch(text, /http\.error_rate/);
@@ -148,6 +147,22 @@ async function main() {
     assert.doesNotMatch(genericPlanText, /order|payment|订单|支付/i);
     assert.match(genericPlanText, /fulfillment-service/);
     assert.match(genericPlanText, /http\.error_rate/);
+    assert.equal(
+      await session.evaluate(`(() => {
+        const form = document.querySelector('[data-rule-id="http.duration.p95.change_rate"]');
+        if (!form) return false;
+        form.elements.namedItem('rule-threshold').value = '5';
+        form.requestSubmit();
+        return true;
+      })()`),
+      true,
+    );
+    assert.equal(
+      await session.evaluate(
+        'document.querySelector(\'[data-rule-id="http.duration.p95.change_rate"] [name="rule-threshold"]\').value',
+      ),
+      '5',
+    );
     await screenshot(session, '11-draft-optional-suggestion.png');
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
@@ -161,6 +176,13 @@ async function main() {
     assert.match(text, /证据仪表盘/);
     assert.match(text, /检查结果/);
     assert.match(text, /AI 解读/);
+    assert.equal(await session.evaluate('document.querySelectorAll(".trend-chart").length > 0'), true);
+    assert.equal(
+      await session.evaluate(
+        'Boolean(document.querySelector(\'[data-trend-metric-id="http.duration.p95.change_rate"]\'))',
+      ),
+      true,
+    );
     assert.doesNotMatch(
       await session.evaluate('document.querySelector("[data-testid=ai-interpretation]").innerText'),
       /核心业务成功率/,
@@ -205,9 +227,9 @@ async function main() {
     await persistedLoaded;
     assert.match(await bodyText(session), /履约发布后巡检/);
     await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
-    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
     assert.equal(await session.evaluate('document.querySelectorAll("[data-testid=inspection-plan]").length'), 0);
-    assert.match(await bodyText(session), /一致，已直接执行/);
+    assert.match(await bodyText(session), /与上次相比/);
     await screenshot(session, '13-saved-direct-run.png');
     await advanceExecution(session);
     const persistedAfterDirectRun = await session.evaluate(
@@ -290,7 +312,7 @@ async function main() {
     assert.match(await bodyText(session), /还没有执行记录/);
     assert.match(await bodyText(session), /仍可直跑/);
     await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
-    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
     const restoredLoaded = session.once('Page.loadEventFired');
     await session.evaluate(`localStorage.setItem('nova.inspection-library.v1', ${JSON.stringify(cleanLibrary)})`);
     await session.send('Page.reload');
@@ -327,7 +349,7 @@ async function main() {
     assert.equal(await session.evaluate('document.querySelectorAll(".playbook-primary").length'), 1);
     await screenshot(session, '06-playbook-exact-match.png');
     await click(session, '[data-action="PLAYBOOK_EXECUTION_STARTED"]');
-    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
     await advanceExecution(session);
     text = await bodyText(session);
     assert.match(text, /历史实例不受影响/);
@@ -394,6 +416,16 @@ async function main() {
     const sourceDetail = await session.evaluate("document.querySelector('.check-card[open] .check-sources').innerText");
     assert.match(sourceDetail, /电子流/);
     assert.match(sourceDetail, /CHG-84217/);
+    assert.equal(
+      await session.evaluate(`(() => {
+        const card = document.querySelector('.check-card[open]');
+        return [...card.querySelectorAll('.rule-editor')].every((editor) =>
+          [...editor.children].every((child) => child.getBoundingClientRect().right <= card.getBoundingClientRect().right + 1)
+        );
+      })()`),
+      true,
+      'expanded desktop rule editors remain inside the check card',
+    );
     await screenshot(session, '05-plan-contract-expanded.png');
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
@@ -481,7 +513,7 @@ async function main() {
     assert.ok(mobileComposer.composerHeight >= 44, 'mobile composer keeps a touch-safe hit target');
     await screenshot(session, '14-mobile-saved-home.png', { captureBeyondViewport: false });
     await click(session, '[data-action="SAVED_INSPECTION_RUN_REQUESTED"]');
-    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'execution');
+    assert.equal(await session.evaluate('document.querySelector("[data-phase]").dataset.phase'), 'report');
     await advanceExecution(session);
     assert.match(await bodyText(session), /本次选择的巡检结果/);
     assert.match(await bodyText(session), /与上次相比/);
@@ -551,15 +583,21 @@ async function main() {
     assert.match(await bodyText(session), /旧方案仅作参考/);
     const mobilePlan = await session.evaluate(`(() => {
       const action = document.querySelector('[data-action="PLAN_CONFIRMED"]');
+      const card = document.querySelector('.check-card');
+      card.open = true;
       return {
         noOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
         actionInDraft: Boolean(action.closest('[data-testid="inspection-plan"]')),
         actionLabel: action.textContent.trim(),
+        editorFits: [...card.querySelectorAll('.rule-editor')].every((editor) =>
+          editor.getBoundingClientRect().right <= window.innerWidth + 1
+        ),
       };
     })()`);
     assert.equal(mobilePlan.noOverflow, true, 'mobile draft must not overflow horizontally');
     assert.equal(mobilePlan.actionInDraft, true, 'mobile draft action stays above the conversation composer');
-    assert.match(mobilePlan.actionLabel, /确认并开始巡检/);
+    assert.equal(mobilePlan.editorFits, true, 'expanded mobile rule editors stay inside the viewport');
+    assert.match(mobilePlan.actionLabel, /确认并执行 4 项检查/);
     await click(session, '[data-action="PLAN_CONFIRMED"]');
     await advanceExecution(session);
     await waitForPaint(session);
@@ -592,10 +630,55 @@ async function main() {
     );
     await screenshot(session, '08-playbook-major-mobile-report.png');
 
+    await click(session, '[data-action="RESET"]');
+    await submitRequest(session, {
+      prompt: '升级 fulfillment-service v7.2.0，验证履约状态和下游调用是否正常。',
+      targetService: 'fulfillment-service',
+      contextReference: 'REL-FUL-72',
+    });
+    await click(session, '[data-action="INPUT_CONFIRMED"]');
+    assert.equal(
+      await session.evaluate(`(() => {
+        const form = document.querySelector('[data-rule-id="redis.command_latency"]');
+        if (!form) return false;
+        form.elements.namedItem('rule-threshold').value = '3';
+        form.requestSubmit();
+        return true;
+      })()`),
+      true,
+    );
+    await click(session, '[data-action="PLAN_CONFIRMED"]');
+    await advanceExecution(session);
+    text = await bodyText(session);
+    assert.match(text, /Violated/);
+    assert.match(text, /Pause/);
+    assert.match(text, /缓存命令 p99 3\.8ms（门禁 <= 3ms，违例）/);
+    assert.equal(
+      await session.evaluate(`(() => {
+        const run = JSON.parse(localStorage.getItem('nova.inspection-library.v1')).runs.at(-1);
+        return !Object.hasOwn(run, 'executionResults') &&
+          run.report.checkResults.some((result) =>
+            result.checkId === 'middleware-health' &&
+            result.status === 'Violated' &&
+            result.measurements.some((measurement) =>
+              measurement.metricId === 'redis.command_latency' && measurement.gate.value === 3
+            )
+          );
+      })()`),
+      true,
+      'the locked Run contains the edited Redis gate without a parallel execution truth',
+    );
+    assert.equal(
+      await session.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 1'),
+      true,
+      'the reviewed edited-rule report remains within the 390px viewport',
+    );
+    await screenshot(session, '21-mobile-generic-edited-rule-pause.png');
+
     assert.deepEqual(networkRequests, []);
     assert.deepEqual(browserErrors, []);
     process.stdout.write(
-      'Offline browser acceptance passed: history, comparison, sharing, corrupt-history recovery, unmatched, exact, minor-drift, and major-drift journeys; 0 network requests, 0 browser errors.\n',
+      'Offline browser acceptance passed: history, comparison, sharing, corrupt-history recovery, unmatched, exact, minor-drift, major-drift, and edited-rule fail-closed journeys; 0 network requests, 0 browser errors.\n',
     );
   } finally {
     await browser.close();

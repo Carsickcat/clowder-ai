@@ -112,6 +112,18 @@
 }
 
 @media (max-width: 520px) {
+  .metric-name-list li,
+  .metric-rule-row,
+  .metric-rule-row.is-readonly {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .metric-rule-row button {
+    width: 100%;
+  }
+  .trend-chart {
+    height: 128px;
+  }
   .app-shell {
     padding-inline: 10px;
   }

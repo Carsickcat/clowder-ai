@@ -3,7 +3,7 @@ feature_ids: [AI_INSPECTION_COPILOT_OFFLINE_DEMO, AI_INSPECTION_PLAYBOOK_REUSE]
 topics: [aiops, inspection, architecture, check-contract, evidence]
 doc_kind: architecture
 created: 2026-08-06
-updated: 2026-08-13
+updated: 2026-09-01
 ---
 
 # 架构设计：用户驱动的巡检工作区编译与验证
@@ -64,10 +64,13 @@ Scoped Report / RC Agent
 ```text
 purpose              检查目的
 targetEntity         目标实体
-capability           可执行能力
-metric               已注册指标或查询能力
+capability           可执行能力（只读）
+metricRules[]        已注册黄金指标及结构化判定规则
+  metricId           指标目录中的稳定 ID（只读）
+  operator           目录允许范围内的比较符（SRE 可编辑）
+  threshold          有限数值阈值（SRE 可编辑）
+  unit + sourceRef   单位与事实来源（只读）
 window + baseline    时间窗与对照基线
-rule                 确定性判定规则
 criticality          对放行的重要度
 failureAction        失败后动作
 rationale            生成理由
@@ -104,7 +107,9 @@ InspectionWorkspace { scope, evidence sources, hypotheses, checks, report }
 
 两个 mock fixture 藏在编译器后面，用来提供可复现的执行证据和异常结果；它们不是 session mode，也不出现在一级导航。任意未知服务会走通用 mock catalog，动态生成服务自身指标、直接下游和中间件检查。
 
-会话状态只保存最小事实：当前 workspace（未提交时为 null）、阶段、候选处置、执行进度、RC 展开状态。影响范围、计划 readiness、正式 Check、执行视图和报告均由 selector 纯派生，避免状态复制导致不同界面说法矛盾。
+会话状态只保存最小事实：当前 workspace（未提交时为 null）、阶段、候选处置、规则 override 与 RC 展开状态。指标目录、能力、单位和来源不可由浏览器改写；SRE 在草案页修改的比较符与阈值先作为瞬态 override，确认后一次性物化进 immutable `InspectionPlan.checks[].metricRules`。
+
+所有已选检查在 v0.4 中都声明为无依赖，因此没有逐项推进或排队状态。一次确认会对同一批检查做确定性求值、追加一条 immutable Run，并直接进入报告。当前报告、历史、复制摘要和导出 HTML 都读取该 Run 中同一份规则、判定与趋势序列；不存在第二份文本规则或可变的报告证据。
 
 ```text
 createDemoSession (blank)

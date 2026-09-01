@@ -62,7 +62,6 @@ function recordFixtures({
       definitionId,
       taskInstance,
       selectedContext,
-      executionResults: workspace.execution,
       report: workspace.report,
       startedAt: updatedAt,
       completedAt: updatedAt,

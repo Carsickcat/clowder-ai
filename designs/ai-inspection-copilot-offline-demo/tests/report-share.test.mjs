@@ -80,6 +80,50 @@ test('structured evidence projection sorts violations first and caps numeric bar
   assert.ok(evidence.some((item) => item.kind === 'qualitative' && item.ratioPercent === null));
 });
 
+test('each numeric evidence card derives status from its own locked gate inside a multi-rule check', () => {
+  const evidence = projectReportEvidence({
+    checkResults: [
+      {
+        checkId: 'cache-health',
+        status: 'Violated',
+        summary: '缓存命令延迟触及门禁',
+        measurements: [
+          {
+            id: 'cache-hit-rate',
+            metricId: 'redis.hit_rate',
+            label: '缓存命中率',
+            entity: 'cache',
+            kind: 'numeric',
+            value: 96.4,
+            unit: '%',
+            displayValue: '96.4%',
+            gate: { operator: '>=', value: 94.4, unit: '%', displayValue: '>= 94.4%' },
+          },
+          {
+            id: 'cache-command-latency',
+            metricId: 'redis.command_latency',
+            label: '缓存命令延迟',
+            entity: 'cache',
+            kind: 'numeric',
+            value: 3.8,
+            unit: 'ms',
+            displayValue: '3.8ms',
+            gate: { operator: '<=', value: 3, unit: 'ms', displayValue: '<= 3ms' },
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    evidence.map(({ id, status }) => ({ id, status })),
+    [
+      { id: 'cache-command-latency', status: 'Violated' },
+      { id: 'cache-hit-rate', status: 'Verified' },
+    ],
+  );
+});
+
 test('zero-valued numeric gates keep a valid progress representation', () => {
   const evidence = projectReportEvidence({
     checkResults: [

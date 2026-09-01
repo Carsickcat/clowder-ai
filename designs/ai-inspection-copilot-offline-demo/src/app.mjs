@@ -151,6 +151,19 @@ root.addEventListener('click', (event) => {
 });
 
 root.addEventListener('submit', (event) => {
+  const ruleForm = event.target.closest('[data-rule-editor]');
+  if (ruleForm) {
+    event.preventDefault();
+    const data = new FormData(ruleForm);
+    dispatch({
+      type: 'CHECK_RULE_UPDATED',
+      checkId: ruleForm.dataset.ruleCheckId,
+      ruleId: ruleForm.dataset.ruleId,
+      operator: data.get('rule-operator'),
+      threshold: data.get('rule-threshold'),
+    });
+    return;
+  }
   const saveForm = event.target.closest('[data-save-inspection-form]');
   if (saveForm) {
     event.preventDefault();

@@ -108,7 +108,7 @@ test('accepted candidate becomes a formal check and unlocks confirmation', () =>
   assert.match(html, /<details[^>]+class="check-card[^>]*>/);
   assert.match(html, /查看细节/);
   assert.match(html, /目标实体/);
-  assert.match(html, /检查指标/);
+  assert.match(html, /业务黄金指标/);
   assert.match(html, /执行能力/);
   assert.match(html, /判定规则/);
   assert.match(html, /时间与基线/);
@@ -118,7 +118,7 @@ test('accepted candidate becomes a formal check and unlocks confirmation', () =>
   assert.match(html, /CHG-84217/);
   assert.match(html, /Observed-Superset/);
   assert.doesNotMatch(html, /data-action="PLAN_CONFIRMED"[^>]+disabled/);
-  assert.match(html, /data-action="PLAN_CONFIRMED"[^>]*>[\s\S]*?确认并开始巡检/);
+  assert.match(html, /data-action="PLAN_CONFIRMED"[^>]*>[\s\S]*?确认并执行 4 项检查/);
 });
 
 test('medium candidate is presented as optional without pretending to block the plan', () => {
@@ -195,7 +195,7 @@ test('draft without AI suggestions skips the confirmation section', () => {
   assert.match(html, /本次将执行 \d+ 项检查，无需额外确认/);
   assert.doesNotMatch(html, /id="pending-title"/);
   assert.match(html, /id="formal-title">将执行的检查/);
-  assert.match(html, /确认并开始巡检/);
+  assert.match(html, /确认并执行 4 项检查/);
 });
 
 test('scope presents business, metric, trace, and middleware impact dimensions together', () => {
@@ -224,9 +224,6 @@ test('risk report leads with action while preserving evidence semantics', () => 
     disposition: 'accepted',
   });
   state = dispatch(state, 'PLAN_CONFIRMED');
-  for (let index = 0; index < 4; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
   const html = renderApp(selectViewModel(state));
 
   assert.match(html, /建议暂停在 25% 灰度/);
@@ -329,9 +326,6 @@ test('report keeps the task locked and offers a secondary versioned proposal', (
   let state = orderState();
   state = dispatch(state, 'INPUT_CONFIRMED');
   state = dispatch(state, 'PLAYBOOK_EXECUTION_STARTED');
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
   let html = renderApp(selectViewModel(state));
 
   assert.match(html, /data-testid="playbook-proposal"/);
@@ -361,10 +355,6 @@ test('the product uses concise task copy instead of slogans or decorative module
     disposition: 'accepted',
   });
   state = dispatch(state, 'PLAN_CONFIRMED');
-  states.push(state);
-  for (let index = 0; index < 4; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
   states.push(state);
 
   const html = states.map((item) => renderApp(selectViewModel(item))).join('\n');
@@ -449,9 +439,6 @@ function completedFulfillmentReport() {
   state = dispatch(state, 'INPUT_CONFIRMED');
   state = dispatch(state, 'SCOPE_ACCEPTED');
   state = dispatch(state, 'PLAN_CONFIRMED');
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
   return state;
 }
 
@@ -525,9 +512,6 @@ test('current saved run report shows comparison and share controls while degrade
   const definitionId = state.library.savedInspections[0].id;
   const library = state.library;
   state = dispatch(state, 'SAVED_INSPECTION_RUN_REQUESTED', { definitionId });
-  for (let index = 0; index < state.workspace.execution.length; index += 1) {
-    state = dispatch(state, 'EXECUTION_ADVANCED');
-  }
   const reportHtml = renderApp(selectViewModel(state));
   assert.match(reportHtml, /与上次相比/);
   assert.match(reportHtml, /与上次结论一致/);

@@ -1,3 +1,4 @@
+import { formatCheckRules } from '../lib/metric-catalog.mjs';
 import { renderPlaybookProposal } from './render-playbook.mjs';
 import { renderReportJourneyDetails, renderSelectedContextResults } from './render-saved-inspections.mjs';
 import {
@@ -8,6 +9,7 @@ import {
   projectReportEvidence,
   REPORT_STATUS_COPY,
 } from './report-model.mjs';
+import { renderTrendChart } from './report-trend.mjs';
 import { escapeHtml } from './view-utils.mjs';
 
 function renderReportMetadata(run, taskName) {
@@ -44,6 +46,7 @@ function renderEvidenceCard(item) {
   return `<article tabindex="-1" class="evidence-card is-${status.tone}" data-evidence-id="${escapeHtml(item.id)}" data-check-id="${escapeHtml(item.checkId ?? '')}">
     <header><div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(item.entity)}</small></div><span>${status.symbol} ${status.label}</span></header>
     ${measurement}
+    ${renderTrendChart(item)}
   </article>`;
 }
 
@@ -69,9 +72,9 @@ function renderCheckResult(item) {
       <p>${escapeHtml(item.summary)}</p>
       <dl>
         <div><dt>目标实体</dt><dd>${escapeHtml(check.entity)}</dd></div>
-        <div><dt>检查指标</dt><dd><code>${escapeHtml(check.metric)}</code></dd></div>
+        <div><dt>业务黄金指标</dt><dd>${check.metricRules.map((rule) => `<code>${escapeHtml(rule.label)} · ${escapeHtml(rule.metricId)}</code>`).join(' ')}</dd></div>
         <div><dt>执行能力</dt><dd>${escapeHtml(check.capability)}</dd></div>
-        <div><dt>判定规则</dt><dd>${escapeHtml(check.rule)}</dd></div>
+        <div><dt>判定规则</dt><dd>${escapeHtml(formatCheckRules(check))}</dd></div>
         <div><dt>时间与基线</dt><dd>${escapeHtml(check.window)} · ${escapeHtml(check.baseline)}</dd></div>
         <div><dt>失败动作</dt><dd>${escapeHtml(check.failureAction)}</dd></div>
         <div><dt>事实来源</dt><dd>${check.sourceRefs.map((source) => `<code>${escapeHtml(source)}</code>`).join(' ')}</dd></div>
@@ -127,6 +130,7 @@ function renderReportCore(run, taskName, report) {
 function comparisonText(item) {
   if (item.kind === 'added') return `新增覆盖：${item.after.label}`;
   if (item.kind === 'removed') return `移除覆盖：${item.before.label}`;
+  if (item.evidenceChanged) return `${item.label}：趋势证据或门禁已变化`;
   return `${item.label}：${item.before.fact} → ${item.after.fact}`;
 }
 
