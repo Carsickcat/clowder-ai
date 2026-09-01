@@ -108,6 +108,7 @@ CandidateSet 扩展为不可变 `planningSnapshot`：包含 change/topology 两�
 - `feat/ai-inspection-real@44bac1e`: 完成规划来源端口、不可变 `planningSnapshot` / `planningDigest`、严格公开 schema、Case lineage 派生、Run 前 drift guard、显式 Prometheus 组合与无 replay fallback；API observability 89/89、NOVA deliverables 6/6 通过。
 - `feat/ai-inspection-real@eb6c845`: Connected Web 只提交 `changeRef` 与可选 intent，移除 Job/Revision/Case 权威事实写入口，保留只读 lineage 投影，并把 typed drift 409 呈现为重新规划动作；完整 Web tests 与整仓 `pnpm gate` 通过。
 - `feat/ai-inspection-editable-metrics`: 离线 UX truth 已下钻到目录白名单中的具体黄金指标；SRE 只编辑比较符与阈值，一次确认并行求值全部无依赖检查。每条 editable rule 必须有同源 numeric measurement 与持久化趋势，缺失时显式 fail closed；新 Run 只写 locked report，不再写 legacy `executionResults` 第二真相。报告、历史和导出复用同一份 immutable Run。该契约将作为真实 provider 接入后的计划与证据投影基准。
+- `feat/ai-inspection-release-journey`: 离线 UX truth 已收敛为“变更引用 + 可选关注点 → CandidateSet → 一次确认 → immutable Run/Report”；声明外实体默认作为 coverage gap，不静默进入阻断计划，只有已批准规则可由用户显式加入。报告将上下文引用与 evidence verdict 分离，默认/显式加入/legacy 三条反例及 390px 路径由 112 项回归和离线 Chrome 门禁保护。该切片只更新 UX 投影契约，不声称 AC-6/AC-7 的真实 provider/API 接入已完成。
 - production build 在隔离端口 API `3192` / Web `5192` 返回 200；Hub 预览已打开，但当前会话无可控内嵌浏览器实例，因此 390px 与真实长数据视觉验收仍未宣称完成。
 - provider-specific `ChangeSource` / `TopologySource` adapter、真实指标端到端与 smoke test 继续等待 co-creator 提供非生产 endpoint、鉴权、样例 payload、测试服务及允许查询范围。
 
@@ -147,6 +148,7 @@ CandidateSet 扩展为不可变 `planningSnapshot`：包含 change/topology 两�
 | 7 | 规划来源使用窄 resolver，不并入 metrics registry | change/topology 解析与指标采集的生命周期、错误语义不同 | 2026-08-30 |
 | 8 | legacy operations 表面只读且 role-gated | 保留诊断价值，但彻底关闭绕过规划和 drift guard 的第二写路径 | 2026-08-30 |
 | 9 | 黄金指标来自白名单目录；SRE 只编辑比较符与阈值；无依赖检查一次并行求值 | 防止任意查询成为旁路，同时让具体值班规则可调；规则与趋势随 immutable Run 锁定，保证报告、历史和导出同源 | 2026-09-01 |
+| 10 | 声明外实体默认是 coverage gap；仅显式加入的已批准规则进入阻断计划；上下文不使用 evidence verdict | 一期保持单发布目标边界，既不静默扩面，也不把未覆盖风险伪装成通过 | 2026-09-02 |
 
 ## Review Gate
 
