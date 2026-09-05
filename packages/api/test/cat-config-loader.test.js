@@ -7,6 +7,7 @@ import { describe, it } from 'node:test';
 
 const {
   loadCatConfig,
+  bootstrapDefaultCatCatalog,
   getDefaultVariant,
   toFlatConfigs,
   toAllCatConfigs,
@@ -105,6 +106,50 @@ describe('cat-config-loader', () => {
           process.env.CAT_TEMPLATE_PATH = saved;
         }
       }
+    });
+
+    it('bootstraps newly shipped seed cats into an existing runtime catalog', () => {
+      const projectDir = mkdtempSync(join(tmpdir(), 'cat-template-seed-upgrade-'));
+      const templatePath = join(projectDir, 'cat-template.json');
+      const template = validConfig();
+      template.breeds.push({
+        id: 'silver-chinchilla',
+        catId: 'gpt6',
+        name: 'Silver Chinchilla',
+        displayName: 'Silver Chinchilla',
+        avatar: '/avatars/diudiu-max.png',
+        color: { primary: '#708090', secondary: '#E0F2F1' },
+        mentionPatterns: ['@gpt6'],
+        roleDescription: 'Complex architecture designer',
+        defaultVariantId: 'gpt6-default',
+        variants: [
+          {
+            id: 'gpt6-default',
+            provider: 'openai',
+            accountRef: 'codex',
+            defaultModel: 'gpt-6-astra',
+            mcpSupport: true,
+            cli: { command: 'codex', outputFormat: 'json' },
+          },
+        ],
+      });
+      writeFileSync(templatePath, JSON.stringify(template));
+
+      const runtimeDir = join(projectDir, '.cat-cafe');
+      mkdirSync(runtimeDir, { recursive: true });
+      const oldCatalog = validConfig();
+      oldCatalog.breeds[0].displayName = 'Runtime-edited Ragdoll';
+      oldCatalog.accounts = {
+        codex: { id: 'codex', client: 'openai', authType: 'oauth', builtin: true },
+      };
+      writeFileSync(join(runtimeDir, 'cat-catalog.json'), JSON.stringify(oldCatalog));
+
+      const bootstrapped = bootstrapDefaultCatCatalog(templatePath);
+      const cats = toAllCatConfigs(bootstrapped);
+
+      assert.equal(bootstrapped.breeds[0].displayName, 'Runtime-edited Ragdoll');
+      assert.equal(cats.gpt6.defaultModel, 'gpt-6-astra');
+      assert.equal(cats.gpt6.accountRef, 'codex');
     });
 
     it('deep-merges catalog overlay onto config base (preserves base-only fields)', () => {

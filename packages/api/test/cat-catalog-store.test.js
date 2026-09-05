@@ -358,6 +358,81 @@ describe('cat-catalog-store', () => {
     assert.equal(hydrated.breeds[0]?.variants[0]?.accountRef, 'claude');
   });
 
+  it('appends newly shipped seed cats to an existing runtime catalog without overwriting runtime edits', () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), 'cat-catalog-store-seed-upgrade-'));
+    const templatePath = join(projectRoot, 'cat-template.json');
+    const template = validConfig();
+    template.breeds.push({
+      id: 'silver-chinchilla',
+      catId: 'gpt6',
+      name: 'Silver Chinchilla',
+      displayName: 'Silver Chinchilla',
+      nickname: 'Diudiu Max',
+      avatar: '/avatars/diudiu-max.png',
+      color: { primary: '#708090', secondary: '#E0F2F1' },
+      mentionPatterns: ['@gpt6'],
+      roleDescription: 'Complex architecture designer',
+      defaultVariantId: 'gpt6-default',
+      variants: [
+        {
+          id: 'gpt6-default',
+          provider: 'openai',
+          defaultModel: 'gpt-6-astra',
+          mcpSupport: true,
+          cli: { command: 'codex', outputFormat: 'json' },
+        },
+      ],
+    });
+    template.breeds[0].variants.push({
+      id: 'sonnet-new',
+      catId: 'sonnet-new',
+      provider: 'anthropic',
+      defaultModel: 'claude-sonnet-new',
+      mcpSupport: true,
+      cli: { command: 'claude', outputFormat: 'stream-json' },
+    });
+    template.roster.gpt6 = {
+      family: 'silver-chinchilla',
+      roles: ['architect'],
+      lead: false,
+      available: true,
+      evaluation: 'Complex architecture',
+    };
+    template.roster['sonnet-new'] = {
+      family: 'ragdoll',
+      roles: ['assistant'],
+      lead: false,
+      available: true,
+      evaluation: 'New seed variant',
+    };
+    writeFileSync(templatePath, JSON.stringify(template, null, 2));
+
+    const existingCatalog = validConfig();
+    existingCatalog.breeds[0].displayName = 'Runtime-edited Ragdoll';
+    existingCatalog.accounts = {
+      codex: { id: 'codex', client: 'openai', authType: 'oauth', builtin: true },
+    };
+    mkdirSync(join(projectRoot, '.cat-cafe'), { recursive: true });
+    writeFileSync(join(projectRoot, '.cat-cafe', 'cat-catalog.json'), JSON.stringify(existingCatalog, null, 2));
+
+    bootstrapCatCatalog(projectRoot, templatePath);
+
+    const persisted = JSON.parse(readFileSync(join(projectRoot, '.cat-cafe', 'cat-catalog.json'), 'utf-8'));
+    const runtimeView = readRuntimeCatCatalog(projectRoot);
+    const persistedGpt6 = persisted.breeds.find((breed) => breed.id === 'silver-chinchilla');
+    assert.equal(persisted.breeds[0]?.displayName, 'Runtime-edited Ragdoll');
+    assert.deepEqual(persisted.accounts, existingCatalog.accounts);
+    assert.ok(persistedGpt6, 'new seed breed must be appended to the persisted runtime catalog');
+    assert.equal(persistedGpt6.variants[0]?.accountRef, 'codex');
+    assert.equal(persisted.roster.gpt6.family, 'silver-chinchilla');
+    assert.ok(
+      persisted.breeds[0].variants.some((variant) => variant.catId === 'sonnet-new'),
+      'new seed variant must be appended to an existing runtime breed',
+    );
+    assert.equal(persisted.roster['sonnet-new'].family, 'ragdoll');
+    assert.ok(runtimeView.breeds.some((breed) => breed.id === 'silver-chinchilla'));
+  });
+
   it('creates a new runtime member without corrupting v2 top-level fields', async () => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'cat-catalog-store-'));
     const templatePath = join(projectRoot, 'cat-template.json');

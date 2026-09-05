@@ -365,6 +365,75 @@ function filterBootstrapCatalog(template: CatCafeConfig, projectRoot: string): C
   };
 }
 
+function breedVariants(breed: Record<string, unknown>): Record<string, unknown>[] {
+  return Array.isArray(breed.variants) ? (breed.variants as Record<string, unknown>[]) : [];
+}
+
+function resolvedVariantCatId(breed: Record<string, unknown>, variant: Record<string, unknown>): string | null {
+  const value = typeof variant.catId === 'string' ? variant.catId : breed.catId;
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function appendSeedVariants(
+  nextBreeds: Record<string, unknown>[],
+  seedBreed: Record<string, unknown>,
+  missingVariants: Record<string, unknown>[],
+): void {
+  const existingBreed = nextBreeds.find((breed) => breed.id === seedBreed.id);
+  if (existingBreed) {
+    existingBreed.variants = [...breedVariants(existingBreed), ...structuredClone(missingVariants)];
+    return;
+  }
+
+  const nextBreed = structuredClone(seedBreed);
+  nextBreed.variants = structuredClone(missingVariants);
+  if (!missingVariants.some((variant) => variant.id === seedBreed.defaultVariantId)) {
+    nextBreed.defaultVariantId = missingVariants[0]?.id;
+  }
+  nextBreeds.push(nextBreed);
+}
+
+function appendSeedRosterEntries(nextCatalog: CatCafeConfig, seedCatalog: CatCafeConfig, catIds: Set<string>): void {
+  if (!('roster' in nextCatalog) || !('roster' in seedCatalog)) return;
+  const nextRoster = { ...(nextCatalog.roster ?? {}) } as Record<string, unknown>;
+  const seedRoster = (seedCatalog.roster ?? {}) as unknown as Record<string, unknown>;
+  for (const catId of catIds) {
+    if (!Object.hasOwn(nextRoster, catId) && Object.hasOwn(seedRoster, catId)) {
+      nextRoster[catId] = structuredClone(seedRoster[catId]);
+    }
+  }
+  (nextCatalog as unknown as { roster: Roster }).roster = nextRoster as Roster;
+}
+
+function appendMissingSeedMembers(
+  catalog: CatCafeConfig,
+  seedCatalog: CatCafeConfig,
+): { catalog: CatCafeConfig; dirty: boolean } {
+  const nextCatalog = structuredClone(catalog) as CatCafeConfig;
+  const nextBreeds = nextCatalog.breeds as unknown as Record<string, unknown>[];
+  const existingCatIds = new Set(nextBreeds.flatMap((breed) => collectBreedCatIds(breed)));
+  const addedCatIds = new Set<string>();
+
+  for (const seedBreed of seedCatalog.breeds as unknown as Record<string, unknown>[]) {
+    const missingVariants = breedVariants(seedBreed).filter((variant) => {
+      const catId = resolvedVariantCatId(seedBreed, variant);
+      return catId !== null && !existingCatIds.has(catId);
+    });
+    if (missingVariants.length === 0) continue;
+
+    appendSeedVariants(nextBreeds, seedBreed, missingVariants);
+    for (const variant of missingVariants) {
+      const catId = resolvedVariantCatId(seedBreed, variant);
+      if (catId === null) continue;
+      existingCatIds.add(catId);
+      addedCatIds.add(catId);
+    }
+  }
+
+  appendSeedRosterEntries(nextCatalog, seedCatalog, addedCatIds);
+  return { catalog: nextCatalog, dirty: addedCatIds.size > 0 };
+}
+
 export function resolveCatCatalogPath(projectRoot: string): string {
   return safePath(projectRoot, CAT_CAFE_DIR, CAT_CATALOG_FILENAME);
 }
@@ -396,7 +465,18 @@ export function readCatCatalog(projectRoot: string): CatCafeConfig | null {
 export function bootstrapCatCatalog(projectRoot: string, templatePath: string): string {
   const catalogPath = resolveCatCatalogPath(projectRoot);
   if (existsSync(catalogPath)) {
-    readCatCatalogRaw(projectRoot);
+    const existingRaw = readCatCatalogRaw(projectRoot);
+    if (existingRaw === null) return catalogPath;
+
+    const legacyConfigPath = resolve(projectRoot, 'cat-config.json');
+    const sourcePath = existsSync(legacyConfigPath) ? legacyConfigPath : templatePath;
+    const template = JSON.parse(readFileSync(sourcePath, 'utf-8')) as CatCafeConfig;
+    const seedCatalog = filterBootstrapCatalog(template, projectRoot);
+    const seeded = appendMissingSeedMembers(JSON.parse(existingRaw) as CatCafeConfig, seedCatalog);
+    const migrated = migrateExistingCatalogBindings(projectRoot, seeded.catalog);
+    if (seeded.dirty || migrated.dirty) {
+      writeFileAtomic(catalogPath, `${JSON.stringify(migrated.catalog, null, 2)}\n`);
+    }
     return catalogPath;
   }
 
