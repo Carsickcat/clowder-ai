@@ -25,6 +25,7 @@ const VARIANT_BASE_FALLBACK: Record<string, string> = {
 const FALLBACK_CAT_META: Record<string, { label: string; color: string }> = {
   opus: { label: '布偶猫', color: '#9B7EBD' },
   codex: { label: '缅因猫', color: '#5B8C5A' },
+  gpt6: { label: '银渐层·丢丢max', color: '#708090' },
   gemini: { label: '暹罗猫', color: '#5B9BD5' },
   dare: { label: '狸花猫', color: '#D4A76A' },
 };

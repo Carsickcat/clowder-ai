@@ -75,8 +75,10 @@ const CAT_SESSION_COLORS: Record<string, { border: string; badgeBg: string; badg
   codex: { border: 'border-codex-primary/40', badgeBg: 'bg-codex-light', badgeText: 'text-codex-dark' },
   gemini: { border: 'border-gemini-primary/40', badgeBg: 'bg-gemini-light', badgeText: 'text-gemini-dark' },
   dare: { border: 'border-dare-primary/40', badgeBg: 'bg-dare-light', badgeText: 'text-dare-dark' },
-  // Maine-coon variants: green family, different shades
+  // Maine-coon variant: green family
   gpt52: { border: 'border-[#66BB6A66]', badgeBg: 'bg-[#C8E6C9]', badgeText: 'text-[#2E7D32]' },
+  // Silver shaded architect
+  gpt6: { border: 'border-[#70809066]', badgeBg: 'bg-[#E0F2F1]', badgeText: 'text-[#455A64]' },
   // Ragdoll variants: purple family, different shades
   'opus-45': { border: 'border-[#7E57C266]', badgeBg: 'bg-[#E1D5F0]', badgeText: 'text-[#5E35B1]' },
   sonnet: { border: 'border-[#B39DDB66]', badgeBg: 'bg-[#EDE7F6]', badgeText: 'text-[#6A1B9A]' },

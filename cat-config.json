@@ -41,6 +41,13 @@
       "available": true,
       "evaluation": "深度思考型，审查细致，bug定位一流——宪宪找不到的bug他能找到"
     },
+    "gpt6": {
+      "family": "silver-chinchilla",
+      "roles": ["architect"],
+      "lead": false,
+      "available": true,
+      "evaluation": "丢丢max，使用 GPT-6 Astra，负责复杂架构设计"
+    },
     "spark": {
       "family": "maine-coon",
       "roles": ["coder"],
@@ -358,6 +365,46 @@
             "refText": "太阳出来了。狩猎一起去？",
             "instruct": "用一个简单直接的野性少年语气说话，短句为主，像狼一样直觉敏锐",
             "temperature": 0.3
+          }
+        }
+      ]
+    },
+    {
+      "id": "silver-chinchilla",
+      "catId": "gpt6",
+      "name": "银渐层",
+      "displayName": "银渐层",
+      "nickname": "丢丢max",
+      "avatar": "/avatars/diudiu-max.png",
+      "color": {
+        "primary": "#708090",
+        "secondary": "#E0F2F1"
+      },
+      "mentionPatterns": ["@gpt6", "@gpt-6", "@丢丢max", "@diudiumax", "@银渐层"],
+      "roleDescription": "复杂架构设计师，负责复杂系统的架构分析、方案设计与关键取舍",
+      "teamStrengths": "复杂架构设计",
+      "caution": "旗舰模型，优先用于复杂架构设计",
+      "defaultVariantId": "gpt6-default",
+      "variants": [
+        {
+          "id": "gpt6-default",
+          "variantLabel": "GPT-6 Astra",
+          "provider": "openai",
+          "defaultModel": "gpt-6-astra",
+          "mcpSupport": true,
+          "cli": {
+            "command": "codex",
+            "outputFormat": "json",
+            "defaultArgs": ["exec", "--json"],
+            "effort": "xhigh"
+          },
+          "personality": "沉稳、清醒、有全局感，面对复杂问题会先找对架构坐标系",
+          "strengths": ["complex-architecture"],
+          "contextBudget": {
+            "maxPromptTokens": 900000,
+            "maxContextTokens": 850000,
+            "maxMessages": 500,
+            "maxContentLengthPerMsg": 20000
           }
         }
       ]

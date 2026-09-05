@@ -18,6 +18,21 @@ function readInstallerState(projectRoot) {
   };
 }
 
+test('fresh Codex OAuth setup exposes GPT-6 Astra in the builtin model catalog', () => {
+  const projectRoot = mkdtempSync(join(tmpdir(), 'clowder-install-gpt6-astra-'));
+
+  try {
+    runHelper(['client-auth', 'set', '--project-dir', projectRoot, '--client', 'openai', '--mode', 'oauth']);
+
+    const { profiles } = readInstallerState(projectRoot);
+    const codex = profiles.providers.find((profile) => profile.id === 'codex');
+    assert.ok(codex, 'builtin Codex account exists');
+    assert.ok(codex.models.includes('gpt-6-astra'));
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true });
+  }
+});
+
 test('client-auth set creates a generic api key account and bootstrap binding for the selected client', () => {
   const projectRoot = mkdtempSync(join(tmpdir(), 'clowder-install-client-auth-'));
 

@@ -776,15 +776,16 @@ describe('F32-b P4c: Sonnet variant in project config', () => {
     assert.notDeepEqual(all.sonnet.color, all.opus.color);
   });
 
-  it('total cat count is 12 (opus + sonnet + opus-45 + codex + gpt52 + spark + gemini + gemini25 + dare + antigravity + antig-opus + opencode)', () => {
+  it('total cat count is 13 (including the GPT-6 Astra silver shaded cat)', () => {
     const config = loadCatConfig();
     const all = toAllCatConfigs(config);
-    assert.equal(Object.keys(all).length, 12);
+    assert.equal(Object.keys(all).length, 13);
     assert.ok(all.opus);
     assert.ok(all.sonnet);
     assert.ok(all['opus-45']);
     assert.ok(all.codex);
     assert.ok(all.gpt52);
+    assert.ok(all.gpt6);
     assert.ok(all.spark); // F032 Phase E: new cat added
     assert.ok(all.gemini);
     assert.ok(all.gemini25);
@@ -861,5 +862,39 @@ describe('GPT-5.2 variant mention aliases in project config', () => {
     const gpt52 = all.gpt52;
     assert.ok(gpt52, 'gpt52 cat config exists');
     assert.ok(gpt52.mentionPatterns.includes('@gpt'));
+  });
+});
+
+describe('GPT-6 Astra silver shaded cat in project config', () => {
+  it('expands 丢丢max as an independent silver shaded architecture cat', () => {
+    const config = loadCatConfig();
+    const all = toAllCatConfigs(config);
+    const gpt6 = all.gpt6;
+
+    assert.ok(gpt6, 'gpt6 cat config exists');
+    assert.equal(config.roster.gpt6.family, 'silver-chinchilla');
+    assert.deepEqual(config.roster.gpt6.roles, ['architect']);
+    assert.equal(gpt6.breedId, 'silver-chinchilla');
+    assert.equal(gpt6.variantLabel, 'GPT-6 Astra');
+    assert.equal(gpt6.displayName, '银渐层');
+    assert.equal(gpt6.nickname, '丢丢max');
+    assert.equal(gpt6.provider, 'openai');
+    assert.equal(gpt6.defaultModel, 'gpt-6-astra');
+    assert.equal(gpt6.avatar, '/avatars/diudiu-max.png');
+    assert.deepEqual(gpt6.strengths, ['complex-architecture']);
+    assert.equal(gpt6.contextBudget.maxPromptTokens, 900000);
+  });
+
+  it('routes GPT-6 and 丢丢max handles to the new cat without taking over @gpt', () => {
+    const config = loadCatConfig();
+    const all = toAllCatConfigs(config);
+    const gpt6 = all.gpt6;
+
+    assert.ok(gpt6.mentionPatterns.includes('@gpt6'));
+    assert.ok(gpt6.mentionPatterns.includes('@gpt-6'));
+    assert.ok(gpt6.mentionPatterns.includes('@丢丢max'));
+    assert.equal(gpt6.mentionPatterns.includes('@gpt'), false);
+    assert.equal(String(findBreedByMention(config, '@gpt6 请处理')?.catId), 'gpt6');
+    assert.equal(String(findBreedByMention(config, '@丢丢max 请处理')?.catId), 'gpt6');
   });
 });

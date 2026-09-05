@@ -9,6 +9,7 @@ const CAT_BG_COLORS: Record<string, string> = {
   gemini: 'var(--color-gemini-primary)',
   // Variant-specific shades (same family, different tones)
   gpt52: '#66BB6A',
+  gpt6: '#708090',
   'opus-45': '#7E57C2',
   sonnet: '#B39DDB',
 };

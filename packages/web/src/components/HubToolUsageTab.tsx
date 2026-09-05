@@ -17,6 +17,7 @@ const CAT_LABELS: Record<string, string> = {
   'opus-45': '布偶猫 Opus 4.5',
   codex: '缅因猫 Codex',
   gpt52: '缅因猫 GPT-5.4',
+  gpt6: '银渐层 丢丢max',
   spark: '缅因猫 Spark',
   gemini: '暹罗猫 Gemini',
   gemini25: '暹罗猫 Gemini 2.5',
