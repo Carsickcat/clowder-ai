@@ -7,7 +7,7 @@ created: 2026-02-26
 
 # Clowder AI Feature Roadmap
 
-> 维护者：三猫 | 最后更新：2026-09-04（F316 记忆内容覆盖与真实召回验收立项）
+> 维护者：三猫 | 最后更新：2026-09-13（F317 服装设计咖啡馆立项）
 >
 > **规则**：只放活跃 Feature（idea/spec/in-progress/review），done 后移除。
 > 详细信息见 `docs/features/Fxxx-*.md`。
@@ -127,3 +127,4 @@ created: 2026-02-26
 | F314 | Development Episode Alignment Experiment｜开发交付对齐自进化实验 — 人猫共创首版 accepted-source→exact-HEAD 对齐、风险匹配 gate、review 刹车与 opt-in main-health；后续由 F311 对单一不确定变量做 keep/tune/sunset，不新增控制面或 operator 保姆税 | spec / experimental kickoff | 小太阳·Maine Coon (@codex-sol, GPT-5.6 Sol) | internal (operator 2026-09-02 `0001788362521422-000191-49e92a70`：批准立项，初始由我们建立，后续优化接入 F311) | [F314](features/F314-development-episode-alignment-experiment.md) · Convergence blueprint (internal) |
 | F315 | Workspace Readability Remediation｜存量页面从内部对象回到用户任务 — 从 canonical 入口生成 19 项现状 census，以 operator 五个真实页面为首批，逐页把“发生了什么 / 是否要行动 / 下一步”放回首屏，精确技术证据按需可恢复；只消费 F305/ADR-043/F056，不新增规则或接管 F284/F307/领域 owner | spec / Phase A audit kickoff | 小太阳·Maine Coon (@codex-sol, GPT-5.6 Sol) | internal (operator 2026-09-03 `0001788492776995-000225-df6cc10c`：指出 Workspace 多数页面仍违背 F305，要求新 Feature 盘点并治理现状) | [F315](features/F315-workspace-readability-remediation.md) · Baseline audit (internal) |
 | F316 | Memory Coverage & Recall Truth｜从 F312 的 21-surface 结构闭环继续回答“到底记住了什么、能否完整读回、何时真正影响行为”；先全景盘点，再收 Profile/Entity/Person 关系纵切与 F221 UI/UX Taste 闭世界覆盖，保持各 lane authority 与 bounded cue | in-progress / Phase E accepted；B1/B3 blocked | 小太阳·Maine Coon (@codex-sol, GPT-5.6 Sol) + F316 总控线程责任猫 | internal (operator 2026-09-04 `0001788523790612-000995-bcf8dd63`：要求不止 Taste，逐面排查关系、Entity、Person 等记忆系统) | [F316](features/F316-memory-coverage-recall-truth.md) · 后继体验路线提案（不扩 F316） (internal) |
+| F317 | Atelier Fashion Design Cafe — 固定 8 域结构化拆解、受保护局部改款、不可变版本与可追溯 SVG 款式线稿 | spec | Ragdoll/opus + Ragdoll/sonnet + Siamese + Maine Coon | internal (operator 2026-09-13 授权开始构建) | [F317](features/F317-atelier-fashion-design-cafe.md) |
