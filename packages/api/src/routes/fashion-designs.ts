@@ -1,8 +1,10 @@
 import {
   EditProposalInputSchema,
+  type FashionDesign,
   FashionIdSchema,
   type FashionImageAsset,
   GarmentComponentInputSchema,
+  type GarmentDomainsInput,
   type GarmentView,
   GarmentViewSchema,
 } from '@cat-cafe/shared';
@@ -16,6 +18,7 @@ import { resolveDirectLocalAuthorizationUserId } from '../utils/request-identity
 import { readFashionImages, saveFashionImage } from './fashion-images.js';
 
 export interface FashionPreviewScheduler {
+  assertAvailable?(): void;
   schedule(userId: string, designId: string, proposalId: string, operationId: string): void;
 }
 export interface FashionDesignRoutesOptions {
@@ -23,6 +26,7 @@ export interface FashionDesignRoutesOptions {
   uploadDir: string;
   threadStore: { get(id: string): { createdBy: string } | null | Promise<{ createdBy: string } | null> };
   previewWorker?: FashionPreviewScheduler;
+  analyzer?: { analyze(input: { design: FashionDesign; signal: AbortSignal }): Promise<GarmentDomainsInput> };
 }
 const baseSchema = z.object({ baseVersionId: FashionIdSchema }).strict();
 const confirmSchema = baseSchema
@@ -102,6 +106,32 @@ export const fashionDesignRoutes: FastifyPluginAsync<FashionDesignRoutesOptions>
     return { designs: (await service.list(user(request), threadId)).map((state) => state.design) };
   });
   app.get('/api/fashion-designs/:id', async (request) => (await owned(request)).state);
+  app.post('/api/fashion-designs/:id/analysis', async (request, reply) => {
+    const { userId, id, state } = await owned(request);
+    z.object({})
+      .strict()
+      .parse(request.body ?? {});
+    const existing = Object.values(state.versions).find((version) => version.parentVersionId === null);
+    if (existing) return { version: existing };
+    if (!opts.analyzer) throw new FashionError('analysis_provider_unavailable', 503);
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const domains = await Promise.race([
+        opts.analyzer.analyze({ design: state.design, signal: controller.signal }),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => {
+            controller.abort();
+            reject(new FashionError('analysis_timeout', 504));
+          }, 180_000);
+        }),
+      ]);
+      await ownedThread(userId, state.design.threadId);
+      return reply.code(201).send({ version: await service.analyze(userId, id, domains) });
+    } finally {
+      clearTimeout(timer);
+    }
+  });
   app.post('/api/fashion-designs/:id/reference-images', async (request, reply) => {
     const { userId, id } = await owned(request);
     const { images } = await readFashionImages(request, 'reference');
@@ -116,6 +146,7 @@ export const fashionDesignRoutes: FastifyPluginAsync<FashionDesignRoutesOptions>
   app.post('/api/fashion-designs/:id/edit-proposals', { bodyLimit: 32 * 1024 }, async (request, reply) => {
     const { userId, id, state } = await owned(request);
     if (!opts.previewWorker) throw new FashionError('preview_provider_unavailable', 503);
+    opts.previewWorker.assertAvailable?.();
     const input = EditProposalInputSchema.parse(request.body);
     if (input.referenceAssetId && state.design.assets?.[input.referenceAssetId]?.kind !== 'reference')
       throw new FashionError('reference_not_found', 404);
@@ -124,9 +155,12 @@ export const fashionDesignRoutes: FastifyPluginAsync<FashionDesignRoutesOptions>
     return reply.code(202).send(operation(proposal));
   });
   app.get('/api/fashion-designs/:id/edit-proposals/:proposalId', async (request) => {
-    const { state, proposalId } = await owned(request);
+    const { state, proposalId, userId, id } = await owned(request);
     const proposal = state.proposals[proposalId!];
     if (!proposal) throw new FashionError('proposal_not_found', 404);
+    // A durable candidate is also the publication outbox. Polling can repair a process
+    // loss after the candidate CAS without re-running generation or changing adoption.
+    if (proposal.candidateVersionId) opts.previewWorker?.schedule(userId, id, proposal.id, proposal.operationId);
     return {
       ...operation(proposal),
       failure: proposal.failure,
@@ -137,6 +171,7 @@ export const fashionDesignRoutes: FastifyPluginAsync<FashionDesignRoutesOptions>
   app.post('/api/fashion-designs/:id/edit-proposals/:proposalId/retry', async (request, reply) => {
     const { userId, id, proposalId } = await owned(request);
     if (!opts.previewWorker) throw new FashionError('preview_provider_unavailable', 503);
+    opts.previewWorker.assertAvailable?.();
     const { baseVersionId } = baseSchema.parse(request.body);
     const proposal = await service.retry(userId, id, proposalId!, baseVersionId);
     opts.previewWorker.schedule(userId, id, proposal.id, proposal.operationId);

@@ -4,7 +4,7 @@ related_features: [F056, F172, F190, F232]
 topics: [fashion-design, garment-dna, image-editing, versioning, technical-flat, hub]
 doc_kind: spec
 created: 2026-09-13
-tips_exempt: F317 HTTP/worker tranche only; no Hub entry or user interaction is added in this change.
+tips_exempt: F317 model adapter and publication tranche; no Hub entry is delivered yet, and the approved Atelier UI/tips remain in the active implementation task.
 ---
 
 # F317: Atelier Fashion Design Cafe — 结构受控局部改款与可追溯款式线稿
@@ -410,6 +410,7 @@ Why: F317 独立拥有 Garment DNA、版本和确认真相；F172/F232 保持图
 | 2026-09-13 | 产品收敛：固定 8 域、背面策略 A、冻结 ConfirmedSnapshot、protected drift 硬阻断 |
 | 2026-10-06 | operator 批准开工；核心层 `f55eae5` 获 opus 明确放行（消息 `0001791288051903-000027-fa9f44f0`），26 项测试通过；尚未合入/发布 |
 | 2026-10-06 | 继续 HTTP 上传/归属与异步预览执行批次；真实模型、mask、F172/F232 发布、SVG 和 UI 仍待实现，未宣称完整产品可用 |
+| 2026-10-06 | HTTP/worker `fd1020f` 获 opus 放行（消息 `0001791289410618-000029-0dfca526`）。接入 Codex 只读模型 adapter、服务端局部合成、最终图视觉复核、F172/F232 幂等发布与 API root 注入；56 项 fashion 测试通过。原生分析已验证 8 域/11 点；真实预览与采用证据见本批 review note。SVG、Hub UI、完整产品验收继续实施 |
 
 ## Review Gate
 

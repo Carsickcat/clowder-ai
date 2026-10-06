@@ -101,7 +101,7 @@ import {
   parseCodexReconnectNotice,
   transformCodexEvent,
 } from '../providers/codex-event-transform.js';
-import { scanAndPublishCodexImages } from '../providers/codex-image-scanner.js';
+import { resolveCodexImageHome, scanAndPublishCodexImages } from '../providers/codex-image-scanner.js';
 import {
   type CodexSessionContextSnapshotResolver,
   createCodexSessionContextSnapshotResolver,
@@ -2460,7 +2460,7 @@ export class CodexAgentService implements AgentService {
           const published = await scanAndPublishCodexImages({
             codexSessionId: metadata.sessionId,
             uploadDir: options?.uploadDir,
-            codexHome: rawEnv.HOME ? join(rawEnv.HOME, '.codex') : undefined,
+            codexHome: resolveCodexImageHome({ ...process.env, ...codexEnv }),
           });
           for (const img of published) {
             yield {

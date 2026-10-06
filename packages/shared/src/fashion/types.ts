@@ -1,3 +1,4 @@
+import type { RichMediaGalleryBlock } from '../types/rich.js';
 import type {
   EditProposalInput,
   FashionJsonValue,
@@ -24,7 +25,8 @@ export interface FashionImageAsset {
   id: string;
   urlPath: `/uploads/${string}`;
   mimeType: string;
-  kind: 'source' | 'reference';
+  kind: 'source' | 'reference' | 'preview';
+  publication?: { catId: string; block: RichMediaGalleryBlock };
 }
 export interface GarmentComponentSnapshot extends GarmentComponentInput {
   partHash: string;

@@ -3,6 +3,7 @@ import type { FashionDesignService } from './FashionDesignService.js';
 import type { PreviewResult } from './fashion-preview.js';
 
 export interface FashionPreviewProvider {
+  assertAvailable?(): void;
   generate(input: {
     design: FashionDesign;
     base: GarmentVersion;
@@ -19,7 +20,12 @@ export class FashionPreviewWorker {
   constructor(
     private readonly service: FashionDesignService,
     private readonly provider: FashionPreviewProvider,
-    private readonly options: { timeoutMs?: number; onError?: (error: unknown) => void } = {},
+    private readonly options: {
+      timeoutMs?: number;
+      onError?: (error: unknown) => void;
+      authorize?: (userId: string, designId: string) => Promise<void>;
+      onReady?: (userId: string, designId: string, proposalId: string) => Promise<void>;
+    } = {},
   ) {
     this.timeoutMs = options.timeoutMs ?? 120_000;
     if (!Number.isSafeInteger(this.timeoutMs) || this.timeoutMs < 1 || this.timeoutMs > 599_000)
@@ -40,9 +46,19 @@ export class FashionPreviewWorker {
   async whenIdle() {
     await Promise.all(this.pending.values());
   }
+  assertAvailable() {
+    this.provider.assertAvailable?.();
+  }
   async run(userId: string, designId: string, proposalId: string, operationId: string) {
+    await this.options.authorize?.(userId, designId);
     const token = await this.service.claimPreview(userId, designId, proposalId, operationId, this.timeoutMs + 1000);
-    if (!token) return;
+    if (!token) {
+      const state = await this.service.get(userId, designId);
+      const proposal = state.proposals[proposalId];
+      if (proposal.operationId === operationId && proposal.candidateVersionId)
+        await this.options.onReady?.(userId, designId, proposalId);
+      return;
+    }
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -63,7 +79,10 @@ export class FashionPreviewWorker {
         }),
         timeout,
       ]);
-      await this.service.completePreview(userId, designId, proposalId, operationId, result, token);
+      await this.options.authorize?.(userId, designId);
+      const completed = await this.service.completePreview(userId, designId, proposalId, operationId, result, token);
+      if (completed.operationId === operationId && completed.candidateVersionId)
+        await this.options.onReady?.(userId, designId, proposalId);
     } catch (error) {
       await this.service.failPreview(
         userId,

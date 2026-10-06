@@ -124,13 +124,6 @@ export class FashionDesignService {
   retry(userId: string, designId: string, proposalId: string, baseVersionId: string) {
     return this.transact(userId, designId, (state) => retryPreview(state, proposalId, baseVersionId));
   }
-  startPreview(userId: string, designId: string, proposalId: string, operationId: string) {
-    return this.transact(userId, designId, (state) => {
-      const proposal = getProposal(state, proposalId);
-      if (proposal.operationId === operationId && proposal.status === 'queued') proposal.status = 'generating';
-      return proposal;
-    });
-  }
   claimPreview(userId: string, designId: string, proposalId: string, operationId: string, leaseMs: number) {
     if (!Number.isSafeInteger(leaseMs) || leaseMs < 1 || leaseMs > 600_000)
       throw new FashionError('invalid_worker_lease', 400);

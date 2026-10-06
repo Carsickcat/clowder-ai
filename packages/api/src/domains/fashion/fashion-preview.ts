@@ -3,6 +3,7 @@ import {
   type EditProposalInput,
   EditProposalInputSchema,
   type FashionDesignState,
+  type FashionImageAsset,
   type GarmentComponentInput,
   type GarmentDomains,
   GarmentDomainsSchema,
@@ -26,6 +27,8 @@ export interface PreviewResult {
   previewAssetId: string;
   affectedPartIds: string[];
   protectedDriftPartIds: string[];
+  previewAsset?: FashionImageAsset;
+  publication?: FashionImageAsset['publication'];
 }
 
 function validatePreview(
@@ -134,6 +137,21 @@ export function completePreview(
   )
     return proposal;
   if (!result.previewAssetId) throw new FashionError('preview_asset_required', 400);
+  if (result.previewAsset) {
+    if (
+      result.previewAsset.id !== result.previewAssetId ||
+      result.previewAsset.kind !== 'preview' ||
+      state.design.assets?.[result.previewAssetId]
+    )
+      throw new FashionError('invalid_preview_asset', 400);
+    state.design.assets = {
+      ...state.design.assets,
+      [result.previewAssetId]: {
+        ...result.previewAsset,
+        ...(result.publication ? { publication: result.publication } : {}),
+      },
+    };
+  }
   const base = state.versions[proposal.baseVersionId];
   const input = Object.fromEntries(
     Object.entries(base.domains).map(([domainId, domain]) => [

@@ -15,6 +15,9 @@ code_anchors:
   - packages/api/src/domains/fashion/fashion-confirmation.ts
   - packages/api/src/domains/fashion/fashion-preview.ts
   - packages/api/src/domains/fashion/FashionPreviewWorker.ts
+  - packages/api/src/domains/fashion/FashionAgentProvider.ts
+  - packages/api/src/domains/fashion/fashion-model-images.ts
+  - packages/api/src/domains/fashion/fashion-pipeline.ts
   - packages/api/src/routes/fashion-designs.ts
   - packages/api/src/routes/fashion-images.ts
 doc_anchors:
@@ -34,4 +37,8 @@ Extend the shared eight-domain schema and this service. Do not persist garment s
 
 The current store persists a revision-checked aggregate per design, using one Lua write to commit pointer, records and proposal state together. User/thread indexes are created atomically and have no expiry. Aggregate writes exceeding 16 MiB are rejected atomically; no automatic history deletion or expiry is used.
 
-`FashionPreviewWorker` owns asynchronous provider execution. Proposal operation IDs and expiring CAS worker leases fence duplicate/late completions. Queued work can be resumed by repeating admission or retry; interrupted running work can be retried after its lease expires. The worker does not scan all users on startup. A concrete model/mask/publication adapter is still required; without it the HTTP route returns 503 before creating a proposal. This is a domain provider boundary, not a second job truth store.
+`FashionPreviewWorker` owns asynchronous provider execution. Proposal operation IDs and expiring CAS worker leases fence duplicate/late completions. Queued work can be resumed by repeating admission or retry; interrupted running work can be retried after its lease expires. The worker does not scan all users on startup. This is a domain provider boundary, not a second job truth store.
+
+`FashionAgentProvider` consumes complete Codex exec-json turns through the registered AgentService and requires its enforced read-only policy (no inherited MCP/apps). Each invocation reads only staged garment images in an isolated temporary Git workspace. Source image analysis returns an unconfirmed draft through the authorized HTTP analysis endpoint. The current preview path requires selected visible front polygons; host composition preserves all pixels outside the raster mask, then a separate vision call inspects the final composite. Domain canonical diff and adoption guards remain in FashionDesignService. Missing compatible providers fail admission with 503.
+
+`fashion-pipeline.ts` composes the registered provider, worker, ownership checks and F172/F232 publication at API root. The candidate and its owned image/publication metadata commit together. That durable candidate is the publication outbox: polling or repeating admission replays `MessageStore.appendIdempotent` under a stable design/proposal key. Cross-thread ownership changes prevent completion/publication. Neither the model nor a rich block can select the active version.

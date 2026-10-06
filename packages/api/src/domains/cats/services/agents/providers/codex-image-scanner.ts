@@ -1,4 +1,5 @@
 import { readdir } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { extname, join } from 'node:path';
 import { createModuleLogger } from '../../../../../infrastructure/logger.js';
 import { ALLOWED_IMAGE_MIMES, type SupportedImageMime } from '../../../../../utils/image-storage.js';
@@ -14,6 +15,17 @@ const EXT_TO_MIME: Record<string, SupportedImageMime> = {
   '.webp': 'image/webp',
 };
 
+/** Match the native process's effective environment, including Windows and account isolation. */
+export function resolveCodexImageHome(
+  env: Record<string, string | null | undefined>,
+  platform: NodeJS.Platform = process.platform,
+  osHome = homedir(),
+) {
+  if (env.CODEX_HOME) return env.CODEX_HOME;
+  const home = platform === 'win32' ? env.USERPROFILE || env.HOME : env.HOME;
+  return join(home || osHome, '.codex');
+}
+
 export interface CodexImageScanOptions {
   codexSessionId: string;
   uploadDir?: string;
@@ -21,7 +33,7 @@ export interface CodexImageScanOptions {
 }
 
 export async function scanAndPublishCodexImages(options: CodexImageScanOptions): Promise<PublishedGeneratedImage[]> {
-  const codexHome = options.codexHome ?? process.env.CODEX_HOME ?? join(process.env.HOME ?? '', '.codex');
+  const codexHome = options.codexHome ?? resolveCodexImageHome(process.env);
   const sessionDir = join(codexHome, 'generated_images', options.codexSessionId);
 
   let entries: string[];

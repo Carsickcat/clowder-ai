@@ -202,8 +202,11 @@ import { TtsRegistry } from './domains/cats/services/tts/TtsRegistry.js';
 import { startTtsCacheCleaner } from './domains/cats/services/tts/tts-cache-cleaner.js';
 import { initVoiceBlockSynthesizer } from './domains/cats/services/tts/VoiceBlockSynthesizer.js';
 import type { AgentService } from './domains/cats/services/types.js';
+import { FASHION_MODEL_POLICY } from './domains/fashion/FashionAgentProvider.js';
 import { FashionDesignService } from './domains/fashion/FashionDesignService.js';
 import { RedisFashionDesignStore } from './domains/fashion/FashionDesignStore.js';
+import { FashionError } from './domains/fashion/fashion-invariants.js';
+import { createFashionPipeline } from './domains/fashion/fashion-pipeline.js';
 import { EntrustedWorkOwnerReadService } from './domains/growing/EntrustedWorkOwnerReadService.js';
 import { F232PreparedArtifactReader } from './domains/growing/F232PreparedArtifactReader.js';
 import {
@@ -5793,10 +5796,29 @@ async function main(): Promise<void> {
   // Serve uploaded files (images)
   const uploadDir = getDefaultUploadDir(process.env.UPLOAD_DIR);
   if (redis) {
+    const fashionService = new FashionDesignService(new RedisFashionDesignStore(redis));
+    const fashionPipeline = createFashionPipeline({
+      service: fashionService,
+      uploadDir,
+      threadStore,
+      messageStore,
+      resolveAgent: () => {
+        const config = Object.values(catRegistry.getAllConfigs()).find(
+          (cat) =>
+            cat.clientId === 'openai' &&
+            agentRegistry.has(cat.id) &&
+            agentRegistry.get(cat.id).supportsToolExecutionPolicy?.(FASHION_MODEL_POLICY),
+        );
+        if (!config) throw new FashionError('fashion_provider_unavailable', 503);
+        return { catId: config.id, service: agentRegistry.get(config.id) };
+      },
+      onError: (error) => app.log.error({ err: error }, 'Fashion preview execution failed'),
+    });
     await app.register(fashionDesignRoutes, {
-      service: new FashionDesignService(new RedisFashionDesignStore(redis)),
+      service: fashionService,
       threadStore,
       uploadDir,
+      ...fashionPipeline,
     });
   }
   await app.register(uploadsRoutes, { uploadDir });
