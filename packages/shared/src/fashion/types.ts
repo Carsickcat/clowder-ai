@@ -13,11 +13,18 @@ export interface FashionDesign {
   threadId: string;
   title: string;
   sourceAssetIdsByView: Partial<Record<GarmentView, string>>;
+  assets?: Record<string, FashionImageAsset>;
   activeVersionId: string | null;
   schemaVersion: 1;
   revision: number;
   createdAt: number;
   updatedAt: number;
+}
+export interface FashionImageAsset {
+  id: string;
+  urlPath: `/uploads/${string}`;
+  mimeType: string;
+  kind: 'source' | 'reference';
 }
 export interface GarmentComponentSnapshot extends GarmentComponentInput {
   partHash: string;
@@ -57,6 +64,7 @@ export interface EditProposal extends EditProposalInput {
   editMaskAssetId?: string;
   status: 'queued' | 'generating' | 'ready' | 'failed' | 'accepted' | 'rejected';
   operationId: string;
+  workerLease?: { token: string; expiresAt: number };
   candidateVersionId: string | null;
   adoptedVersionId: string | null;
   failure: string | null;

@@ -2,6 +2,7 @@ import {
   type EditProposalInput,
   type FashionDesign,
   type FashionDesignState,
+  type FashionImageAsset,
   type GarmentDomainsInput,
   GarmentDomainsSchema,
   type GarmentView,
@@ -32,7 +33,7 @@ export { FashionError } from './fashion-invariants.js';
 export class FashionDesignService {
   constructor(private readonly store: FashionDesignStore) {}
 
-  async create(input: Pick<FashionDesign, 'userId' | 'threadId' | 'title' | 'sourceAssetIdsByView'>) {
+  async create(input: Pick<FashionDesign, 'userId' | 'threadId' | 'title' | 'sourceAssetIdsByView' | 'assets'>) {
     if (
       !input.userId ||
       !input.threadId ||
@@ -74,6 +75,13 @@ export class FashionDesignService {
   }
   list(userId: string, threadId: string) {
     return this.store.list(userId, threadId);
+  }
+  addReferenceAsset(userId: string, designId: string, asset: FashionImageAsset) {
+    return this.transact(userId, designId, (state) => {
+      if (asset.kind !== 'reference' || state.design.assets?.[asset.id]) throw new FashionError('invalid_asset', 400);
+      state.design.assets = { ...state.design.assets, [asset.id]: structuredClone(asset) };
+      return asset;
+    });
   }
 
   private async transact<T>(userId: string, designId: string, update: (state: FashionDesignState) => T): Promise<T> {
@@ -123,12 +131,40 @@ export class FashionDesignService {
       return proposal;
     });
   }
-  completePreview(userId: string, designId: string, proposalId: string, operationId: string, result: PreviewResult) {
-    return this.transact(userId, designId, (state) => completePreview(state, proposalId, operationId, result));
-  }
-  failPreview(userId: string, designId: string, proposalId: string, operationId: string, reason: string) {
+  claimPreview(userId: string, designId: string, proposalId: string, operationId: string, leaseMs: number) {
+    if (!Number.isSafeInteger(leaseMs) || leaseMs < 1 || leaseMs > 600_000)
+      throw new FashionError('invalid_worker_lease', 400);
     return this.transact(userId, designId, (state) => {
       const proposal = getProposal(state, proposalId);
+      if (proposal.operationId !== operationId || proposal.status !== 'queued') return null;
+      proposal.status = 'generating';
+      proposal.workerLease = { token: fashionId(), expiresAt: Date.now() + leaseMs };
+      return proposal.workerLease.token;
+    });
+  }
+  completePreview(
+    userId: string,
+    designId: string,
+    proposalId: string,
+    operationId: string,
+    result: PreviewResult,
+    leaseToken?: string,
+  ) {
+    return this.transact(userId, designId, (state) =>
+      completePreview(state, proposalId, operationId, result, leaseToken),
+    );
+  }
+  failPreview(
+    userId: string,
+    designId: string,
+    proposalId: string,
+    operationId: string,
+    reason: string,
+    leaseToken?: string,
+  ) {
+    return this.transact(userId, designId, (state) => {
+      const proposal = getProposal(state, proposalId);
+      if (proposal.workerLease && proposal.workerLease.token !== leaseToken) return proposal;
       if (proposal.operationId === operationId && ['queued', 'generating'].includes(proposal.status)) {
         proposal.status = 'failed';
         proposal.failure = reason.slice(0, 1000);

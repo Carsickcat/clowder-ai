@@ -14,6 +14,9 @@ code_anchors:
   - packages/api/src/domains/fashion/FashionDesignStore.ts
   - packages/api/src/domains/fashion/fashion-confirmation.ts
   - packages/api/src/domains/fashion/fashion-preview.ts
+  - packages/api/src/domains/fashion/FashionPreviewWorker.ts
+  - packages/api/src/routes/fashion-designs.ts
+  - packages/api/src/routes/fashion-images.ts
 doc_anchors:
   - docs/features/F317-atelier-fashion-design-cafe.md
 static_scan_hints: [FashionDesign, GarmentVersion, ConfirmedSnapshot, protectedDriftPartIds]
@@ -25,8 +28,10 @@ cited_by:
 
 F317 owns garment business state. `FashionDesignService` is the lifecycle owner; the store supplies atomic compare-and-swap and append-only history enforcement. Only the design pointer and proposal job lifecycle are mutable. Versions, confirmations, validation receipts, snapshots and audit events are immutable once stored.
 
-F172 owns image publication and asset provenance. F232 and `hub-action-surface` own display projections. Neither may change garment adoption, confirmation or snapshot truth. Future routes must authenticate the user and validate asset ownership before calling this service; the current tranche deliberately exposes no HTTP or worker entry point.
+F172 owns image publication and asset provenance. F232 and `hub-action-surface` own display projections. Neither may change garment adoption, confirmation or snapshot truth. Fashion HTTP routes use the existing direct-local authorization resolver and verify thread ownership on every access. Multipart uploads create design-owned source/reference asset records; callers cannot nominate arbitrary file paths. The API root registers these routes only when persistent Redis is available.
 
 Extend the shared eight-domain schema and this service. Do not persist garment state in rich blocks or artifact DTOs, add a second adoption endpoint, or mutate historical versions to express a new decision. Restoration appends a new adopted version with a source reference.
 
-The current store persists a revision-checked aggregate per design, using one Lua write to commit pointer, records and proposal state together. User/thread indexes are created atomically and have no expiry. Aggregate history grows with edits; size limits and a scalable record layout must be resolved before public endpoint admission if measurements require them.
+The current store persists a revision-checked aggregate per design, using one Lua write to commit pointer, records and proposal state together. User/thread indexes are created atomically and have no expiry. Aggregate writes exceeding 16 MiB are rejected atomically; no automatic history deletion or expiry is used.
+
+`FashionPreviewWorker` owns asynchronous provider execution. Proposal operation IDs and expiring CAS worker leases fence duplicate/late completions. Queued work can be resumed by repeating admission or retry; interrupted running work can be retried after its lease expires. The worker does not scan all users on startup. A concrete model/mask/publication adapter is still required; without it the HTTP route returns 503 before creating a proposal. This is a domain provider boundary, not a second job truth store.

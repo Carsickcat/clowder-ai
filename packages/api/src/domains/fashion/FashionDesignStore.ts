@@ -8,7 +8,13 @@ export interface FashionDesignStore {
   compareAndSwap(before: FashionDesignState, after: FashionDesignState): Promise<boolean>;
   list(userId: string, threadId: string): Promise<FashionDesignState[]>;
 }
+function assertCapacity(state: FashionDesignState) {
+  if (Buffer.byteLength(canonicalJson(state), 'utf8') > 16 * 1024 * 1024) {
+    throw new FashionError('design_capacity_exceeded', 413);
+  }
+}
 function assertAppendOnly(before: FashionDesignState, after: FashionDesignState) {
+  assertCapacity(after);
   if (
     before.design.id !== after.design.id ||
     before.design.userId !== after.design.userId ||
@@ -37,6 +43,7 @@ const index = (userId: string, threadId: string) =>
 export class MemoryFashionDesignStore implements FashionDesignStore {
   private readonly records = new Map<string, FashionDesignState>();
   async create(state: FashionDesignState) {
+    assertCapacity(state);
     const id = key(state.design.userId, state.design.id);
     if (this.records.has(id)) return false;
     this.records.set(id, structuredClone(state));
@@ -79,6 +86,7 @@ return 1
 export class RedisFashionDesignStore implements FashionDesignStore {
   constructor(private readonly redis: RedisClient) {}
   async create(state: FashionDesignState) {
+    assertCapacity(state);
     return (
       (await this.redis.eval(
         CREATE,

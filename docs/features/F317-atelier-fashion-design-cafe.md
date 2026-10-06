@@ -4,11 +4,12 @@ related_features: [F056, F172, F190, F232]
 topics: [fashion-design, garment-dna, image-editing, versioning, technical-flat, hub]
 doc_kind: spec
 created: 2026-09-13
+tips_exempt: F317 HTTP/worker tranche only; no Hub entry or user interaction is added in this change.
 ---
 
 # F317: Atelier Fashion Design Cafe — 结构受控局部改款与可追溯款式线稿
 
-> **Status**: spec | **Owner**: Ragdoll/opus（产品）+ Ragdoll/sonnet（共创）+ Siamese/烁烁（UI）+ Maine Coon（实现） | **Priority**: P1
+> **Status**: in-progress | **Owner**: opus（产品）+ sonnet（共创）+ 烁烁（UI）+ 丢丢max/gpt-6-astra（实现） | **Priority**: P1
 
 ## Why
 
@@ -350,14 +351,14 @@ GET  /api/fashion-designs/:id
 
 ## Architecture Ownership
 
-Architecture cell: `hub-action-surface`（现有 UI/产物入口）+ F317 新增服装领域模块，归属仍需 Architecture Gate 确认
-Map delta: `update required`
-Why: F317 新增持久化的 Garment DNA、不可变版本和线稿 projection，是新的业务领域真相，不应塞进 F172/F232 展示基础设施；实现前必须为该 domain 补 canonical anchors。
+Architecture cell: `fashion-design`（服装领域、HTTP 与预览 worker）+ `hub-action-surface`（UI/产物入口）
+Map delta: `update required` — `docs/architecture/ownership/cells/fashion-design.md` 已记录核心与本批 HTTP/worker anchors。
+Why: F317 独立拥有 Garment DNA、版本和确认真相；F172/F232 保持图片发布与展示职责。
 
 ## Dependencies
 
 - **Evolved from**: N/A（全新垂直领域能力）
-- **Blocked by**: UI Design Gate（真实 Hub 在地稿需 operator 确认后才开工）
+- **Design Gate approval**: co-creator 消息 `0001791278223205-000003-74b52d8f`：“我都批准”；L1 实施门禁已解除。
 - **Related**: F056（Cozy Swiss 设计语言与 token 门禁）
 - **Related**: F172（预览图与 PNG 线稿 publication contract）
 - **Related**: F190（Console AppShell 与在地页面结构）
@@ -407,6 +408,8 @@ Why: F317 新增持久化的 Garment DNA、不可变版本和线稿 projection�
 |------|------|
 | 2026-09-13 | co-creator 授权开始构建；多猫第一轮产品、架构、UI 独立设计 |
 | 2026-09-13 | 产品收敛：固定 8 域、背面策略 A、冻结 ConfirmedSnapshot、protected drift 硬阻断 |
+| 2026-10-06 | operator 批准开工；核心层 `f55eae5` 获 opus 明确放行（消息 `0001791288051903-000027-fa9f44f0`），26 项测试通过；尚未合入/发布 |
+| 2026-10-06 | 继续 HTTP 上传/归属与异步预览执行批次；真实模型、mask、F172/F232 发布、SVG 和 UI 仍待实现，未宣称完整产品可用 |
 
 ## Review Gate
 

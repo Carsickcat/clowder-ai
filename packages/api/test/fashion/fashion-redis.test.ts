@@ -101,6 +101,16 @@ it(
       assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
       const loser = results.find((r) => r.status === 'rejected');
       assert.equal(loser?.status === 'rejected' && loser.reason.code, 'stale_version');
+      const current = await service.get('owner', design.id);
+      const proposal = await service.propose('owner', design.id, {
+        baseVersionId: current.design.activeVersionId!,
+        targetDomainId: 'sleeve',
+        targetPartIds: ['sleeve'],
+        instruction: 'Long sleeves',
+        idempotencyKey: 'restart-worker',
+      });
+      const lease = await service.claimPreview('owner', design.id, proposal.id, proposal.operationId, 1);
+      assert.ok(lease);
       const before = await service.get('owner', design.id);
       const keys = await server.redis.keys('f317-test:*');
       assert.equal(keys.length, 2);
@@ -119,6 +129,23 @@ it(
       assert.deepEqual(await service.get('owner', design.id), before);
       assert.deepEqual((await service.get('owner', design.id)).snapshots[snapshot.id], snapshot);
       assert.equal((await service.list('owner', 'thread-1')).length, 1);
+      const retry = await service.retry('owner', design.id, proposal.id, before.design.activeVersionId!);
+      assert.notEqual(retry.operationId, proposal.operationId);
+      assert.equal(retry.status, 'queued');
+      await service.completePreview(
+        'owner',
+        design.id,
+        proposal.id,
+        proposal.operationId,
+        {
+          components: garment().sleeve.components,
+          previewAssetId: 'old-worker-result',
+          affectedPartIds: [],
+          protectedDriftPartIds: [],
+        },
+        lease,
+      );
+      assert.equal((await service.get('owner', design.id)).proposals[proposal.id].status, 'queued');
       await assert.rejects(service.get('other-user', design.id), { code: 'not_found' });
     } finally {
       await server.stop();

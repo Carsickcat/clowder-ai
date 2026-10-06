@@ -202,6 +202,8 @@ import { TtsRegistry } from './domains/cats/services/tts/TtsRegistry.js';
 import { startTtsCacheCleaner } from './domains/cats/services/tts/tts-cache-cleaner.js';
 import { initVoiceBlockSynthesizer } from './domains/cats/services/tts/VoiceBlockSynthesizer.js';
 import type { AgentService } from './domains/cats/services/types.js';
+import { FashionDesignService } from './domains/fashion/FashionDesignService.js';
+import { RedisFashionDesignStore } from './domains/fashion/FashionDesignStore.js';
 import { EntrustedWorkOwnerReadService } from './domains/growing/EntrustedWorkOwnerReadService.js';
 import { F232PreparedArtifactReader } from './domains/growing/F232PreparedArtifactReader.js';
 import {
@@ -318,6 +320,7 @@ import { dispatchProposalRoutes } from './routes/dispatch-proposal-routes.js';
 import { buildEntityRecord, registerEntityProposalDecisionRoutes } from './routes/entity-proposal-decision-routes.js';
 import { evalRepairApprovalRoutes } from './routes/eval-repair-approval-routes.js';
 import { evalRepairOutcomeRoutes } from './routes/eval-repair-outcome-routes.js';
+import { fashionDesignRoutes } from './routes/fashion-designs.js';
 import { gameRoutes } from './routes/games.js';
 import { registerHumanDispositionFeedbackRoutes } from './routes/human-disposition-feedback-routes.js';
 import {
@@ -5789,6 +5792,13 @@ async function main(): Promise<void> {
 
   // Serve uploaded files (images)
   const uploadDir = getDefaultUploadDir(process.env.UPLOAD_DIR);
+  if (redis) {
+    await app.register(fashionDesignRoutes, {
+      service: new FashionDesignService(new RedisFashionDesignStore(redis)),
+      threadStore,
+      uploadDir,
+    });
+  }
   await app.register(uploadsRoutes, { uploadDir });
   await app.register(refAudioUploadRoutes);
 

@@ -107,16 +107,32 @@ export function retryPreview(state: FashionDesignState, id: string, baseVersionI
   const proposal = getProposal(state, id);
   currentBase(state, baseVersionId);
   if (proposal.baseVersionId !== baseVersionId) throw new FashionError('stale_version');
+  if (proposal.status === 'generating' && proposal.workerLease && proposal.workerLease.expiresAt <= Date.now()) {
+    proposal.status = 'failed';
+    proposal.failure = 'preview_worker_expired';
+  }
   if (proposal.status === 'queued' || proposal.status === 'generating' || proposal.status === 'ready') return proposal;
   if (proposal.status !== 'failed') throw new FashionError('proposal_terminal');
   proposal.status = 'queued';
   proposal.operationId = fashionId();
+  delete proposal.workerLease;
   proposal.failure = null;
   return proposal;
 }
-export function completePreview(state: FashionDesignState, id: string, operationId: string, result: PreviewResult) {
+export function completePreview(
+  state: FashionDesignState,
+  id: string,
+  operationId: string,
+  result: PreviewResult,
+  leaseToken?: string,
+) {
   const proposal = getProposal(state, id);
   if (proposal.operationId !== operationId || !['queued', 'generating'].includes(proposal.status)) return proposal;
+  if (
+    proposal.workerLease &&
+    (proposal.workerLease.token !== leaseToken || proposal.workerLease.expiresAt <= Date.now())
+  )
+    return proposal;
   if (!result.previewAssetId) throw new FashionError('preview_asset_required', 400);
   const base = state.versions[proposal.baseVersionId];
   const input = Object.fromEntries(
