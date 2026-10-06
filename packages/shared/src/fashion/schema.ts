@@ -48,6 +48,59 @@ export const GeometryEvidenceSchema = z
   })
   .strict();
 export type GeometryEvidence = z.infer<typeof GeometryEvidenceSchema>;
+// Drawing coordinates use their own normalized square artboard, never the photo mask.
+export const FlatPathCommandSchema = z.union([
+  z.tuple([z.literal('M'), coordinate, coordinate]),
+  z.tuple([z.literal('L'), coordinate, coordinate]),
+  z.tuple([z.literal('Q'), coordinate, coordinate, coordinate, coordinate]),
+  z.tuple([z.literal('C'), coordinate, coordinate, coordinate, coordinate, coordinate, coordinate]),
+  z.tuple([z.literal('Z')]),
+]);
+export const FlatGeometrySchema = z
+  .object({
+    paths: z
+      .array(
+        z
+          .object({
+            role: z.enum(['contour', 'seam', 'detail']),
+            commands: z
+              .array(FlatPathCommandSchema)
+              .min(2)
+              .max(128)
+              .superRefine((commands, ctx) => {
+                const points = commands.flatMap(([, ...values]) =>
+                  Array.from(
+                    { length: values.length / 2 },
+                    (_, i) => `${Math.round(values[i * 2] * 1e6)},${Math.round(values[i * 2 + 1] * 1e6)}`,
+                  ),
+                );
+                if (
+                  commands[0]?.[0] !== 'M' ||
+                  new Set(points).size < 2 ||
+                  !commands.some((c) => ['L', 'Q', 'C'].includes(c[0])) ||
+                  commands.slice(1).some((c, i) => c[0] === 'M' || (c[0] === 'Z' && i !== commands.length - 2))
+                ) {
+                  ctx.addIssue({
+                    code: 'custom',
+                    message: 'A path needs one initial move, drawing segments and optional final close',
+                  });
+                }
+              }),
+          })
+          .strict(),
+      )
+      .max(32),
+  })
+  .strict();
+export type FlatGeometry = z.infer<typeof FlatGeometrySchema>;
+const viewFlatGeometry = z
+  .object(
+    Object.fromEntries(GARMENT_VIEWS.map((v) => [v, FlatGeometrySchema.optional()])) as Record<
+      GarmentView,
+      z.ZodOptional<typeof FlatGeometrySchema>
+    >,
+  )
+  .strict();
 export const EvidenceRefSchema = z.discriminatedUnion('origin', [
   z
     .object({
@@ -101,6 +154,7 @@ export const GarmentComponentInputSchema = z
     label: z.string().trim().min(1).max(200),
     attributes: z.record(JsonSchema),
     geometryByView: viewGeometry,
+    flatGeometryByView: viewFlatGeometry.optional(),
     visibilityByView: viewVisibility,
     evidence: z.array(EvidenceRefSchema).max(32),
   })

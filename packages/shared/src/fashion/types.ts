@@ -1,7 +1,8 @@
-import type { RichMediaGalleryBlock } from '../types/rich.js';
+import type { RichFileBlock, RichMediaGalleryBlock } from '../types/rich.js';
 import type {
   EditProposalInput,
   FashionJsonValue,
+  FlatGeometry,
   GarmentComponentInput,
   GarmentDomainId,
   GarmentView,
@@ -25,7 +26,7 @@ export interface FashionImageAsset {
   id: string;
   urlPath: `/uploads/${string}`;
   mimeType: string;
-  kind: 'source' | 'reference' | 'preview';
+  kind: 'source' | 'reference' | 'preview' | 'technical-flat';
   publication?: { catId: string; block: RichMediaGalleryBlock };
 }
 export interface GarmentComponentSnapshot extends GarmentComponentInput {
@@ -90,6 +91,10 @@ export interface ConfirmedSnapshot {
     sourceVersionId: string;
     evidenceOrigin: 'photo' | 'user-specified';
     geometry: GeometryEvidence;
+    /** Absent only on legacy snapshots; renderer requires explicit drawing geometry. */
+    flatGeometry?: FlatGeometry;
+    domainId?: GarmentDomainId;
+    label?: string;
     attributes: Record<string, FashionJsonValue>;
   }>;
   omittedUnknownPartIds: string[];
@@ -104,11 +109,13 @@ export interface TechnicalFlatArtifact {
   svgAssetId: string;
   pngAssetId: string;
   includedPartIds: string[];
+  rendererVersion: string;
+  publication: { blocks: Array<RichMediaGalleryBlock | RichFileBlock> };
   createdAt: number;
 }
 export interface FashionAuditEvent {
   id: string;
-  kind: 'analyzed' | 'confirmed' | 'adopted' | 'discarded' | 'restored' | 'frozen';
+  kind: 'analyzed' | 'confirmed' | 'adopted' | 'discarded' | 'restored' | 'frozen' | 'flat-rendered';
   userId: string;
   versionId: string;
   sourceId: string | null;
@@ -122,5 +129,6 @@ export interface FashionDesignState {
   proposals: Record<string, EditProposal>;
   validations: Record<string, PreviewValidation>;
   snapshots: Record<string, ConfirmedSnapshot>;
+  technicalFlats?: Record<string, TechnicalFlatArtifact>;
   events: FashionAuditEvent[];
 }

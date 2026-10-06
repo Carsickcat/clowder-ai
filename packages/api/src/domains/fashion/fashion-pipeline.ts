@@ -4,6 +4,7 @@ import type { AgentService } from '../cats/services/types.js';
 import { FashionAgentProvider } from './FashionAgentProvider.js';
 import type { FashionDesignService } from './FashionDesignService.js';
 import { FashionPreviewWorker } from './FashionPreviewWorker.js';
+import { FashionTechnicalFlatService } from './FashionTechnicalFlatService.js';
 import { FashionError } from './fashion-invariants.js';
 
 export function createFashionPipeline(options: {
@@ -48,5 +49,9 @@ export function createFashionPipeline(options: {
       });
     },
   });
-  return { analyzer: provider, previewWorker };
+  return {
+    analyzer: provider,
+    previewWorker,
+    technicalFlats: new FashionTechnicalFlatService({ ...options, authorize }),
+  };
 }

@@ -17,6 +17,8 @@ code_anchors:
   - packages/api/src/domains/fashion/FashionPreviewWorker.ts
   - packages/api/src/domains/fashion/FashionAgentProvider.ts
   - packages/api/src/domains/fashion/fashion-model-images.ts
+  - packages/api/src/domains/fashion/fashion-flat-renderer.ts
+  - packages/api/src/domains/fashion/FashionTechnicalFlatService.ts
   - packages/api/src/domains/fashion/fashion-pipeline.ts
   - packages/api/src/routes/fashion-designs.ts
   - packages/api/src/routes/fashion-images.ts
@@ -42,3 +44,7 @@ The current store persists a revision-checked aggregate per design, using one Lu
 `FashionAgentProvider` consumes complete Codex exec-json turns through the registered AgentService and requires its enforced read-only policy (no inherited MCP/apps). Each invocation reads only staged garment images in an isolated temporary Git workspace. Source image analysis returns an unconfirmed draft through the authorized HTTP analysis endpoint. The current preview path requires selected visible front polygons; host composition preserves all pixels outside the raster mask, then a separate vision call inspects the final composite. Domain canonical diff and adoption guards remain in FashionDesignService. Missing compatible providers fail admission with 503.
 
 `fashion-pipeline.ts` composes the registered provider, worker, ownership checks and F172/F232 publication at API root. The candidate and its owned image/publication metadata commit together. That durable candidate is the publication outbox: polling or repeating admission replays `MessageStore.appendIdempotent` under a stable design/proposal key. Cross-thread ownership changes prevent completion/publication. Neither the model nor a rich block can select the active version.
+
+`flatGeometryByView` contains validated numeric drawing paths on a separate artboard and participates in part hashes. It is never inferred from a photo-selection polygon by the renderer. New snapshots freeze those paths and provenance; legacy snapshots without paths require a newly confirmed snapshot. `fashion-flat-renderer.ts` is a pure, bounded snapshot-to-SVG projection with no current-version, provider or image dependency.
+
+`FashionTechnicalFlatService` exports that exact SVG to PNG, uses F172 for PNG publication and an atomic link for the host-generated SVG (no SVG upload MIME expansion). Both become owned immutable assets. The existing aggregate holds append-only technical-flat records with snapshot/hash/renderer identity and rich-block outbox receipts; it does not create a parallel store. POST replay repairs F232 publication through MessageStore idempotency. User-triggered deterministic exports use a user message (`catId:null`), not a fabricated model attribution. Authorization is rechecked before publication, persistence and message delivery.

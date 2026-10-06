@@ -18,6 +18,14 @@ export function garment(): GarmentDomainsInput {
               instanceType: domainId === 'body-panel' ? 'panel' : domainId,
               label: domainId,
               attributes: { style: 'original' },
+              flatGeometryByView: {
+                front: {
+                  paths:
+                    domainId === 'fabric'
+                      ? []
+                      : [{ role: 'contour', commands: [['M', 0.2, 0.2], ['L', 0.8, 0.2], ['L', 0.5, 0.8], ['Z']] }],
+                },
+              },
               geometryByView: {
                 front: {
                   polygon: [

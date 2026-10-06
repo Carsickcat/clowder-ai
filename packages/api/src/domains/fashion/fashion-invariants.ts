@@ -40,8 +40,28 @@ export function canonicalJson(value: unknown): string {
 export const fashionHash = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
 export function hashPart(input: GarmentComponentInput): string {
   // Include evidence/visibility so a confirmation cannot silently change its provenance.
-  const { partId, domainId, instanceType, label, attributes, geometryByView, visibilityByView, evidence } = input;
-  return fashionHash({ partId, domainId, instanceType, label, attributes, geometryByView, visibilityByView, evidence });
+  const {
+    partId,
+    domainId,
+    instanceType,
+    label,
+    attributes,
+    geometryByView,
+    flatGeometryByView,
+    visibilityByView,
+    evidence,
+  } = input;
+  return fashionHash({
+    partId,
+    domainId,
+    instanceType,
+    label,
+    attributes,
+    geometryByView,
+    flatGeometryByView,
+    visibilityByView,
+    evidence,
+  });
 }
 export function materializeDomains(input: GarmentDomainsInput): GarmentDomains {
   return Object.fromEntries(

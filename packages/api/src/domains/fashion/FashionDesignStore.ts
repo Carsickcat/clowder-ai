@@ -23,15 +23,19 @@ function assertAppendOnly(before: FashionDesignState, after: FashionDesignState)
   ) {
     throw new FashionError('invalid_store_transition');
   }
-  for (const group of ['versions', 'confirmations', 'snapshots', 'validations'] as const) {
-    for (const [id, value] of Object.entries(before[group])) {
-      if (!Object.hasOwn(after[group], id) || canonicalJson(value) !== canonicalJson(after[group][id])) {
+  for (const group of ['versions', 'confirmations', 'snapshots', 'validations', 'technicalFlats'] as const) {
+    for (const [id, value] of Object.entries(before[group] ?? {})) {
+      if (!Object.hasOwn(after[group] ?? {}, id) || canonicalJson(value) !== canonicalJson(after[group]?.[id])) {
         throw new FashionError('immutable_record');
       }
     }
   }
   if (canonicalJson(after.events.slice(0, before.events.length)) !== canonicalJson(before.events))
     throw new FashionError('immutable_audit');
+  for (const [id, asset] of Object.entries(before.design.assets ?? {})) {
+    if (!after.design.assets?.[id] || canonicalJson(asset) !== canonicalJson(after.design.assets[id]))
+      throw new FashionError('immutable_record');
+  }
   const active = after.design.activeVersionId;
   if (active && after.versions[active]?.status !== 'adopted') throw new FashionError('invalid_active_version');
 }

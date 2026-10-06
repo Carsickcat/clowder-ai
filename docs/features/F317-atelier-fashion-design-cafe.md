@@ -4,7 +4,7 @@ related_features: [F056, F172, F190, F232]
 topics: [fashion-design, garment-dna, image-editing, versioning, technical-flat, hub]
 doc_kind: spec
 created: 2026-09-13
-tips_exempt: F317 model adapter and publication tranche; no Hub entry is delivered yet, and the approved Atelier UI/tips remain in the active implementation task.
+tips_exempt: F317 snapshot SVG backend tranche; no Hub entry is delivered yet, and the approved Atelier UI/tips remain in the active implementation task.
 ---
 
 # F317: Atelier Fashion Design Cafe — 结构受控局部改款与可追溯款式线稿
@@ -165,6 +165,7 @@ interface GarmentComponentSnapshot {
   label: string;
   attributes: Record<string, JsonValue>;
   geometryByView: Partial<Record<GarmentView, GeometryEvidence>>;
+  flatGeometryByView?: Partial<Record<GarmentView, FlatGeometry>>; // 独立线稿坐标，缺失时禁止正式导出
   visibilityByView: Partial<Record<GarmentView, 'visible' | 'partial' | 'not-visible'>>;
   evidence: EvidenceRef[];
   partHash: string;               // 结构属性 + 几何的 canonical hash
@@ -216,6 +217,9 @@ interface ConfirmedSnapshot {
     sourceVersionId: string;
     evidenceOrigin: 'photo' | 'user-specified';
     geometry: GeometryEvidence;
+    flatGeometry?: FlatGeometry;    // 新快照必有；旧快照缺失时 fail closed，不从照片 mask 猜线条
+    domainId?: GarmentDomainId;
+    label?: string;
     attributes: Record<string, JsonValue>;
   }>;
   omittedUnknownPartIds: string[];
@@ -235,6 +239,10 @@ interface TechnicalFlatArtifact {
 }
 ```
 
+`FlatGeometry` 为独立 0..1 正方形图纸坐标系，包含 `paths:[{role:contour|seam|detail,commands:[...]}]`。命令仅允许数值化 `M/L/Q/C/Z`，不接受任意 SVG 字符串、脚本或外部资源。每个路径以一次 M 开头，可选最终 Z；最多 32 条路径/部件、128 条命令/路径，零长度路径拒绝。只有不画结构线的 fabric 部件允许空路径。照片 `geometryByView` 继续只用于证据/热点/mask。结构线坐标参与 `partHash`，校正后必须重新确认；旧确认、快照与资产 URL 均不可改写。
+
+SVG renderer v1 按上述结构线生成黑白矢量组（轮廓、缝线、细节），与快照部件一一对应；PNG 从同一 SVG 光栅化。单图最多 256 个部件、32768 条命令，超限明确拒绝。同一 `snapshotId + snapshotHash + rendererVersion` 的产物幂等，SVG/PNG 资产与发布记录随领域对象持久化；首次成功写入决定创建时间。旧快照没有结构线时返回 `flat_geometry_required`，用户通过校正、确认、冻结新快照补全，不回写旧历史。
+
 ### Contract Invariants
 
 - `activeVersionId` 只能指向 `status='adopted'` 的版本。
@@ -250,7 +258,7 @@ interface TechnicalFlatArtifact {
 
 ```text
 POST /api/fashion-designs
-POST /api/fashion-designs/:id/analyze
+POST /api/fashion-designs/:id/analysis
 POST /api/fashion-designs/:id/confirmations
 POST /api/fashion-designs/:id/edit-proposals
 POST /api/fashion-designs/:id/edit-proposals/:proposalId/retry
@@ -258,10 +266,11 @@ POST /api/fashion-designs/:id/edit-proposals/:proposalId/decision
 POST /api/fashion-designs/:id/restore
 POST /api/fashion-designs/:id/confirmed-snapshots
 POST /api/fashion-designs/:id/technical-flats
+GET  /api/fashion-designs/:id/technical-flats/:artifactId
 GET  /api/fashion-designs/:id
 ```
 
-- 分析与生成接口返回 `202 + operationId/status`。
+- 预览生成接口返回 `202 + operationId/status`。分析为最多 180 秒的同步请求，新 draft 返回 201，重复成功请求返回已有 draft；正式线稿请求只接受 `confirmedSnapshotId`，返回 201 与可查询的持久产物记录，重复请求重放同一产物及发布。
 - 生成、采用和恢复请求必须携带 `baseVersionId`；当前版本已变化时返回 `409 stale_version`，不得静默覆盖。
 - retry 复用原 proposal/idempotency key；“再出一版”创建新 proposal attempt。
 - 采用请求若命中 protected drift，返回 `409 protected_drift` 和具体 part IDs。
@@ -380,9 +389,9 @@ Why: F317 独立拥有 Garment DNA、版本和确认真相；F172/F232 保持图
 
 | # | 问题 | 状态 |
 |---|------|------|
-| OQ-1 | 图片生成 provider 的可靠局部 mask 能力与最小区域合成方案 | ⬜ Architecture Gate 验证 |
+| OQ-1 | 图片生成 provider 的可靠局部 mask 能力与最小区域合成方案 | 已以 host mask + 最终合成图复核实现；`eebaf3e` 复审通过 |
 | OQ-2 | 多实例域的画布热点与左侧二级行如何互相定位 | ⬜ UI Design Gate |
-| OQ-3 | 首版 SVG geometry renderer 的能力边界及 domain schema 最小集合 | ⬜ Architecture Gate |
+| OQ-3 | 首版 SVG geometry renderer 的能力边界及 domain schema 最小集合 | 本批采用独立结构线坐标与 M/L/Q/C/Z 数值命令，能力与限制见 Terminal Data Contract；待跨个体复审 |
 
 ## Key Decisions
 
@@ -395,6 +404,7 @@ Why: F317 独立拥有 Garment DNA、版本和确认真相；F172/F232 保持图
 | KD-5 | protected drift 是服务端 adoption blocker，不是 UI 警告 | 防止生成模型暗改被直接采用 | 2026-09-13 |
 | KD-6 | F172/F232 只承载图片发布和产物查看，F317 单独拥有领域真相 | 保持单一真相源与清晰 ownership | 2026-09-13 |
 | KD-7 | 正式线稿与讨论示意分离命名、解锁条件和导出格式 | 防止示意图被误当技术交付物 | 2026-09-13 |
+| KD-8 | 照片选区与线稿结构线使用独立坐标；结构线纳入确认哈希，缺失时阻断正式导出 | 避免把热点或 mask 边框误当款式结构；不静默改写旧快照 | 2026-10-06 |
 
 ## Tips Contribution（F244）
 
@@ -411,6 +421,7 @@ Why: F317 独立拥有 Garment DNA、版本和确认真相；F172/F232 保持图
 | 2026-10-06 | operator 批准开工；核心层 `f55eae5` 获 opus 明确放行（消息 `0001791288051903-000027-fa9f44f0`），26 项测试通过；尚未合入/发布 |
 | 2026-10-06 | 继续 HTTP 上传/归属与异步预览执行批次；真实模型、mask、F172/F232 发布、SVG 和 UI 仍待实现，未宣称完整产品可用 |
 | 2026-10-06 | HTTP/worker `fd1020f` 获 opus 放行（消息 `0001791289410618-000029-0dfca526`）。接入 Codex 只读模型 adapter、服务端局部合成、最终图视觉复核、F172/F232 幂等发布与 API root 注入；56 项 fashion 测试通过。原生分析已验证 8 域/11 点；真实预览与采用证据见本批 review note。SVG、Hub UI、完整产品验收继续实施 |
+| 2026-10-06 | 模型/预览 `eebaf3e` 获 opus 放行（消息 `0001791293121559-000031-008063dd`）。本批实现结构线确认与冻结、纯快照 SVG/PNG、HTTP 导出、不可变产物与幂等发布；原生分析→真实 HTTP 确认→冻结→导出已实测，证据见 `review-notes/2026-10-06-f317-snapshot-svg-review.md`。Hub UI 与完整验收继续实施 |
 
 ## Review Gate
 

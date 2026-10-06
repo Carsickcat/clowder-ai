@@ -4,13 +4,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { GarmentVersion } from '@cat-cafe/shared';
 import { catRegistry, GarmentDomainsSchema } from '@cat-cafe/shared';
+import Fastify from 'fastify';
 import sharp from 'sharp';
 import { loadCatConfig, toAllCatConfigs } from '../../src/config/cat-config-loader.js';
 import { CodexAgentService } from '../../src/domains/cats/services/agents/providers/CodexAgentService.js';
+import { MessageStore } from '../../src/domains/cats/services/stores/ports/MessageStore.js';
 import { FashionAgentProvider } from '../../src/domains/fashion/FashionAgentProvider.js';
 import { FashionDesignService } from '../../src/domains/fashion/FashionDesignService.js';
 import { MemoryFashionDesignStore } from '../../src/domains/fashion/FashionDesignStore.js';
 import { FashionPreviewWorker } from '../../src/domains/fashion/FashionPreviewWorker.js';
+import { createFashionPipeline } from '../../src/domains/fashion/fashion-pipeline.js';
+import { fashionDesignRoutes } from '../../src/routes/fashion-designs.js';
 
 async function smoke() {
   if (process.env.FASHION_NATIVE_SMOKE !== '1') throw new Error('Set FASHION_NATIVE_SMOKE=1 to opt in to model usage');
@@ -115,6 +119,71 @@ async function smoke() {
       const accepted = await service.decide(design.userId, design.id, proposal.id, base.id, 'accept');
       await writeFile(join(uploadDir, 'accepted-version.json'), JSON.stringify(accepted, null, 2));
       console.log(JSON.stringify({ stage: 'native-preview-pass', artifact: join(uploadDir, 'preview-state.json') }));
+    }
+    if (process.env.FASHION_NATIVE_FLAT === '1') {
+      const app = Fastify();
+      const messages = new MessageStore();
+      const threadStore = { get: () => ({ createdBy: design.userId }) };
+      const pipeline = createFashionPipeline({
+        service,
+        uploadDir,
+        threadStore,
+        messageStore: messages,
+        resolveAgent: () => ({ catId: config.id, service: agent }),
+      });
+      await app.register(fashionDesignRoutes, { service, uploadDir, threadStore, ...pipeline });
+      const address = await app.listen({ host: '127.0.0.1', port: 0 });
+      try {
+        const post = async (route: string, payload: unknown) => {
+          const response = await fetch(`${address}/api/fashion-designs/${design.id}/${route}`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-cat-cafe-user': design.userId },
+            body: JSON.stringify(payload),
+          });
+          const json = await response.json();
+          if (!response.ok) throw new Error(`${route}: ${response.status} ${JSON.stringify(json)}`);
+          return json;
+        };
+        const current = await service.get(design.userId, design.id);
+        const base = current.versions[current.design.activeVersionId ?? draft.id];
+        // This synthetic-fixture smoke acts as the confirming user; production never auto-confirms.
+        const confirmed = await post('confirmations', {
+          baseVersionId: base.id,
+          parts: Object.values(base.domains).flatMap((d) =>
+            d.components.map((p) => ({
+              partId: p.partId,
+              partHash: p.partHash,
+              evidenceOrigin: p.evidence.some((e) => e.origin === 'user-specified') ? 'user-specified' : 'photo',
+              ...(p.evidence.some((e) => e.origin === 'user-specified')
+                ? { userStatement: 'Confirmed synthetic fixture edit' }
+                : {}),
+            })),
+          ),
+        });
+        const frozen = await post('confirmed-snapshots', { baseVersionId: confirmed.version.id, view: 'front' });
+        const rendered = await post('technical-flats', { confirmedSnapshotId: frozen.snapshot.id });
+        const state = await service.get(design.userId, design.id);
+        await writeFile(join(uploadDir, 'flat-state.json'), JSON.stringify(state, null, 2));
+        await writeFile(
+          join(uploadDir, 'flat-message.json'),
+          JSON.stringify(
+            await messages.getByIdempotencyKey(design.userId, design.threadId, `fashion-flat:${rendered.artifact.id}`),
+            null,
+            2,
+          ),
+        );
+        console.log(
+          JSON.stringify({
+            stage: 'native-flat-pass',
+            address,
+            artifact: join(uploadDir, 'flat-state.json'),
+            svg: state.design.assets![rendered.artifact.svgAssetId].urlPath,
+            png: state.design.assets![rendered.artifact.pngAssetId].urlPath,
+          }),
+        );
+      } finally {
+        await app.close();
+      }
     }
   } finally {
     clearTimeout(timer);

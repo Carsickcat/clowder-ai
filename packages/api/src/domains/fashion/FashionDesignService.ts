@@ -7,6 +7,7 @@ import {
   GarmentDomainsSchema,
   type GarmentView,
   GarmentViewSchema,
+  type TechnicalFlatArtifact,
 } from '@cat-cafe/shared';
 import type { FashionDesignStore } from './FashionDesignStore.js';
 import { type ConfirmPartsInput, confirmParts, freezeSnapshot, restoreVersion } from './fashion-confirmation.js';
@@ -174,5 +175,38 @@ export class FashionDesignService {
   freeze(userId: string, designId: string, baseVersionId: string, view: GarmentView) {
     GarmentViewSchema.parse(view);
     return this.transact(userId, designId, (state) => freezeSnapshot(state, baseVersionId, view));
+  }
+  recordTechnicalFlat(userId: string, designId: string, artifact: TechnicalFlatArtifact, assets: FashionImageAsset[]) {
+    return this.transact(userId, designId, (state) => {
+      const snapshot = state.snapshots[artifact.confirmedSnapshotId];
+      if (
+        !snapshot ||
+        artifact.designId !== designId ||
+        artifact.snapshotHash !== snapshot.snapshotHash ||
+        canonicalJson(artifact.includedPartIds) !== canonicalJson(snapshot.parts.map((p) => p.partId))
+      )
+        throw new FashionError('invalid_flat_snapshot');
+      const existing = state.technicalFlats?.[artifact.id];
+      if (existing) {
+        // First successful CAS owns creation time; every semantic field must still match.
+        if (canonicalJson(existing) !== canonicalJson({ ...artifact, createdAt: existing.createdAt }))
+          throw new FashionError('immutable_record');
+        return existing;
+      }
+      if (
+        assets.length !== 2 ||
+        assets[0].id !== artifact.svgAssetId ||
+        assets[1].id !== artifact.pngAssetId ||
+        assets.some((a) => a.kind !== 'technical-flat' || state.design.assets?.[a.id])
+      )
+        throw new FashionError('invalid_flat_asset');
+      state.design.assets = {
+        ...state.design.assets,
+        ...Object.fromEntries(assets.map((a) => [a.id, structuredClone(a)])),
+      };
+      state.technicalFlats = { ...state.technicalFlats, [artifact.id]: structuredClone(artifact) };
+      audit(state, 'flat-rendered', snapshot.versionId, artifact.id);
+      return artifact;
+    });
   }
 }

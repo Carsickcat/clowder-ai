@@ -97,6 +97,7 @@ export function freezeSnapshot(state: FashionDesignState, baseVersionId: string,
   const parts: ConfirmedSnapshot['parts'] = [];
   const omitted: string[] = [];
   const missing: string[] = [];
+  const missingDrawing: string[] = [];
   for (const domainId of GARMENT_DOMAIN_IDS) {
     const components = version.domains[domainId].components;
     if (!components.length) missing.push(domainId);
@@ -121,6 +122,11 @@ export function freezeSnapshot(state: FashionDesignState, baseVersionId: string,
         missing.push(part.partId);
         continue;
       }
+      const flatGeometry = part.flatGeometryByView?.[view];
+      if (!flatGeometry || (part.domainId !== 'fabric' && !flatGeometry.paths.length)) {
+        missingDrawing.push(part.partId);
+        continue;
+      }
       parts.push({
         partId: part.partId,
         partHash: part.partHash,
@@ -128,12 +134,16 @@ export function freezeSnapshot(state: FashionDesignState, baseVersionId: string,
         sourceVersionId: confirmation.versionId,
         evidenceOrigin: confirmation.evidenceOrigin,
         geometry: structuredClone(geometry),
+        flatGeometry: structuredClone(flatGeometry),
+        domainId: part.domainId,
+        label: part.label,
         attributes: structuredClone(part.attributes),
       });
     }
   }
-  if (missing.length || !parts.length || version.status !== 'adopted')
-    throw new FashionError('unconfirmed_parts', 409, missing);
+  if (missing.length || version.status !== 'adopted') throw new FashionError('unconfirmed_parts', 409, missing);
+  if (missingDrawing.length) throw new FashionError('flat_geometry_required', 409, missingDrawing);
+  if (!parts.length) throw new FashionError('unconfirmed_parts', 409);
   const payload = { designId: state.design.id, versionId: version.id, view, parts, omittedUnknownPartIds: omitted };
   const snapshot = { ...payload, id: fashionId(), snapshotHash: fashionHash(payload), frozenAt: Date.now() };
   state.snapshots[snapshot.id] = snapshot;

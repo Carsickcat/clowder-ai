@@ -7,8 +7,10 @@ import { join } from 'node:path';
 import { it } from 'node:test';
 import { Redis } from 'ioredis';
 import { GARMENT_DOMAIN_IDS } from '../../../shared/src/fashion/index.js';
+import { MessageStore } from '../../src/domains/cats/services/stores/ports/MessageStore.js';
 import { FashionDesignService } from '../../src/domains/fashion/FashionDesignService.js';
 import { RedisFashionDesignStore } from '../../src/domains/fashion/FashionDesignStore.js';
+import { FashionTechnicalFlatService } from '../../src/domains/fashion/FashionTechnicalFlatService.js';
 import { garment } from './fixtures.js';
 
 // Explicit opt-in, owned process and temporary RDB directory. Never attach to an existing server.
@@ -94,6 +96,13 @@ it(
         })),
       });
       const snapshot = await service.freeze('owner', design.id, version.id, 'front');
+      const flats = new FashionTechnicalFlatService({
+        service,
+        uploadDir: join(directory, 'uploads'),
+        authorize: (userId, designId) => service.get(userId, designId),
+        messageStore: new MessageStore(),
+      });
+      const flat = await flats.generate('owner', design.id, snapshot.id);
       const results = await Promise.allSettled([
         service.restore('owner', design.id, version.id, version.id),
         service.restore('owner', design.id, version.id, version.id),
@@ -128,6 +137,7 @@ it(
       service = new FashionDesignService(store);
       assert.deepEqual(await service.get('owner', design.id), before);
       assert.deepEqual((await service.get('owner', design.id)).snapshots[snapshot.id], snapshot);
+      assert.deepEqual((await service.get('owner', design.id)).technicalFlats![flat.id], flat);
       assert.equal((await service.list('owner', 'thread-1')).length, 1);
       const retry = await service.retry('owner', design.id, proposal.id, before.design.activeVersionId!);
       assert.notEqual(retry.operationId, proposal.operationId);

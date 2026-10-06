@@ -12,6 +12,7 @@ import multipart from '@fastify/multipart';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import type { FashionDesignService } from '../domains/fashion/FashionDesignService.js';
+import type { FashionTechnicalFlatService } from '../domains/fashion/FashionTechnicalFlatService.js';
 import { FashionError } from '../domains/fashion/fashion-invariants.js';
 import { ImageUploadError } from '../utils/image-storage.js';
 import { resolveDirectLocalAuthorizationUserId } from '../utils/request-identity.js';
@@ -26,6 +27,7 @@ export interface FashionDesignRoutesOptions {
   uploadDir: string;
   threadStore: { get(id: string): { createdBy: string } | null | Promise<{ createdBy: string } | null> };
   previewWorker?: FashionPreviewScheduler;
+  technicalFlats?: Pick<FashionTechnicalFlatService, 'generate'>;
   analyzer?: { analyze(input: { design: FashionDesign; signal: AbortSignal }): Promise<GarmentDomainsInput> };
 }
 const baseSchema = z.object({ baseVersionId: FashionIdSchema }).strict();
@@ -47,7 +49,9 @@ const confirmSchema = baseSchema
       .max(1024),
   })
   .strict();
-const paramsSchema = z.object({ id: FashionIdSchema, proposalId: FashionIdSchema.optional() }).strict();
+const paramsSchema = z
+  .object({ id: FashionIdSchema, proposalId: FashionIdSchema.optional(), artifactId: FashionIdSchema.optional() })
+  .strict();
 const operation = (proposal: { id: string; operationId: string; status: string }) => ({
   proposalId: proposal.id,
   operationId: proposal.operationId,
@@ -194,5 +198,18 @@ export const fashionDesignRoutes: FastifyPluginAsync<FashionDesignRoutesOptions>
     const { userId, id } = await owned(request);
     const body = baseSchema.extend({ view: GarmentViewSchema }).strict().parse(request.body);
     return reply.code(201).send({ snapshot: await service.freeze(userId, id, body.baseVersionId, body.view) });
+  });
+  app.post('/api/fashion-designs/:id/technical-flats', async (request, reply) => {
+    const { userId, id } = await owned(request);
+    const { confirmedSnapshotId } = z.object({ confirmedSnapshotId: FashionIdSchema }).strict().parse(request.body);
+    if (!opts.technicalFlats) throw new FashionError('flat_renderer_unavailable', 503);
+    return reply.code(201).send({ artifact: await opts.technicalFlats.generate(userId, id, confirmedSnapshotId) });
+  });
+  app.get('/api/fashion-designs/:id/technical-flats/:artifactId', async (request) => {
+    const { state } = await owned(request);
+    const { artifactId } = paramsSchema.parse(request.params);
+    const artifact = state.technicalFlats?.[artifactId!];
+    if (!artifact) throw new FashionError('flat_not_found', 404);
+    return { artifact };
   });
 };
