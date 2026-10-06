@@ -41,6 +41,8 @@ export { CORE_COMMANDS } from './core-commands.js';
 export * from './eval-metric-ref.js';
 // First-party WebSocket Stop intent contract (API + Web single source).
 export * from './explicit-stop-intent.js';
+// F317 garment business truth, shared by API and Atelier UI.
+export * from './fashion/index.js';
 // Export shared text helpers
 export * from './markdown-readable-text.js';
 // Browser Preview Gateway request identity shared by API and Web.
