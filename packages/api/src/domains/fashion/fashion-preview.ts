@@ -1,10 +1,13 @@
 import {
+  type EditProposal,
   type EditProposalInput,
   EditProposalInputSchema,
   type FashionDesignState,
   type GarmentComponentInput,
+  type GarmentDomains,
   GarmentDomainsSchema,
   type GarmentVersion,
+  type PreviewValidation,
 } from '@cat-cafe/shared';
 import {
   allParts,
@@ -24,6 +27,32 @@ export interface PreviewResult {
   affectedPartIds: string[];
   protectedDriftPartIds: string[];
 }
+
+function validatePreview(
+  proposal: EditProposal,
+  base: GarmentVersion,
+  domains: GarmentDomains,
+  reported: Pick<PreviewResult, 'affectedPartIds' | 'protectedDriftPartIds'>,
+): PreviewValidation {
+  const before = new Map(allParts(base).map((part) => [part.partId, part.partHash]));
+  const after = new Map(
+    Object.values(domains).flatMap((domain) => domain.components.map((part) => [part.partId, part.partHash] as const)),
+  );
+  const changed = [...new Set([...before.keys(), ...after.keys()])].filter((id) => before.get(id) !== after.get(id));
+  const selected = new Set(proposal.targetPartIds);
+  // Provider reports can add visual drift; omissions cannot hide canonical changes.
+  const affectedPartIds = [...new Set([...changed, ...reported.affectedPartIds])];
+  const protectedDriftPartIds = [
+    ...new Set([...reported.protectedDriftPartIds, ...affectedPartIds.filter((id) => !selected.has(id))]),
+  ];
+  return {
+    proposalId: proposal.id,
+    affectedPartIds,
+    protectedDriftPartIds,
+    adoptionBlocked: protectedDriftPartIds.length > 0,
+  };
+}
+
 export function proposeEdit(state: FashionDesignState, raw: EditProposalInput) {
   const input = EditProposalInputSchema.parse(raw);
   const existing = Object.values(state.proposals).find((p) => p.idempotencyKey === input.idempotencyKey);
@@ -57,7 +86,7 @@ export function proposeEdit(state: FashionDesignState, raw: EditProposalInput) {
     id: fashionId(),
     designId: state.design.id,
     protectedComponentIds: allParts(base)
-      .filter((p) => p.domainId !== input.targetDomainId)
+      .filter((p) => !input.targetPartIds.includes(p.partId))
       .map((p) => p.partId),
     status: 'queued' as const,
     operationId: fashionId(),
@@ -124,21 +153,7 @@ export function completePreview(state: FashionDesignState, id: string, operation
     };
     return { ...edited, partHash: hashPart(edited), confirmationId: null };
   });
-  const targetIds = new Set([...old, ...domains[proposal.targetDomainId].components].map((p) => p.partId));
-  const changed = [...targetIds].filter(
-    (partId) =>
-      old.find((p) => p.partId === partId)?.partHash !==
-      domains[proposal.targetDomainId].components.find((p) => p.partId === partId)?.partHash,
-  );
-  const drift = [
-    ...new Set([...result.protectedDriftPartIds, ...result.affectedPartIds.filter((partId) => !targetIds.has(partId))]),
-  ];
-  state.validations[proposal.id] = {
-    proposalId: proposal.id,
-    affectedPartIds: [...new Set([...changed, ...result.affectedPartIds])],
-    protectedDriftPartIds: drift,
-    adoptionBlocked: drift.length > 0,
-  };
+  state.validations[proposal.id] = validatePreview(proposal, base, domains, result);
   const candidate = appendVersion(state, {
     id: fashionId(),
     designId: state.design.id,
@@ -168,8 +183,12 @@ export function decidePreview(
   const base = currentBase(state, baseVersionId);
   if (proposal.status !== 'ready' || !proposal.candidateVersionId) throw new FashionError('preview_not_ready');
   const candidate = state.versions[proposal.candidateVersionId];
-  if (decision === 'accept' && state.validations[id].adoptionBlocked) {
-    throw new FashionError('protected_drift', 409, state.validations[id].protectedDriftPartIds);
+  if (decision === 'accept') {
+    // Recheck persisted candidates without rewriting their immutable validation receipts.
+    const validation = validatePreview(proposal, base, candidate.domains, state.validations[id]);
+    if (validation.adoptionBlocked || state.validations[id].adoptionBlocked) {
+      throw new FashionError('protected_drift', 409, validation.protectedDriftPartIds);
+    }
   }
   if (decision !== 'accept' && decision !== 'reject') throw new FashionError('invalid_decision', 400);
   const domains = structuredClone(candidate.domains);
