@@ -66,7 +66,7 @@ const cells = readdirSync(CELLS_DIR)
   .filter((file) => file.endsWith('.md'))
   .sort()
   .map((file) => {
-    const body = readFileSync(join(CELLS_DIR, file), 'utf8');
+    const body = readFileSync(join(CELLS_DIR, file), 'utf8').replace(/\r\n/g, '\n');
     return { file, meta: parseFrontmatter(body, file) };
   });
 

@@ -21,6 +21,9 @@ docs/markers/
 docs/features/index.json
 build/
 .next/
+# F317 browser acceptance uses isolated Next build directories and generated tsconfigs.
+packages/web/.next-test-f317-*/
+packages/web/tsconfig.next-test-f317-*.json
 
 # PWA generated service worker files
 packages/web/public/sw.js

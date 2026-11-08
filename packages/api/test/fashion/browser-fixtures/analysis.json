@@ -1,0 +1,972 @@
+{
+  "id": "a7119c38-9b63-49a6-bd9e-9dbc8e6a0308",
+  "designId": "25e33aa3-2260-4c2c-a795-ac525bbfe221",
+  "parentVersionId": null,
+  "status": "draft",
+  "previewAssetId": null,
+  "domains": {
+    "silhouette": {
+      "domainId": "silhouette",
+      "components": [
+        {
+          "partId": "silhouette-front",
+          "domainId": "silhouette",
+          "instanceType": "silhouette",
+          "label": "Straight coat silhouette",
+          "attributes": {
+            "shape": "straight",
+            "symmetry": "bilateral",
+            "shoulders": "sloped"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.1074,
+                  0.4883
+                ],
+                [
+                  0.2148,
+                  0.2051
+                ],
+                [
+                  0.3516,
+                  0.1563
+                ],
+                [
+                  0.4043,
+                  0.2344
+                ],
+                [
+                  0.5957,
+                  0.2344
+                ],
+                [
+                  0.6484,
+                  0.1563
+                ],
+                [
+                  0.7852,
+                  0.2051
+                ],
+                [
+                  0.8926,
+                  0.4883
+                ],
+                [
+                  0.7852,
+                  0.5371
+                ],
+                [
+                  0.7168,
+                  0.3809
+                ],
+                [
+                  0.7168,
+                  0.8691
+                ],
+                [
+                  0.2832,
+                  0.8691
+                ],
+                [
+                  0.2832,
+                  0.3809
+                ],
+                [
+                  0.2148,
+                  0.5371
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.2148,
+                      0.2051
+                    ],
+                    [
+                      "L",
+                      0.3516,
+                      0.1563
+                    ]
+                  ]
+                },
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.6484,
+                      0.1563
+                    ],
+                    [
+                      "L",
+                      0.7852,
+                      0.2051
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "a1f8e3b71f6ba9833745c72555ec7d8164a5bfa1d3075a88a8e5678276af8123",
+          "confirmationId": null
+        }
+      ]
+    },
+    "collar": {
+      "domainId": "collar",
+      "components": [
+        {
+          "partId": "collar-front",
+          "domainId": "collar",
+          "instanceType": "collar",
+          "label": "Angular neckline with V-shaped collar lines",
+          "attributes": {
+            "shape": "angular",
+            "centerDetail": "V-shaped lines"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.3457,
+                  0.1465
+                ],
+                [
+                  0.4121,
+                  0.1465
+                ],
+                [
+                  0.5,
+                  0.2695
+                ],
+                [
+                  0.5879,
+                  0.1465
+                ],
+                [
+                  0.6543,
+                  0.1465
+                ],
+                [
+                  0.6074,
+                  0.248
+                ],
+                [
+                  0.5,
+                  0.3066
+                ],
+                [
+                  0.3926,
+                  0.248
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.3516,
+                      0.1563
+                    ],
+                    [
+                      "L",
+                      0.4043,
+                      0.2344
+                    ],
+                    [
+                      "L",
+                      0.5957,
+                      0.2344
+                    ],
+                    [
+                      "L",
+                      0.6484,
+                      0.1563
+                    ]
+                  ]
+                },
+                {
+                  "role": "detail",
+                  "commands": [
+                    [
+                      "M",
+                      0.4043,
+                      0.1563
+                    ],
+                    [
+                      "L",
+                      0.5,
+                      0.293
+                    ],
+                    [
+                      "L",
+                      0.5957,
+                      0.1563
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "6695d6b41ffba9f0d3599a4419764d45bab83d93b8a0e2220ddcd284f0a32a8d",
+          "confirmationId": null
+        }
+      ]
+    },
+    "sleeve": {
+      "domainId": "sleeve",
+      "components": [
+        {
+          "partId": "sleeve-image-left",
+          "domainId": "sleeve",
+          "instanceType": "sleeve",
+          "label": "Image-left sleeve",
+          "attributes": {
+            "side": "image-left",
+            "direction": "angled outward",
+            "openingEdge": "straight"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.2148,
+                  0.2051
+                ],
+                [
+                  0.3516,
+                  0.1563
+                ],
+                [
+                  0.2832,
+                  0.3809
+                ],
+                [
+                  0.2148,
+                  0.5371
+                ],
+                [
+                  0.1074,
+                  0.4883
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.2148,
+                      0.2051
+                    ],
+                    [
+                      "L",
+                      0.1074,
+                      0.4883
+                    ],
+                    [
+                      "L",
+                      0.2148,
+                      0.5371
+                    ],
+                    [
+                      "L",
+                      0.2832,
+                      0.3809
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "b48b17fb13b34cdf28acda5bdeb19c326eed254af09eddaa2a88306fca7fe227",
+          "confirmationId": null
+        },
+        {
+          "partId": "sleeve-image-right",
+          "domainId": "sleeve",
+          "instanceType": "sleeve",
+          "label": "Image-right sleeve",
+          "attributes": {
+            "side": "image-right",
+            "direction": "angled outward",
+            "openingEdge": "straight"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.6484,
+                  0.1563
+                ],
+                [
+                  0.7852,
+                  0.2051
+                ],
+                [
+                  0.8926,
+                  0.4883
+                ],
+                [
+                  0.7852,
+                  0.5371
+                ],
+                [
+                  0.7168,
+                  0.3809
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.7852,
+                      0.2051
+                    ],
+                    [
+                      "L",
+                      0.8926,
+                      0.4883
+                    ],
+                    [
+                      "L",
+                      0.7852,
+                      0.5371
+                    ],
+                    [
+                      "L",
+                      0.7168,
+                      0.3809
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "d31c99d605634cc4fc0ffc0c5f31ba5de1370c965ec996633735f3d36fe5f91a",
+          "confirmationId": null
+        }
+      ]
+    },
+    "body-panel": {
+      "domainId": "body-panel",
+      "components": [
+        {
+          "partId": "panel-image-left",
+          "domainId": "body-panel",
+          "instanceType": "panel",
+          "label": "Image-left front panel",
+          "attributes": {
+            "side": "image-left",
+            "sideEdge": "straight"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.3516,
+                  0.1563
+                ],
+                [
+                  0.4043,
+                  0.2344
+                ],
+                [
+                  0.5,
+                  0.2344
+                ],
+                [
+                  0.5,
+                  0.8691
+                ],
+                [
+                  0.2832,
+                  0.8691
+                ],
+                [
+                  0.2832,
+                  0.3809
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.2832,
+                      0.3809
+                    ],
+                    [
+                      "L",
+                      0.2832,
+                      0.8691
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "1884ca73931a322dff9cc6fdc84200474171c434f211c8d1c3a44a2ec8d701bf",
+          "confirmationId": null
+        },
+        {
+          "partId": "panel-image-right",
+          "domainId": "body-panel",
+          "instanceType": "panel",
+          "label": "Image-right front panel",
+          "attributes": {
+            "side": "image-right",
+            "sideEdge": "straight"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.5,
+                  0.2344
+                ],
+                [
+                  0.5957,
+                  0.2344
+                ],
+                [
+                  0.6484,
+                  0.1563
+                ],
+                [
+                  0.7168,
+                  0.3809
+                ],
+                [
+                  0.7168,
+                  0.8691
+                ],
+                [
+                  0.5,
+                  0.8691
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.7168,
+                      0.3809
+                    ],
+                    [
+                      "L",
+                      0.7168,
+                      0.8691
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "3425e5d69b0212fefa78405edcd2c77418b504d5118e4494d5bb76f5355f9801",
+          "confirmationId": null
+        }
+      ]
+    },
+    "closure": {
+      "domainId": "closure",
+      "components": [
+        {
+          "partId": "closure-center-front",
+          "domainId": "closure",
+          "instanceType": "closure",
+          "label": "Center-front opening line",
+          "attributes": {
+            "position": "center front",
+            "orientation": "vertical",
+            "visibleFasteners": false
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.4902,
+                  0.2344
+                ],
+                [
+                  0.5098,
+                  0.2344
+                ],
+                [
+                  0.5098,
+                  0.8691
+                ],
+                [
+                  0.4902,
+                  0.8691
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "detail",
+                  "commands": [
+                    [
+                      "M",
+                      0.5,
+                      0.2344
+                    ],
+                    [
+                      "L",
+                      0.5,
+                      0.8691
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "94608cdd9ef53b2f52666421d9ef9e204865f17691951a131e6791c3b2046eb8",
+          "confirmationId": null
+        }
+      ]
+    },
+    "pocket": {
+      "domainId": "pocket",
+      "components": [
+        {
+          "partId": "pocket-image-left",
+          "domainId": "pocket",
+          "instanceType": "pocket",
+          "label": "Image-left rectangular patch pocket",
+          "attributes": {
+            "side": "image-left",
+            "construction": "patch",
+            "shape": "rectangular",
+            "topEdge": "horizontal",
+            "color": "very light gray"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.332,
+                  0.5176
+                ],
+                [
+                  0.4395,
+                  0.5176
+                ],
+                [
+                  0.4395,
+                  0.6445
+                ],
+                [
+                  0.332,
+                  0.6445
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "detail",
+                  "commands": [
+                    [
+                      "M",
+                      0.332,
+                      0.5176
+                    ],
+                    [
+                      "L",
+                      0.4395,
+                      0.5176
+                    ],
+                    [
+                      "L",
+                      0.4395,
+                      0.6445
+                    ],
+                    [
+                      "L",
+                      0.332,
+                      0.6445
+                    ],
+                    [
+                      "Z"
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "e6c0bb5392fb491157c38f5da078fcaed56b07f77272734c849cff8af13f9f5c",
+          "confirmationId": null
+        },
+        {
+          "partId": "pocket-image-right",
+          "domainId": "pocket",
+          "instanceType": "pocket",
+          "label": "Image-right rectangular patch pocket",
+          "attributes": {
+            "side": "image-right",
+            "construction": "patch",
+            "shape": "rectangular",
+            "topEdge": "horizontal",
+            "color": "very light gray"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.5605,
+                  0.5176
+                ],
+                [
+                  0.668,
+                  0.5176
+                ],
+                [
+                  0.668,
+                  0.6445
+                ],
+                [
+                  0.5605,
+                  0.6445
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "detail",
+                  "commands": [
+                    [
+                      "M",
+                      0.5605,
+                      0.5176
+                    ],
+                    [
+                      "L",
+                      0.668,
+                      0.5176
+                    ],
+                    [
+                      "L",
+                      0.668,
+                      0.6445
+                    ],
+                    [
+                      "L",
+                      0.5605,
+                      0.6445
+                    ],
+                    [
+                      "Z"
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "df80fa4406956d2e0efe6fbd71ebb838b15fde037341a3384b3a9bbdd2b55da8",
+          "confirmationId": null
+        }
+      ]
+    },
+    "hem": {
+      "domainId": "hem",
+      "components": [
+        {
+          "partId": "hem-bottom",
+          "domainId": "hem",
+          "instanceType": "hem",
+          "label": "Straight bottom hem",
+          "attributes": {
+            "shape": "straight",
+            "orientation": "horizontal"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.2832,
+                  0.8535
+                ],
+                [
+                  0.7168,
+                  0.8535
+                ],
+                [
+                  0.7168,
+                  0.877
+                ],
+                [
+                  0.2832,
+                  0.877
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": [
+                {
+                  "role": "contour",
+                  "commands": [
+                    [
+                      "M",
+                      0.2832,
+                      0.8691
+                    ],
+                    [
+                      "L",
+                      0.7168,
+                      0.8691
+                    ]
+                  ]
+                }
+              ]
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "01111677da94d85dfb333bbb4ab6fe22e32692dfd53297431efa3b71c89a0237",
+          "confirmationId": null
+        }
+      ]
+    },
+    "fabric": {
+      "domainId": "fabric",
+      "components": [
+        {
+          "partId": "fabric-main",
+          "domainId": "fabric",
+          "instanceType": "fabric",
+          "label": "Light gray main fabric appearance",
+          "attributes": {
+            "color": "light gray",
+            "pattern": "solid"
+          },
+          "geometryByView": {
+            "front": {
+              "polygon": [
+                [
+                  0.1074,
+                  0.4883
+                ],
+                [
+                  0.2148,
+                  0.2051
+                ],
+                [
+                  0.3516,
+                  0.1563
+                ],
+                [
+                  0.4043,
+                  0.2344
+                ],
+                [
+                  0.5957,
+                  0.2344
+                ],
+                [
+                  0.6484,
+                  0.1563
+                ],
+                [
+                  0.7852,
+                  0.2051
+                ],
+                [
+                  0.8926,
+                  0.4883
+                ],
+                [
+                  0.7852,
+                  0.5371
+                ],
+                [
+                  0.7168,
+                  0.3809
+                ],
+                [
+                  0.7168,
+                  0.8691
+                ],
+                [
+                  0.2832,
+                  0.8691
+                ],
+                [
+                  0.2832,
+                  0.3809
+                ],
+                [
+                  0.2148,
+                  0.5371
+                ]
+              ]
+            }
+          },
+          "flatGeometryByView": {
+            "front": {
+              "paths": []
+            }
+          },
+          "visibilityByView": {
+            "front": "visible"
+          },
+          "evidence": [
+            {
+              "origin": "photo",
+              "view": "front",
+              "assetId": "source-front"
+            }
+          ],
+          "partHash": "d527f846572044c7746429ddc575c97ad67798221f0cb887f96f0b7532889269",
+          "confirmationId": null
+        }
+      ]
+    }
+  },
+  "editProposalId": null,
+  "versionHash": "4b4d833aa500e96b031874de4e0c27ccd58e6221662dcdf42057c2bb7bec7955",
+  "createdAt": 1791294002267
+}

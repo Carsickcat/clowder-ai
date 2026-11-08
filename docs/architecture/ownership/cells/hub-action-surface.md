@@ -2,7 +2,7 @@
 cell_id: hub-action-surface
 title: Hub Action Surface
 summary: First-party Hub user-visible actions that let cats surface files, previews, rich blocks, workflow state, and other in-context artifacts to the user.
-canonical_features: [F022, F063, F096, F120, F131, F223, F232, F284, F290, F299, F307, F310]
+canonical_features: [F022, F063, F096, F120, F131, F223, F232, F284, F290, F299, F307, F310, F317]
 code_anchors:
   - packages/shared/src/types/context-attachment.ts
   - packages/shared/src/schemas/context-attachment.schema.ts
@@ -25,6 +25,10 @@ code_anchors:
   - packages/web/src/components/ArtifactsPanel.tsx
   - packages/web/src/components/rich/RuntimeInteractionCard.tsx
   - packages/api/src/routes/runtime-interaction-routes.ts
+  - packages/web/src/components/ActivityBar.tsx
+  - packages/web/src/components/AppShell.tsx
+  - packages/web/src/app/atelier/page.tsx
+  - packages/web/src/components/atelier/AtelierWorkspace.tsx
 doc_anchors:
   - docs/features/F022-rich-blocks.md
   - docs/features/F063-hub-workspace-explorer.md
@@ -39,10 +43,12 @@ doc_anchors:
   - docs/features/F307-composable-workbench.md
   - docs/features/F310-growing-real-delegation.md
   - docs/features/F306-codex-app-capability-parity.md
+  - docs/features/F317-atelier-fashion-design-cafe.md
   - cat-cafe-skills/refs/capability-wakeup-index.md
   - docs/architecture/skill-consumption-receipt-contract.md
 static_scan_hints: [ContextAttachment, context_attachment, Add to chat, workspace:navigate, preview:auto-open, create_rich_block, rich block, workspace panel, browser preview, surface to user, in-context artifact]
 cited_by:
+  - {feature: F317, date: 2026-10-07, delta: "Atelier is a product-owned /atelier route in the existing Hub shell; garment state remains fashion-design owned."}
   - {feature: F223, date: 2026-06-03, delta: new cell}
   - {feature: F232, date: 2026-06-12, delta: update — thread artifacts aggregation endpoint + ArtifactsPanel drawer}
   - {feature: F284, date: 2026-07-31, delta: update — contextual Workspace shell and deterministic existing-surface reveal policy}
@@ -67,6 +73,8 @@ F307 owns the application-level Composable Workbench contract: working-set ident
 F306 adds one in-context `RuntimeInteractionCard` to the existing thread rich-block surface. The card renders approval, question, and elicitation from a provider-neutral canonical record, resolves actions through a strictly owner-authenticated route, and becomes inert when the record is stale or terminal. Long descriptions and provider paths preserve line breaks and wrap inside narrow cards; URL elicitations render links only for `http|https`. Approval Hub may recall and navigate to an approval-kind card, but neither F223/F284 nor the Hub owns interaction lifecycle or a second decision endpoint.
 
 F310 adds the product-wide `Needs Me` and product `Schedule` projection contract inside the existing Workspace home. F310 composes producer-returned eligibility receipts, deduplicates their presentation and provides exact return; each producer still owns business eligibility, salience, time, Artifact, judgment, re-evaluation and action truth. The projection layer persists no custody lifecycle or second attention/schedule payload, and the existing F139 scheduler-management `SchedulePanel` remains a different administrative surface.
+
+F317 adds the Atelier entry to the existing ActivityBar/AppShell and a product-owned `/atelier` route. The route consumes Fashion Design's authenticated HTTP projection and invokes only its existing lifecycle endpoints. This cell owns the Hub navigation and rendering seam; `fashion-design` remains the sole owner of garment DNA, versions, confirmations, preview jobs, snapshots and technical-flat artifacts. Atelier does not register a generic Workbench mode or persist a second layout/domain truth.
 
 ## Use This When
 

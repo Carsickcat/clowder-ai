@@ -1,0 +1,480 @@
+.atelier {
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
+  background: var(--console-shell-bg);
+  color: var(--cafe-text);
+  font-size: 13px;
+}
+.atelier * {
+  box-sizing: border-box;
+}
+.atelier h1 {
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+.atelier h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.atelier h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+.atelier p {
+  line-height: 1.7;
+  margin: 8px 0;
+}
+.atelier small,
+.atelier-muted {
+  color: var(--cafe-text-muted);
+  font-size: 12px;
+}
+.atelier-kicker {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--cafe-text-muted);
+}
+.atelier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--console-border-soft);
+  background: var(--console-panel-bg);
+}
+.atelier-selectors {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+.atelier label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.atelier input:not([type="checkbox"]):not([type="range"]),
+.atelier select,
+.atelier textarea {
+  border: 1px solid var(--console-border-soft);
+  border-radius: 7px;
+  background: var(--console-card-bg);
+  color: var(--cafe-text);
+  padding: 9px 10px;
+  width: 100%;
+  min-width: 0;
+}
+.atelier select {
+  max-width: 230px;
+}
+.atelier textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+.atelier input[type="file"] {
+  font-size: 12px;
+  max-width: 100%;
+}
+.atelier button,
+.atelier-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--console-border-soft);
+  border-radius: 7px;
+  background: var(--console-card-bg);
+  color: var(--cafe-text);
+  padding: 8px 12px;
+  cursor: pointer;
+  min-height: 34px;
+  text-decoration: none;
+}
+.atelier button:hover,
+.atelier-button:hover {
+  background: var(--console-hover-bg);
+}
+.atelier button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.atelier .atelier-primary {
+  background: var(--console-active-bg);
+  border-color: var(--cafe-accent);
+  color: var(--cafe-text);
+  font-weight: 600;
+}
+.atelier :focus-visible {
+  outline: 2px solid var(--cafe-accent);
+  outline-offset: 3px;
+}
+.atelier-upload {
+  max-width: 800px;
+  margin: 52px auto;
+  padding: 32px;
+  border: 1px solid var(--console-border-soft);
+  border-radius: 16px;
+  background: var(--console-panel-bg);
+  display: grid;
+  gap: 18px;
+}
+.atelier-upload h2 {
+  font-size: 28px;
+  line-height: 1.5;
+}
+.atelier-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.atelier-upload-grid label {
+  padding: 18px;
+  background: var(--console-shell-bg);
+  border: 1px dashed var(--console-border-soft);
+  border-radius: 10px;
+}
+.atelier-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 24px;
+  background: var(--console-panel-bg);
+  border-bottom: 1px solid var(--console-border-soft);
+}
+.atelier-tabs {
+  display: flex;
+  gap: 4px;
+}
+.atelier-tabs button[aria-selected="true"],
+.atelier .active {
+  background: var(--console-active-bg);
+  border-color: var(--cafe-accent);
+}
+.atelier-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 215px;
+  min-height: calc(100% - 160px);
+}
+.atelier-domains,
+.atelier-history {
+  padding: 18px;
+  background: var(--console-panel-bg);
+}
+.atelier-domains {
+  border-right: 1px solid var(--console-border-soft);
+}
+.atelier-domains h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.atelier-domain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0;
+}
+.atelier-domain-list section > button {
+  width: 100%;
+  justify-content: space-between;
+}
+.atelier-instance {
+  flex-direction: row !important;
+  align-items: center;
+  padding: 10px 8px;
+  cursor: pointer;
+}
+.atelier-instance span {
+  flex: 1;
+}
+.atelier-instance small {
+  display: block;
+  margin-top: 3px;
+}
+.atelier-part {
+  border-top: 1px solid var(--console-border-soft);
+  padding-top: 10px;
+  display: grid;
+  gap: 12px;
+}
+.atelier dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 5px 0;
+}
+.atelier dt {
+  color: var(--cafe-text-muted);
+}
+.atelier dd {
+  overflow-wrap: anywhere;
+}
+.atelier-correction {
+  display: grid;
+  gap: 12px;
+}
+.atelier-geometry {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--console-card-bg);
+  border: 1px solid var(--console-border-soft);
+  cursor: crosshair;
+}
+.atelier-point-list > div {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.atelier-point-list input {
+  max-width: 72px;
+}
+.atelier-center {
+  min-width: 0;
+  padding: 22px;
+}
+.atelier-canvas,
+.atelier-blueprint {
+  overflow: hidden;
+  border: 1px solid var(--console-border-soft);
+  border-radius: 12px;
+  background: var(--console-card-bg);
+}
+.atelier-canvas > p,
+.atelier-blueprint > p,
+.atelier-blueprint > .atelier-actions {
+  margin: 12px 16px;
+}
+.atelier-canvas-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--console-border-soft);
+}
+.atelier-canvas-bar button {
+  padding: 4px 8px;
+}
+.atelier-photo-scroll,
+.atelier-drawing-scroll {
+  overflow: auto;
+  max-height: 56vh;
+  min-height: 280px;
+}
+.atelier-photo {
+  position: relative;
+  margin: 0 auto;
+  min-width: 50%;
+}
+.atelier-photo > img {
+  display: block;
+  width: 100%;
+  max-width: none;
+}
+.atelier-photo > .atelier-overlay {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.atelier-hotspots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.atelier-hotspots polygon {
+  fill: transparent;
+  stroke: var(--cafe-accent);
+  stroke-width: 0.001;
+  cursor: pointer;
+}
+.atelier-hotspots polygon:hover,
+.atelier-hotspots polygon.selected {
+  fill: color-mix(in srgb, var(--cafe-accent) 22%, transparent);
+  stroke-width: 0.004;
+}
+.atelier-compare {
+  padding: 10px 16px;
+  flex-direction: row !important;
+  align-items: center;
+}
+.atelier-compare input {
+  flex: 1;
+  accent-color: var(--cafe-accent);
+}
+.atelier-mobile-compare {
+  display: none;
+}
+.atelier-no-photo,
+.atelier-empty {
+  text-align: center;
+  padding: 64px 26px;
+  color: var(--cafe-text-muted);
+}
+.atelier-no-photo h3,
+.atelier-empty h2 {
+  color: var(--cafe-text);
+}
+.atelier-composer,
+.atelier-candidate {
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid var(--console-border-soft);
+  border-radius: 12px;
+  background: var(--console-panel-bg);
+}
+.atelier-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+.atelier-composer .atelier-button {
+  max-width: 250px;
+}
+.atelier-warning,
+.atelier-error {
+  background: var(--console-active-bg);
+  border-left: 3px solid var(--cafe-accent);
+  padding: 12px 16px;
+  line-height: 1.7;
+}
+.atelier-error {
+  margin: 12px 24px;
+}
+.atelier-history {
+  border-left: 1px solid var(--console-border-soft);
+}
+.atelier-version {
+  width: 100%;
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch !important;
+  text-align: left;
+  gap: 8px;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid var(--console-border-soft);
+  border-radius: 8px;
+}
+.atelier-version small {
+  overflow-wrap: anywhere;
+}
+.atelier-version strong {
+  font-size: 12px;
+}
+.atelier-drawing-scroll svg {
+  min-width: 100%;
+  aspect-ratio: 1;
+  display: block;
+}
+.atelier-drawing-scroll g {
+  cursor: pointer;
+}
+.atelier-drawing-scroll g:hover {
+  stroke-width: 4;
+}
+.atelier-provenance {
+  margin: 16px;
+  font-size: 12px;
+}
+@media (max-width: 1200px) {
+  .atelier-body {
+    grid-template-columns: 235px minmax(0, 1fr);
+  }
+  .atelier-history {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-top: 1px solid var(--console-border-soft);
+  }
+  .atelier-history h2,
+  .atelier-history > p {
+    width: 100%;
+  }
+  .atelier-version {
+    width: 190px;
+  }
+  .atelier-photo > .atelier-overlay,
+  .atelier-compare {
+    display: none !important;
+  }
+  .atelier-mobile-compare {
+    display: block;
+    border-top: 1px solid var(--console-border-soft);
+    max-height: 56vh;
+    overflow: auto;
+  }
+  .atelier-mobile-compare img {
+    width: 100%;
+  }
+}
+@media (max-width: 760px) {
+  .atelier-header {
+    padding: 16px;
+    align-items: start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .atelier-selectors {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .atelier-selectors > label {
+    flex: 1;
+    min-width: 110px;
+  }
+  .atelier-upload {
+    margin: 18px;
+    padding: 22px;
+  }
+  .atelier-upload-grid {
+    grid-template-columns: 1fr;
+  }
+  .atelier-body {
+    display: flex;
+    flex-direction: column;
+  }
+  .atelier-domains {
+    padding: 14px;
+    border-bottom: 1px solid var(--console-border-soft);
+  }
+  .atelier-domain-list {
+    flex-direction: row;
+    overflow: auto;
+    align-items: start;
+  }
+  .atelier-domain-list > section {
+    min-width: 130px;
+  }
+  .atelier-part {
+    max-height: 50vh;
+    overflow: auto;
+  }
+  .atelier-center {
+    padding: 12px;
+  }
+  .atelier-toolbar {
+    padding: 12px;
+  }
+  .atelier-tabs {
+    overflow: auto;
+    max-width: 100%;
+  }
+  .atelier-tabs button {
+    white-space: nowrap;
+  }
+  .atelier-error {
+    margin: 12px;
+  }
+  .atelier-selectors select {
+    max-width: 100%;
+  }
+}

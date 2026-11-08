@@ -123,6 +123,14 @@ export interface FashionAuditEvent {
 }
 /** One revision-checked aggregate; immutable records are append-only, proposals own job lifecycle. */
 export interface FashionDesignState {
+  analysis?: {
+    operationId: string;
+    status: 'generating' | 'ready' | 'failed';
+    createdAt: number;
+    expiresAt: number;
+    versionId?: string;
+    failure?: string;
+  };
   design: FashionDesign;
   versions: Record<string, GarmentVersion>;
   confirmations: Record<string, ConfirmationRecord>;

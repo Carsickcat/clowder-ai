@@ -8,6 +8,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { AttentionRailButtons } from './attention/AttentionRailButtons';
 import { ConciergeRailToggle } from './concierge/ConciergeRailToggle';
 import { HubIcon } from './hub-icons';
+import { AtelierIcon } from './icons/AtelierIcon';
 import { MemoryIcon } from './icons/MemoryIcon';
 import { SETTINGS_SECTIONS } from './settings/settings-nav-config';
 import { ThemeMenu } from './ThemeMenu';
@@ -16,6 +17,7 @@ import { getThreadIdFromPathname } from './ThreadSidebar/thread-navigation';
 const OklchTuner = lazy(() => import('./dev/OklchTuner').then((m) => ({ default: m.OklchTuner })));
 
 const NAV_ITEMS = [
+  { id: 'atelier', path: '/atelier', label: '缝纫间', match: (p: string) => p.startsWith('/atelier') },
   { id: 'home', path: '/', label: '对话', match: (p: string) => p === '/' || p.startsWith('/thread/') },
   { id: 'starry', path: '/starry', label: '猫猫星球', match: (p: string) => p.startsWith('/starry') },
   { id: 'memory', path: '/memory', label: '记忆', match: (p: string) => p.startsWith('/memory') },
@@ -105,6 +107,7 @@ function SettingsIcon({ className = 'w-5 h-5' }: { className?: string }) {
 }
 
 const ICON_MAP: Record<string, ({ className }: { className?: string }) => JSX.Element> = {
+  atelier: AtelierIcon,
   home: ChatIcon,
   starry: PlanetIcon,
   signals: SignalIcon,

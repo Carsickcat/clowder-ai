@@ -1809,6 +1809,31 @@
     "owner": "codex-sol"
   },
   {
+    "id": "feature-f317-atelier-fashion-design",
+    "kind": "feature",
+    "sourceRef": {
+      "path": "docs/features/F317-atelier-fashion-design-cafe.md",
+      "anchor": "User Journey"
+    },
+    "structureSource": {
+      "path": "packages/web/src/components/atelier/AtelierWorkspace.tsx",
+      "anchor": "AtelierWorkspace"
+    },
+    "bodySource": {
+      "path": "docs/features/F317-atelier-fashion-design-cafe.md",
+      "anchor": "User Journey"
+    },
+    "contexts": ["concierge_idle", "concierge_open", "feature_dev"],
+    "audience": ["cvo", "developer"],
+    "body": "想把一张服装图改成可信版本？打开缝纫间，先上传并逐项确认可见结构；选择一个具体部件后再做局部改款，确认齐全才能导出正式款式线稿。",
+    "action": {
+      "type": "open_concierge_draft",
+      "label": "开始一件服装改款",
+      "draftPrompt": "我想在缝纫间上传一张服装图，先拆解并确认可见设计点，再只修改一个具体部件。"
+    },
+    "owner": "opus"
+  },
+  {
     "id": "feature-f311-evolution-program",
     "kind": "feature",
     "sourceRef": {

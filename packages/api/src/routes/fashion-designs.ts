@@ -117,24 +117,53 @@ export const fashionDesignRoutes: FastifyPluginAsync<FashionDesignRoutesOptions>
       .parse(request.body ?? {});
     const existing = Object.values(state.versions).find((version) => version.parentVersionId === null);
     if (existing) return { version: existing };
-    if (!opts.analyzer) throw new FashionError('analysis_provider_unavailable', 503);
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      const domains = await Promise.race([
-        opts.analyzer.analyze({ design: state.design, signal: controller.signal }),
-        new Promise<never>((_resolve, reject) => {
-          timer = setTimeout(() => {
-            controller.abort();
-            reject(new FashionError('analysis_timeout', 504));
-          }, 180_000);
-        }),
-      ]);
-      await ownedThread(userId, state.design.threadId);
-      return reply.code(201).send({ version: await service.analyze(userId, id, domains) });
-    } finally {
-      clearTimeout(timer);
+    const analyzer = opts.analyzer;
+    if (!analyzer) throw new FashionError('analysis_provider_unavailable', 503);
+    const query = z
+      .object({ async: z.literal('true').optional() })
+      .strict()
+      .parse(request.query);
+    const lease = await service.claimAnalysis(userId, id);
+    if (!lease) {
+      const current = await service.get(userId, id);
+      await ownedThread(userId, current.design.threadId);
+      if (current.analysis?.versionId) return { version: current.versions[current.analysis.versionId] };
+      return reply.code(202).send(current.analysis);
     }
+    const execute = async () => {
+      const controller = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        // Recheck after the durable claim and before spending a model invocation.
+        await ownedThread(userId, state.design.threadId);
+        const domains = await Promise.race([
+          analyzer.analyze({ design: state.design, signal: controller.signal }),
+          new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(() => {
+              controller.abort();
+              reject(new FashionError('analysis_timeout', 504));
+            }, 180_000);
+          }),
+        ]);
+        await ownedThread(userId, state.design.threadId);
+        return await service.analyze(userId, id, domains, lease.operationId);
+      } catch (error) {
+        await service.failAnalysis(
+          userId,
+          id,
+          lease.operationId,
+          error instanceof FashionError ? error.code : 'analysis_failed',
+        );
+        throw error;
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+    if (query.async) {
+      void execute().catch((error) => app.log.error({ err: error, designId: id }, 'Fashion analysis failed'));
+      return reply.code(202).send(lease);
+    }
+    return reply.code(201).send({ version: await execute() });
   });
   app.post('/api/fashion-designs/:id/reference-images', async (request, reply) => {
     const { userId, id } = await owned(request);

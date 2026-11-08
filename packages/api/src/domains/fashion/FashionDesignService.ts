@@ -98,9 +98,42 @@ export class FashionDesignService {
     }
     throw new FashionError('concurrent_update');
   }
-  analyze(userId: string, designId: string, input: GarmentDomainsInput) {
+  claimAnalysis(userId: string, designId: string, leaseMs = 180_000) {
+    if (!Number.isSafeInteger(leaseMs) || leaseMs < 1 || leaseMs > 600_000)
+      throw new FashionError('invalid_worker_lease', 400);
+    return this.transact(userId, designId, (state) => {
+      if (
+        Object.keys(state.versions).length ||
+        (state.analysis?.status === 'generating' && state.analysis.expiresAt > Date.now())
+      )
+        return null;
+      state.analysis = {
+        operationId: fashionId(),
+        status: 'generating',
+        createdAt: Date.now(),
+        expiresAt: Date.now() + leaseMs,
+      };
+      return state.analysis;
+    });
+  }
+  failAnalysis(userId: string, designId: string, operationId: string, failure: string) {
+    return this.transact(userId, designId, (state) => {
+      if (state.analysis?.operationId === operationId && state.analysis.status === 'generating') {
+        state.analysis.status = 'failed';
+        state.analysis.failure = failure;
+      }
+    });
+  }
+  analyze(userId: string, designId: string, input: GarmentDomainsInput, operationId?: string) {
     const parsed = GarmentDomainsSchema.parse(input);
     return this.transact(userId, designId, (state) => {
+      if (
+        state.analysis &&
+        (state.analysis.operationId !== operationId ||
+          state.analysis.status !== 'generating' ||
+          state.analysis.expiresAt <= Date.now())
+      )
+        throw new FashionError('stale_analysis');
       if (Object.keys(state.versions).length) throw new FashionError('already_analyzed');
       const version = appendVersion(state, {
         id: fashionId(),
@@ -112,6 +145,10 @@ export class FashionDesignService {
         editProposalId: null,
       });
       for (const part of allParts(version)) assertPhotoEvidence(state, part);
+      if (state.analysis) {
+        state.analysis.status = 'ready';
+        state.analysis.versionId = version.id;
+      }
       audit(state, 'analyzed', version.id);
       return version;
     });

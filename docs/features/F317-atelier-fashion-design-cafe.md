@@ -4,7 +4,6 @@ related_features: [F056, F172, F190, F232]
 topics: [fashion-design, garment-dna, image-editing, versioning, technical-flat, hub]
 doc_kind: spec
 created: 2026-09-13
-tips_exempt: F317 snapshot SVG backend tranche; no Hub entry is delivered yet, and the approved Atelier UI/tips remain in the active implementation task.
 ---
 
 # F317: Atelier Fashion Design Cafe — 结构受控局部改款与可追溯款式线稿

@@ -130,11 +130,26 @@ it(
       tampered.design.revision++;
       tampered.versions[version.id].domains.sleeve.components[0].attributes.style = 'tampered';
       await assert.rejects(store.compareAndSwap(before, tampered), { code: 'immutable_record' });
+      const pendingDesign = await service.create({
+        userId: 'owner',
+        threadId: 'analysis-thread',
+        title: 'Pending analysis',
+        sourceAssetIdsByView: { front: 'source-front' },
+      });
+      const analysisLease = await service.claimAnalysis('owner', pendingDesign.id, 1);
       await server.redis.save();
       await server.stop();
       server = await startRedis(directory);
       store = new RedisFashionDesignStore(server.redis);
       service = new FashionDesignService(store);
+      assert.equal((await service.get('owner', pendingDesign.id)).analysis?.operationId, analysisLease?.operationId);
+      const recovered = await service.claimAnalysis('owner', pendingDesign.id);
+      assert.ok(recovered);
+      assert.notEqual(recovered.operationId, analysisLease?.operationId);
+      await assert.rejects(service.analyze('owner', pendingDesign.id, garment(), analysisLease?.operationId), {
+        code: 'stale_analysis',
+      });
+      await service.analyze('owner', pendingDesign.id, garment(), recovered.operationId);
       assert.deepEqual(await service.get('owner', design.id), before);
       assert.deepEqual((await service.get('owner', design.id)).snapshots[snapshot.id], snapshot);
       assert.deepEqual((await service.get('owner', design.id)).technicalFlats![flat.id], flat);

@@ -26,6 +26,7 @@ import { ResizeHandle } from './workspace/ResizeHandle';
 const CHROMELESS_ROUTES = ['/story', '/story-export', '/pixel-brawl', '/showcase', '/dev/f277-attention-preview'];
 
 const SIDEBAR_HIDDEN_ROUTES = [
+  '/atelier',
   '/settings',
   '/marketplace',
   '/signals',
