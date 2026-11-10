@@ -61,4 +61,3 @@ The complete self-check is in `review-notes/2026-11-10-f317-entrypoint-quality-g
 ## Requested verdict
 
 Please independently inspect and run the isolated entrypoint test. Return `APPROVE` or `REQUEST-CHANGES` with P1/P2/P3 findings tied to `f95f621`.
-
