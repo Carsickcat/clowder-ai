@@ -7,7 +7,6 @@
 import './settos-guard.js';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import {
   type CatConfig,
   type CatId,
@@ -204,7 +203,7 @@ import { initVoiceBlockSynthesizer } from './domains/cats/services/tts/VoiceBloc
 import type { AgentService } from './domains/cats/services/types.js';
 import { FASHION_MODEL_POLICY } from './domains/fashion/FashionAgentProvider.js';
 import { FashionDesignService } from './domains/fashion/FashionDesignService.js';
-import { RedisFashionDesignStore } from './domains/fashion/FashionDesignStore.js';
+import { MemoryFashionDesignStore, RedisFashionDesignStore } from './domains/fashion/FashionDesignStore.js';
 import { FashionError } from './domains/fashion/fashion-invariants.js';
 import { createFashionPipeline } from './domains/fashion/fashion-pipeline.js';
 import { EntrustedWorkOwnerReadService } from './domains/growing/EntrustedWorkOwnerReadService.js';
@@ -4688,7 +4687,9 @@ async function main(): Promise<void> {
   });
   const { registerPersonalChromePluginRoutes } = await import('./routes/personal-chrome-plugin-routes.js');
   const personalChromeInstallModule = (await import(
-    pathToFileURL(join(findMonorepoRoot(process.cwd()), 'packages/api/scripts/f247-personal-chrome-install.mjs')).href
+    // This is shipped beside packages/api/dist, not inside an operator workspace.
+    // Resolving it from cwd made an isolated (and valid) workspace fail at startup.
+    new URL('../scripts/f247-personal-chrome-install.mjs', import.meta.url).href
   )) as unknown as {
     createPersonalChromePluginPort(options: {
       projectRoot: string;
@@ -5795,32 +5796,33 @@ async function main(): Promise<void> {
 
   // Serve uploaded files (images)
   const uploadDir = getDefaultUploadDir(process.env.UPLOAD_DIR);
-  if (redis) {
-    const fashionService = new FashionDesignService(new RedisFashionDesignStore(redis));
-    const fashionPipeline = createFashionPipeline({
-      service: fashionService,
-      uploadDir,
-      threadStore,
-      messageStore,
-      resolveAgent: () => {
-        const config = Object.values(catRegistry.getAllConfigs()).find(
-          (cat) =>
-            cat.clientId === 'openai' &&
-            agentRegistry.has(cat.id) &&
-            agentRegistry.get(cat.id).supportsToolExecutionPolicy?.(FASHION_MODEL_POLICY),
-        );
-        if (!config) throw new FashionError('fashion_provider_unavailable', 503);
-        return { catId: config.id, service: agentRegistry.get(config.id) };
-      },
-      onError: (error) => app.log.error({ err: error }, 'Fashion preview execution failed'),
-    });
-    await app.register(fashionDesignRoutes, {
-      service: fashionService,
-      threadStore,
-      uploadDir,
-      ...fashionPipeline,
-    });
-  }
+  const fashionService = new FashionDesignService(
+    redis ? new RedisFashionDesignStore(redis) : new MemoryFashionDesignStore(),
+  );
+  if (!redis) app.log.warn('[api] F317 fashion designs use explicit degraded memory storage and will not survive restart');
+  const fashionPipeline = createFashionPipeline({
+    service: fashionService,
+    uploadDir,
+    threadStore,
+    messageStore,
+    resolveAgent: () => {
+      const config = Object.values(catRegistry.getAllConfigs()).find(
+        (cat) =>
+          cat.clientId === 'openai' &&
+          agentRegistry.has(cat.id) &&
+          agentRegistry.get(cat.id).supportsToolExecutionPolicy?.(FASHION_MODEL_POLICY),
+      );
+      if (!config) throw new FashionError('fashion_provider_unavailable', 503);
+      return { catId: config.id, service: agentRegistry.get(config.id) };
+    },
+    onError: (error) => app.log.error({ err: error }, 'Fashion preview execution failed'),
+  });
+  await app.register(fashionDesignRoutes, {
+    service: fashionService,
+    threadStore,
+    uploadDir,
+    ...fashionPipeline,
+  });
   await app.register(uploadsRoutes, { uploadDir });
   await app.register(refAudioUploadRoutes);
 
