@@ -9,7 +9,7 @@ import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { mock, test } from 'node:test';
 import { clearTimeout as clearKeepAliveTimeout, setTimeout as setKeepAliveTimeout } from 'node:timers';
@@ -755,8 +755,8 @@ test('spawnCli passes cwd and env to spawn', async () => {
     assert.equal(spawnCall.arguments[0], 'claude');
     assert.deepEqual(spawnCall.arguments[1], ['-p', 'hello']);
     assert.equal(spawnCall.arguments[2].cwd, '/some/project');
-    assert.equal(spawnCall.arguments[2].env.PWD, '/some/project');
-    assert.equal(spawnCall.arguments[2].env.INIT_CWD, '/some/project');
+    assert.equal(spawnCall.arguments[2].env.PWD, resolve('/some/project'));
+    assert.equal(spawnCall.arguments[2].env.INIT_CWD, resolve('/some/project'));
     assert.equal(spawnCall.arguments[2].env.CUSTOM_VAR, 'value');
   } finally {
     if (previousPwd === undefined) delete process.env.PWD;
@@ -1556,6 +1556,52 @@ test('Group A: semanticCompletionSignal aborted → generator finishes without w
   assert.deepEqual(results[1], { type: 'turn.completed', usage: { input_tokens: 100 } });
 });
 
+test('Group A: semantic completion bounds a still-open NDJSON stream', async () => {
+  const proc = createMockProcess();
+  const spawnFn = createMockSpawnFn(proc);
+  const semanticController = new AbortController();
+  const stream = spawnCli(
+    {
+      command: 'codex',
+      args: ['exec', '--json'],
+      timeoutMs: SEMANTIC_COMPLETION_GRACE_MS + 10_000,
+      semanticCompletionSignal: semanticController.signal,
+    },
+    { spawnFn },
+  );
+
+  const first = stream.next();
+  proc.stdout.write(JSON.stringify({ type: 'turn.completed' }) + '\n');
+  assert.deepEqual(await first, { value: { type: 'turn.completed' }, done: false });
+
+  semanticController.abort();
+  const startedAt = Date.now();
+  const completion = stream.next();
+  let next;
+  try {
+    next = await Promise.race([
+      completion,
+      new Promise((resolve) => setTimeout(() => resolve('deadline'), SEMANTIC_COMPLETION_GRACE_MS + 1_000)),
+    ]);
+  } finally {
+    // The red test runs against the old implementation too; close only this mock
+    // process so a failure cannot leave its iterator pending.
+    if (next === 'deadline') {
+      proc.stdout.end();
+      proc._emitter.emit('exit', 0, null);
+      await completion;
+    }
+  }
+
+  assert.notEqual(next, 'deadline', 'semantic completion must not wait for stdout to close');
+  assert.equal(next.done, true);
+  assert.ok(proc.kill.mock.callCount() >= 1, 'the lingering wrapper must be terminated');
+  assert.ok(
+    Date.now() - startedAt < SEMANTIC_COMPLETION_GRACE_MS + 1_500,
+    'semantic completion should finish within its bounded grace window',
+  );
+});
+
 test('Group A: semanticCompletionSignal skips __cliError for post-completion exit', async () => {
   const proc = createMockProcess({ exitOnKill: false });
   const spawnFn = createMockSpawnFn(proc);
@@ -1842,7 +1888,9 @@ test('#774 R2: deferred stall-kill is cancelled when NDJSON recovery arrives bef
   //   T=200:  race timer wins → drains stall → pendingStallKill=true → race (100ms timer)
   //   T=250:  recovery NDJSON arrives → NDJSON wins race → pendingStallKill=false
   //   T=300+: session completes normally
-  const sleeper = (await import('node:child_process')).spawn('sleep', ['60']);
+  // Use the current Node runtime rather than Unix-only `sleep`, so the liveness
+  // probe covers the same real child-process condition on Windows and Unix.
+  const sleeper = nodeSpawn(process.execPath, ['-e', 'setInterval(() => {}, 60_000)']);
   try {
     const proc = createMockProcess({ pid: sleeper.pid });
     const spawnFn = createMockSpawnFn(proc);

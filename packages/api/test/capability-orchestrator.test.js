@@ -2530,6 +2530,43 @@ describe('generateCliConfigs', () => {
     assert.ok(geminiData.mcpServers, 'Gemini CLI config should be generated');
   });
 
+  it('cleans resolver overrides only beneath the injected CLI config home', async () => {
+    const sandboxHome = join(dir, 'sandbox-home');
+    const claudeConfigPath = join(sandboxHome, '.claude.json');
+    await mkdir(sandboxHome, { recursive: true });
+    await writeFile(
+      claudeConfigPath,
+      JSON.stringify({
+        projects: {
+          [dir]: {
+            mcpServers: {
+              'resolver-backed': { command: 'stale-resolver', args: [] },
+              preserved: { command: 'keep', args: [] },
+            },
+          },
+        },
+      }),
+    );
+
+    const config = makeConfig([
+      {
+        id: 'resolver-backed',
+        type: 'mcp',
+        enabled: true,
+        source: 'external',
+        mcpServer: { command: 'node', args: ['resolver.js'], resolver: 'test-resolver' },
+      },
+    ]);
+
+    await generateCliConfigs(config, { google: join(dir, '.gemini', 'settings.json') }, dir, {
+      cliConfigHome: sandboxHome,
+    });
+
+    const claudeConfig = JSON.parse(await readFile(claudeConfigPath, 'utf-8'));
+    assert.equal(claudeConfig.projects[dir].mcpServers['resolver-backed'], undefined);
+    assert.deepEqual(claudeConfig.projects[dir].mcpServers.preserved, { command: 'keep', args: [] });
+  });
+
   it('restores CLI config file permissions during rollback', async () => {
     const configPath = join(dir, '.mcp.json');
     const originalUmask = process.umask(0o022);

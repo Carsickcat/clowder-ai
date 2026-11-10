@@ -1772,6 +1772,17 @@ export async function resolveMachineSpecificServers(
   }
 }
 
+export interface GenerateCliConfigsOptions {
+  /**
+   * Home directory containing per-user CLI configuration. Callers that run in
+   * a sandbox must pass the sandbox user profile rather than relying on the
+   * host process `homedir()`.
+   */
+  cliConfigHome?: string;
+  /** Environment forwarded to machine-specific resolver discovery. */
+  env?: NodeJS.ProcessEnv;
+}
+
 /**
  * Generate persistent CLI config files from capabilities.json.
  *
@@ -1782,9 +1793,10 @@ export async function generateCliConfigs(
   config: CapabilitiesConfig,
   paths: CliConfigPaths,
   projectRoot: string,
+  options: GenerateCliConfigsOptions = {},
 ): Promise<void> {
   const perProvider = collectServersPerProvider(config);
-  await resolveMachineSpecificServers(perProvider, { projectRoot });
+  await resolveMachineSpecificServers(perProvider, { projectRoot, env: options.env });
   const configPaths = Object.values(paths).filter(
     (path): path is string => typeof path === 'string' && path.length > 0,
   );
@@ -1814,10 +1826,10 @@ export async function generateCliConfigs(
   const resolverBacked = config.capabilities.filter((c) => c.type === 'mcp' && c.mcpServer?.resolver).map((c) => c.id);
   if (resolverBacked.length > 0) {
     try {
-      const claudeConfigPath = resolve(homedir(), '.claude.json');
+      const claudeConfigPath = resolve(options.cliConfigHome ?? homedir(), '.claude.json');
       const cleaned = await cleanStaleClaudeProjectOverrides(claudeConfigPath, projectRoot, resolverBacked);
       if (cleaned.length > 0) {
-        console.warn(`[F145] Cleaned resolver-managed overrides from ~/.claude.json: ${cleaned.join(', ')}`);
+        console.warn(`[F145] Cleaned resolver-managed overrides from ${claudeConfigPath}: ${cleaned.join(', ')}`);
       }
     } catch (err) {
       console.warn(`[F145] Failed to clean ~/.claude.json overrides (non-blocking): ${(err as Error).message}`);

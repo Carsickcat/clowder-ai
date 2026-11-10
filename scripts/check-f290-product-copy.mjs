@@ -55,7 +55,7 @@ export function scanF290ProductCopy(root = REPO_ROOT) {
     const content = readFileSync(path, 'utf8');
     for (const [lineIndex, line] of content.split('\n').entries()) {
       for (const term of findForbiddenProductTerms(line)) {
-        findings.push({ path: relative(root, path), line: lineIndex + 1, term });
+        findings.push({ path: relative(root, path).replaceAll('\\', '/'), line: lineIndex + 1, term });
       }
     }
   }

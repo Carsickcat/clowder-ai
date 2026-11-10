@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
 const { resolveCmdShimScript, resolveWindowsShimSpawn, escapeCmdArg, extractBareName, parseShimFile, findSystemNode } =
   await import('../dist/utils/cli-spawn-win.js');
+
+function existingNativeExe() {
+  const windowsRoot = process.env.SystemRoot ?? process.env.WINDIR;
+  assert.ok(windowsRoot, 'Windows test environment must expose SystemRoot or WINDIR');
+  const commandExe = join(windowsRoot, 'System32', 'cmd.exe');
+  assert.ok(existsSync(commandExe), `expected system command executable at ${commandExe}`);
+  return commandExe;
+}
 
 test(
   'resolveCmdShimScript supports %dp0 shims and keeps scanning where results until one resolves',
@@ -406,6 +414,23 @@ test('parseShimFile extracts script path from %~dp0 shim', () => {
   }
 });
 
+test('parseShimFile extracts an ESM .mjs path from a %~dp0 shim', () => {
+  const tempRoot = mkdtempSync(join(tmpdir(), 'cli-spawn-win-parse-mjs-'));
+  mkdirSync(join(tempRoot, 'node_modules', 'pkg'), { recursive: true });
+
+  const cmdPath = join(tempRoot, 'test.cmd');
+  const scriptPath = join(tempRoot, 'node_modules', 'pkg', 'cli.mjs');
+
+  writeFileSync(cmdPath, '@"%~dp0\\node_modules\\pkg\\cli.mjs" %*\r\n', 'utf8');
+  writeFileSync(scriptPath, 'console.log("ok");\n', 'utf8');
+
+  try {
+    assert.equal(parseShimFile(cmdPath), scriptPath);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test('parseShimFile returns null for non-existent file', () => {
   assert.equal(parseShimFile(join(tmpdir(), 'nonexistent-1234.cmd')), null);
 });
@@ -459,13 +484,13 @@ test('parseShimFile resolves extensionless entrypoints when no .js match exists'
 
 test('parseShimFile resolves native exe entrypoints when the shim directly launches a CLI binary', () => {
   const tempRoot = mkdtempSync(join(tmpdir(), 'cli-spawn-win-parse-native-exe-'));
-  mkdirSync(join(tempRoot, 'node_modules', '@anthropic-ai', 'claude-code', 'bin'), { recursive: true });
-
   const cmdPath = join(tempRoot, 'claude.cmd');
-  const exePath = join(tempRoot, 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe');
+  const exePath = existingNativeExe();
 
-  writeFileSync(cmdPath, '"%dp0%\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe" %*\r\n', 'utf8');
-  writeFileSync(exePath, 'MZ fake native exe', 'utf8');
+  // Do not manufacture a fake .exe in a temp directory: Windows security
+  // tooling can quarantine it before this test's cleanup runs. An installed
+  // OS executable exercises the same parser branch without that side effect.
+  writeFileSync(cmdPath, '"%SystemRoot%\\System32\\cmd.exe" %*\r\n', 'utf8');
 
   try {
     assert.equal(parseShimFile(cmdPath), exePath);
@@ -561,17 +586,14 @@ test('parseShimFile prefers relative %dp0 paths over absolute %APPDATA% paths', 
 
 test('parseShimFile resolves native .exe entrypoints when no .js or extensionless match (#234)', () => {
   const tempRoot = mkdtempSync(join(tmpdir(), 'cli-spawn-win-exe-target-'));
-  mkdirSync(join(tempRoot, 'node_modules', '@anthropic-ai', 'claude-code', 'bin'), { recursive: true });
-
   const cmdPath = join(tempRoot, 'claude.cmd');
-  const exePath = join(tempRoot, 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe');
+  const exePath = existingNativeExe();
 
   writeFileSync(
     cmdPath,
-    '@IF EXIST "%~dp0\\node.exe" (\r\n  "%~dp0\\node.exe" "%~dp0\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe" %*\r\n)\r\n',
+    '@IF EXIST "%~dp0\\node.exe" (\r\n  "%~dp0\\node.exe" "%SystemRoot%\\System32\\cmd.exe" %*\r\n)\r\n',
     'utf8',
   );
-  writeFileSync(exePath, 'MZ fake exe', 'utf8');
 
   try {
     const resolved = parseShimFile(cmdPath);
@@ -581,13 +603,10 @@ test('parseShimFile resolves native .exe entrypoints when no .js or extensionles
   }
 });
 
-test('parseShimFile skips sibling node.exe and resolves claude.exe in native .exe pass (#247 regression)', () => {
+test('parseShimFile ignores a node.exe prelude and resolves the native exe target (#247 regression)', () => {
   const tempRoot = mkdtempSync(join(tmpdir(), 'cli-spawn-win-exe-node-sibling-'));
-  mkdirSync(join(tempRoot, 'node_modules', '@anthropic-ai', 'claude-code', 'bin'), { recursive: true });
-
   const cmdPath = join(tempRoot, 'claude.cmd');
-  const fakeNodeExe = join(tempRoot, 'node.exe');
-  const claudeExe = join(tempRoot, 'node_modules', '@anthropic-ai', 'claude-code', 'bin', 'claude.exe');
+  const nativeExe = existingNativeExe();
 
   writeFileSync(
     cmdPath,
@@ -596,19 +615,17 @@ test('parseShimFile skips sibling node.exe and resolves claude.exe in native .ex
       'SETLOCAL',
       'SET dp0=%~dp0',
       'IF EXIST "%dp0%\\node.exe" (',
-      '  "%dp0%\\node.exe" "%dp0%\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe" %*',
+      '  "%dp0%\\node.exe" "%SystemRoot%\\System32\\cmd.exe" %*',
       ') ELSE (',
-      '  "%dp0%\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe" %*',
+      '  "%SystemRoot%\\System32\\cmd.exe" %*',
       ')',
     ].join('\r\n'),
     'utf8',
   );
-  writeFileSync(fakeNodeExe, 'MZ fake node', 'utf8');
-  writeFileSync(claudeExe, 'MZ fake claude', 'utf8');
 
   try {
     const resolved = parseShimFile(cmdPath);
-    assert.equal(resolved, claudeExe, 'must resolve to claude.exe, not node.exe');
+    assert.equal(resolved, nativeExe, 'must resolve the native target, not node.exe');
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

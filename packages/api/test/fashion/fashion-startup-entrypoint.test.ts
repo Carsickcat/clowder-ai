@@ -8,6 +8,9 @@ import { isAbsolute, join, relative } from 'node:path';
 import { describe, it, type TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { Redis } from 'ioredis';
+import sharp from 'sharp';
+import { parseShimFile, resolveWindowsShimSpawn } from '../../src/utils/cli-spawn-win.js';
+import { garment } from './fixtures.js';
 
 const API_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const WORKTREE_ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -38,6 +41,7 @@ type StartedRedis = {
 type StartOptions = {
   environment?: Record<string, string>;
   onSandboxCreated?: (root: string) => void;
+  prepareSandbox?: (sandbox: Sandbox) => Promise<void>;
 };
 
 function hasExited(child: ChildProcess): boolean {
@@ -176,6 +180,8 @@ async function createSandbox(overrides: Record<string, string> = {}): Promise<Sa
     CAT_CAFE_PROVISION_GLOBAL_SIDECAR: '0',
     CAT_CAFE_RUNTIME_ROOT: workspace,
     CAT_CAFE_SKIP_HOMEDIR_MIGRATION: '1',
+    // Guard-only reference used by test-config-write-guard. It is never an
+    // output location; HOME/USERPROFILE above are the sandboxed user profile.
     CAT_CAFE_TEST_REAL_HOME: homedir(),
     CAT_CAFE_TEST_SANDBOX: '1',
     CAT_CAFE_USER_ID: 'entrypoint-owner',
@@ -189,6 +195,7 @@ async function createSandbox(overrides: Record<string, string> = {}): Promise<Sa
     EVENT_MEMORY_DB: join(databases, 'event-memory.sqlite'),
     EVIDENCE_DB: join(databases, 'evidence.sqlite'),
     GLOBAL_KNOWLEDGE_DB: join(databases, 'global-knowledge.sqlite'),
+    HOME: home,
     LISTEN_MODE_DB: join(databases, 'listen-mode.sqlite'),
     LOCALAPPDATA: localAppData,
     LOG_DIR: logs,
@@ -238,6 +245,7 @@ function assertSandboxedEnvironment(sandbox: Sandbox): void {
     'EVENT_MEMORY_DB',
     'EVIDENCE_DB',
     'GLOBAL_KNOWLEDGE_DB',
+    'HOME',
     'LISTEN_MODE_DB',
     'LOCALAPPDATA',
     'LOG_DIR',
@@ -378,9 +386,6 @@ function waitForListening(child: ChildProcess, output: () => string): Promise<st
 
 async function startMemoryApi(t: TestContext, options: StartOptions = {}): Promise<StartedApi> {
   const sandbox = await createSandbox(options.environment);
-  options.onSandboxCreated?.(sandbox.root);
-  assertSandboxedEnvironment(sandbox);
-
   let child: ChildProcess | undefined;
   let cleaned = false;
   const cleanup = async () => {
@@ -394,6 +399,9 @@ async function startMemoryApi(t: TestContext, options: StartOptions = {}): Promi
   t.after(cleanup);
 
   try {
+    await options.prepareSandbox?.(sandbox);
+    options.onSandboxCreated?.(sandbox.root);
+    assertSandboxedEnvironment(sandbox);
     const startedChild = spawn(process.execPath, [join(API_ROOT, 'dist', 'index.js')], {
       cwd: sandbox.workspace,
       env: sandbox.environment,
@@ -413,6 +421,139 @@ async function startMemoryApi(t: TestContext, options: StartOptions = {}): Promi
     await cleanup();
     throw error;
   }
+}
+
+async function installDeterministicCodexTransport(sandbox: Sandbox): Promise<void> {
+  const bin = join(sandbox.root, 'fake-codex-bin');
+  // Keep fixture inputs beside the executable. CodexAgentService intentionally
+  // constructs a constrained child environment, so arbitrary parent-only test
+  // variables are not a reliable transport contract.
+  const domainsPath = join(bin, 'recorded-domains.json');
+  const generatedFixturePath = join(bin, 'generated-preview.png');
+  const scriptPath = join(bin, 'f317-fake-codex.mjs');
+  const commandPath = join(bin, 'codex.cmd');
+  const domains = garment();
+  const firstPocket = domains.pocket.components[0];
+  assert.ok(firstPocket, 'the recorded garment must include a pocket fixture');
+  const sourcePocket = structuredClone(firstPocket);
+  sourcePocket.partId = 'pocket-left';
+  sourcePocket.label = 'image-left pocket';
+  sourcePocket.attributes = { ...sourcePocket.attributes, side: 'left' };
+  const siblingPocket = structuredClone(sourcePocket);
+  siblingPocket.partId = 'pocket-right';
+  siblingPocket.label = 'image-right pocket';
+  siblingPocket.attributes = { ...siblingPocket.attributes, side: 'right' };
+  domains.pocket.components = [sourcePocket, siblingPocket];
+
+  await mkdir(bin, { recursive: true });
+  await writeFile(domainsPath, JSON.stringify(domains));
+  await writeFile(generatedFixturePath, await validPng());
+  await writeFile(
+    scriptPath,
+    String.raw`import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+const prompt = await new Promise((resolve, reject) => {
+  let text = '';
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (chunk) => { text += chunk; });
+  process.stdin.once('end', () => resolve(text));
+  process.stdin.once('error', reject);
+});
+const marker = '\nINPUT_JSON\n';
+const index = prompt.lastIndexOf(marker);
+if (index === -1) throw new Error('missing INPUT_JSON');
+const input = JSON.parse(prompt.slice(index + marker.length));
+const emit = (event) => process.stdout.write(JSON.stringify(event) + '\n');
+const replaceSourceAsset = (value, assetId) => {
+  if (Array.isArray(value)) return value.map((item) => replaceSourceAsset(item, assetId));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replaceSourceAsset(item, assetId)]));
+  }
+  return value === 'source-front' ? assetId : value;
+};
+const sessionId = prompt.includes('TASK: PREVIEW')
+  ? 'f317-transport-preview'
+  : prompt.includes('TASK: VALIDATE_PREVIEW')
+    ? 'f317-transport-validation'
+    : 'f317-transport-analysis';
+emit({ type: 'thread.started', thread_id: sessionId });
+
+let result;
+if (prompt.includes('TASK: ANALYZE')) {
+  const fixture = JSON.parse(await readFile(new URL('./recorded-domains.json', import.meta.url), 'utf8'));
+  result = replaceSourceAsset(fixture, input.sources[0].assetId);
+} else if (prompt.includes('TASK: PREVIEW')) {
+  result = {
+    components: input.targetDomain.components.map((part) =>
+      input.targetPartIds.includes(part.partId)
+        ? { ...part, attributes: { ...part.attributes, color: 'cobalt blue' } }
+        : part,
+    ),
+    affectedPartIds: input.targetPartIds,
+    protectedDriftPartIds: [],
+  };
+  const imageDir = join(process.env.USERPROFILE, '.codex', 'generated_images', sessionId);
+  await mkdir(imageDir, { recursive: true });
+  await writeFile(
+    join(imageDir, 'generated.png'),
+    await readFile(new URL('./generated-preview.png', import.meta.url)),
+  );
+} else if (prompt.includes('TASK: VALIDATE_PREVIEW')) {
+  result = { affectedPartIds: input.targetPartIds, protectedDriftPartIds: [] };
+} else {
+  throw new Error('unexpected fashion task');
+}
+
+emit({ type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(result) } });
+emit({ type: 'turn.completed', status: 'completed' });
+`,
+  );
+  // Use the npm-shim `%~dp0\\script` convention so the Windows spawn layer
+  // resolves this test-only .cmd to its Node script and never shell-parses the
+  // production prompt.
+  await writeFile(commandPath, `@echo off\r\n"${process.execPath}" "%~dp0\\f317-fake-codex.mjs" %*\r\n`);
+  assert.equal(parseShimFile(commandPath), scriptPath, 'the fake Codex shim must resolve without a shell');
+  assert.ok(resolveWindowsShimSpawn(commandPath, []), 'the fake Codex shim needs a direct Node spawn plan');
+  // A fresh runtime catalog seeds exactly one configured breed. Select the
+  // OpenAI member for this transport fixture so the real root composition
+  // constructs the Codex service instead of returning provider_unavailable.
+  sandbox.environment.DEFAULT_CAT_ID = 'codex';
+  sandbox.environment.PATH = `${bin};${sandbox.environment.PATH ?? ''}`;
+}
+
+async function installSandboxCliConfigFixture(sandbox: Sandbox): Promise<void> {
+  const capabilitiesDir = join(sandbox.workspace, '.cat-cafe');
+  const claudeConfigPath = join(sandbox.root, 'home', '.claude.json');
+  await mkdir(capabilitiesDir, { recursive: true });
+  await writeFile(
+    join(capabilitiesDir, 'capabilities.json'),
+    JSON.stringify({
+      version: 1,
+      capabilities: [
+        {
+          id: 'resolver-backed',
+          type: 'mcp',
+          enabled: true,
+          source: 'external',
+          mcpServer: { command: 'node', args: ['resolver.js'], resolver: 'test-resolver' },
+        },
+      ],
+    }),
+  );
+  await writeFile(
+    claudeConfigPath,
+    JSON.stringify({
+      projects: {
+        [sandbox.workspace]: {
+          mcpServers: {
+            'resolver-backed': { command: 'stale-resolver', args: [] },
+            preserved: { command: 'keep', args: [] },
+          },
+        },
+      },
+    }),
+  );
 }
 
 async function startApiInSandbox(sandbox: Sandbox): Promise<StartedApi> {
@@ -440,10 +581,18 @@ async function startApiInSandbox(sandbox: Sandbox): Promise<StartedApi> {
   }
 }
 
-const png = Buffer.from(
+const malformedPng = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=',
   'base64',
 );
+
+async function validPng(): Promise<Buffer> {
+  return sharp({
+    create: { width: 8, height: 8, channels: 4, background: { r: 200, g: 200, b: 200, alpha: 1 } },
+  })
+    .png()
+    .toBuffer();
+}
 
 async function createThread(origin: string): Promise<{ id: string }> {
   const response = await fetch(`${origin}/api/threads`, {
@@ -465,7 +614,7 @@ async function uploadDesign(
     Buffer.from(
       `--${boundary}\r\nContent-Disposition: form-data; name="threadId"\r\n\r\n${threadId}\r\n--${boundary}\r\nContent-Disposition: form-data; name="title"\r\n\r\nDurable jacket\r\n--${boundary}\r\nContent-Disposition: form-data; name="front"; filename="jacket.png"\r\nContent-Type: image/png\r\n\r\n`,
     ),
-    png,
+    await validPng(),
     Buffer.from(`\r\n--${boundary}--\r\n`),
   ]);
   const response = await fetch(`${origin}/api/fashion-designs`, {
@@ -479,6 +628,155 @@ async function uploadDesign(
   const text = await response.text();
   assert.equal(response.status, 201, text);
   return (JSON.parse(text) as { design: { id: string; sourceAssetIdsByView: { front: string } } }).design;
+}
+
+async function expectJson<T>(response: Response, status: number, logs: string): Promise<T> {
+  const text = await response.text();
+  assert.equal(response.status, status, `${text}\n${logs}`);
+  return JSON.parse(text) as T;
+}
+
+async function pollProposal(
+  origin: string,
+  designId: string,
+  proposalId: string,
+  logs: () => string,
+): Promise<{ candidateVersionId?: string; status: string }> {
+  const deadline = Date.now() + 20_000;
+  for (;;) {
+    const result = await expectJson<{ candidateVersionId?: string; status: string }>(
+      await fetch(`${origin}/api/fashion-designs/${designId}/edit-proposals/${proposalId}`, {
+        headers: { 'x-cat-cafe-user': 'entrypoint-owner' },
+      }),
+      200,
+      logs(),
+    );
+    if (result.status !== 'queued' && result.status !== 'generating') return result;
+    if (Date.now() >= deadline) throw new Error(`F317 preview did not settle:\n${logs()}`);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+type F317Journey = {
+  designId: string;
+  flatArtifactId: string;
+  restoredVersionId: string;
+  snapshotId: string;
+  threadId: string;
+};
+
+/**
+ * Exercise the product through the compiled API composition root. The model
+ * transport may be deterministic, but every HTTP route, worker, store,
+ * publication and renderer is the production implementation.
+ */
+async function runF317Journey(api: StartedApi): Promise<F317Journey> {
+  const thread = await createThread(api.origin);
+  const design = await uploadDesign(api.origin, thread.id);
+  const headers = { 'content-type': 'application/json', 'x-cat-cafe-user': 'entrypoint-owner' };
+  const baseUrl = `${api.origin}/api/fashion-designs/${design.id}`;
+
+  const analyzed = await expectJson<{
+    version: { id: string; domains: Record<string, { components: Array<{ partHash: string; partId: string }> }> };
+  }>(await fetch(`${baseUrl}/analysis`, { method: 'POST', headers, body: '{}' }), 201, api.output());
+  const original = analyzed.version;
+  const confirmation = await expectJson<{ version: { id: string } }>(
+    await fetch(`${baseUrl}/confirmations`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        baseVersionId: original.id,
+        parts: Object.values(original.domains).flatMap((domain) =>
+          domain.components.map((part) => ({
+            partId: part.partId,
+            partHash: part.partHash,
+            evidenceOrigin: 'photo',
+          })),
+        ),
+      }),
+    }),
+    200,
+    api.output(),
+  );
+  const confirmed = confirmation.version;
+
+  const created = await expectJson<{ proposalId: string }>(
+    await fetch(`${baseUrl}/edit-proposals`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        baseVersionId: confirmed.id,
+        targetDomainId: 'pocket',
+        targetPartIds: ['pocket-left'],
+        instruction: 'Make only the image-left pocket cobalt blue',
+        idempotencyKey: 'f317-entrypoint-left-pocket',
+      }),
+    }),
+    202,
+    api.output(),
+  );
+  const preview = await pollProposal(api.origin, design.id, created.proposalId, api.output);
+  assert.equal(preview.status, 'ready', api.output());
+  assert.ok(preview.candidateVersionId);
+
+  const candidateState = await expectJson<{
+    versions: Record<
+      string,
+      { domains: { pocket: { components: Array<{ attributes: Record<string, unknown>; partId: string }> } } }
+    >;
+  }>(await fetch(baseUrl, { headers: { 'x-cat-cafe-user': 'entrypoint-owner' } }), 200, api.output());
+  const candidatePockets = candidateState.versions[preview.candidateVersionId].domains.pocket.components;
+  assert.equal(candidatePockets.find((part) => part.partId === 'pocket-left')?.attributes.color, 'cobalt blue');
+  assert.equal(candidatePockets.find((part) => part.partId === 'pocket-right')?.attributes.color, undefined);
+
+  const adopted = await expectJson<{ version: { id: string } }>(
+    await fetch(`${baseUrl}/edit-proposals/${created.proposalId}/decision`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ baseVersionId: confirmed.id, decision: 'accept' }),
+    }),
+    200,
+    api.output(),
+  );
+  const restored = await expectJson<{ version: { id: string; restoredFromVersionId: string } }>(
+    await fetch(`${baseUrl}/restore`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ baseVersionId: adopted.version.id, sourceVersionId: confirmed.id }),
+    }),
+    200,
+    api.output(),
+  );
+  assert.equal(restored.version.restoredFromVersionId, confirmed.id);
+
+  const snapshot = await expectJson<{ snapshot: { id: string; versionId: string } }>(
+    await fetch(`${baseUrl}/confirmed-snapshots`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ baseVersionId: restored.version.id, view: 'front' }),
+    }),
+    201,
+    api.output(),
+  );
+  assert.equal(snapshot.snapshot.versionId, restored.version.id);
+  const flat = await expectJson<{ artifact: { id: string; pngAssetId: string; svgAssetId: string } }>(
+    await fetch(`${baseUrl}/technical-flats`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ confirmedSnapshotId: snapshot.snapshot.id }),
+    }),
+    201,
+    api.output(),
+  );
+  assert.ok(flat.artifact.pngAssetId);
+  assert.ok(flat.artifact.svgAssetId);
+  return {
+    designId: design.id,
+    flatArtifactId: flat.artifact.id,
+    restoredVersionId: restored.version.id,
+    snapshotId: snapshot.snapshot.id,
+    threadId: thread.id,
+  };
 }
 
 describe('F317 application entrypoint storage modes', () => {
@@ -498,6 +796,53 @@ describe('F317 application entrypoint storage modes', () => {
     },
   );
 
+  it(
+    'rejects a PNG with a valid signature but undecodable payload at the upload boundary',
+    { timeout: 45_000 },
+    async (t) => {
+      const api = await startMemoryApi(t);
+      const thread = await createThread(api.origin);
+      const boundary = 'f317-malformed-upload-boundary';
+      const body = Buffer.concat([
+        Buffer.from(
+          `--${boundary}\r\nContent-Disposition: form-data; name="threadId"\r\n\r\n${thread.id}\r\n--${boundary}\r\nContent-Disposition: form-data; name="title"\r\n\r\nMalformed jacket\r\n--${boundary}\r\nContent-Disposition: form-data; name="front"; filename="malformed.png"\r\nContent-Type: image/png\r\n\r\n`,
+        ),
+        malformedPng,
+        Buffer.from(`\r\n--${boundary}--\r\n`),
+      ]);
+      const response = await fetch(`${api.origin}/api/fashion-designs`, {
+        method: 'POST',
+        headers: {
+          'content-type': `multipart/form-data; boundary=${boundary}`,
+          'x-cat-cafe-user': 'entrypoint-owner',
+        },
+        body,
+      });
+      const result = (await response.json()) as { error?: string };
+      assert.equal(response.status, 400, api.output());
+      assert.equal(result.error, 'invalid_image_content', api.output());
+    },
+  );
+
+  it('keeps startup CLI configuration writes inside its explicit sandbox profile', { timeout: 45_000 }, async (t) => {
+    const api = await startMemoryApi(t, { prepareSandbox: installSandboxCliConfigFixture });
+    const claudeConfigPath = join(api.root, 'home', '.claude.json');
+    const deadline = Date.now() + 10_000;
+    for (;;) {
+      const config = JSON.parse(await (await import('node:fs/promises')).readFile(claudeConfigPath, 'utf8')) as {
+        projects: Record<string, { mcpServers: Record<string, unknown> }>;
+      };
+      if (config.projects[api.workspace]?.mcpServers['resolver-backed'] === undefined) {
+        assert.deepEqual(config.projects[api.workspace]?.mcpServers.preserved, { command: 'keep', args: [] });
+        break;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`sandbox CLI config cleanup did not complete:\n${api.output()}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  });
+
   it('cleans its owned child and sandbox when startup fails', { timeout: 45_000 }, async (t) => {
     let sandboxRoot: string | undefined;
     await assert.rejects(
@@ -514,8 +859,31 @@ describe('F317 application entrypoint storage modes', () => {
     assert.equal(existsSync(sandboxRoot), false, 'failed startup must clean its sandbox immediately');
   });
 
+  it('cleans its sandbox when setup fails before a child process is spawned', { timeout: 45_000 }, async (t) => {
+    let sandboxRoot: string | undefined;
+    t.after(async () => {
+      // The assertion below is intentionally red until startMemoryApi registers
+      // its own cleanup before executing the setup callback. This fallback only
+      // removes the sandbox created by this test if the regression is present.
+      if (sandboxRoot) await rm(sandboxRoot, { force: true, recursive: true });
+    });
+
+    await assert.rejects(
+      () =>
+        startMemoryApi(t, {
+          onSandboxCreated: (root) => {
+            sandboxRoot = root;
+            throw new Error('intentional setup failure');
+          },
+        }),
+      /intentional setup failure/,
+    );
+    assert.ok(sandboxRoot, 'the test must create its own sandbox before setup');
+    assert.equal(existsSync(sandboxRoot), false, 'setup failure must clean its sandbox immediately');
+  });
+
   it(
-    'persists an uploaded design through actual API and owned Redis restarts',
+    'persists a complete F317 journey through actual API and owned Redis restarts',
     { skip: process.env.FASHION_REDIS_TEST !== '1', timeout: 90_000 },
     async (t) => {
       const port = await reserveLoopbackPort();
@@ -539,11 +907,9 @@ describe('F317 application entrypoint storage modes', () => {
       });
 
       redis = await startOwnedRedis(sandbox, port);
+      await installDeterministicCodexTransport(sandbox);
       firstApi = await startApiInSandbox(sandbox);
-      const thread = await createThread(firstApi.origin);
-      const uploaded = await uploadDesign(firstApi.origin, thread.id);
-      assert.ok(uploaded.id);
-      assert.ok(uploaded.sourceAssetIdsByView.front);
+      const journey = await runF317Journey(firstApi);
 
       await redis.save();
       await firstApi.stop();
@@ -551,16 +917,29 @@ describe('F317 application entrypoint storage modes', () => {
 
       redis = await startOwnedRedis(sandbox, port);
       secondApi = await startApiInSandbox(sandbox);
-      const response = await fetch(`${secondApi.origin}/api/fashion-designs/${uploaded.id}`, {
+      const response = await fetch(`${secondApi.origin}/api/fashion-designs/${journey.designId}`, {
         headers: { 'x-cat-cafe-user': 'entrypoint-owner' },
       });
       const body = (await response.json()) as {
-        design?: { id: string; threadId: string; sourceAssetIdsByView: { front: string } };
+        design?: { activeVersionId: string | null; id: string; threadId: string };
+        snapshots?: Record<string, { id: string; versionId: string }>;
+        technicalFlats?: Record<string, { confirmedSnapshotId: string; id: string }>;
       };
       assert.equal(response.status, 200, secondApi.output());
-      assert.equal(body.design?.id, uploaded.id);
-      assert.equal(body.design?.threadId, thread.id);
-      assert.equal(body.design?.sourceAssetIdsByView.front, uploaded.sourceAssetIdsByView.front);
+      assert.equal(body.design?.id, journey.designId);
+      assert.equal(body.design?.threadId, journey.threadId);
+      assert.equal(body.design?.activeVersionId, journey.restoredVersionId);
+      assert.equal(body.snapshots?.[journey.snapshotId]?.versionId, journey.restoredVersionId);
+      assert.equal(body.technicalFlats?.[journey.flatArtifactId]?.confirmedSnapshotId, journey.snapshotId);
+    },
+  );
+
+  it(
+    'runs the full F317 journey through the real application entrypoint with an isolated Codex transport fixture',
+    { timeout: 90_000 },
+    async (t) => {
+      const api = await startMemoryApi(t, { prepareSandbox: installDeterministicCodexTransport });
+      await runF317Journey(api);
     },
   );
 });

@@ -10,6 +10,14 @@ import {
   writeCapabilitiesConfig,
 } from './capability-orchestrator.js';
 
+function resolveCliConfigHome(env: NodeJS.ProcessEnv): string {
+  // `homedir()` reads the host process environment. Startup callers that pass
+  // an isolated environment (including the real entrypoint test) must be able
+  // to keep persistent CLI configuration inside that same sandbox.
+  const configuredHome = (process.platform === 'win32' ? env.USERPROFILE : env.HOME) ?? env.HOME ?? env.USERPROFILE;
+  return configuredHome?.trim() || homedir();
+}
+
 export interface StartupCliConfigContext {
   projectRoot: string;
   paths: CliConfigPaths;
@@ -31,7 +39,7 @@ export function resolveStartupCliConfigContext(
     projectRoot,
     paths: {
       google: join(projectRoot, '.gemini', 'settings.json'),
-      antigravity: join(homedir(), '.gemini', 'antigravity', 'mcp_config.json'),
+      antigravity: join(resolveCliConfigHome(env), '.gemini', 'antigravity', 'mcp_config.json'),
     },
   };
 }
@@ -55,7 +63,10 @@ export async function regenerateStartupCliConfigs(
       await writeCapabilitiesConfig(projectRoot, config);
     }
 
-    await generateCliConfigs(config, paths, projectRoot);
+    await generateCliConfigs(config, paths, projectRoot, {
+      cliConfigHome: resolveCliConfigHome(env),
+      env,
+    });
     return { projectRoot, generated: true, healed: healed.migrated };
   });
 }

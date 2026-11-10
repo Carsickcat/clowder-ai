@@ -587,6 +587,39 @@ export async function* spawnCli(
   /** F212 Phase H cloud R5 P2: chronological last terminal signal (defeats sticky abort). */
   let localFinalTerminal: 'completed' | 'failed' | null = null;
 
+  // A semantic completion belongs to the provider protocol, not to stdio. Some
+  // Windows wrappers leave stdout open after emitting `turn.completed`; waiting
+  // only on `ndjson.next()` then turns an already-finished invocation into the
+  // caller's full response timeout. Keep consuming a short trailing window for
+  // a chronologically later `turn.failed`, but bound that window independently
+  // of stdout close.
+  let semanticCompletionGraceElapsed = false;
+  let semanticCompletionGraceTimer: ReturnType<typeof setTimeout> | undefined;
+  let resolveSemanticCompletionGrace!: () => void;
+  const semanticCompletionGracePromise = new Promise<void>((resolve) => {
+    resolveSemanticCompletionGrace = resolve;
+  });
+  const armSemanticCompletionGrace = (): void => {
+    if (semanticCompletionGraceTimer !== undefined || semanticCompletionGraceElapsed) return;
+    semanticCompletionGraceTimer = setTimeout(() => {
+      semanticCompletionGraceTimer = undefined;
+      semanticCompletionGraceElapsed = true;
+      resolveSemanticCompletionGrace();
+    }, SEMANTIC_COMPLETION_GRACE_MS);
+    semanticCompletionGraceTimer.unref();
+  };
+  const semanticCompletionHandler = (): void => armSemanticCompletionGrace();
+  if (options.semanticCompletionSignal) {
+    if (options.semanticCompletionSignal.aborted) {
+      semanticCompletionHandler();
+    } else {
+      options.semanticCompletionSignal.addEventListener('abort', semanticCompletionHandler, { once: true });
+    }
+  }
+  const semanticCompletionGraceRace = semanticCompletionGracePromise.then(() => ({
+    source: 'semantic_completion_grace' as const,
+  }));
+
   // F118 Phase B: Initialize liveness probe
   if (options.livenessProbe && child.pid !== undefined) {
     probe = new ProcessLivenessProbe(child.pid, options.livenessProbe);
@@ -743,13 +776,18 @@ export async function* spawnCli(
           ? await Promise.race([
               ndjsonRace,
               terminationCommittedRace,
+              semanticCompletionGraceRace,
               new Promise<{ source: 'probe' }>((resolve) => {
                 const pollMs = Math.min(probe.config.sampleIntervalMs, livenessWarningDrainIntervalMs);
                 raceTimer = setTimeout(() => resolve({ source: 'probe' }), pollMs);
               }),
             ])
-          : await Promise.race([ndjsonRace, terminationCommittedRace]);
+          : await Promise.race([ndjsonRace, terminationCommittedRace, semanticCompletionGraceRace]);
         if (raceTimer !== undefined) clearTimeout(raceTimer);
+
+        if (raceResult.source === 'semantic_completion_grace') {
+          break;
+        }
 
         if (raceResult.source === 'termination') {
           terminationStreamDrainDeadline ??= Date.now() + TERMINATION_STDIO_DRAIN_GRACE_MS;
@@ -852,7 +890,7 @@ export async function* spawnCli(
         // Healthy completion still waits for close so trailing stderr is not truncated.
         await closePromise;
       }
-    } else if (!childClosed) {
+    } else if (!childClosed && !semanticCompletionGraceElapsed) {
       // Grace period: give the process time to exit naturally before force-killing.
       // If it exits within grace, great; if not, killChild() in finally will clean up.
       await Promise.race([closePromise, new Promise<void>((r) => setTimeout(r, SEMANTIC_COMPLETION_GRACE_MS).unref())]);
@@ -1074,6 +1112,10 @@ export async function* spawnCli(
     }
   } finally {
     if (timeoutTimer) clearTimeout(timeoutTimer);
+    if (semanticCompletionGraceTimer !== undefined) clearTimeout(semanticCompletionGraceTimer);
+    if (options.semanticCompletionSignal) {
+      options.semanticCompletionSignal.removeEventListener('abort', semanticCompletionHandler);
+    }
     if (options.signal) {
       options.signal.removeEventListener('abort', abortHandler);
     }

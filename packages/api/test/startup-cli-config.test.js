@@ -9,6 +9,7 @@ const { regenerateStartupCliConfigs, resolveStartupCliConfigContext } = await im
   '../dist/config/capabilities/startup-cli-config.js'
 );
 const { withCapabilityLock } = await import('../dist/config/capabilities/capability-orchestrator.js');
+const { catRegistry } = await import('@cat-cafe/shared');
 
 describe('resolveStartupCliConfigContext', () => {
   it('uses the monorepo root when the API process cwd is packages/api', async () => {
@@ -18,7 +19,7 @@ describe('resolveStartupCliConfigContext', () => {
     await writeFile(join(root, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n');
 
     try {
-      const context = resolveStartupCliConfigContext(apiCwd);
+      const context = resolveStartupCliConfigContext(apiCwd, {});
 
       assert.equal(context.projectRoot, root);
       assert.equal(context.paths.anthropic, undefined, 'claude uses invoke-time --mcp-config');
@@ -55,6 +56,29 @@ describe('resolveStartupCliConfigContext', () => {
     }
   });
 
+  it('uses an explicit sandbox user profile for the Antigravity config target', async () => {
+    const root = join(tmpdir(), `cat-cafe-startup-config-sandbox-${Date.now()}`);
+    const home = join(root, 'home');
+    const apiCwd = join(root, 'packages', 'api');
+    await mkdir(home, { recursive: true });
+    await mkdir(apiCwd, { recursive: true });
+    await writeFile(join(root, 'pnpm-workspace.yaml'), 'packages:\n  - packages/*\n');
+
+    try {
+      const context = resolveStartupCliConfigContext(apiCwd, {
+        CAT_CAFE_WORKSPACE_ROOT: root,
+        HOME: home,
+        USERPROFILE: home,
+      });
+
+      assert.equal(context.projectRoot, root);
+      assert.equal(context.paths.google, join(root, '.gemini', 'settings.json'));
+      assert.equal(context.paths.antigravity, join(home, '.gemini', 'antigravity', 'mcp_config.json'));
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('regenerates workspace CLI configs with runtime MCP binaries and workspace env', async () => {
     const root = join(tmpdir(), `cat-cafe-startup-regenerate-workspace-${Date.now()}`);
     const runtime = join(tmpdir(), `cat-cafe-startup-regenerate-runtime-${Date.now()}`);
@@ -85,7 +109,22 @@ describe('resolveStartupCliConfigContext', () => {
     const originalAwd = process.env.ALLOWED_WORKSPACE_DIRS;
     const originalWorkspace = process.env.CAT_CAFE_WORKSPACE_ROOT;
     const originalRuntime = process.env.CAT_CAFE_RUNTIME_ROOT;
+    const originalRegistry = catRegistry.getAllConfigs();
     try {
+      catRegistry.reset();
+      catRegistry.register('startup-google', {
+        id: 'startup-google',
+        name: 'Startup Google',
+        displayName: 'Startup Google',
+        avatar: 'cat',
+        color: 'blue',
+        mentionPatterns: ['@startup-google'],
+        clientId: 'google',
+        defaultModel: 'test',
+        mcpSupport: true,
+        roleDescription: 'test fixture',
+        personality: 'test fixture',
+      });
       delete process.env.ALLOWED_WORKSPACE_DIRS;
       process.env.CAT_CAFE_WORKSPACE_ROOT = root;
       process.env.CAT_CAFE_RUNTIME_ROOT = runtime;
@@ -116,6 +155,8 @@ describe('resolveStartupCliConfigContext', () => {
       else process.env.CAT_CAFE_WORKSPACE_ROOT = originalWorkspace;
       if (originalRuntime === undefined) delete process.env.CAT_CAFE_RUNTIME_ROOT;
       else process.env.CAT_CAFE_RUNTIME_ROOT = originalRuntime;
+      catRegistry.reset();
+      for (const [id, config] of Object.entries(originalRegistry)) catRegistry.register(id, config);
       await rm(root, { recursive: true, force: true });
       await rm(runtime, { recursive: true, force: true });
     }

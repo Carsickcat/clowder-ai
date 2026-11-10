@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { it, type TestContext } from 'node:test';
 import cookie from '@fastify/cookie';
 import Fastify from 'fastify';
+import sharp from 'sharp';
 import { FashionDesignService } from '../../src/domains/fashion/FashionDesignService.js';
 import { MemoryFashionDesignStore } from '../../src/domains/fashion/FashionDesignStore.js';
 import { sessionAuthPlugin, sessionRoute } from '../../src/infrastructure/session-auth.js';
@@ -12,10 +13,13 @@ import { fashionDesignRoutes } from '../../src/routes/fashion-designs.js';
 import { garment } from './fixtures.js';
 
 const headers = { 'x-cat-cafe-user': 'owner' };
-const png = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Zl1sAAAAASUVORK5CYII=',
-  'base64',
-);
+// This is deliberately decoded by the production upload boundary. Generate a
+// bona fide image rather than relying on a signature-only byte fixture.
+const png = await sharp({
+  create: { width: 8, height: 8, channels: 4, background: { r: 200, g: 200, b: 200, alpha: 1 } },
+})
+  .png()
+  .toBuffer();
 function form(image = png, threadId = 'thread-1') {
   const boundary = 'fashion-test-boundary';
   return {

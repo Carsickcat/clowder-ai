@@ -130,7 +130,8 @@ export function extractBareName(command: string): string {
 /**
  * Try to extract an entry script from a .cmd shim file by parsing its content.
  * Handles both relative (%~dp0, %dp0, %dp0%) and absolute (%APPDATA%, etc.) paths.
- * Prefers .js matches, falls back to extensionless entrypoints, then native .exe entrypoints.
+ * Prefers Node script matches (.js, .mjs, .cjs), falls back to extensionless
+ * entrypoints, then native .exe entrypoints.
  */
 export function parseShimFile(cmdPath: string): string | null {
   if (!existsSync(cmdPath)) return null;
@@ -155,7 +156,10 @@ export function parseShimFile(cmdPath: string): string | null {
   }
 
   for (const scriptPath of candidates) {
-    if (/\.js$/i.test(scriptPath) && existsSync(scriptPath)) return scriptPath;
+    // Modern npm CLIs may publish their executable entry as ESM (`.mjs`) or
+    // CommonJS (`.cjs`), not only `.js`. Treat all Node script extensions as
+    // direct-spawnable so a multi-line prompt never falls through to cmd/bash.
+    if (/\.(?:[cm]?js)$/i.test(scriptPath) && existsSync(scriptPath)) return scriptPath;
   }
 
   for (const scriptPath of candidates) {
